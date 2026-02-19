@@ -1,0 +1,11 @@
+﻿*.user
+.vs/
+.vscode/
+bin/
+obj/
+node_modules/
+dist/
+secrets.json
+appsettings.Development.json
+*.swp
+.env
