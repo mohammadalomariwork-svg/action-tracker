@@ -9,3 +9,4 @@ secrets.json
 appsettings.Development.json
 *.swp
 .env
+.aider*
