@@ -414,7 +414,7 @@ FodyWeavers.xsd
 .idea/
 
 ## Secrets and sensitive data
-appsettings.Development.json
+appsettings.Production.json
 appsettings.Local.json
 secrets.json
 *.pfx
