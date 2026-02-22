@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
+using ActionTracker.Application.Features.ActionItems.Mappers;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
@@ -230,27 +231,6 @@ public class ActionItemService : IActionItemService
         return overdueItems.Count;
     }
 
-    // -------------------------------------------------------------------------
-    // Mapping
-    // -------------------------------------------------------------------------
-
-    private static ActionItemResponseDto MapToDto(ActionItem item) => new()
-    {
-        Id            = item.Id,
-        ActionId      = item.ActionId,
-        Title         = item.Title,
-        Description   = item.Description,
-        AssigneeId    = item.AssigneeId,
-        Category      = item.Category,
-        Priority      = item.Priority,
-        Status        = item.Status,
-        DueDate       = item.DueDate,
-        Progress      = item.Progress,
-        IsEscalated   = item.IsEscalated,
-        Notes         = item.Notes,
-        CreatedAt     = item.CreatedAt,
-        UpdatedAt     = item.UpdatedAt,
-        AssigneeName  = item.Assignee?.FullName ?? string.Empty,
-        AssigneeEmail = item.Assignee?.Email    ?? string.Empty,
-    };
+    private static ActionItemResponseDto MapToDto(ActionItem item) =>
+        ActionItemMapper.ToDto(item);
 }
