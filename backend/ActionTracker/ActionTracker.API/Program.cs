@@ -92,15 +92,15 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    if (app.Environment.IsDevelopment())
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(options =>
-        {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "Action Tracker API v1");
-            options.RoutePrefix = "swagger";
-        });
-    }
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Action Tracker API v1");
+        options.RoutePrefix = "swagger";
+    });
+
+    // Redirect root to Swagger UI so opening the app shows the API docs
+    app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
     app.MapControllers();
 
