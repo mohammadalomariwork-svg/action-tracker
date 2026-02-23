@@ -105,6 +105,15 @@ try
     app.MapControllers();
 
     // -----------------------------------------------------------------------
+    // Auto-migrate: create / update the database schema on startup
+    // -----------------------------------------------------------------------
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+    }
+
+    // -----------------------------------------------------------------------
     // Database seeding — create roles and default admin user if absent
     // -----------------------------------------------------------------------
     using (var scope = app.Services.CreateScope())
