@@ -165,3 +165,6 @@ finally
 {
     await Log.CloseAndFlushAsync();
 }
+
+// Expose Program to the test project for WebApplicationFactory<Program>
+public partial class Program { }
