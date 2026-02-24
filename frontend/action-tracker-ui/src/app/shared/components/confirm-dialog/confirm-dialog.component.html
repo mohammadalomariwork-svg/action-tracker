@@ -1,0 +1,31 @@
+<div #modalEl class="modal fade" tabindex="-1" role="dialog" aria-modal="true" [attr.aria-labelledby]="'confirmTitle'">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content dialog-card">
+
+      <div class="dialog-header" [class.dialog-header--danger]="danger()">
+        <h5 class="dialog-title" id="confirmTitle">{{ title() }}</h5>
+        <button type="button" class="btn-close-custom" (click)="onCancel()" aria-label="Close">&#x2715;</button>
+      </div>
+
+      <div class="dialog-body">
+        <p class="dialog-message">{{ message() }}</p>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn btn-cancel" (click)="onCancel()">
+          {{ cancelLabel() }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          [class.btn-danger]="danger()"
+          [class.btn-primary-custom]="!danger()"
+          (click)="onConfirm()"
+        >
+          {{ confirmLabel() }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

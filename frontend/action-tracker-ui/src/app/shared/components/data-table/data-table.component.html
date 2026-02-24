@@ -1,0 +1,64 @@
+<div class="dt-wrapper">
+  <table class="dt">
+    <thead>
+      <tr>
+        @for (col of columns(); track col.key) {
+          <th
+            [style.width]="col.width || 'auto'"
+            [class.sortable]="col.sortable"
+            [class.sorted]="sortKey() === col.key"
+            (click)="toggleSort(col)"
+          >
+            <span class="th-inner">
+              {{ col.label }}
+              @if (col.sortable) {
+                <span class="sort-icon">
+                  @if (sortKey() === col.key) {
+                    {{ sortDesc() ? '↓' : '↑' }}
+                  } @else {
+                    <span class="sort-icon--idle">↕</span>
+                  }
+                </span>
+              }
+            </span>
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody>
+      <!-- Loading skeleton -->
+      @if (loading()) {
+        @for (row of skeletonRows; track $index) {
+          <tr class="skeleton-row">
+            @for (col of columns(); track col.key) {
+              <td><span class="skeleton-cell"></span></td>
+            }
+          </tr>
+        }
+      }
+
+      <!-- Data rows -->
+      @if (!loading()) {
+        @if (data().length === 0) {
+          <tr>
+            <td [attr.colspan]="columns().length" class="empty-cell">
+              <div class="empty-state">
+                <span class="empty-icon">📭</span>
+                <p class="empty-msg">{{ emptyMessage() }}</p>
+              </div>
+            </td>
+          </tr>
+        } @else {
+          @for (row of data(); track $index) {
+            <tr>
+              @for (col of columns(); track col.key) {
+                <td [innerHTML]="cellValue(row, col)"></td>
+              }
+            </tr>
+          }
+        }
+      }
+    </tbody>
+  </table>
+</div>

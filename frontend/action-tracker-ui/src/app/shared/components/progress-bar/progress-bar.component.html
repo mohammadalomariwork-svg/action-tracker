@@ -1,0 +1,14 @@
+<div class="progress-wrap">
+  <div class="progress-track">
+    <div
+      class="progress-fill"
+      [class]="colorClass()"
+      [style.width.%]="clamped()"
+      role="progressbar"
+      [attr.aria-valuenow]="clamped()"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    ></div>
+  </div>
+  <span class="progress-label">{{ clamped() }}%</span>
+</div>
