@@ -1,0 +1,127 @@
+<div class="login-page">
+
+  <!-- Left panel (desktop only) -->
+  <aside class="login-panel">
+    <div class="panel-content">
+      <div class="panel-logo">
+        <span class="panel-logo__icon">&#9881;</span>
+        <span class="panel-logo__name">Action Tracker</span>
+      </div>
+
+      <h2 class="panel-headline">
+        Driving Accountability Across Campus Operations
+      </h2>
+      <p class="panel-sub">
+        A centralised platform for the VP Office to track, escalate,
+        and report on action items across all university departments.
+      </p>
+
+      <ul class="panel-features">
+        @for (f of features; track f.text) {
+          <li class="panel-feature">
+            <span class="panel-feature__icon">{{ f.icon }}</span>
+            <span>{{ f.text }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="panel-watermark">KU · VP Office</div>
+  </aside>
+
+  <!-- Right: Login card -->
+  <main class="login-main">
+    <div class="login-card">
+
+      <!-- Mobile logo (hidden on desktop) -->
+      <div class="card-logo">
+        <span class="card-logo__icon">&#9881;</span>
+        <span class="card-logo__name">Action Tracker</span>
+      </div>
+
+      <h1 class="card-title">Sign In</h1>
+      <p class="card-sub">Enter your university credentials to continue</p>
+
+      <!-- Error banner -->
+      @if (errorMsg()) {
+        <div class="alert-error" role="alert">
+          <span class="alert-error__icon">&#9888;</span>
+          {{ errorMsg() }}
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate autocomplete="on">
+
+        <!-- Email -->
+        <div class="field">
+          <label class="field__label" for="email">Email address</label>
+          <input
+            id="email"
+            type="email"
+            class="field__input"
+            [class.field__input--error]="email.invalid && email.touched"
+            formControlName="email"
+            placeholder="you@ku.ac.ae"
+            autocomplete="email"
+          />
+          @if (email.invalid && email.touched) {
+            <span class="field__error">
+              @if (email.errors?.['required']) { Email is required. }
+              @else if (email.errors?.['email']) { Enter a valid email address. }
+            </span>
+          }
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label class="field__label" for="password">Password</label>
+          <div class="field__pwd-wrap">
+            <input
+              id="password"
+              [type]="showPwd() ? 'text' : 'password'"
+              class="field__input field__input--pwd"
+              [class.field__input--error]="password.invalid && password.touched"
+              formControlName="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="pwd-toggle"
+              (click)="togglePwd()"
+              [attr.aria-label]="showPwd() ? 'Hide password' : 'Show password'"
+            >
+              {{ showPwd() ? '🙈' : '👁' }}
+            </button>
+          </div>
+          @if (password.invalid && password.touched) {
+            <span class="field__error">
+              @if (password.errors?.['required']) { Password is required. }
+              @else if (password.errors?.['minlength']) { Password must be at least 6 characters. }
+            </span>
+          }
+        </div>
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          class="btn-submit"
+          [disabled]="loading()"
+        >
+          @if (loading()) {
+            <span class="spinner"></span>
+            Signing in…
+          } @else {
+            Sign In
+          }
+        </button>
+
+      </form>
+
+      <footer class="card-footer">
+        Khalifa University &middot; Campus Operations &amp; Service Management
+      </footer>
+    </div>
+  </main>
+
+</div>
