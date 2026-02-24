@@ -38,7 +38,7 @@ export const routes: Routes = [
         path: 'management',
         canActivate: [roleGuard(['Admin', 'Manager'])],
         loadComponent: () =>
-          import('./features/dashboard/management-dashboard/management-dashboard.component').then(
+          import('./features/management/management-dashboard/management-dashboard.component').then(
             m => m.ManagementDashboardComponent
           ),
       },
