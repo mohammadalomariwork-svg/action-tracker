@@ -1,0 +1,24 @@
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #3730a3;
+  --secondary: #7c3aed;
+  --success: #059669;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --info: #0284c7;
+  --light: #f8fafc;
+  --dark: #1e293b;
+  --bg-main: #f1f5f9;
+  --bg-card: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --border-radius: 12px;
+  --header-height: 64px;
+}
+
+$primary: #4f46e5;
+$secondary: #7c3aed;
+$font-family-base: 'Inter', 'Segoe UI', system-ui, sans-serif;
