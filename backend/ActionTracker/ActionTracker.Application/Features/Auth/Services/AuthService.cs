@@ -8,9 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
+// Alias resolves ambiguity: the new IAuthService in Features.Auth namespace
+// would shadow this one via parent-namespace lookup without the alias.
+using ILegacyAuthService = ActionTracker.Application.Features.Auth.Interfaces.IAuthService;
+
 namespace ActionTracker.Application.Features.Auth.Services;
 
-public class AuthService : IAuthService
+public class AuthService : ILegacyAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly JwtHelper _jwtHelper;

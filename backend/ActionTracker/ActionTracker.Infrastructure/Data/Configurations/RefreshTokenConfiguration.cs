@@ -19,6 +19,8 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(r => r.Token)
             .IsUnique();
 
+        builder.HasIndex(r => r.UserId);
+
         builder.HasOne(r => r.User)
             .WithMany()
             .HasForeignKey(r => r.UserId)
