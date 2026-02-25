@@ -210,6 +210,27 @@
   }
 }
 
+// ── Logout button ──────────────────────────────────────
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1px solid var(--danger, #dc2626);
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  color: var(--danger, #dc2626);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.08);
+  }
+}
+
 // ── Hamburger (mobile) ─────────────────────────────────
 .hamburger {
   display: none;
@@ -237,6 +258,10 @@
   }
 
   .user-name {
+    display: none;
+  }
+
+  .logout-label {
     display: none;
   }
 
