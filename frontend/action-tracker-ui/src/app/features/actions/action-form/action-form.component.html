@@ -89,7 +89,7 @@
               >
                 <option value="">— Select assignee —</option>
                 @for (m of teamMembers(); track m.id) {
-                  <option [value]="m.id">{{ m.fullName }} ({{ m.role }})</option>
+                  <option [value]="m.id">{{ m.fullName }} — {{ m.role }}, {{ m.department }}</option>
                 }
               </select>
               @if (isInvalid('assigneeId')) {

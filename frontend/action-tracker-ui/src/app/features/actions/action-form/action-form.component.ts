@@ -17,7 +17,7 @@ import {
   ActionItem, ActionItemCreate,
   ActionStatus, ActionPriority, ActionCategory,
 } from '../../../core/models/action-item.model';
-import { TeamMember }        from '../../../core/models/user.model';
+import { UserProfile }       from '../../../core/models/user.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   // ── State ─────────────────────────────────────────────
   readonly isEditMode   = signal(false);
   readonly editItem     = signal<ActionItem | null>(null);
-  readonly teamMembers  = signal<TeamMember[]>([]);
+  readonly teamMembers  = signal<UserProfile[]>([]);
   readonly saving       = signal(false);
   readonly loadingItem  = signal(false);
 
@@ -113,8 +113,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
-    this.userSvc.getTeamMembers().subscribe({
-      next: r => this.teamMembers.set(r.data ?? []),
+    this.userSvc.getAll().subscribe({
+      next: r => this.teamMembers.set((r.data ?? []).filter(u => u.isActive)),
       error: () => {},
     });
 
