@@ -99,7 +99,7 @@
 
       <div class="toolbar__right">
         <!-- Card/Table toggle (mobile) -->
-        <button class="btn btn-icon" (click)="cardView.update(v => !v)" [title]="cardView() ? 'Table view' : 'Card view'">
+        <button class="btn btn-icon" (click)="toggleCardView()" [title]="cardView() ? 'Table view' : 'Card view'">
           {{ cardView() ? '☰' : '⊞' }}
         </button>
       </div>

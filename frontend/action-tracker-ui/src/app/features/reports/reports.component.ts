@@ -3,6 +3,7 @@ import {
   inject, signal, computed,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
@@ -46,7 +47,7 @@ const PRIORITY_OPTIONS: { value: string; label: string }[] = [
   selector: 'app-reports',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, BaseChartDirective, PageHeaderComponent],
+  imports: [FormsModule, DecimalPipe, BaseChartDirective, PageHeaderComponent],
   templateUrl: './reports.component.html',
   styleUrl:    './reports.component.scss',
 })
@@ -87,7 +88,7 @@ export class ReportsComponent implements OnInit {
   readonly PRIORITY_OPTIONS = PRIORITY_OPTIONS;
 
   // ── Bar chart: Actions by Category ───────────────────
-  readonly barType: ChartType = 'bar';
+  readonly barType = 'bar' as const;
 
   barData: ChartData<'bar'> = {
     labels: CATEGORY_LABELS,
@@ -124,7 +125,7 @@ export class ReportsComponent implements OnInit {
   };
 
   // ── Doughnut chart: Actions by Priority ──────────────
-  readonly doughnutType: ChartType = 'doughnut';
+  readonly doughnutType = 'doughnut' as const;
 
   doughnutData: ChartData<'doughnut'> = {
     labels:   PRIORITY_LABELS,

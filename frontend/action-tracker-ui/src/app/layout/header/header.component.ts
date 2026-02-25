@@ -49,8 +49,9 @@ export class HeaderComponent {
   }
 
   @HostListener('document:click', ['$event.target'])
-  onDocumentClick(target: HTMLElement): void {
-    if (!target.closest('.nav-user') && !target.closest('.hamburger')) {
+  onDocumentClick(target: EventTarget | null): void {
+    const el = target as HTMLElement | null;
+    if (!el?.closest?.('.nav-user') && !el?.closest?.('.hamburger')) {
       this.menuOpen.set(false);
     }
   }

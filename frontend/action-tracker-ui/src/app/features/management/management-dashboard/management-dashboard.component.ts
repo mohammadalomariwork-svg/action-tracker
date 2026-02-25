@@ -64,7 +64,7 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
   readonly ActionPriority = ActionPriority;
 
   // ── Doughnut chart ────────────────────────────────────
-  readonly doughnutType: ChartType = 'doughnut';
+  readonly doughnutType = 'doughnut' as const;
 
   doughnutData: ChartData<'doughnut'> = {
     labels:   [],
@@ -89,7 +89,7 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
   };
 
   // ── Bar chart ─────────────────────────────────────────
-  readonly barType: ChartType = 'bar';
+  readonly barType = 'bar' as const;
 
   barData: ChartData<'bar'> = {
     labels:   [],

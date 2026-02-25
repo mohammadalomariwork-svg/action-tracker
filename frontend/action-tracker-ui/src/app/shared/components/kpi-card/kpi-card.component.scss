@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 $color-map: (
   'primary':  #4f46e5,
   'success':  #059669,
@@ -29,7 +31,7 @@ $color-map: (
 
 @each $name, $color in $color-map {
   .kpi-card--#{$name} .kpi-card__top-border {
-    background: linear-gradient(90deg, $color, lighten($color, 18%));
+    background: linear-gradient(90deg, $color, color.adjust($color, $lightness: 18%));
   }
   .kpi-card--#{$name} .kpi-card__icon {
     color: $color;

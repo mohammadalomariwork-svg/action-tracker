@@ -302,5 +302,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
     return `${item.daysUntilDue}d left`;
   }
 
+  toggleCardView(): void { this.cardView.update(v => !v); }
+
   trackById(_: number, item: ActionItem): number { return item.id; }
 }

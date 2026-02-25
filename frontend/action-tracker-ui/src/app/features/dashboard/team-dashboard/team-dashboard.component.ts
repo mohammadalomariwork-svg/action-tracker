@@ -3,7 +3,7 @@ import {
   inject, signal, computed,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
@@ -40,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
   selector: 'app-team-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DatePipe, BaseChartDirective, StatusBadgeComponent, PriorityBadgeComponent],
+  imports: [RouterLink, DatePipe, DecimalPipe, BaseChartDirective, StatusBadgeComponent, PriorityBadgeComponent],
   templateUrl: './team-dashboard.component.html',
   styleUrl:    './team-dashboard.component.scss',
 })
@@ -53,6 +53,10 @@ export class TeamDashboardComponent implements OnInit {
   // ── Auth state ────────────────────────────────────────
   readonly currentUser  = signal<UserInfo | null>(this.authSvc.getCurrentUser());
   readonly greeting     = signal(greeting());
+  readonly firstName    = computed(() => {
+    const name = this.currentUser()?.fullName;
+    return name ? name.split(' ')[0] : 'there';
+  });
   readonly isPrivileged = computed(() => {
     const role = this.currentUser()?.role ?? '';
     return role === 'Admin' || role === 'Manager';
@@ -102,7 +106,7 @@ export class TeamDashboardComponent implements OnInit {
   });
 
   // ── Compact horizontal bar chart ──────────────────────
-  readonly hBarType: ChartType = 'bar';
+  readonly hBarType = 'bar' as const;
 
   hBarData: ChartData<'bar'> = { labels: [], datasets: [] };
 
