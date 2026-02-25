@@ -101,7 +101,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   readonly form: FormGroup = this.fb.group({
     title:       ['', [Validators.required, Validators.maxLength(200)]],
     description: ['', [Validators.maxLength(DESC_MAX)]],
-    assigneeId:  ['', Validators.required],
+    assigneeId:  [''],
     category:    ['', Validators.required],
     priority:    ['', Validators.required],
     status:      [ActionStatus.ToDo, Validators.required],

@@ -78,23 +78,17 @@
 
             <!-- Assignee -->
             <div class="field">
-              <label class="field__label" for="assigneeId">
-                Assignee <span class="req">*</span>
-              </label>
+              <label class="field__label" for="assigneeId">Assignee</label>
               <select
                 id="assigneeId"
                 class="field__select"
-                [class.field__input--error]="isInvalid('assigneeId')"
                 formControlName="assigneeId"
               >
                 <option value="">— Select assignee —</option>
                 @for (m of teamMembers(); track m.id) {
-                  <option [value]="m.id">{{ m.fullName }} — {{ m.role }}, {{ m.department }}</option>
+                  <option [value]="m.id">{{ m.fullName }}</option>
                 }
               </select>
-              @if (isInvalid('assigneeId')) {
-                <span class="field__error">Assignee is required.</span>
-              }
             </div>
 
             <!-- Category -->
