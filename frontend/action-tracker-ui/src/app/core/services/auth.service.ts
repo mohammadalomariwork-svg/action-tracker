@@ -21,7 +21,8 @@ export class AuthService {
   readonly isAuthenticated$ = this.currentUser$.pipe(map(user => user !== null)) as Observable<boolean>;
 
   login(request: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, request).pipe(
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/login`, request).pipe(
+      map(res => res.data),
       tap(response => {
         localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
         localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
@@ -41,7 +42,8 @@ export class AuthService {
 
   refreshToken(): Observable<LoginResponse> {
     const request: RefreshTokenRequest = { refreshToken: this.getRefreshToken() ?? '' };
-    return this.http.post<LoginResponse>(`${this.apiUrl}/refresh`, request).pipe(
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/refresh`, request).pipe(
+      map(res => res.data),
       tap(response => {
         localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
         localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
