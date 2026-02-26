@@ -1,4 +1,4 @@
-// ── Page shell ────────────────────────────────────────
+// ── Page shell ─────────────────────────────────────────
 .login-page {
   display: flex;
   min-height: 100vh;
@@ -98,29 +98,29 @@
   text-transform: uppercase;
 }
 
-// ── Right / main ───────────────────────────────────────
+// ── Right / main ────────────────────────────────────────
 .login-main {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
+  background: var(--bg-main);
   padding: 2rem 1rem;
 }
 
-// ── Card ───────────────────────────────────────────────
+// ── Card ────────────────────────────────────────────────
 .login-card {
   width: 100%;
-  max-width: 420px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  max-width: 440px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   padding: 2.5rem 2.5rem 2rem;
 }
 
 .card-logo {
-  display: none; // shown only on mobile
+  display: none;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
@@ -129,29 +129,29 @@
 
 .card-logo__icon {
   font-size: 1.5rem;
-  color: #4f46e5;
+  color: var(--primary);
 }
 
 .card-logo__name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .card-title {
   margin: 0 0 0.25rem;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .card-sub {
-  margin: 0 0 1.75rem;
+  margin: 0 0 1.5rem;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
-// ── Error banner ───────────────────────────────────────
+// ── Error banner ────────────────────────────────────────
 .alert-error {
   display: flex;
   align-items: flex-start;
@@ -171,7 +171,47 @@
   font-style: normal;
 }
 
-// ── Fields ─────────────────────────────────────────────
+// ── Section headings ────────────────────────────────────
+.login-section {
+  & + .or-divider { margin-top: 1.5rem; }
+}
+
+.section-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.section-sub {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+// ── OR divider ──────────────────────────────────────────
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+  }
+}
+
+// ── Fields ──────────────────────────────────────────────
 .field {
   display: flex;
   flex-direction: column;
@@ -189,10 +229,10 @@
 .field__input {
   width: 100%;
   padding: 0.6rem 0.9rem;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border-color);
   border-radius: 10px;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--text-primary);
   background: #fff;
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
@@ -200,12 +240,12 @@
   &::placeholder { color: #94a3b8; }
 
   &:focus {
-    border-color: #4f46e5;
+    border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
   }
 
   &--error {
-    border-color: #dc2626;
+    border-color: var(--danger);
     &:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
   }
 
@@ -224,9 +264,11 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
   padding: 0;
   line-height: 1;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
   opacity: 0.7;
   transition: opacity 0.15s;
 
@@ -235,16 +277,16 @@
 
 .field__error {
   font-size: 0.75rem;
-  color: #dc2626;
+  color: var(--danger);
 }
 
-// ── Submit button ──────────────────────────────────────
+// ── Submit button ───────────────────────────────────────
 .btn-submit {
   width: 100%;
   padding: 0.7rem;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: #fff;
   font-size: 0.95rem;
   font-weight: 600;
@@ -267,7 +309,37 @@
   }
 }
 
-// ── Spinner ────────────────────────────────────────────
+// ── Microsoft button ────────────────────────────────────
+.btn-microsoft {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+// ── Spinner ─────────────────────────────────────────────
 .spinner {
   width: 16px;
   height: 16px;
@@ -276,13 +348,19 @@
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
+
+  // Dark variant for light-background buttons (Microsoft)
+  &--dark {
+    border-color: rgba(79, 70, 229, 0.25);
+    border-top-color: var(--primary);
+  }
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-// ── Card footer ────────────────────────────────────────
+// ── Card footer ─────────────────────────────────────────
 .card-footer {
   margin-top: 2rem;
   text-align: center;
@@ -292,7 +370,7 @@
   padding-top: 1.25rem;
 }
 
-// ── Responsive ────────────────────────────────────────
+// ── Responsive ──────────────────────────────────────────
 @media (max-width: 768px) {
   .login-panel {
     display: none;
@@ -300,11 +378,83 @@
 
   .login-main {
     background: linear-gradient(145deg, #3730a3 0%, #4f46e5 50%, #7c3aed 100%);
+    padding: 1.5rem 1rem;
   }
 
   .login-card {
+    padding: 2rem 1.5rem 1.75rem;
+
     .card-logo {
       display: flex;
+    }
+
+    .card-logo__icon,
+    .card-logo__name {
+      color: #fff;
+    }
+
+    .card-title,
+    .card-sub {
+      color: #fff;
+    }
+
+    .card-sub { opacity: 0.85; }
+
+    .card-footer {
+      color: rgba(255, 255, 255, 0.45);
+      border-top-color: rgba(255, 255, 255, 0.12);
+    }
+
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+    .field__label,
+    .section-title,
+    .section-sub {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .field__input {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+
+      &::placeholder { color: rgba(255, 255, 255, 0.45); }
+
+      &:focus {
+        border-color: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+      }
+
+      &--error {
+        border-color: #fca5a5;
+        &:focus { box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.2); }
+      }
+    }
+
+    .pwd-toggle { color: rgba(255, 255, 255, 0.7); }
+
+    .or-divider {
+      color: rgba(255, 255, 255, 0.6);
+      &::before, &::after { background: rgba(255, 255, 255, 0.2); }
+    }
+
+    .btn-microsoft {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255, 255, 255, 0.5);
+
+      &:hover:not(:disabled) {
+        background: #fff;
+        border-color: #fff;
+      }
+    }
+
+    .alert-error {
+      background: rgba(220, 38, 38, 0.15);
+      border-color: rgba(220, 38, 38, 0.4);
+      color: #fca5a5;
     }
   }
 }
