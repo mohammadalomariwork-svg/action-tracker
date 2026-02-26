@@ -12,7 +12,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const token = authService.getToken();
+  const token = authService.getAccessToken();
   if (!token) {
     return next(req);
   }

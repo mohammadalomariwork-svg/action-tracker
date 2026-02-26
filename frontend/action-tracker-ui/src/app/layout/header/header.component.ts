@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, HostListener } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AsyncPipe } from '@angular/common';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 
 interface NavLink {
@@ -27,12 +28,13 @@ export class HeaderComponent {
   private readonly authService = inject(AuthService);
 
   readonly currentUser$ = this.authService.currentUser$;
+  private readonly currentUser = toSignal(this.authService.currentUser$, { initialValue: null });
   readonly menuOpen = signal(false);
 
   readonly visibleLinks = computed(() => {
-    const user = this.authService.getCurrentUser();
+    const user = this.currentUser();
     return NAV_LINKS.filter(link =>
-      link.roles === null || (user && link.roles.includes(user.role))
+      link.roles === null || (user && link.roles.some(r => user.roles.includes(r)))
     );
   });
 

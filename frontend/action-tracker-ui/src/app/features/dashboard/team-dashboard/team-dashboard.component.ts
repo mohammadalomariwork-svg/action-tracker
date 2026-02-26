@@ -2,6 +2,7 @@ import {
   Component, OnInit, ChangeDetectionStrategy,
   inject, signal, computed,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
@@ -16,7 +17,7 @@ import {
   ActionStatus, ActionPriority,
 } from '../../../core/models/action-item.model';
 import { DashboardKpi, StatusBreakdown } from '../../../core/models/dashboard.model';
-import { UserInfo }          from '../../../core/models/auth.model';
+import { AuthUser }          from '../../../core/models/auth.models';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
@@ -51,15 +52,15 @@ export class TeamDashboardComponent implements OnInit {
   readonly router            = inject(Router);
 
   // ── Auth state ────────────────────────────────────────
-  readonly currentUser  = signal<UserInfo | null>(this.authSvc.getCurrentUser());
+  readonly currentUser  = toSignal(this.authSvc.currentUser$, { initialValue: null as AuthUser | null });
   readonly greeting     = signal(greeting());
   readonly firstName    = computed(() => {
-    const name = this.currentUser()?.fullName;
+    const name = this.currentUser()?.displayName;
     return name ? name.split(' ')[0] : 'there';
   });
   readonly isPrivileged = computed(() => {
-    const role = this.currentUser()?.role ?? '';
-    return role === 'Admin' || role === 'Manager';
+    const roles = this.currentUser()?.roles ?? [];
+    return roles.includes('Admin') || roles.includes('Manager');
   });
 
   // ── Loading ───────────────────────────────────────────
@@ -96,14 +97,8 @@ export class TeamDashboardComponent implements OnInit {
   readonly ActionPriority = ActionPriority;
 
   // ── My actions link with assignee filter ──────────────
-  readonly myActionsLink = computed(() => {
-    const uid = this.currentUser()?.id;
-    return uid ? ['/actions'] : ['/actions'];
-  });
-  readonly myActionsQueryParams = computed(() => {
-    const uid = this.currentUser()?.id;
-    return uid ? { assigneeId: uid } : {};
-  });
+  readonly myActionsLink = computed(() => ['/actions']);
+  readonly myActionsQueryParams = computed(() => ({}));
 
   // ── Compact horizontal bar chart ──────────────────────
   readonly hBarType = 'bar' as const;
@@ -143,13 +138,9 @@ export class TeamDashboardComponent implements OnInit {
 
   // ── Data loaders ──────────────────────────────────────
   private loadMyActions(): void {
-    const uid = this.currentUser()?.id;
-    if (!uid) { this.loadingMine.set(false); return; }
-
     const filter: ActionItemFilter = {
       pageNumber: 1, pageSize: 10,
       sortBy: 'dueDate', sortDescending: false,
-      assigneeId: uid,
     };
 
     this.actionSvc.getAll(filter).subscribe({
