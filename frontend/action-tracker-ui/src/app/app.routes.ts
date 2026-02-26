@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { noAuthGuard } from './core/guards/no-auth.guard';
+import { loginGuard } from './core/guards/login.guard';
 import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
@@ -8,7 +8,7 @@ export const routes: Routes = [
 
   {
     path: 'login',
-    canActivate: [noAuthGuard],
+    canActivate: [loginGuard],
     loadComponent: () =>
       import('./features/auth/login/login.component').then(m => m.LoginComponent),
   },
@@ -16,7 +16,7 @@ export const routes: Routes = [
   {
     path: 'unauthorized',
     loadComponent: () =>
-      import('./features/unauthorized/unauthorized.component').then(
+      import('./features/auth/unauthorized/unauthorized.component').then(
         m => m.UnauthorizedComponent
       ),
   },
