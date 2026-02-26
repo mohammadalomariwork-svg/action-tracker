@@ -1,18 +1,23 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const roleGuard = (allowedRoles: string[]): CanActivateFn => () => {
+// Usage: { path: 'admin', component: AdminComponent, canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] } }
+export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const authService = inject(AuthService);
-  const router = inject(Router);
+  const router      = inject(Router);
 
   if (!authService.isAuthenticated()) {
-    return router.createUrlTree(['/login']);
+    router.navigate(['/login']);
+    return false;
   }
 
-  if (allowedRoles.some(role => authService.hasRole(role))) {
+  const requiredRoles = (route.data['roles'] as string[] | undefined) ?? [];
+
+  if (requiredRoles.some(role => authService.hasRole(role))) {
     return true;
   }
 
-  return router.createUrlTree(['/unauthorized']);
+  router.navigate(['/unauthorized']);
+  return false;
 };

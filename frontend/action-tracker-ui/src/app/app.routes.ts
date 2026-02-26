@@ -36,7 +36,8 @@ export const routes: Routes = [
       },
       {
         path: 'management',
-        canActivate: [roleGuard(['Admin', 'Manager'])],
+        canActivate: [roleGuard],
+        data: { roles: ['Admin', 'Manager'] },
         loadComponent: () =>
           import('./features/management/management-dashboard/management-dashboard.component').then(
             m => m.ManagementDashboardComponent
@@ -65,7 +66,8 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [roleGuard(['Admin', 'Manager'])],
+        canActivate: [roleGuard],
+        data: { roles: ['Admin', 'Manager'] },
         loadComponent: () =>
           import('./features/reports/reports.component').then(
             m => m.ReportsComponent
