@@ -8,7 +8,6 @@ import { InteractionType, PublicClientApplication } from '@azure/msal-browser';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { refreshTokenInterceptor } from './core/interceptors/refresh-token.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { getMsalConfig } from './core/auth/msal.config';
@@ -21,7 +20,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([
         authInterceptor,
-        refreshTokenInterceptor,
         loadingInterceptor,
         errorInterceptor,
       ])
