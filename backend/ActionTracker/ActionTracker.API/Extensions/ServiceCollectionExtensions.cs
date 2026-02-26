@@ -11,7 +11,13 @@ using ActionTracker.Application.Features.Reports.Services;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
+using ActionTracker.Infrastructure.Helpers;
 using ActionTracker.API.Middleware;
+
+// Aliases to distinguish the two IAuthService definitions that currently coexist:
+// the original (Interfaces.IAuthService) and the new contract (Features.Auth.IAuthService).
+using INewAuthService = ActionTracker.Application.Features.Auth.IAuthService;
+using NewAuthService  = ActionTracker.Infrastructure.Features.Auth.AuthService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -68,14 +74,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAppDbContext>(sp =>
             sp.GetRequiredService<AppDbContext>());
 
-        // Feature services
+        // Feature services — legacy contract (Interfaces.IAuthService)
         services.AddScoped<IAuthService,       AuthService>();
         services.AddScoped<IActionItemService, ActionItemService>();
         services.AddScoped<IDashboardService,  DashboardService>();
         services.AddScoped<IReportService,     ReportService>();
 
+        // New auth contract (Application.Features.Auth.IAuthService)
+        services.AddScoped<INewAuthService, NewAuthService>();
+
         // Helpers
         services.AddScoped<JwtHelper>();
+        services.AddScoped<JwtTokenHelper>();
         services.AddScoped<CsvExportHelper>();
 
         // Middleware (IMiddleware implementations require explicit DI registration)
