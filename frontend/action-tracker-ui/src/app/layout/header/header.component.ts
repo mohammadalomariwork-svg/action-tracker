@@ -7,14 +7,16 @@ import { AuthService } from '../../core/services/auth.service';
 interface NavLink {
   label: string;
   path: string;
-  roles: string[] | null; // null = all authenticated users
+  roles: string[] | null; // null = visible to all authenticated users
 }
 
 const NAV_LINKS: NavLink[] = [
-  { label: 'Dashboard', path: '/dashboard', roles: null },
-  { label: 'Management View', path: '/management', roles: ['Admin', 'Manager'] },
-  { label: 'Actions', path: '/actions', roles: null },
-  { label: 'Reports', path: '/reports', roles: ['Admin', 'Manager'] },
+  { label: 'Dashboard',       path: '/dashboard',   roles: null },
+  { label: 'My Actions',      path: '/actions',     roles: null },
+  { label: 'Reports',         path: '/reports',     roles: ['Admin', 'Manager'] },
+  { label: 'Team Actions',    path: '/management',  roles: ['Admin', 'Manager'] },
+  { label: 'Admin Panel',     path: '/admin',       roles: ['Admin'] },
+  { label: 'User Management', path: '/users',       roles: ['Admin'] },
 ];
 
 @Component({
@@ -27,14 +29,20 @@ const NAV_LINKS: NavLink[] = [
 export class HeaderComponent {
   private readonly authService = inject(AuthService);
 
+  /** Used by the template via the async pipe for reactive user display. */
   readonly currentUser$ = this.authService.currentUser$;
+
+  /** Signal mirror — used by computed() for role-based link filtering. */
   private readonly currentUser = toSignal(this.authService.currentUser$, { initialValue: null });
+
   readonly menuOpen = signal(false);
 
+  /** Nav links visible to the current user based on their roles. */
   readonly visibleLinks = computed(() => {
     const user = this.currentUser();
+    if (!user) return [];
     return NAV_LINKS.filter(link =>
-      link.roles === null || (user && link.roles.some(r => user.roles.includes(r)))
+      link.roles === null || link.roles.some(r => user.roles.includes(r))
     );
   });
 

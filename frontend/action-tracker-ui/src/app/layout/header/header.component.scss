@@ -210,6 +210,43 @@
   }
 }
 
+// ── Provider badges ────────────────────────────────────
+.provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--local {
+    background: #f1f5f9;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  &--azure {
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    border: 1px solid rgba(2, 132, 199, 0.2);
+  }
+}
+
+.dropdown-provider {
+  margin-top: 0.2rem;
+}
+
+// ── Login link (unauthenticated right rail) ─────────────
+.login-link {
+  font-weight: 600;
+  color: var(--primary);
+}
+
 // ── Logout button ──────────────────────────────────────
 .logout-btn {
   display: flex;
@@ -258,6 +295,10 @@
   }
 
   .user-name {
+    display: none;
+  }
+
+  .provider-badge {
     display: none;
   }
 
