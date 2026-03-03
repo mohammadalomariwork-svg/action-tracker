@@ -7,6 +7,10 @@ import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest } from '../../../core/models/auth.models';
 import { environment } from '../../../../environments/environment';
 
+const MSAL_CONFIGURED =
+  !!environment.msalConfig.auth.clientId &&
+  !environment.msalConfig.auth.authority.includes('<TENANT_ID>');
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -84,6 +88,13 @@ export class LoginComponent implements OnInit {
   }
 
   onMicrosoftLogin(): void {
+    if (!MSAL_CONFIGURED) {
+      this.errorMsg.set(
+        'Microsoft login is not configured. Set clientId and authority in environment.ts.',
+      );
+      return;
+    }
+
     this.msalLoading.set(true);
     this.errorMsg.set(null);
 

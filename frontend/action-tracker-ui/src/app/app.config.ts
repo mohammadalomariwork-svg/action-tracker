@@ -1,4 +1,10 @@
-import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import {
+  APP_INITIALIZER,
+  ApplicationConfig,
+  importProvidersFrom,
+  provideBrowserGlobalErrorListeners,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -11,6 +17,16 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { getMsalConfig } from './core/auth/msal.config';
+
+// ── MSAL setup ───────────────────────────────────────────────────────────────
+// The PublicClientApplication instance must be created *outside* appConfig so
+// the same reference can be shared between MsalModule.forRoot() and the
+// APP_INITIALIZER that calls initialize().
+//
+// MSAL Browser v3 requires initialize() to be awaited before any interactive
+// method (loginPopup, acquireToken, …) is called. Without this, loginPopup
+// throws "unintialized_public_client_application" and no popup ever opens.
+const msalInstance = new PublicClientApplication(getMsalConfig());
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -39,7 +55,7 @@ export const appConfig: ApplicationConfig = {
     // the MsalInterceptor will not intercept any HTTP requests.
     importProvidersFrom(
       MsalModule.forRoot(
-        new PublicClientApplication(getMsalConfig()),
+        msalInstance,
         // Guard config — Popup interaction for the MSAL route guard (if used)
         {
           interactionType: InteractionType.Popup,
@@ -51,6 +67,16 @@ export const appConfig: ApplicationConfig = {
         },
       ),
     ),
+
+    // Initialize the MSAL PublicClientApplication before the app bootstraps.
+    // This resolves the internal MSAL cache and completes any pending redirect
+    // responses, making the instance ready for loginPopup / acquireToken calls.
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => () => msalInstance.initialize(),
+      multi: true,
+    },
+
     // Explicitly provide MSAL services so they are available for injection
     // anywhere in the app without needing the full MSAL route guard setup.
     MsalService,
