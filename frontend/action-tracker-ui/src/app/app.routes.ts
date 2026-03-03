@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { MsalRedirectComponent } from '@azure/msal-angular';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -19,6 +20,17 @@ export const routes: Routes = [
       import('./features/auth/unauthorized/unauthorized.component').then(
         m => m.UnauthorizedComponent
       ),
+  },
+
+  // MSAL popup redirect landing page.
+  // After a successful Azure AD interactive login, the popup window is redirected
+  // here (matching redirectUri in environment.msalConfig). MsalRedirectComponent
+  // calls handleRedirectObservable(), which resolves the auth code, posts the
+  // result back to the opener window, and closes the popup. Must live outside
+  // authGuard/loginGuard so that the popup can load it without being redirected.
+  {
+    path: 'auth/azure-callback',
+    component: MsalRedirectComponent,
   },
 
   {
