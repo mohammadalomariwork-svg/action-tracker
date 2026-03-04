@@ -325,7 +325,12 @@ public sealed class AuthService : IAuthService
             ValidateIssuerSigningKey = true,
             IssuerSigningKeys        = oidcConfig.SigningKeys,
             ValidateIssuer           = true,
-            ValidIssuer              = oidcConfig.Issuer,
+            // Accept both v2.0 (login.microsoftonline.com) and v1.0 (sts.windows.net) issuers
+            ValidIssuers             = new[]
+            {
+                oidcConfig.Issuer,                              // https://login.microsoftonline.com/{tid}/v2.0
+                $"https://sts.windows.net/{tenantId}/"          // https://sts.windows.net/{tid}/
+            },
             ValidateAudience         = true,
             ValidAudiences           = new[] { clientId, $"api://{clientId}" },
             ValidateLifetime         = true,
