@@ -117,20 +117,27 @@ try
 
     // -----------------------------------------------------------------------
     // Authorization policies
-    //   RequireAdmin   — Admin role only
-    //   RequireManager — Admin or Manager role
-    //   RequireUser    — any authenticated user
     // -----------------------------------------------------------------------
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy("RequireAdmin",
-            policy => policy.RequireRole("Admin"));
-
-        options.AddPolicy("RequireManager",
-            policy => policy.RequireRole("Admin", "Manager"));
-
-        options.AddPolicy("RequireUser",
-            policy => policy.RequireAuthenticatedUser());
+        options.DefaultPolicy = new AuthorizationPolicyBuilder("LocalBearer", "AzureAD")
+            .RequireAuthenticatedUser()
+            .Build();
+        options.AddPolicy("LocalOrAzureAD", policy =>
+        {
+            policy.AddAuthenticationSchemes("LocalBearer", "AzureAD");
+            policy.RequireAuthenticatedUser();
+        });
+        options.AddPolicy("AdminOnly", policy =>
+        {
+            policy.AddAuthenticationSchemes("LocalBearer", "AzureAD");
+            policy.RequireRole("Admin");
+        });
+        options.AddPolicy("ManagerOrAdmin", policy =>
+        {
+            policy.AddAuthenticationSchemes("LocalBearer", "AzureAD");
+            policy.RequireRole("Admin", "Manager");
+        });
     });
 
     // -----------------------------------------------------------------------
