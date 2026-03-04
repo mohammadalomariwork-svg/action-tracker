@@ -327,7 +327,7 @@ public sealed class AuthService : IAuthService
             ValidateIssuer           = true,
             ValidIssuer              = oidcConfig.Issuer,
             ValidateAudience         = true,
-            ValidAudience            = clientId,
+            ValidAudiences           = new[] { clientId, $"api://{clientId}" },
             ValidateLifetime         = true,
             ClockSkew                = TimeSpan.FromMinutes(5),
         };

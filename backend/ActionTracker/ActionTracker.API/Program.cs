@@ -84,11 +84,11 @@ try
 
     if (azureAdEnabled)
     {
+        var azureClientId = builder.Configuration["AzureAd:ClientId"]!;
         authBuilder.AddJwtBearer("AzureAD", options =>
         {
             options.Authority =
                 $"https://login.microsoftonline.com/{azureTenantId}/v2.0";
-            options.Audience = builder.Configuration["AzureAd:ClientId"];
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -98,6 +98,7 @@ try
                     $"https://sts.windows.net/{azureTenantId}/"
                 },
                 ValidateAudience = true,
+                ValidAudiences = new[] { azureClientId, $"api://{azureClientId}" },
                 ValidateLifetime = true
             };
         });
