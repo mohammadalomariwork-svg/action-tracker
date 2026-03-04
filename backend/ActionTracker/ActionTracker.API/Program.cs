@@ -213,20 +213,21 @@ try
         var userManager = scope.ServiceProvider
             .GetRequiredService<UserManager<ApplicationUser>>();
 
-        const string adminEmail    = "admin@actiontracker.com";
-        const string adminPassword = "Admin@2026!";
+        const string adminEmail    = "Admin@action-tracker.com";
+        const string adminPassword = "Test@4321";
 
         if (await userManager.FindByEmailAsync(adminEmail) is null)
         {
             var admin = new ApplicationUser
             {
-                UserName   = adminEmail,
-                Email      = adminEmail,
-                FirstName  = "System",
-                LastName   = "Admin",
-                Role       = "Admin",
-                IsActive   = true,
-                CreatedAt  = DateTime.UtcNow,
+                UserName    = "Admin",
+                Email       = adminEmail,
+                DisplayName = "Admin",
+                FirstName   = "Admin",
+                LastName    = string.Empty,
+                Role        = "Admin",
+                IsActive    = true,
+                CreatedAt   = DateTime.UtcNow,
             };
 
             var result = await userManager.CreateAsync(admin, adminPassword);
