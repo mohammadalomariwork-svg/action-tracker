@@ -220,7 +220,7 @@ try
         {
             var admin = new ApplicationUser
             {
-                UserName    = "Admin",
+                UserName    = adminEmail,
                 Email       = adminEmail,
                 DisplayName = "Admin",
                 FirstName   = "Admin",
