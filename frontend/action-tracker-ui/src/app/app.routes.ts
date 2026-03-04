@@ -29,7 +29,7 @@ export const routes: Routes = [
   // result back to the opener window, and closes the popup. Must live outside
   // authGuard/loginGuard so that the popup can load it without being redirected.
   {
-    path: 'auth/azure-callback',
+    path: 'auth_fallback',
     component: MsalRedirectComponent,
   },
 
