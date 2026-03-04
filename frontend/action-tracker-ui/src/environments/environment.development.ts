@@ -5,8 +5,8 @@ export const environment = {
   apiUrl: 'http://localhost:5000/api',
   msalConfig: {
     auth: {
-      clientId: 'J-b8Q~B7wbDkMQytlEr2GYviJHittQn4d63zgcNA',        // placeholder — Azure App Registration Client ID
-      authority: 'https://login.microsoftonline.com/08fe1c0a-19f5-4f24-a662-fdd5dd460025',  // placeholder
+      clientId: '4b1ceb12-9cf9-4d79-a919-5428a59aa5eb',        // placeholder — Azure App Registration Client ID
+      authority: 'https://login.microsoftonline.com/08fe1c0a-19f5-4f24-a662-fdd5dd460025/v2.0',  // placeholder
       redirectUri: 'http://localhost:4200/auth/azure-callback',
       postLogoutRedirectUri: 'http://localhost:4200/login',
     },
