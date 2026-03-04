@@ -22,6 +22,9 @@ public class ActionTrackerUserDetailsConfiguration : IEntityTypeConfiguration<Ac
         builder.Property(d => d.Email)
             .HasMaxLength(256);
 
+        builder.Property(d => d.EmpId)
+            .HasMaxLength(500);
+
         builder.Property(d => d.DepartmentName)
             .HasMaxLength(200);
 
@@ -32,7 +35,7 @@ public class ActionTrackerUserDetailsConfiguration : IEntityTypeConfiguration<Ac
             .HasMaxLength(200);
 
         builder.Property(d => d.ManagerId)
-            .HasColumnType("nvarchar(450)");
+            .HasMaxLength(500);
 
         builder.Property(d => d.ManagerName)
             .HasMaxLength(256);

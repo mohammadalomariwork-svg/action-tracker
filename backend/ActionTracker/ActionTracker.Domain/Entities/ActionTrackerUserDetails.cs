@@ -18,6 +18,12 @@ public class ActionTrackerUserDetails
     /// <summary>Email copied from <c>AspNetUsers.Email</c> for quick display.</summary>
     public string? Email { get; set; }
 
+    /// <summary>
+    /// HR / payroll employee identifier (up to 500 characters).
+    /// Sourced from the external HR system — distinct from the ASP.NET Identity UserId.
+    /// </summary>
+    public string? EmpId { get; set; }
+
     // ── Department ─────────────────────────────────────────────────────────────
 
     public int? DepartmentId { get; set; }
@@ -39,9 +45,9 @@ public class ActionTrackerUserDetails
     // ── Manager ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// ASP.NET Identity user ID of the manager.
-    /// Stored as a plain string so that managers who are not yet registered
-    /// in the system can still be referenced by an external HR ID.
+    /// HR employee ID of the manager — same format as <see cref="EmpId"/>.
+    /// Up to 500 characters; references the manager's HR record, not their
+    /// ASP.NET Identity UserId.
     /// </summary>
     public string? ManagerId { get; set; }
 
