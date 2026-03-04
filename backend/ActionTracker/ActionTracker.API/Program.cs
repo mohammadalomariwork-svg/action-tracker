@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -57,31 +58,62 @@ try
     // Reads Jwt:Key, Jwt:Issuer, Jwt:Audience from configuration.
     // No secrets are hardcoded.
     // -----------------------------------------------------------------------
-    builder.Services
-        .AddAuthentication(options =>
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = "MultiAuth";
+        options.DefaultChallengeScheme = "MultiAuth";
+    })
+    .AddJwtBearer("LocalBearer", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    })
+    .AddJwtBearer("AzureAD", options =>
+    {
+        options.Authority =
+            $"https://login.microsoftonline.com/{builder.Configuration["AzureAd:TenantId"]}/v2.0";
+        options.Audience = builder.Configuration["AzureAd:ClientId"];
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            var key = builder.Configuration["Jwt:Key"]
-                      ?? throw new InvalidOperationException(
-                          "Jwt:Key is required but was not found in configuration.");
-
-            options.TokenValidationParameters = new TokenValidationParameters
+            ValidateIssuer = true,
+            ValidIssuers = new[]
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey         = new SymmetricSecurityKey(
-                                               Encoding.UTF8.GetBytes(key)),
-                ValidateIssuer           = true,
-                ValidIssuer              = builder.Configuration["Jwt:Issuer"],
-                ValidateAudience         = true,
-                ValidAudience            = builder.Configuration["Jwt:Audience"],
-                ValidateLifetime         = true,
-                ClockSkew                = TimeSpan.Zero,
-            };
-        });
+                $"https://login.microsoftonline.com/{builder.Configuration["AzureAd:TenantId"]}/v2.0",
+                $"https://sts.windows.net/{builder.Configuration["AzureAd:TenantId"]}/"
+            },
+            ValidateAudience = true,
+            ValidateLifetime = true
+        };
+    })
+    .AddPolicyScheme("MultiAuth", "MultiAuth", options =>
+    {
+        options.ForwardDefaultSelector = context =>
+        {
+            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+            if (authHeader?.StartsWith("Bearer ") == true)
+            {
+                var token = authHeader["Bearer ".Length..].Trim();
+                var jwtHandler = new JwtSecurityTokenHandler();
+                if (jwtHandler.CanReadToken(token))
+                {
+                    var jwt = jwtHandler.ReadJwtToken(token);
+                    var isAzureToken = jwt.Claims.Any(c => c.Type == "tid");
+                    return isAzureToken ? "AzureAD" : "LocalBearer";
+                }
+            }
+            return "LocalBearer";
+        };
+    });
 
     // -----------------------------------------------------------------------
     // Authorization policies

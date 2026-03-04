@@ -198,62 +198,278 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionTrackerUserDetails", b =>
+            modelBuilder.Entity("ActionTracker.Domain.Entities.KuEmployeeInfo", b =>
                 {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<long>("AssignmentId")
+                        .HasColumnType("numeric(18, 0)");
 
-                    b.Property<int?>("DepartmentId")
+                    b.Property<DateTime?>("AdjustedServiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Age")
                         .HasColumnType("int");
 
-                    b.Property<string>("DepartmentName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("ArCountry")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("Email")
+                    b.Property<string>("AssignmentCategory")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<DateTime>("AssignmentEnddate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("College")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("CollegeAcademic")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("ContractEnd")
+                        .HasColumnName("Contract_End")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("ContractStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ContractType")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("DateOfBirth")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Department")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("DepartmentAR")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("Division")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("DivisionAR")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("EBSEmployeeNumber")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("EmpId")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<string>("EBSPersonId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("ManagerId")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<DateTime>("EffectiveEndDate")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("ManagerName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                    b.Property<string>("EmailAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<int?>("SectionId")
-                        .HasColumnType("int");
+                    b.Property<string>("EmiratesID")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("SectionName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("EmployeeArabicName")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
-                    b.Property<int?>("TeamId")
-                        .HasColumnType("int");
+                    b.Property<string>("EmployeeCategory")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("TeamName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("EmployeeData")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("UnitId")
-                        .HasColumnType("int");
+                    b.Property<string>("EmployeeDataHtml")
+                        .HasColumnName("EmployeeData_Html")
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UnitName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("EmployeeName")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                    b.Property<string>("EmpNo")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.HasKey("UserId");
+                    b.Property<string>("FirstName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
-                    b.ToTable("ActionTrackerUserDetails");
+                    b.Property<string>("Gender")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("GrandFatherName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<double?>("Gross")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("HireDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Job")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("LastName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("LastUpdate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("LastUpdateHtml")
+                        .HasColumnName("LastUpdate_Html")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("MaritalStat")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("MiddleName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("NatCat")
+                        .IsRequired()
+                        .IsUnicode(false)
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Nationality")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("NearestAirport")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("OriginalHireDate")
+                        .HasColumnName("ORIGINALHIREDATE")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OrgUnit")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("OrgUnitAR")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("Payroll")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long?>("PersonID")
+                        .HasColumnType("numeric(18, 0)");
+
+                    b.Property<string>("PersonType")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("PositionAR")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("PositionCode")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("PositionName")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("Religion")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SDivision")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SVPID")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SVPName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("SectionAR")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<string>("Sector")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SectorAR")
+                        .HasMaxLength(960)
+                        .HasColumnType("nvarchar(960)");
+
+                    b.Property<long?>("ServiceYrs")
+                        .HasColumnType("numeric(10, 0)");
+
+                    b.Property<string>("SupervisorName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SupervisorNumber")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SystemPersonType")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("TerminationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("UserPersonType")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("VPID")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("VPName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("AssignmentId");
+
+                    b.ToTable("ku_employee_info");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.RefreshToken", b =>
@@ -435,17 +651,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionTrackerUserDetails", b =>
-                {
-                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "User")
-                        .WithOne("UserDetails")
-                        .HasForeignKey("ActionTracker.Domain.Entities.ActionTrackerUserDetails", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItem", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "Assignee")
@@ -522,8 +727,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("AssignedActions");
-
-                    b.Navigation("UserDetails");
                 });
 #pragma warning restore 612, 618
         }

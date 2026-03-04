@@ -12,9 +12,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     {
     }
 
-    public DbSet<ActionItem>               ActionItems      => Set<ActionItem>();
-    public DbSet<RefreshToken>             RefreshTokens    => Set<RefreshToken>();
-    public DbSet<ActionTrackerUserDetails> UserDetails      => Set<ActionTrackerUserDetails>();
+    public DbSet<ActionItem>     ActionItems    => Set<ActionItem>();
+    public DbSet<RefreshToken>   RefreshTokens  => Set<RefreshToken>();
+    public DbSet<KuEmployeeInfo> KuEmployeeInfo => Set<KuEmployeeInfo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
