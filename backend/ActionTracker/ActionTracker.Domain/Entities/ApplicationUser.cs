@@ -49,4 +49,7 @@ public class ApplicationUser : IdentityUser
     public string FullName => $"{FirstName} {LastName}";
 
     public ICollection<ActionItem> AssignedActions { get; set; } = new List<ActionItem>();
+
+    /// <summary>Extended organisational profile. Null until the record is created.</summary>
+    public ActionTrackerUserDetails? UserDetails { get; set; }
 }

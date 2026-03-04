@@ -9,8 +9,9 @@ namespace ActionTracker.Application.Common.Interfaces;
 /// </summary>
 public interface IAppDbContext
 {
-    DbSet<ActionItem>      ActionItems  { get; }
-    DbSet<RefreshToken>    RefreshTokens { get; }
-    DbSet<ApplicationUser> Users        { get; }
+    DbSet<ActionItem>               ActionItems  { get; }
+    DbSet<RefreshToken>             RefreshTokens { get; }
+    DbSet<ApplicationUser>          Users        { get; }
+    DbSet<ActionTrackerUserDetails> UserDetails  { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

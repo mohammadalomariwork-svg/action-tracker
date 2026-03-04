@@ -198,6 +198,52 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionTrackerUserDetails", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DepartmentName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ManagerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ManagerName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int?>("SectionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SectionName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UnitName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("ActionTrackerUserDetails");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -377,6 +423,17 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionTrackerUserDetails", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "User")
+                        .WithOne("UserDetails")
+                        .HasForeignKey("ActionTracker.Domain.Entities.ActionTrackerUserDetails", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItem", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "Assignee")
@@ -453,6 +510,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("AssignedActions");
+
+                    b.Navigation("UserDetails");
                 });
 #pragma warning restore 612, 618
         }
