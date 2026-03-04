@@ -58,7 +58,10 @@ try
     // Reads Jwt:Key, Jwt:Issuer, Jwt:Audience from configuration.
     // No secrets are hardcoded.
     // -----------------------------------------------------------------------
-    builder.Services.AddAuthentication(options =>
+    var azureTenantId = builder.Configuration["AzureAd:TenantId"];
+    var azureAdEnabled = !string.IsNullOrWhiteSpace(azureTenantId);
+
+    var authBuilder = builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = "MultiAuth";
         options.DefaultChallengeScheme = "MultiAuth";
@@ -77,38 +80,46 @@ try
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
-    })
-    .AddJwtBearer("AzureAD", options =>
+    });
+
+    if (azureAdEnabled)
     {
-        options.Authority =
-            $"https://login.microsoftonline.com/{builder.Configuration["AzureAd:TenantId"]}/v2.0";
-        options.Audience = builder.Configuration["AzureAd:ClientId"];
-        options.TokenValidationParameters = new TokenValidationParameters
+        authBuilder.AddJwtBearer("AzureAD", options =>
         {
-            ValidateIssuer = true,
-            ValidIssuers = new[]
+            options.Authority =
+                $"https://login.microsoftonline.com/{azureTenantId}/v2.0";
+            options.Audience = builder.Configuration["AzureAd:ClientId"];
+            options.TokenValidationParameters = new TokenValidationParameters
             {
-                $"https://login.microsoftonline.com/{builder.Configuration["AzureAd:TenantId"]}/v2.0",
-                $"https://sts.windows.net/{builder.Configuration["AzureAd:TenantId"]}/"
-            },
-            ValidateAudience = true,
-            ValidateLifetime = true
-        };
-    })
-    .AddPolicyScheme("MultiAuth", "MultiAuth", options =>
+                ValidateIssuer = true,
+                ValidIssuers = new[]
+                {
+                    $"https://login.microsoftonline.com/{azureTenantId}/v2.0",
+                    $"https://sts.windows.net/{azureTenantId}/"
+                },
+                ValidateAudience = true,
+                ValidateLifetime = true
+            };
+        });
+    }
+
+    authBuilder.AddPolicyScheme("MultiAuth", "MultiAuth", options =>
     {
         options.ForwardDefaultSelector = context =>
         {
-            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-            if (authHeader?.StartsWith("Bearer ") == true)
+            if (azureAdEnabled)
             {
-                var token = authHeader["Bearer ".Length..].Trim();
-                var jwtHandler = new JwtSecurityTokenHandler();
-                if (jwtHandler.CanReadToken(token))
+                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                if (authHeader?.StartsWith("Bearer ") == true)
                 {
-                    var jwt = jwtHandler.ReadJwtToken(token);
-                    var isAzureToken = jwt.Claims.Any(c => c.Type == "tid");
-                    return isAzureToken ? "AzureAD" : "LocalBearer";
+                    var token = authHeader["Bearer ".Length..].Trim();
+                    var jwtHandler = new JwtSecurityTokenHandler();
+                    if (jwtHandler.CanReadToken(token))
+                    {
+                        var jwt = jwtHandler.ReadJwtToken(token);
+                        if (jwt.Claims.Any(c => c.Type == "tid"))
+                            return "AzureAD";
+                    }
                 }
             }
             return "LocalBearer";
@@ -120,22 +131,26 @@ try
     // -----------------------------------------------------------------------
     builder.Services.AddAuthorization(options =>
     {
-        options.DefaultPolicy = new AuthorizationPolicyBuilder("LocalBearer", "AzureAD")
+        var schemes = azureAdEnabled
+            ? new[] { "LocalBearer", "AzureAD" }
+            : new[] { "LocalBearer" };
+
+        options.DefaultPolicy = new AuthorizationPolicyBuilder(schemes)
             .RequireAuthenticatedUser()
             .Build();
         options.AddPolicy("LocalOrAzureAD", policy =>
         {
-            policy.AddAuthenticationSchemes("LocalBearer", "AzureAD");
+            policy.AddAuthenticationSchemes(schemes);
             policy.RequireAuthenticatedUser();
         });
         options.AddPolicy("AdminOnly", policy =>
         {
-            policy.AddAuthenticationSchemes("LocalBearer", "AzureAD");
+            policy.AddAuthenticationSchemes(schemes);
             policy.RequireRole("Admin");
         });
         options.AddPolicy("ManagerOrAdmin", policy =>
         {
-            policy.AddAuthenticationSchemes("LocalBearer", "AzureAD");
+            policy.AddAuthenticationSchemes(schemes);
             policy.RequireRole("Admin", "Manager");
         });
     });
