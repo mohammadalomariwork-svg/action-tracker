@@ -79,6 +79,12 @@ public class AuthController : ControllerBase
             var result = await _authService.LoginWithAzureAdAsync(request);
             return Ok(ApiResponse<AuthResponseDto>.Ok(result));
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError("Azure AD is not configured: {Message}", ex.Message);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                ApiResponse<string>.Fail("Azure AD authentication is not configured on this server."));
+        }
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning("Azure AD login failed: {Message}", ex.Message);

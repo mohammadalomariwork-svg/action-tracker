@@ -290,13 +290,15 @@ public sealed class AuthService : IAuthService
     /// </summary>
     private async Task<ClaimsPrincipal> ValidateAzureAdTokenAsync(string token)
     {
-        var tenantId = _configuration["AzureAd:TenantId"]
-            ?? throw new InvalidOperationException(
-                "AzureAd:TenantId is not configured.");
+        var tenantId = _configuration["AzureAd:TenantId"];
+        if (string.IsNullOrWhiteSpace(tenantId))
+            throw new InvalidOperationException(
+                "AzureAd:TenantId is not configured. Set it in appsettings or Secret Manager.");
 
-        var clientId = _configuration["AzureAd:ClientId"]
-            ?? throw new InvalidOperationException(
-                "AzureAd:ClientId is not configured.");
+        var clientId = _configuration["AzureAd:ClientId"];
+        if (string.IsNullOrWhiteSpace(clientId))
+            throw new InvalidOperationException(
+                "AzureAd:ClientId is not configured. Set it in appsettings or Secret Manager.");
 
         var metadataAddress =
             $"https://login.microsoftonline.com/{tenantId}/v2.0/.well-known/openid-configuration";
