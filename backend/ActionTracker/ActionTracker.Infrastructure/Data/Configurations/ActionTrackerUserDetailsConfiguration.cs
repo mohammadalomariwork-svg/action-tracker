@@ -34,6 +34,9 @@ public class ActionTrackerUserDetailsConfiguration : IEntityTypeConfiguration<Ac
         builder.Property(d => d.SectionName)
             .HasMaxLength(200);
 
+        builder.Property(d => d.TeamName)
+            .HasMaxLength(200);
+
         builder.Property(d => d.ManagerId)
             .HasMaxLength(500);
 

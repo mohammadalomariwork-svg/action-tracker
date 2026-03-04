@@ -42,6 +42,12 @@ public class ActionTrackerUserDetails
 
     public string? SectionName { get; set; }
 
+    // ── Team ───────────────────────────────────────────────────────────────────
+
+    public int? TeamId { get; set; }
+
+    public string? TeamName { get; set; }
+
     // ── Manager ────────────────────────────────────────────────────────────────
 
     /// <summary>
