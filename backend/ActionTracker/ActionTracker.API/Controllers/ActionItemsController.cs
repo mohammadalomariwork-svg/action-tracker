@@ -10,7 +10,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/action-items")]
-[Authorize]
+[Authorize(AuthenticationSchemes = "LocalBearer,AzureAD")]
 public class ActionItemsController : ControllerBase
 {
     private readonly IActionItemService _service;

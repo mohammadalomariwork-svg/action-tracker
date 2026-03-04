@@ -9,7 +9,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/reports")]
-[Authorize]
+[Authorize(AuthenticationSchemes = "LocalBearer,AzureAD")]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;

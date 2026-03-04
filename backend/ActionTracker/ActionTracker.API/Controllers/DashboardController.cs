@@ -8,7 +8,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/dashboard")]
-[Authorize]
+[Authorize(AuthenticationSchemes = "LocalBearer,AzureAD")]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
