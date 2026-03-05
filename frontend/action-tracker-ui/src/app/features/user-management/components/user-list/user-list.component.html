@@ -54,10 +54,10 @@
 
               <!-- Roles -->
               <td>
-                @for (role of user.roles; track role) {
+                @for (role of (user.roles ?? []); track role) {
                   <span class="badge bg-primary me-1">{{ role }}</span>
                 }
-                @if (user.roles.length === 0) {
+                @if (!user.roles?.length) {
                   <span class="text-muted fst-italic">None</span>
                 }
               </td>
@@ -158,7 +158,7 @@
             </div>
 
             <div class="mb-3">
-              @for (role of user.roles; track role) {
+              @for (role of (user.roles ?? []); track role) {
                 <span class="badge bg-primary me-1">{{ role }}</span>
               }
             </div>

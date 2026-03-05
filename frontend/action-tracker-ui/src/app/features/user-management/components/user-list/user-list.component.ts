@@ -88,7 +88,7 @@ export class UserListComponent implements OnInit {
 
   openRoleEdit(user: UserListItem): void {
     this.roleEditingUserId.set(user.id);
-    this.pendingRole.set(user.roles[0] ?? 'User');
+    this.pendingRole.set(user.roles?.[0] ?? 'User');
   }
 
   cancelRoleEdit(): void {
