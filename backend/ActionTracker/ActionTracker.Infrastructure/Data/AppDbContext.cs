@@ -12,9 +12,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     {
     }
 
-    public DbSet<ActionItem>     ActionItems    => Set<ActionItem>();
-    public DbSet<RefreshToken>   RefreshTokens  => Set<RefreshToken>();
-    public DbSet<KuEmployeeInfo> KuEmployeeInfo => Set<KuEmployeeInfo>();
+    public DbSet<ActionItem>          ActionItems          => Set<ActionItem>();
+    public DbSet<RefreshToken>        RefreshTokens        => Set<RefreshToken>();
+    public DbSet<KuEmployeeInfo>      KuEmployeeInfo       => Set<KuEmployeeInfo>();
+    public DbSet<OrgUnit>             OrgUnits             => Set<OrgUnit>();
+    public DbSet<StrategicObjective>  StrategicObjectives  => Set<StrategicObjective>();
+    public DbSet<Kpi>                 Kpis                 => Set<Kpi>();
+    public DbSet<KpiTarget>           KpiTargets           => Set<KpiTarget>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,8 +26,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        modelBuilder.Entity<ActionItem>()
-            .HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<ActionItem>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
+        modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted);
+        modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
