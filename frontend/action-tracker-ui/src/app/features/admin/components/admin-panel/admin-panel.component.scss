@@ -1,0 +1,52 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.ap-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.ap-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+}
+
+.ap-header-icon {
+  font-size: 3rem;
+  color: #6c757d;
+  line-height: 1;
+}
+
+.ap-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.ap-subtitle {
+  font-size: 0.95rem;
+}
+
+// ── Feature cards ─────────────────────────────────────────────────────────────
+.admin-card {
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden; // keeps border-radius on top stripe
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.ap-card-icon {
+  font-size: 2.5rem;
+  display: block;
+}
+
+// Badge pinned to top-right of card header
+.ap-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.7rem;
+}

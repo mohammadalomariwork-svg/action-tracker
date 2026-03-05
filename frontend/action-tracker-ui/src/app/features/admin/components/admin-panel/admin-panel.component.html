@@ -1,0 +1,67 @@
+<div class="ap-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Admin Panel</li>
+    </ol>
+  </nav>
+
+  <!-- ── Page header ────────────────────────────────────────────────────────── -->
+  <div class="ap-header d-flex align-items-center gap-3 mb-4 p-4 rounded-3">
+    <div class="ap-header-icon">
+      <i class="bi bi-shield-lock-fill"></i>
+    </div>
+    <div>
+      <h1 class="ap-title mb-0">Admin Panel</h1>
+      <p class="ap-subtitle text-muted mb-0">System Administration</p>
+    </div>
+  </div>
+
+  <!-- ── Feature cards grid ─────────────────────────────────────────────────── -->
+  <div class="row g-4">
+    @for (card of features; track card.id) {
+      <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
+        <div
+          class="card admin-card h-100"
+          [style.border-top]="'4px solid var(--bs-' + card.color + ')'"
+          (click)="navigate(card.route)"
+        >
+
+          <!-- Card header: icon + optional badge -->
+          <div class="card-header bg-transparent border-0 pt-4 pb-2 text-center position-relative">
+            <i
+              class="bi {{ card.icon }} ap-card-icon"
+              [ngClass]="'text-' + card.color"
+            ></i>
+            @if (card.badge) {
+              <span class="badge ap-badge" [ngClass]="'bg-' + card.color">
+                {{ card.badge }}
+              </span>
+            }
+          </div>
+
+          <!-- Card body: title + description -->
+          <div class="card-body pt-2 text-center">
+            <h5 class="card-title fw-bold mb-2">{{ card.title }}</h5>
+            <p class="card-text text-muted small mb-0">{{ card.description }}</p>
+          </div>
+
+          <!-- Card footer: Manage button -->
+          <div class="card-footer bg-transparent border-0 pb-4 text-center">
+            <button
+              class="btn btn-sm"
+              [ngClass]="'btn-outline-' + card.color"
+              (click)="navigate(card.route); $event.stopPropagation()"
+            >
+              Manage &rarr;
+            </button>
+          </div>
+
+        </div>
+      </div>
+    }
+  </div>
+
+</div>
