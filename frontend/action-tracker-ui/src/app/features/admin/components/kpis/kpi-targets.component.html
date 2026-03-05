@@ -1,0 +1,251 @@
+<div class="kt-page">
+
+  <!-- ── Breadcrumb ────────────────────────────────────────────────────────────  -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/admin">Admin</a></li>
+      <li class="breadcrumb-item"><a routerLink="/admin/strategic-objectives">Strategic Objectives</a></li>
+      @if (kpi()) {
+        <li class="breadcrumb-item">
+          <a [routerLink]="['/admin/kpis']" [queryParams]="{ objectiveId: kpi()!.strategicObjectiveId }">
+            <span class="badge bg-dark font-monospace me-1">{{ kpi()!.objectiveCode }}</span>KPIs
+          </a>
+        </li>
+      }
+      <li class="breadcrumb-item active" aria-current="page">Targets</li>
+    </ol>
+  </nav>
+
+  <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center py-2 mb-3">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+    </div>
+  }
+
+  <!-- ── Loading ───────────────────────────────────────────────────────────────  -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  @if (!loading() && kpi()) {
+    <!-- ── KPI header card ──────────────────────────────────────────────────────  -->
+    <div class="card mb-4 kt-header-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-dark font-monospace kt-code">
+                {{ kpi()!.objectiveCode }}-KPI-{{ kpi()!.kpiNumber }}
+              </span>
+              <span class="badge" [ngClass]="
+                kpi()!.periodValue === 1 ? 'bg-primary' :
+                kpi()!.periodValue === 2 ? 'bg-info text-dark' :
+                kpi()!.periodValue === 3 ? 'bg-warning text-dark' : 'bg-success'
+              ">{{ PeriodLabels[kpi()!.periodValue] }}</span>
+              @if (kpi()!.unit) {
+                <span class="badge bg-secondary">{{ kpi()!.unit }}</span>
+              }
+            </div>
+            <h4 class="mb-1">{{ kpi()!.name }}</h4>
+            <p class="text-muted small mb-0">{{ kpi()!.objectiveStatement }}</p>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm flex-shrink-0" (click)="goBack()">
+            <i class="bi bi-arrow-left me-1"></i>Back to KPIs
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Year selector ────────────────────────────────────────────────────────  -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="mb-0"><i class="bi bi-calendar3 me-2 text-muted"></i>Monthly Targets</h5>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" (click)="changeYear(-1)">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <span class="fw-semibold fs-5 px-2">{{ selectedYear() }}</span>
+        <button class="btn btn-outline-secondary btn-sm" (click)="changeYear(1)">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Targets table ─────────────────────────────────────────────────────────  -->
+    <div class="table-responsive kt-table-wrapper mb-3">
+      <table class="table table-bordered align-middle mb-0 kt-table">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 120px">Month</th>
+            <th style="width: 130px">Target{{ kpi()!.unit ? ' (' + kpi()!.unit + ')' : '' }}</th>
+            <th style="width: 130px">Actual{{ kpi()!.unit ? ' (' + kpi()!.unit + ')' : '' }}</th>
+            <th style="width: 120px">Variance</th>
+            <th style="width: 130px">% Achievement</th>
+            <th>Notes</th>
+            <th style="width: 70px" class="text-center">Edit</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.month) {
+            <tr [class]="varianceClass(row)">
+
+              <!-- Month -->
+              <td class="fw-medium">{{ row.monthName }}</td>
+
+              <!-- Target -->
+              <td>
+                @if (row.editing) {
+                  <input
+                    type="number"
+                    class="form-control form-control-sm kt-inline-input"
+                    [ngModel]="row.draftTarget"
+                    (ngModelChange)="setDraft(row.month, 'draftTarget', $event)"
+                    (keydown)="onCellKeydown($event, row)"
+                    placeholder="0"
+                    step="any"
+                    autofocus
+                  />
+                } @else {
+                  <span class="kt-value">{{ row.target !== null ? row.target : '—' }}</span>
+                }
+              </td>
+
+              <!-- Actual -->
+              <td>
+                @if (row.editing) {
+                  <input
+                    type="number"
+                    class="form-control form-control-sm kt-inline-input"
+                    [ngModel]="row.draftActual"
+                    (ngModelChange)="setDraft(row.month, 'draftActual', $event)"
+                    (keydown)="onCellKeydown($event, row)"
+                    placeholder="0"
+                    step="any"
+                  />
+                } @else {
+                  <span class="kt-value">{{ row.actual !== null ? row.actual : '—' }}</span>
+                }
+              </td>
+
+              <!-- Variance -->
+              <td>
+                @if (variance(row) !== null) {
+                  <span [class.kt-positive-text]="variance(row)! >= 0"
+                        [class.kt-negative-text]="variance(row)! < 0"
+                        class="fw-medium">
+                    {{ variance(row)! >= 0 ? '+' : '' }}{{ variance(row) }}
+                  </span>
+                } @else {
+                  <span class="text-muted">N/A</span>
+                }
+              </td>
+
+              <!-- % Achievement -->
+              <td>
+                @if (achievement(row) !== null) {
+                  <span class="fw-medium" [class.text-success]="+(achievement(row)!) >= 100"
+                                          [class.text-warning]="+(achievement(row)!) >= 80 && +(achievement(row)!) < 100"
+                                          [class.text-danger]="+(achievement(row)!) < 80">
+                    {{ achievement(row) }}%
+                  </span>
+                } @else {
+                  <span class="text-muted small">N/A</span>
+                }
+              </td>
+
+              <!-- Notes -->
+              <td>
+                @if (row.editing) {
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    [ngModel]="row.draftNotes"
+                    (ngModelChange)="setDraft(row.month, 'draftNotes', $event)"
+                    (keydown)="onCellKeydown($event, row)"
+                    placeholder="Optional notes…"
+                  />
+                } @else {
+                  <span class="text-muted small kt-notes">{{ row.notes || '—' }}</span>
+                }
+              </td>
+
+              <!-- Edit / confirm / cancel -->
+              <td class="text-center">
+                @if (!row.editing) {
+                  <button class="btn btn-outline-secondary btn-xs kt-edit-btn" title="Edit row"
+                          (click)="startEdit(row)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                } @else {
+                  <div class="d-flex gap-1 justify-content-center">
+                    <button class="btn btn-success btn-xs" title="Save (Enter)"
+                            (click)="commitEdit(row)">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-xs" title="Cancel (Esc)"
+                            (click)="cancelEdit(row)">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                }
+              </td>
+
+            </tr>
+          }
+        </tbody>
+
+        <!-- ── Summary footer ─────────────────────────────────────────────────  -->
+        <tfoot class="table-dark">
+          <tr>
+            <td class="fw-bold">Total</td>
+            <td class="fw-bold">{{ totalTarget() }}</td>
+            <td class="fw-bold">{{ totalActual() }}</td>
+            <td class="fw-bold">
+              @if (totalTarget() > 0) {
+                <span [class.text-success]="totalActual() >= totalTarget()"
+                      [class.text-danger]="totalActual() < totalTarget()">
+                  {{ totalActual() >= totalTarget() ? '+' : '' }}{{ totalActual() - totalTarget() }}
+                </span>
+              } @else { — }
+            </td>
+            <td class="fw-bold">
+              @if (overallAchievement() !== null) {
+                <span [class.text-success]="overallAchievement()! >= 100"
+                      [class.text-warning]="overallAchievement()! >= 80 && overallAchievement()! < 100"
+                      [class.text-danger]="overallAchievement()! < 80">
+                  {{ overallAchievement()!.toFixed(1) }}%
+                </span>
+              } @else { N/A }
+            </td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ── Save all button ───────────────────────────────────────────────────────  -->
+    <div class="d-flex justify-content-end gap-2 mt-2">
+      <p class="text-muted small mb-0 align-self-center me-auto">
+        <i class="bi bi-info-circle me-1"></i>
+        Click <kbd>Edit</kbd> on a row to modify inline, then <kbd>Enter</kbd> to confirm.
+      </p>
+      <button
+        class="btn btn-primary d-inline-flex align-items-center gap-2"
+        (click)="saveAll()"
+        [disabled]="saving()"
+      >
+        @if (saving()) {
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          Saving…
+        } @else {
+          <i class="bi bi-cloud-upload"></i> Save All Targets
+        }
+      </button>
+    </div>
+  }
+
+</div><!-- /kt-page -->

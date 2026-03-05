@@ -1,0 +1,250 @@
+<div class="kl-page">
+
+  <!-- ── Breadcrumb ────────────────────────────────────────────────────────────  -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a routerLink="/admin">Admin</a></li>
+      @if (contextObjective()) {
+        <li class="breadcrumb-item">
+          <a routerLink="/admin/strategic-objectives">Strategic Objectives</a>
+        </li>
+        <li class="breadcrumb-item">
+          <span class="badge bg-dark font-monospace me-1">{{ contextObjective()!.objectiveCode }}</span>
+          {{ contextObjective()!.statement | slice:0:60 }}{{ (contextObjective()!.statement.length > 60) ? '…' : '' }}
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">KPIs</li>
+      } @else {
+        <li class="breadcrumb-item active" aria-current="page">KPIs &amp; Targets</li>
+      }
+    </ol>
+  </nav>
+
+  <!-- ── Header ────────────────────────────────────────────────────────────────  -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">
+      <i class="bi bi-bar-chart-fill text-primary me-2"></i>KPIs &amp; Targets
+    </h2>
+    <button class="btn btn-primary btn-sm" (click)="openAdd()">
+      <i class="bi bi-plus-lg me-1"></i>Add KPI
+    </button>
+  </div>
+
+  <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center py-2">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+    </div>
+  }
+
+  <!-- ── Filter bar ────────────────────────────────────────────────────────────  -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-center">
+
+        <!-- Objective filter -->
+        <div class="col-12 col-md-4">
+          <select
+            class="form-select form-select-sm"
+            [ngModel]="filterObjectiveId()"
+            (ngModelChange)="onFilterObjectiveChange($event)"
+          >
+            <option value="">All Objectives</option>
+            @for (obj of objectives(); track obj.id) {
+              <option [value]="obj.id">
+                [{{ obj.objectiveCode }}] {{ obj.statement | slice:0:60 }}{{ obj.statement.length > 60 ? '…' : '' }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <!-- Search -->
+        <div class="col-12 col-md-5">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search by KPI name…"
+              [ngModel]="searchText()"
+              (ngModelChange)="searchText.set($event)"
+            />
+            @if (searchText()) {
+              <button class="btn btn-outline-secondary" (click)="searchText.set('')">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Show deleted -->
+        <div class="col-12 col-md-3 d-flex align-items-center justify-content-md-end">
+          <div class="form-check form-switch mb-0">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="klShowDeleted"
+              [checked]="showDeleted()"
+              (change)="onShowDeletedChange($any($event.target).checked)"
+            />
+            <label class="form-check-label small" for="klShowDeleted">Show deleted</label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────────────────────────────────  -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  } @else {
+    <div class="table-responsive kl-table-wrapper">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 160px">#</th>
+            <th>Name</th>
+            <th style="width: 160px">Objective</th>
+            <th style="width: 120px">Period</th>
+            <th style="width: 80px">Unit</th>
+            <th class="text-center" style="width: 90px">Targets</th>
+            <th style="width: 90px">Status</th>
+            <th class="text-end" style="width: 175px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (kpi of filteredKpis(); track kpi.id) {
+            <tr [class.table-secondary]="kpi.isDeleted">
+
+              <!-- # code -->
+              <td>
+                <span class="badge bg-dark font-monospace kl-code-badge">
+                  {{ kpiCode(kpi) }}
+                </span>
+              </td>
+
+              <!-- Name -->
+              <td class="kl-name">{{ kpi.name }}</td>
+
+              <!-- Objective -->
+              <td>
+                <span class="badge bg-dark font-monospace kl-obj-code">{{ kpi.objectiveCode }}</span>
+              </td>
+
+              <!-- Period -->
+              <td>
+                <span class="badge" [ngClass]="periodBadgeClass(kpi.periodValue)">
+                  {{ PeriodLabels[kpi.periodValue] }}
+                </span>
+              </td>
+
+              <!-- Unit -->
+              <td class="text-muted small">{{ kpi.unit || '—' }}</td>
+
+              <!-- Targets -->
+              <td class="text-center">
+                <span class="badge"
+                  [class.bg-primary]="kpi.targetCount > 0"
+                  [class.bg-light]="kpi.targetCount === 0"
+                  [class.text-muted]="kpi.targetCount === 0">
+                  {{ kpi.targetCount }} targets
+                </span>
+              </td>
+
+              <!-- Status -->
+              <td>
+                @if (kpi.isDeleted) {
+                  <span class="badge bg-danger">Deleted</span>
+                } @else {
+                  <span class="badge bg-success">Active</span>
+                }
+              </td>
+
+              <!-- Actions -->
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  @if (!kpi.isDeleted) {
+                    <button class="btn btn-outline-primary btn-xs" title="Edit"
+                            (click)="openEdit(kpi)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-xs" title="Delete"
+                            (click)="onDelete(kpi)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="btn btn-outline-info btn-xs" title="Manage Targets"
+                            (click)="onManageTargets(kpi)">
+                      <i class="bi bi-bar-chart"></i>
+                    </button>
+                  }
+                  @if (kpi.isDeleted) {
+                    <button class="btn btn-outline-success btn-xs" title="Restore"
+                            (click)="onRestore(kpi)">
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                  }
+                </div>
+              </td>
+
+            </tr>
+          }
+          @if (filteredKpis().length === 0) {
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">No KPIs found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pagination ──────────────────────────────────────────────────────────  -->
+    <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+      <button class="btn btn-outline-secondary btn-sm"
+              [disabled]="currentPage() === 1"
+              (click)="goToPage(currentPage() - 1)">← Previous</button>
+      <span class="text-muted small">
+        Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong>
+        &nbsp;({{ totalCount() }} total)
+      </span>
+      <button class="btn btn-outline-secondary btn-sm"
+              [disabled]="currentPage() === totalPages()"
+              (click)="goToPage(currentPage() + 1)">Next →</button>
+    </div>
+  }
+
+</div><!-- /kl-page -->
+
+<!-- ════ Offcanvas ════ -->
+<div class="offcanvas offcanvas-end kl-offcanvas"
+     [class.show]="offcanvasOpen()"
+     [style.visibility]="offcanvasOpen() ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title">
+      @if (editingKpi()) {
+        <i class="bi bi-pencil-fill text-primary me-2"></i>Edit KPI
+      } @else {
+        <i class="bi bi-plus-circle-fill text-primary me-2"></i>New KPI
+      }
+    </h5>
+    <button type="button" class="btn-close" (click)="closeOffcanvas()"></button>
+  </div>
+  <div class="offcanvas-body">
+    @if (offcanvasOpen()) {
+      <app-kpi-form
+        [existingKpi]="editingKpi()"
+        [preselectedObjectiveId]="filterObjectiveId() || null"
+        (saved)="onSaved($event)"
+        (cancelled)="closeOffcanvas()"
+      />
+    }
+  </div>
+</div>
+
+@if (offcanvasOpen()) {
+  <div class="offcanvas-backdrop fade show" (click)="closeOffcanvas()"></div>
+}

@@ -1,0 +1,95 @@
+.kt-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Header card ───────────────────────────────────────────────────────────────
+.kt-header-card {
+  border-left: 4px solid #0d6efd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.kt-code {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+.kt-table-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.kt-table {
+  thead th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #495057;
+  }
+
+  tbody td {
+    font-size: 0.88rem;
+    vertical-align: middle;
+    padding: 0.5rem 0.75rem;
+  }
+
+  tfoot td {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.88rem;
+  }
+}
+
+// ── Variance row tints ────────────────────────────────────────────────────────
+tr.kt-positive {
+  background-color: #e8f5e9 !important;
+}
+
+tr.kt-negative {
+  background-color: #ffebee !important;
+}
+
+.kt-positive-text { color: #2e7d32; }
+.kt-negative-text { color: #c62828; }
+
+// ── Inline editable cells ─────────────────────────────────────────────────────
+.kt-edit-btn {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+tr:hover .kt-edit-btn { opacity: 1; }
+
+.kt-inline-input {
+  min-width: 80px;
+  max-width: 110px;
+}
+
+.kt-value {
+  display: block;
+  min-height: 1.5rem;
+  cursor: pointer;
+
+  &:hover::after {
+    content: ' ✏';
+    font-size: 0.7rem;
+    opacity: 0.5;
+  }
+}
+
+.kt-notes {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+// ── Misc ──────────────────────────────────────────────────────────────────────
+.btn-xs {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  border-radius: 4px;
+}
