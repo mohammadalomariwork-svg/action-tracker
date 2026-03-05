@@ -53,6 +53,7 @@ export class RegisterADUserComponent implements OnInit {
   readonly searchName        = signal('');
   readonly searchArabicName  = signal('');
   readonly searchEmpNo       = signal('');
+  readonly searchEmail       = signal('');
   readonly loading           = signal(false);
   readonly searchResults     = signal<EmployeeSearchResult[]>([]);
   readonly searchError       = signal<string | null>(null);
@@ -85,8 +86,9 @@ export class RegisterADUserComponent implements OnInit {
         const name       = this.searchName().trim();
         const arabicName = this.searchArabicName().trim();
         const empNo      = this.searchEmpNo().trim();
-        if (name || arabicName || empNo) {
-          this.runSearch(name, arabicName, empNo, 1);
+        const email      = this.searchEmail().trim();
+        if (name || arabicName || empNo || email) {
+          this.runSearch(name, arabicName, empNo, email, 1);
         } else {
           this.searchResults.set([]);
           this.hasMore.set(false);
@@ -111,6 +113,11 @@ export class RegisterADUserComponent implements OnInit {
     this.searchTrigger.next();
   }
 
+  onEmailInput(event: Event): void {
+    this.searchEmail.set((event.target as HTMLInputElement).value);
+    this.searchTrigger.next();
+  }
+
   onSearchKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -122,8 +129,9 @@ export class RegisterADUserComponent implements OnInit {
     const name       = this.searchName().trim();
     const arabicName = this.searchArabicName().trim();
     const empNo      = this.searchEmpNo().trim();
-    if (name || arabicName || empNo) {
-      this.runSearch(name, arabicName, empNo, 1);
+    const email      = this.searchEmail().trim();
+    if (name || arabicName || empNo || email) {
+      this.runSearch(name, arabicName, empNo, email, 1);
     }
   }
 
@@ -133,17 +141,18 @@ export class RegisterADUserComponent implements OnInit {
       this.searchName().trim(),
       this.searchArabicName().trim(),
       this.searchEmpNo().trim(),
+      this.searchEmail().trim(),
       nextPage,
       true
     );
   }
 
-  private runSearch(name: string, arabicName: string, empNo: string, page: number, append = false): void {
+  private runSearch(name: string, arabicName: string, empNo: string, email: string, page: number, append = false): void {
     this.loading.set(true);
     this.searchError.set(null);
 
     this.userMgmtService
-      .searchEmployees(name, arabicName, empNo, page, SEARCH_PAGE_SIZE)
+      .searchEmployees(name, arabicName, empNo, email, page, SEARCH_PAGE_SIZE)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (results) => {

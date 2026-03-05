@@ -62,6 +62,7 @@ export class UserManagementService {
     name: string,
     arabicName: string,
     empNo: string,
+    email: string,
     page: number,
     pageSize: number
   ): Observable<EmployeeSearchResult[]> {
@@ -71,6 +72,7 @@ export class UserManagementService {
     if (name)       params = params.set('name', name);
     if (arabicName) params = params.set('arabicName', arabicName);
     if (empNo)      params = params.set('empNo', empNo);
+    if (email)      params = params.set('email', email);
     return this.http.get<EmployeeSearchResult[]>(
       `${this.baseUrl}/search-employees`, { params }
     );

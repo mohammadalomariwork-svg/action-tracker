@@ -24,7 +24,7 @@
         <div class="row g-3 mb-3">
 
           <!-- English name -->
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="searchName" class="form-label">Employee Name</label>
             <input
               id="searchName"
@@ -39,7 +39,7 @@
           </div>
 
           <!-- Arabic name -->
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="searchArabicName" class="form-label">Arabic Name</label>
             <input
               id="searchArabicName"
@@ -55,16 +55,31 @@
           </div>
 
           <!-- Employee number -->
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="searchEmpNo" class="form-label">Employee No.</label>
+            <input
+              id="searchEmpNo"
+              type="search"
+              class="form-control"
+              placeholder="e.g. 100042"
+              [value]="searchEmpNo()"
+              (input)="onEmpNoInput($event)"
+              (keydown)="onSearchKeydown($event)"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Email -->
+          <div class="col-md-3">
+            <label for="searchEmail" class="form-label">Email Address</label>
             <div class="input-group">
               <input
-                id="searchEmpNo"
+                id="searchEmail"
                 type="search"
                 class="form-control"
-                placeholder="e.g. 100042"
-                [value]="searchEmpNo()"
-                (input)="onEmpNoInput($event)"
+                placeholder="e.g. john@company.com"
+                [value]="searchEmail()"
+                (input)="onEmailInput($event)"
                 (keydown)="onSearchKeydown($event)"
                 autocomplete="off"
               />
@@ -145,7 +160,7 @@
               </button>
             </div>
           }
-        } @else if (!loading() && (searchName().trim() || searchArabicName().trim() || searchEmpNo().trim()) && !searchError()) {
+        } @else if (!loading() && (searchName().trim() || searchArabicName().trim() || searchEmpNo().trim() || searchEmail().trim()) && !searchError()) {
           <p class="text-muted text-center py-3 mb-0">No employees found.</p>
         }
 
