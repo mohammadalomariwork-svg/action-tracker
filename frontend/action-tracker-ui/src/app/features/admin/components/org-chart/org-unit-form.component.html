@@ -1,0 +1,144 @@
+<div class="ouf-card card h-100">
+  <div class="card-header d-flex align-items-center justify-content-between py-3">
+    <h5 class="mb-0">
+      @if (mode === 'add') {
+        <i class="bi bi-plus-circle-fill text-success me-2"></i>Add Org Unit
+      } @else {
+        <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Org Unit
+      }
+    </h5>
+    <button class="btn-close" aria-label="Close" (click)="cancel()"></button>
+  </div>
+
+  <div class="card-body overflow-auto">
+
+    <!-- Error alert -->
+    @if (error()) {
+      <div class="alert alert-danger d-flex align-items-center py-2 mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+      </div>
+    }
+
+    <!-- Context info -->
+    <div class="ouf-context p-3 rounded mb-4">
+      <div class="d-flex gap-4 flex-wrap">
+        <div>
+          <span class="ouf-label">Parent</span>
+          <span class="ouf-value">
+            @if (mode === 'add') {
+              {{ parentUnit ? parentUnit.name + ' (Level ' + parentUnit.level + ')' : 'None — Root unit (KU)' }}
+            } @else {
+              Level {{ existingUnit?.level }}
+            }
+          </span>
+        </div>
+        <div>
+          <span class="ouf-label">This unit's Level</span>
+          <span class="ouf-value" [class.text-danger]="exceedsMaxDepth">
+            {{ computedLevel }}
+            @if (exceedsMaxDepth) { <span class="text-danger ms-1">(max 10!)</span> }
+          </span>
+        </div>
+      </div>
+
+      @if (exceedsMaxDepth) {
+        <div class="alert alert-warning py-2 mt-2 mb-0 small">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>
+          Cannot add a unit at level {{ computedLevel }}. Maximum depth is 10.
+        </div>
+      }
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+      <!-- Name -->
+      <div class="mb-3">
+        <label for="oufName" class="form-label">
+          Name <span class="text-danger">*</span>
+        </label>
+        <input
+          id="oufName"
+          type="text"
+          class="form-control"
+          formControlName="name"
+          placeholder="e.g. College of Engineering"
+          [class.is-invalid]="hasError('name', 'required') || hasError('name', 'minlength') || hasError('name', 'maxlength')"
+          autocomplete="off"
+        />
+        @if (hasError('name', 'required')) {
+          <div class="invalid-feedback">Name is required.</div>
+        } @else if (hasError('name', 'minlength')) {
+          <div class="invalid-feedback">Name must be at least 2 characters.</div>
+        } @else if (hasError('name', 'maxlength')) {
+          <div class="invalid-feedback">Name cannot exceed 200 characters.</div>
+        }
+      </div>
+
+      <!-- Code -->
+      <div class="mb-3">
+        <label for="oufCode" class="form-label">
+          Code <span class="text-muted fw-normal">(optional)</span>
+        </label>
+        <input
+          id="oufCode"
+          type="text"
+          class="form-control"
+          formControlName="code"
+          placeholder="e.g. ENG (uppercase letters and numbers)"
+          [class.is-invalid]="hasError('code', 'maxlength') || hasError('code', 'pattern')"
+          autocomplete="off"
+        />
+        @if (hasError('code', 'maxlength')) {
+          <div class="invalid-feedback">Code cannot exceed 50 characters.</div>
+        } @else if (hasError('code', 'pattern')) {
+          <div class="invalid-feedback">Code must contain uppercase letters and numbers only.</div>
+        }
+        <div class="form-text">Short identifier shown in the tree (e.g. CS, ENG).</div>
+      </div>
+
+      <!-- Description -->
+      <div class="mb-4">
+        <label for="oufDesc" class="form-label">
+          Description <span class="text-muted fw-normal">(optional)</span>
+        </label>
+        <textarea
+          id="oufDesc"
+          class="form-control"
+          formControlName="description"
+          rows="3"
+          placeholder="Brief description of this unit's role…"
+          [class.is-invalid]="hasError('description', 'maxlength')"
+        ></textarea>
+        @if (hasError('description', 'maxlength')) {
+          <div class="invalid-feedback">Description cannot exceed 500 characters.</div>
+        }
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 justify-content-end">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          (click)="cancel()"
+          [disabled]="submitting()"
+        >Cancel</button>
+
+        <button
+          type="submit"
+          class="btn btn-primary d-inline-flex align-items-center gap-2"
+          [disabled]="submitting() || exceedsMaxDepth"
+        >
+          @if (submitting()) {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Saving…
+          } @else {
+            @if (mode === 'add') { <i class="bi bi-plus-circle"></i> Create }
+            @else { <i class="bi bi-check-lg"></i> Save Changes }
+          }
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

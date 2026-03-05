@@ -1,0 +1,156 @@
+<div class="ocl-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Organization Chart</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Organization Chart</h2>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ── Left panel: tree ──────────────────────────────────────────────────── -->
+    <div [class]="mode() ? 'col-12 col-lg-6' : 'col-12'">
+      <div class="card h-100">
+
+        <!-- Toolbar -->
+        <div class="card-header d-flex flex-wrap align-items-center gap-2 py-2">
+
+          <div class="form-check form-switch mb-0 me-auto">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="showDeleted"
+              [checked]="showDeleted()"
+              (change)="onShowDeletedChange($any($event.target).checked)"
+            />
+            <label class="form-check-label small" for="showDeleted">Show deleted</label>
+          </div>
+
+          <button class="btn btn-outline-secondary btn-sm" (click)="expandAll()" title="Expand all">
+            <i class="bi bi-chevron-bar-expand"></i>
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" (click)="collapseAll()" title="Collapse all">
+            <i class="bi bi-chevron-bar-contract"></i>
+          </button>
+        </div>
+
+        <!-- Tree -->
+        <div class="card-body overflow-auto ocl-tree-body p-2">
+          @if (loading()) {
+            <div class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading…</span>
+              </div>
+            </div>
+          } @else if (tree()) {
+            <ul class="ocl-tree list-unstyled mb-0">
+              <ng-container
+                *ngTemplateOutlet="treeNode; context: { node: tree(), depth: 0 }"
+              ></ng-container>
+            </ul>
+          } @else {
+            <p class="text-center text-muted py-4">No org units found.</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right panel: form ─────────────────────────────────────────────────── -->
+    @if (mode()) {
+      <div class="col-12 col-lg-6">
+        <app-org-unit-form
+          [mode]="mode()!"
+          [parentUnit]="mode() === 'add' ? parentForAdd() : (selectedNode() ? getParentNode(selectedNode()!) : null)"
+          [existingUnit]="mode() === 'edit' ? selectedNode() : null"
+          (saved)="onFormSaved($event)"
+          (cancelled)="onFormCancelled()"
+        />
+      </div>
+    }
+
+  </div><!-- /row -->
+
+</div><!-- /ocl-page -->
+
+<!-- ── Tree node template ─────────────────────────────────────────────────── -->
+<ng-template #treeNode let-node="node" let-depth="depth">
+  <li class="ocl-node" [class.ocl-node--deleted]="node.isDeleted" [style.--depth]="depth">
+
+    <div class="ocl-node-row d-flex align-items-center gap-1 py-1 px-2 rounded"
+         [class.ocl-node-row--root]="depth === 0">
+
+      <!-- Collapse toggle -->
+      @if (node.children?.length) {
+        <button class="btn btn-link btn-sm p-0 ocl-toggle" (click)="toggleCollapse(node.id)">
+          <i class="bi" [class.bi-chevron-down]="!isCollapsed(node.id)"
+                        [class.bi-chevron-right]="isCollapsed(node.id)"></i>
+        </button>
+      } @else {
+        <span class="ocl-leaf-spacer"></span>
+      }
+
+      <!-- Level pill -->
+      <span class="badge bg-secondary ocl-level-badge">L{{ node.level }}</span>
+
+      <!-- Code badge -->
+      @if (node.code) {
+        <span class="badge bg-primary-subtle text-primary-emphasis ocl-code-badge">{{ node.code }}</span>
+      }
+
+      <!-- Name -->
+      <span class="ocl-name flex-grow-1" [class.text-decoration-line-through]="node.isDeleted"
+                                          [class.text-muted]="node.isDeleted">
+        {{ node.name }}
+      </span>
+
+      <!-- Deleted badge -->
+      @if (node.isDeleted) {
+        <span class="badge bg-danger-subtle text-danger-emphasis">Deleted</span>
+      }
+
+      <!-- Actions -->
+      <div class="ocl-actions d-flex gap-1 flex-shrink-0">
+        @if (!node.isDeleted && node.level < 10) {
+          <button class="btn btn-outline-success btn-xs" title="Add child"
+                  (click)="onAddChild(node); $event.stopPropagation()">
+            <i class="bi bi-plus-circle"></i>
+          </button>
+        }
+        @if (!node.isDeleted) {
+          <button class="btn btn-outline-primary btn-xs" title="Edit"
+                  (click)="onEdit(node); $event.stopPropagation()">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-outline-danger btn-xs" title="Delete"
+                  (click)="onDelete(node); $event.stopPropagation()">
+            <i class="bi bi-trash"></i>
+          </button>
+        }
+        @if (node.isDeleted) {
+          <button class="btn btn-outline-success btn-xs" title="Restore"
+                  (click)="onRestore(node); $event.stopPropagation()">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Children -->
+    @if (node.children?.length && !isCollapsed(node.id)) {
+      <ul class="ocl-children list-unstyled mb-0">
+        @for (child of node.children; track child.id) {
+          <ng-container
+            *ngTemplateOutlet="treeNode; context: { node: child, depth: depth + 1 }"
+          ></ng-container>
+        }
+      </ul>
+    }
+
+  </li>
+</ng-template>
