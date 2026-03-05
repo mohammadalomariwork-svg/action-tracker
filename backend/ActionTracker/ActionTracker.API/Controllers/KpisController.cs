@@ -179,7 +179,7 @@ public class KpisController : ControllerBase
         try
         {
             await _service.RestoreAsync(id, ct);
-            var restored = await _service.GetByIdAsync(id, ct);
+            var restored = await _service.GetByIdAsync(id, null, ct);
             return Ok(ApiResponse<KpiDto>.Ok(restored!));
         }
         catch (KeyNotFoundException ex)
