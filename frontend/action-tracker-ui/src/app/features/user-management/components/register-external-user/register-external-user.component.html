@@ -1,0 +1,236 @@
+<div class="reu-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
+      <li class="breadcrumb-item"><a href="/admin/users">Users</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Register External User</li>
+    </ol>
+  </nav>
+
+  <!-- ── Page title ──────────────────────────────────────────────────────────── -->
+  <h2 class="reu-title mb-4">Register External User</h2>
+
+  <!-- ── Success alert ───────────────────────────────────────────────────────── -->
+  @if (successMessage()) {
+    <div class="alert alert-success d-flex align-items-center" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i>
+      {{ successMessage() }}
+      <span class="ms-1 text-muted">(Redirecting…)</span>
+    </div>
+  }
+
+  <!-- ── Error alert ─────────────────────────────────────────────────────────── -->
+  @if (errorMessage()) {
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- ── Card ───────────────────────────────────────────────────────────────── -->
+  <div class="card reu-card">
+    <div class="card-body p-4">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+        <!-- Row 1: Full Name + Email -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="fullName" class="form-label">
+              Full Name <span class="text-danger">*</span>
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="isInvalid('fullName')"
+              formControlName="fullName"
+              placeholder="Jane Doe"
+              autocomplete="name"
+            />
+            @if (isInvalid('fullName')) {
+              <div class="invalid-feedback">
+                @if (ctrl('fullName').hasError('required')) { Full name is required. }
+                @else if (ctrl('fullName').hasError('minlength')) { Must be at least 2 characters. }
+              </div>
+            }
+          </div>
+
+          <div class="col-md-6">
+            <label for="email" class="form-label">
+              Email <span class="text-danger">*</span>
+            </label>
+            <input
+              id="email"
+              type="email"
+              class="form-control"
+              [class.is-invalid]="isInvalid('email')"
+              formControlName="email"
+              placeholder="jane@example.com"
+              autocomplete="email"
+            />
+            @if (isInvalid('email')) {
+              <div class="invalid-feedback">
+                @if (ctrl('email').hasError('required')) { Email is required. }
+                @else if (ctrl('email').hasError('email')) { Please enter a valid email address. }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Row 2: Username + Phone -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="userName" class="form-label">
+              Username <span class="text-danger">*</span>
+            </label>
+            <input
+              id="userName"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="isInvalid('userName')"
+              formControlName="userName"
+              placeholder="jane_doe"
+              autocomplete="username"
+            />
+            @if (isInvalid('userName')) {
+              <div class="invalid-feedback">
+                @if (ctrl('userName').hasError('required')) { Username is required. }
+                @else if (ctrl('userName').hasError('minlength')) { Must be at least 3 characters. }
+                @else if (ctrl('userName').hasError('pattern')) { Only letters, numbers, and underscores are allowed. }
+              </div>
+            }
+          </div>
+
+          <div class="col-md-6">
+            <label for="phoneNumber" class="form-label">Phone Number</label>
+            <input
+              id="phoneNumber"
+              type="tel"
+              class="form-control"
+              formControlName="phoneNumber"
+              placeholder="+1 555 000 0000"
+              autocomplete="tel"
+            />
+          </div>
+        </div>
+
+        <!-- Row 3: Password + Confirm Password -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label for="password" class="form-label">
+              Password <span class="text-danger">*</span>
+            </label>
+            <div class="input-group" [class.is-invalid]="isInvalid('password')">
+              <input
+                id="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                class="form-control"
+                [class.is-invalid]="isInvalid('password')"
+                formControlName="password"
+                placeholder="Min. 8 characters"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="toggleShowPassword()"
+                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              >
+                @if (showPassword()) {
+                  <!-- Eye-slash icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/>
+                    <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/>
+                    <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.708zm10.296 8.884-12-12 .708-.708 12 12z"/>
+                  </svg>
+                } @else {
+                  <!-- Eye icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                    <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (isInvalid('password')) {
+              <div class="invalid-feedback d-block">
+                @if (ctrl('password').hasError('required')) { Password is required. }
+                @else if (ctrl('password').hasError('minlength')) { Password must be at least 8 characters. }
+              </div>
+            }
+          </div>
+
+          <div class="col-md-6">
+            <label for="confirmPassword" class="form-label">
+              Confirm Password <span class="text-danger">*</span>
+            </label>
+            <input
+              id="confirmPassword"
+              [type]="showPassword() ? 'text' : 'password'"
+              class="form-control"
+              [class.is-invalid]="isInvalid('confirmPassword') || confirmPasswordMismatch"
+              formControlName="confirmPassword"
+              placeholder="Re-enter password"
+              autocomplete="new-password"
+            />
+            @if (isInvalid('confirmPassword') && ctrl('confirmPassword').hasError('required')) {
+              <div class="invalid-feedback">Please confirm your password.</div>
+            } @else if (confirmPasswordMismatch) {
+              <div class="invalid-feedback">Passwords do not match.</div>
+            }
+          </div>
+        </div>
+
+        <!-- Row 4: Role -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="roleName" class="form-label">
+              Role <span class="text-danger">*</span>
+            </label>
+            <select
+              id="roleName"
+              class="form-select"
+              [class.is-invalid]="isInvalid('roleName')"
+              formControlName="roleName"
+            >
+              <option value="" disabled selected>Select a role…</option>
+              @for (role of availableRoles; track role) {
+                <option [value]="role">{{ role }}</option>
+              }
+            </select>
+            @if (isInvalid('roleName')) {
+              <div class="invalid-feedback">Please select a role.</div>
+            }
+          </div>
+        </div>
+
+        <!-- ── Actions ─────────────────────────────────────────────────────── -->
+        <div class="d-flex gap-2 justify-content-end">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="cancel()"
+            [disabled]="loading()"
+          >Cancel</button>
+
+          <button
+            type="submit"
+            class="btn btn-primary d-inline-flex align-items-center gap-2"
+            [disabled]="loading()"
+          >
+            @if (loading()) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Registering…
+            } @else {
+              Register User
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>

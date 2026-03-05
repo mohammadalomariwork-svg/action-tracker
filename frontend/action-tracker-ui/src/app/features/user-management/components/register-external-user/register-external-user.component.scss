@@ -1,0 +1,54 @@
+@use 'bootstrap/scss/variables' as *;
+
+// ── Page shell ────────────────────────────────────────────────────────────────
+.reu-page {
+  padding: 1.5rem;
+  max-width: 860px;
+}
+
+.reu-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+.reu-card {
+  border-radius: 0.6rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid $gray-200;
+
+  .card-body {
+    background-color: #fff;
+    border-radius: inherit;
+  }
+}
+
+// ── Form labels ───────────────────────────────────────────────────────────────
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+// ── Input group eye-toggle button ─────────────────────────────────────────────
+.input-group {
+  .btn-outline-secondary {
+    border-left: 0;
+    color: $gray-600;
+
+    &:hover {
+      color: $gray-900;
+      background-color: $gray-100;
+    }
+  }
+
+  // Prevent double-border when input is invalid
+  &.is-invalid .form-control {
+    border-right: 0;
+  }
+}
+
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
+.breadcrumb {
+  font-size: 0.85rem;
+}
