@@ -83,12 +83,9 @@ export class RegisterADUserComponent implements OnInit {
     this.searchTrigger
       .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        const name       = this.searchName().trim();
-        const arabicName = this.searchArabicName().trim();
-        const empNo      = this.searchEmpNo().trim();
-        const email      = this.searchEmail().trim();
-        if (name || arabicName || empNo || email) {
-          this.runSearch(name, arabicName, empNo, email, 1);
+        const term = this.activeSearchTerm();
+        if (term) {
+          this.runSearch(term, 1);
         } else {
           this.searchResults.set([]);
           this.hasMore.set(false);
@@ -125,34 +122,36 @@ export class RegisterADUserComponent implements OnInit {
     }
   }
 
+  /** Returns the first non-empty field value to use as the backend searchTerm. */
+  private activeSearchTerm(): string {
+    return (
+      this.searchName().trim() ||
+      this.searchArabicName().trim() ||
+      this.searchEmpNo().trim() ||
+      this.searchEmail().trim()
+    );
+  }
+
   triggerSearch(): void {
-    const name       = this.searchName().trim();
-    const arabicName = this.searchArabicName().trim();
-    const empNo      = this.searchEmpNo().trim();
-    const email      = this.searchEmail().trim();
-    if (name || arabicName || empNo || email) {
-      this.runSearch(name, arabicName, empNo, email, 1);
+    const term = this.activeSearchTerm();
+    if (term) {
+      this.runSearch(term, 1);
     }
   }
 
   loadMore(): void {
-    const nextPage = this.searchPage() + 1;
-    this.runSearch(
-      this.searchName().trim(),
-      this.searchArabicName().trim(),
-      this.searchEmpNo().trim(),
-      this.searchEmail().trim(),
-      nextPage,
-      true
-    );
+    const term = this.activeSearchTerm();
+    if (term) {
+      this.runSearch(term, this.searchPage() + 1, true);
+    }
   }
 
-  private runSearch(name: string, arabicName: string, empNo: string, email: string, page: number, append = false): void {
+  private runSearch(searchTerm: string, page: number, append = false): void {
     this.loading.set(true);
     this.searchError.set(null);
 
     this.userMgmtService
-      .searchEmployees(name, arabicName, empNo, email, page, SEARCH_PAGE_SIZE)
+      .searchEmployees(searchTerm, page, SEARCH_PAGE_SIZE)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (results) => {

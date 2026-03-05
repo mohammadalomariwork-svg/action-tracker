@@ -59,23 +59,19 @@ export class UserManagementService {
    * Results include an `alreadyRegistered` flag for each match.
    */
   searchEmployees(
-    name: string,
-    arabicName: string,
-    empNo: string,
-    email: string,
+    searchTerm: string,
     page: number,
     pageSize: number
   ): Observable<EmployeeSearchResult[]> {
-    let params = new HttpParams()
+    const params = new HttpParams()
+      .set('searchTerm', searchTerm)
       .set('page', String(page))
       .set('pageSize', String(pageSize));
-    if (name)       params = params.set('name', name);
-    if (arabicName) params = params.set('arabicName', arabicName);
-    if (empNo)      params = params.set('empNo', empNo);
-    if (email)      params = params.set('email', email);
-    return this.http.get<EmployeeSearchResult[]>(
-      `${this.baseUrl}/search-employees`, { params }
-    );
+    return this.http
+      .get<ApiResponse<EmployeeSearchResult[]>>(
+        `${this.baseUrl}/search-employees`, { params }
+      )
+      .pipe(map((res) => res.data));
   }
 
   /** Updates the assigned role for an existing user. */
