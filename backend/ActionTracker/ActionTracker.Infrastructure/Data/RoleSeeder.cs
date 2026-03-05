@@ -18,7 +18,8 @@ public static class RoleSeeder
         using var scope       = services.CreateScope();
         var roleManager       = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var logger            = scope.ServiceProvider
-                                     .GetRequiredService<ILogger<RoleSeeder>>();
+                                     .GetRequiredService<ILoggerFactory>()
+                                     .CreateLogger(nameof(RoleSeeder));
 
         foreach (var role in Roles)
         {
