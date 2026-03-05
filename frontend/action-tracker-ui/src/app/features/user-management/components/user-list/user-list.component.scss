@@ -12,6 +12,11 @@
   font-weight: 600;
 }
 
+// ── Search bar ────────────────────────────────────────────────────────────────
+.ul-search {
+  max-width: 480px;
+}
+
 // ── Table wrapper ─────────────────────────────────────────────────────────────
 .ul-table-wrapper {
   border-radius: 0.5rem;
@@ -30,6 +35,17 @@
     border-bottom: 2px solid #e9ecef;
     padding-top: 0.85rem;
     padding-bottom: 0.85rem;
+
+    &.ul-sortable {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+
+      &:hover {
+        color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.04);
+      }
+    }
   }
 
   tbody tr {
@@ -46,6 +62,12 @@
       padding-bottom: 0.65rem;
     }
   }
+}
+
+// ── Sort icon ─────────────────────────────────────────────────────────────────
+.ul-sort-icon {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
 }
 
 // ── Mobile user cards ────────────────────────────────────────────────────────

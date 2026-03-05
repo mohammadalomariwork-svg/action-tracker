@@ -26,17 +26,22 @@ public class UsersController : ControllerBase
     // GET api/users
     // -------------------------------------------------------------------------
 
-    /// <summary>Get all users with their roles (paged).</summary>
+    /// <summary>Get all users with their roles (paged, searchable, sortable).</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<UserListResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllUsers(
-        [FromQuery] int page     = 1,
-        [FromQuery] int pageSize = 20,
-        CancellationToken ct     = default)
+        [FromQuery] int    page     = 1,
+        [FromQuery] int    pageSize = 10,
+        [FromQuery] string search   = "",
+        [FromQuery] string sortBy   = "fullName",
+        [FromQuery] string sortDir  = "asc",
+        CancellationToken  ct       = default)
     {
-        _logger.LogInformation("GET /api/users page={Page} pageSize={PageSize}", page, pageSize);
+        _logger.LogInformation(
+            "GET /api/users page={Page} pageSize={PageSize} search={Search} sortBy={SortBy} sortDir={SortDir}",
+            page, pageSize, search, sortBy, sortDir);
 
-        var result = await _userManagement.GetAllUsersAsync(page, pageSize, ct);
+        var result = await _userManagement.GetAllUsersAsync(page, pageSize, search, sortBy, sortDir, ct);
         return Ok(ApiResponse<UserListResponseDto>.Ok(result));
     }
 

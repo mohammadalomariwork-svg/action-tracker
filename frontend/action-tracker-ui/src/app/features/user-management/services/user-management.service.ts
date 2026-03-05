@@ -19,12 +19,23 @@ export class UserManagementService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/users`;
 
-  /** Returns a paginated list of all registered users. */
-  getUsers(page: number, pageSize: number): Observable<UserListResponse> {
+  /** Returns a paginated, searchable, sortable list of all registered users. */
+  getUsers(
+    page: number,
+    pageSize: number,
+    search: string = '',
+    sortBy: string = 'fullName',
+    sortDir: string = 'asc'
+  ): Observable<UserListResponse> {
+    const params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize))
+      .set('search', search)
+      .set('sortBy', sortBy)
+      .set('sortDir', sortDir);
+
     return this.http
-      .get<ApiResponse<UserListResponse>>(
-        `${this.baseUrl}?page=${page}&pageSize=${pageSize}`
-      )
+      .get<ApiResponse<UserListResponse>>(`${this.baseUrl}`, { params })
       .pipe(map((res) => res.data));
   }
 

@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { UserManagementService } from '../../services/user-management.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -41,7 +42,11 @@ export class UserListComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly currentPage = signal(1);
-  readonly pageSize = signal(20);
+  readonly pageSize = signal(10);
+
+  readonly searchTerm = signal('');
+  readonly sortBy = signal('fullName');
+  readonly sortDir = signal<'asc' | 'desc'>('asc');
 
   /** ID of the row currently showing the role selector. */
   readonly roleEditingUserId = signal<string | null>(null);
@@ -54,7 +59,36 @@ export class UserListComponent implements OnInit {
 
   readonly availableRoles = AVAILABLE_ROLES;
 
+  private readonly searchInput$ = new Subject<string>();
+
   ngOnInit(): void {
+    this.searchInput$
+      .pipe(
+        debounceTime(350),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((term) => {
+        this.searchTerm.set(term);
+        this.currentPage.set(1);
+        this.loadUsers();
+      });
+
+    this.loadUsers();
+  }
+
+  onSearchInput(value: string): void {
+    this.searchInput$.next(value);
+  }
+
+  sort(column: string): void {
+    if (this.sortBy() === column) {
+      this.sortDir.set(this.sortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortBy.set(column);
+      this.sortDir.set('asc');
+    }
+    this.currentPage.set(1);
     this.loadUsers();
   }
 
@@ -63,7 +97,13 @@ export class UserListComponent implements OnInit {
     this.error.set(null);
 
     this.userMgmtService
-      .getUsers(this.currentPage(), this.pageSize())
+      .getUsers(
+        this.currentPage(),
+        this.pageSize(),
+        this.searchTerm(),
+        this.sortBy(),
+        this.sortDir()
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {

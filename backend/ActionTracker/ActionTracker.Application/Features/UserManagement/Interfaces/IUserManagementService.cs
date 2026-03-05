@@ -17,6 +17,9 @@ public interface IUserManagementService
     Task<UserListResponseDto> GetAllUsersAsync(
         int               page,
         int               pageSize,
+        string            search            = "",
+        string            sortBy            = "fullName",
+        string            sortDir           = "asc",
         CancellationToken cancellationToken = default);
 
     /// <summary>

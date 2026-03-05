@@ -34,13 +34,39 @@ public class UserManagementService : IUserManagementService
     public async Task<UserListResponseDto> GetAllUsersAsync(
         int               page,
         int               pageSize,
+        string            search            = "",
+        string            sortBy            = "fullName",
+        string            sortDir           = "asc",
         CancellationToken cancellationToken = default)
     {
-        var totalCount = await _userManager.Users.CountAsync(cancellationToken);
+        var term = (search ?? string.Empty).Trim();
 
-        var users = await _userManager.Users
-            .OrderBy(u => u.LastName)
-            .ThenBy(u => u.FirstName)
+        var query = _userManager.Users.AsQueryable();
+
+        if (!string.IsNullOrEmpty(term))
+        {
+            query = query.Where(u =>
+                (u.FirstName + " " + u.LastName).Contains(term) ||
+                u.FirstName.Contains(term) ||
+                u.LastName.Contains(term) ||
+                (u.Email != null && u.Email.Contains(term)) ||
+                (u.UserName != null && u.UserName.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        bool descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "email"    => descending ? query.OrderByDescending(u => u.Email)    : query.OrderBy(u => u.Email),
+            "username" => descending ? query.OrderByDescending(u => u.UserName) : query.OrderBy(u => u.UserName),
+            _          => descending
+                            ? query.OrderByDescending(u => u.LastName).ThenByDescending(u => u.FirstName)
+                            : query.OrderBy(u => u.LastName).ThenBy(u => u.FirstName),
+        };
+
+        var users = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

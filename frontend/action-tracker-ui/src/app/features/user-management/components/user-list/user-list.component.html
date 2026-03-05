@@ -13,6 +13,25 @@
     </div>
   </div>
 
+  <!-- ── Search bar ────────────────────────────────────────────────────────── -->
+  <div class="ul-search mb-3">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Search by name, email or username…"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="onSearchInput($event)"
+      />
+      @if (searchTerm()) {
+        <button class="btn btn-outline-secondary" type="button" (click)="onSearchInput('')">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      }
+    </div>
+  </div>
+
   <!-- ── Error alert ───────────────────────────────────────────────────────── -->
   @if (error()) {
     <div class="alert alert-danger d-flex align-items-center" role="alert">
@@ -36,9 +55,36 @@
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th>Full Name</th>
-            <th>Email</th>
-            <th>Username</th>
+            <th class="ul-sortable" (click)="sort('fullName')">
+              Full Name
+              <span class="ul-sort-icon">
+                @if (sortBy() === 'fullName') {
+                  <i class="bi" [class.bi-arrow-up]="sortDir() === 'asc'" [class.bi-arrow-down]="sortDir() === 'desc'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up text-muted"></i>
+                }
+              </span>
+            </th>
+            <th class="ul-sortable" (click)="sort('email')">
+              Email
+              <span class="ul-sort-icon">
+                @if (sortBy() === 'email') {
+                  <i class="bi" [class.bi-arrow-up]="sortDir() === 'asc'" [class.bi-arrow-down]="sortDir() === 'desc'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up text-muted"></i>
+                }
+              </span>
+            </th>
+            <th class="ul-sortable" (click)="sort('userName')">
+              Username
+              <span class="ul-sort-icon">
+                @if (sortBy() === 'userName') {
+                  <i class="bi" [class.bi-arrow-up]="sortDir() === 'asc'" [class.bi-arrow-down]="sortDir() === 'desc'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up text-muted"></i>
+                }
+              </span>
+            </th>
             <th>Roles</th>
             <th>AD User</th>
             <th>Status</th>
@@ -212,26 +258,24 @@
     </div>
 
     <!-- ── Pagination ────────────────────────────────────────────────────────── -->
-    @if (totalPages() > 1) {
-      <div class="ul-pagination d-flex justify-content-center align-items-center gap-3 mt-3">
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          [disabled]="currentPage() === 1"
-          (click)="goToPage(currentPage() - 1)"
-        >← Previous</button>
+    <div class="ul-pagination d-flex justify-content-center align-items-center gap-3 mt-3">
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        [disabled]="currentPage() === 1"
+        (click)="goToPage(currentPage() - 1)"
+      >← Previous</button>
 
-        <span class="text-muted small">
-          Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong>
-          &nbsp;({{ totalCount() }} users)
-        </span>
+      <span class="text-muted small">
+        Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong>
+        &nbsp;({{ totalCount() }} users)
+      </span>
 
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          [disabled]="currentPage() === totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-        >Next →</button>
-      </div>
-    }
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        [disabled]="currentPage() === totalPages()"
+        (click)="goToPage(currentPage() + 1)"
+      >Next →</button>
+    </div>
   }
 
 </div>
