@@ -1,0 +1,237 @@
+<div class="ol-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Strategic Objectives</li>
+    </ol>
+  </nav>
+
+  <!-- ── Header ────────────────────────────────────────────────────────────────  -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">
+      <i class="bi bi-bullseye text-success me-2"></i>Strategic Objectives
+    </h2>
+    <button class="btn btn-success btn-sm" (click)="openAdd()">
+      <i class="bi bi-plus-lg me-1"></i>Add Objective
+    </button>
+  </div>
+
+  <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center py-2">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+    </div>
+  }
+
+  <!-- ── Filter bar ────────────────────────────────────────────────────────────  -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-center">
+
+        <!-- Org unit filter -->
+        <div class="col-12 col-md-4">
+          <select
+            class="form-select form-select-sm"
+            [ngModel]="filterOrgUnitId()"
+            (ngModelChange)="onFilterOrgUnitChange($event)"
+          >
+            <option value="">All Org Units</option>
+            @for (unit of orgUnits(); track unit.id) {
+              <option [value]="unit.id">
+                @if (unit.code) { [{{ unit.code }}] } {{ unit.name }} (L{{ unit.level }})
+              </option>
+            }
+          </select>
+        </div>
+
+        <!-- Search -->
+        <div class="col-12 col-md-5">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search by code or statement…"
+              [ngModel]="searchText()"
+              (ngModelChange)="searchText.set($event)"
+            />
+            @if (searchText()) {
+              <button class="btn btn-outline-secondary" (click)="searchText.set('')">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Show deleted -->
+        <div class="col-12 col-md-3 d-flex align-items-center justify-content-md-end">
+          <div class="form-check form-switch mb-0">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="olShowDeleted"
+              [checked]="showDeleted()"
+              (change)="onShowDeletedChange($any($event.target).checked)"
+            />
+            <label class="form-check-label small" for="olShowDeleted">Show deleted</label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Table ─────────────────────────────────────────────────────────────────  -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-success" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  } @else {
+    <div class="table-responsive ol-table-wrapper">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 90px">Code</th>
+            <th>Statement</th>
+            <th>Org Unit</th>
+            <th class="text-center" style="width: 90px">KPIs</th>
+            <th style="width: 90px">Status</th>
+            <th style="width: 110px">Created</th>
+            <th class="text-end" style="width: 160px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (obj of filteredObjectives(); track obj.id) {
+            <tr [class.table-secondary]="obj.isDeleted">
+
+              <!-- Code -->
+              <td>
+                <span class="badge bg-dark ol-code-badge font-monospace">
+                  {{ obj.objectiveCode }}
+                </span>
+              </td>
+
+              <!-- Statement -->
+              <td class="ol-statement">{{ obj.statement }}</td>
+
+              <!-- Org unit -->
+              <td>
+                <span class="small">{{ obj.orgUnitName }}</span>
+                @if (obj.orgUnitCode) {
+                  <span class="badge bg-secondary ms-1 ol-unit-code">{{ obj.orgUnitCode }}</span>
+                }
+              </td>
+
+              <!-- KPI count -->
+              <td class="text-center">
+                <span class="badge" [class.bg-success-subtle]="obj.kpiCount > 0"
+                                    [class.text-success-emphasis]="obj.kpiCount > 0"
+                                    [class.bg-light]="obj.kpiCount === 0"
+                                    [class.text-muted]="obj.kpiCount === 0">
+                  {{ obj.kpiCount }}
+                </span>
+              </td>
+
+              <!-- Status -->
+              <td>
+                @if (obj.isDeleted) {
+                  <span class="badge bg-danger">Deleted</span>
+                } @else {
+                  <span class="badge bg-success">Active</span>
+                }
+              </td>
+
+              <!-- Created -->
+              <td class="text-muted small">{{ obj.createdAt | date:'dd MMM y' }}</td>
+
+              <!-- Actions -->
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  @if (!obj.isDeleted) {
+                    <button class="btn btn-outline-primary btn-xs" title="Edit"
+                            (click)="openEdit(obj)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-xs" title="Delete"
+                            (click)="onDelete(obj)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-xs" title="View KPIs"
+                            (click)="onViewKpis(obj)">
+                      <i class="bi bi-list-ul"></i>
+                    </button>
+                  }
+                  @if (obj.isDeleted) {
+                    <button class="btn btn-outline-success btn-xs" title="Restore"
+                            (click)="onRestore(obj)">
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                  }
+                </div>
+              </td>
+
+            </tr>
+          }
+
+          @if (filteredObjectives().length === 0) {
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">No strategic objectives found.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pagination ──────────────────────────────────────────────────────────  -->
+    <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+      <button class="btn btn-outline-secondary btn-sm"
+              [disabled]="currentPage() === 1"
+              (click)="goToPage(currentPage() - 1)">← Previous</button>
+      <span class="text-muted small">
+        Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong>
+        &nbsp;({{ totalCount() }} total)
+      </span>
+      <button class="btn btn-outline-secondary btn-sm"
+              [disabled]="currentPage() === totalPages()"
+              (click)="goToPage(currentPage() + 1)">Next →</button>
+    </div>
+  }
+
+</div><!-- /ol-page -->
+
+<!-- ════════════════════════════════════════════════════════════
+     Bootstrap offcanvas — Add / Edit form
+     ════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end ol-offcanvas"
+     [class.show]="offcanvasOpen()"
+     [style.visibility]="offcanvasOpen() ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title">
+      @if (editingObjective()) {
+        <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Objective
+      } @else {
+        <i class="bi bi-plus-circle-fill text-success me-2"></i>New Objective
+      }
+    </h5>
+    <button type="button" class="btn-close" (click)="closeOffcanvas()"></button>
+  </div>
+  <div class="offcanvas-body">
+    @if (offcanvasOpen()) {
+      <app-objective-form
+        [existingObjective]="editingObjective()"
+        (saved)="onSaved($event)"
+        (cancelled)="closeOffcanvas()"
+      />
+    }
+  </div>
+</div>
+
+<!-- Backdrop -->
+@if (offcanvasOpen()) {
+  <div class="offcanvas-backdrop fade show" (click)="closeOffcanvas()"></div>
+}

@@ -1,0 +1,125 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate class="of-form">
+
+  <!-- Error alert -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center py-2 mb-3">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+    </div>
+  }
+
+  <!-- Code preview / mode info -->
+  @if (!isEditMode) {
+    <div class="alert alert-info py-2 mb-4 d-flex align-items-center gap-2">
+      <i class="bi bi-info-circle-fill"></i>
+      <span>
+        The system will automatically assign the next available code
+        <span class="badge bg-dark font-monospace ms-1">e.g. SO-5</span>
+      </span>
+    </div>
+  } @else {
+    <div class="of-code-preview mb-4 p-3 rounded">
+      <span class="of-code-label">Objective Code</span>
+      <span class="badge bg-dark font-monospace of-code-value">
+        {{ existingObjective?.objectiveCode }}
+      </span>
+      <span class="text-muted small ms-2">(cannot be changed)</span>
+    </div>
+  }
+
+  <!-- Org Unit -->
+  <div class="mb-3">
+    <label for="ofOrgUnit" class="form-label">
+      Org Unit <span class="text-danger">*</span>
+    </label>
+    <select
+      id="ofOrgUnit"
+      class="form-select"
+      formControlName="orgUnitId"
+      [class.is-invalid]="hasError('orgUnitId', 'required')"
+    >
+      <option value="" disabled>Select an org unit…</option>
+      @for (entry of levelGroups() | keyvalue; track entry.key) {
+        <optgroup [label]="levelLabel(+entry.key)">
+          @for (unit of entry.value; track unit.id) {
+            <option [value]="unit.id">{{ orgUnitLabel(unit) }}</option>
+          }
+        </optgroup>
+      }
+    </select>
+    @if (hasError('orgUnitId', 'required')) {
+      <div class="invalid-feedback">Please select an org unit.</div>
+    }
+  </div>
+
+  <!-- Statement -->
+  <div class="mb-3">
+    <label for="ofStatement" class="form-label">
+      Statement <span class="text-danger">*</span>
+    </label>
+    <input
+      id="ofStatement"
+      type="text"
+      class="form-control"
+      formControlName="statement"
+      placeholder="e.g. Enhance Academic Excellence"
+      [class.is-invalid]="hasError('statement', 'required') || hasError('statement', 'maxlength')"
+      autocomplete="off"
+    />
+    @if (hasError('statement', 'required')) {
+      <div class="invalid-feedback">Statement is required.</div>
+    } @else if (hasError('statement', 'maxlength')) {
+      <div class="invalid-feedback">Statement cannot exceed 300 characters.</div>
+    }
+    <div class="form-text text-end small text-muted">
+      {{ form.get('statement')?.value?.length ?? 0 }} / 300
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div class="mb-4">
+    <label for="ofDescription" class="form-label">
+      Description <span class="text-danger">*</span>
+    </label>
+    <textarea
+      id="ofDescription"
+      class="form-control"
+      formControlName="description"
+      rows="5"
+      placeholder="Provide a detailed description of this strategic objective…"
+      [class.is-invalid]="hasError('description', 'required') || hasError('description', 'maxlength')"
+    ></textarea>
+    @if (hasError('description', 'required')) {
+      <div class="invalid-feedback">Description is required.</div>
+    } @else if (hasError('description', 'maxlength')) {
+      <div class="invalid-feedback">Description cannot exceed 1000 characters.</div>
+    }
+    <div class="form-text text-end small text-muted">
+      {{ form.get('description')?.value?.length ?? 0 }} / 1000
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="d-flex gap-2 justify-content-end border-top pt-3">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      (click)="cancel()"
+      [disabled]="submitting()"
+    >Cancel</button>
+
+    <button
+      type="submit"
+      class="btn btn-success d-inline-flex align-items-center gap-2"
+      [disabled]="submitting()"
+    >
+      @if (submitting()) {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Saving…
+      } @else {
+        @if (!isEditMode) { <i class="bi bi-plus-circle"></i> Create Objective }
+        @else             { <i class="bi bi-check-lg"></i> Save Changes }
+      }
+    </button>
+  </div>
+
+</form>

@@ -1,0 +1,63 @@
+// ── Page ──────────────────────────────────────────────────────────────────────
+.ol-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+.ol-table-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+
+  table { margin-bottom: 0; }
+
+  thead th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    border-bottom: 2px solid #e9ecef;
+  }
+
+  tbody td {
+    font-size: 0.88rem;
+    vertical-align: middle;
+  }
+}
+
+.ol-code-badge {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.ol-unit-code {
+  font-size: 0.65rem;
+}
+
+.ol-statement {
+  max-width: 340px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+.btn-xs {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  border-radius: 4px;
+}
+
+// ── Offcanvas ─────────────────────────────────────────────────────────────────
+.ol-offcanvas {
+  width: 520px;
+  max-width: 100vw;
+  transition: transform 0.3s ease;
+  transform: translateX(100%);
+
+  &.show {
+    transform: translateX(0);
+  }
+}
