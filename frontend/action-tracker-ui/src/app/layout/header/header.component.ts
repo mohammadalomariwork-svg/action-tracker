@@ -16,7 +16,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Reports',         path: '/reports',     roles: ['Admin', 'Manager'] },
   { label: 'Team Actions',    path: '/management',  roles: ['Admin', 'Manager'] },
   { label: 'Admin Panel',     path: '/admin',       roles: ['Admin'] },
-  { label: 'User Management', path: '/users',       roles: ['Admin'] },
+  { label: 'User Management', path: '/admin/users',  roles: ['Admin'] },
 ];
 
 @Component({

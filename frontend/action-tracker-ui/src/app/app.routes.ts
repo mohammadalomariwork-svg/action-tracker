@@ -3,6 +3,7 @@ import { MsalRedirectComponent } from '@azure/msal-angular';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -83,6 +84,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/reports/reports.component').then(
             m => m.ReportsComponent
+          ),
+      },
+      {
+        path: 'admin/users',
+        canActivate: [adminGuard],
+        loadChildren: () =>
+          import('./features/user-management/user-management.routes').then(
+            m => m.USER_MANAGEMENT_ROUTES
           ),
       },
     ],
