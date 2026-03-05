@@ -2,11 +2,12 @@ import {
   Component,
   OnInit,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   signal,
   computed,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -23,7 +24,7 @@ const AVAILABLE_ROLES = ['Admin', 'Manager', 'User', 'Viewer'] as const;
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,7 +33,7 @@ export class UserListComponent implements OnInit {
   private readonly userMgmtService = inject(UserManagementService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
-  private readonly destroyRef = takeUntilDestroyed();
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── State signals ───────────────────────────────────────────────────────────
   readonly users = signal<UserListItem[]>([]);
@@ -63,7 +64,7 @@ export class UserListComponent implements OnInit {
 
     this.userMgmtService
       .getUsers(this.currentPage(), this.pageSize())
-      .pipe(this.destroyRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.users.set(res.users);
@@ -102,7 +103,7 @@ export class UserListComponent implements OnInit {
 
     this.userMgmtService
       .updateUserRole(req)
-      .pipe(this.destroyRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.roleEditingUserId.set(null);
@@ -124,7 +125,7 @@ export class UserListComponent implements OnInit {
 
     this.userMgmtService
       .deactivateUser(user.id)
-      .pipe(this.destroyRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.toast.success(`${user.fullName} has been deactivated.`);

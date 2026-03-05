@@ -2,6 +2,7 @@ import {
   Component,
   OnInit,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
@@ -46,7 +47,7 @@ export class RegisterADUserComponent implements OnInit {
   private readonly userMgmtService = inject(UserManagementService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
-  private readonly destroyRef = takeUntilDestroyed();
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── Search state ─────────────────────────────────────────────────────────────
   readonly searchTerm = signal('');
@@ -77,7 +78,7 @@ export class RegisterADUserComponent implements OnInit {
 
   ngOnInit(): void {
     this.searchSubject
-      .pipe(debounceTime(400), distinctUntilChanged(), this.destroyRef)
+      .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(term => {
         if (term.trim()) {
           this.runSearch(term.trim(), 1);
@@ -119,7 +120,7 @@ export class RegisterADUserComponent implements OnInit {
 
     this.userMgmtService
       .searchEmployees(term, page, SEARCH_PAGE_SIZE)
-      .pipe(this.destroyRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (results) => {
           this.searchPage.set(page);
@@ -184,7 +185,7 @@ export class RegisterADUserComponent implements OnInit {
         roleName,
         ...(phoneNumber ? { phoneNumber } : {}),
       })
-      .pipe(this.destroyRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res: RegisterUserResponse) => {
           this.submitting.set(false);

@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
@@ -42,7 +43,7 @@ export class RegisterExternalUserComponent {
   private readonly userMgmtService = inject(UserManagementService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
-  private readonly destroyRef = takeUntilDestroyed();
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── State ────────────────────────────────────────────────────────────────────
   readonly loading = signal(false);
@@ -130,7 +131,7 @@ export class RegisterExternalUserComponent {
         roleName,
         ...(phoneNumber ? { phoneNumber } : {}),
       })
-      .pipe(this.destroyRef)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res: RegisterUserResponse) => {
           this.loading.set(false);
