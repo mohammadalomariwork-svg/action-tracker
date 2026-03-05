@@ -1,0 +1,43 @@
+export interface OrgUnit {
+  id: string;
+  name: string;
+  description?: string;
+  code?: string;
+  level: number;
+  parentId?: string;
+  parentName?: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  childrenCount: number;
+}
+
+export interface OrgUnitTree {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  level: number;
+  parentId?: string;
+  isDeleted: boolean;
+  children: OrgUnitTree[];
+}
+
+export interface CreateOrgUnitRequest {
+  name: string;
+  description?: string;
+  code?: string;
+  parentId?: string;
+}
+
+export interface UpdateOrgUnitRequest {
+  name: string;
+  description?: string;
+  code?: string;
+  parentId?: string;
+}
+
+export interface OrgUnitListResponse {
+  orgUnits: OrgUnit[];
+  totalCount: number;
+}
