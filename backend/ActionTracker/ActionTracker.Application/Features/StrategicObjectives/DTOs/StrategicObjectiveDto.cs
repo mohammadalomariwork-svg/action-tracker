@@ -1,0 +1,16 @@
+namespace ActionTracker.Application.Features.StrategicObjectives.DTOs;
+
+public class StrategicObjectiveDto
+{
+    public Guid Id { get; set; }
+    public string ObjectiveCode { get; set; } = string.Empty;
+    public string Statement { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public Guid OrgUnitId { get; set; }
+    public string OrgUnitName { get; set; } = string.Empty;
+    public string? OrgUnitCode { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public int KpiCount { get; set; }
+}
