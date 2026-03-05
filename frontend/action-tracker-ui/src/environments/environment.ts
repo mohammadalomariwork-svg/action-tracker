@@ -15,5 +15,5 @@ export const environment = {
       storeAuthStateInCookie: false,
     },
   },
-  msalScopes: ['openid', 'profile', 'email', 'User.Read'],
+  msalScopes: ['api://4b1ceb12-9cf9-4d79-a919-5428a59aa5eb/access_as_user'],
 };
