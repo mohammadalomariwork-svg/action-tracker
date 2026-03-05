@@ -198,6 +198,102 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("CalculationMethod")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("KpiNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("Period")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StrategicObjectiveId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StrategicObjectiveId", "KpiNumber")
+                        .IsUnique();
+
+                    b.ToTable("Kpis");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.KpiTarget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<decimal?>("Actual")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("KpiId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("Target")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KpiId", "Year", "Month")
+                        .IsUnique();
+
+                    b.ToTable("KpiTargets", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_KpiTargets_Month", "[Month] BETWEEN 1 AND 12");
+                        });
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.KuEmployeeInfo", b =>
                 {
                     b.Property<long>("AssignmentId")
@@ -472,6 +568,109 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ku_employee_info");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.OrgUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("OrgUnits", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrgUnits_Level", "[Level] BETWEEN 1 AND 10");
+                        });
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.StrategicObjective", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ObjectiveCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Statement")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObjectiveCode")
+                        .IsUnique();
+
+                    b.HasIndex("OrgUnitId");
+
+                    b.ToTable("StrategicObjectives");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -662,6 +861,52 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Assignee");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.StrategicObjective", "StrategicObjective")
+                        .WithMany("Kpis")
+                        .HasForeignKey("StrategicObjectiveId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StrategicObjective");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.KpiTarget", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Kpi", "Kpi")
+                        .WithMany("Targets")
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Kpi");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.OrgUnit", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.OrgUnit", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Children");
+                    b.Navigation("Parent");
+                    b.Navigation("StrategicObjectives");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.StrategicObjective", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.OrgUnit", "OrgUnit")
+                        .WithMany("StrategicObjectives")
+                        .HasForeignKey("OrgUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Kpis");
+                    b.Navigation("OrgUnit");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "User")
@@ -727,6 +972,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("AssignedActions");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
+                {
+                    b.Navigation("Targets");
                 });
 #pragma warning restore 612, 618
         }
