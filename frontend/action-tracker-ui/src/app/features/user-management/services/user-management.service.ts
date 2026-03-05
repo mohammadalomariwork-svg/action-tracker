@@ -1,8 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
+  ApiResponse,
   EmployeeSearchResult,
   RegisterADUserRequest,
   RegisterExternalUserRequest,
@@ -19,9 +21,11 @@ export class UserManagementService {
 
   /** Returns a paginated list of all registered users. */
   getUsers(page: number, pageSize: number): Observable<UserListResponse> {
-    return this.http.get<UserListResponse>(
-      `${this.baseUrl}?page=${page}&pageSize=${pageSize}`
-    );
+    return this.http
+      .get<ApiResponse<UserListResponse>>(
+        `${this.baseUrl}?page=${page}&pageSize=${pageSize}`
+      )
+      .pipe(map((res) => res.data));
   }
 
   /** Returns a single user by their identity ID. */

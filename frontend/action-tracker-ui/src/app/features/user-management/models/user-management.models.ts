@@ -17,6 +17,12 @@ export interface UserListResponse {
   pageSize: number;
 }
 
+export interface ApiResponse<T> {
+  data: T;
+  success?: boolean;
+  message?: string;
+}
+
 export interface RegisterExternalUserRequest {
   userName: string;
   email: string;
