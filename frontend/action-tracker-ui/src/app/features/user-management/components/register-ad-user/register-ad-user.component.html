@@ -56,7 +56,7 @@
 
           <!-- Employee number -->
           <div class="col-md-3">
-            <label for="searchEmpNo" class="form-label">Employee No.</label>
+            <label for="searchEmpNo" class="form-label">Employee No. <span class="text-muted fw-normal small">(current or EBS)</span></label>
             <input
               id="searchEmpNo"
               type="search"
@@ -120,8 +120,9 @@
                     }
                     <span class="text-muted small d-block">
                       {{ emp.email }}
-                      @if (emp.empNo)     { &nbsp;·&nbsp; #{{ emp.empNo }} }
-                      @if (emp.department) { &nbsp;·&nbsp; {{ emp.department }} }
+                      @if (emp.empNo)            { &nbsp;·&nbsp; #{{ emp.empNo }} }
+                      @if (emp.ebsEmployeeNumber) { &nbsp;·&nbsp; <span title="Old EBS Employee No.">EBS #{{ emp.ebsEmployeeNumber }}</span> }
+                      @if (emp.department)        { &nbsp;·&nbsp; {{ emp.department }} }
                     </span>
                     @if (emp.jobTitle) {
                       <span class="badge bg-secondary mt-1">{{ emp.jobTitle }}</span>

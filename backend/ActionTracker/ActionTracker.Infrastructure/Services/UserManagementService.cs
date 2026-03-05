@@ -210,9 +210,11 @@ public class UserManagementService : IUserManagementService
 
         var query = _context.KuEmployeeInfo
             .Where(e =>
-                (e.EmployeeName != null && e.EmployeeName.Contains(term)) ||
-                (e.EmailAddress  != null && e.EmailAddress.Contains(term)) ||
-                (e.EmpNo         != null && e.EmpNo.Contains(term)));
+                (e.EmployeeName      != null && e.EmployeeName.Contains(term))      ||
+                (e.EmployeeArabicName!= null && e.EmployeeArabicName.Contains(term))||
+                (e.EmailAddress      != null && e.EmailAddress.Contains(term))       ||
+                (e.EmpNo             != null && e.EmpNo.Contains(term))              ||
+                (e.EBSEmployeeNumber != null && e.EBSEmployeeNumber.Contains(term)));
 
         var employees = await query
             .OrderBy(e => e.EmployeeName)
@@ -234,14 +236,17 @@ public class UserManagementService : IUserManagementService
 
         return employees.Select(e => new EmployeeSearchResultDto
         {
-            EmployeeId        = e.EmpNo ?? string.Empty,
-            FullName          = e.EmployeeName ?? string.Empty,
-            Email             = e.EmailAddress ?? string.Empty,
-            Department        = e.Department,
-            JobTitle          = e.Position,
-            PhoneNumber       = null,   // ku_employee_info does not carry a phone number
-            AlreadyRegistered = e.EmailAddress != null &&
-                                registeredEmails.Contains(e.EmailAddress),
+            EmployeeId          = e.EmpNo ?? string.Empty,
+            EmpNo               = e.EmpNo,
+            EbsEmployeeNumber   = e.EBSEmployeeNumber,
+            FullName            = e.EmployeeName ?? string.Empty,
+            EmployeeArabicName  = e.EmployeeArabicName,
+            Email               = e.EmailAddress ?? string.Empty,
+            Department          = e.Department,
+            JobTitle            = e.Position,
+            PhoneNumber         = null,   // ku_employee_info does not carry a phone number
+            AlreadyRegistered   = e.EmailAddress != null &&
+                                  registeredEmails.Contains(e.EmailAddress),
         }).ToArray();
     }
 
