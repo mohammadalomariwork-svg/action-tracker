@@ -190,6 +190,7 @@ try
     // -----------------------------------------------------------------------
     builder.Services.AddApplicationServices();
     builder.Services.AddUserManagement();
+    builder.Services.AddAdminPanelServices();
     builder.Services.AddSwaggerWithJwt();
 
     // -----------------------------------------------------------------------

@@ -10,6 +10,9 @@ using ActionTracker.Application.Features.Reports.Interfaces;
 using ActionTracker.Application.Features.Reports.Services;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
+using ActionTracker.Application.Features.Kpis.Interfaces;
+using ActionTracker.Application.Features.OrgChart.Interfaces;
+using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Helpers;
@@ -190,6 +193,18 @@ public static class ServiceCollectionExtensions
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
+        return services;
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. Admin panel services (OrgUnit, StrategicObjective, Kpi)
+    // -------------------------------------------------------------------------
+
+    public static IServiceCollection AddAdminPanelServices(this IServiceCollection services)
+    {
+        services.AddScoped<IOrgUnitService,            OrgUnitService>();
+        services.AddScoped<IStrategicObjectiveService, StrategicObjectiveService>();
+        services.AddScoped<IKpiService,                KpiService>();
         return services;
     }
 }
