@@ -232,7 +232,12 @@ try
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseMiddleware<ExceptionMiddleware>();
 
-    app.UseHttpsRedirection();
+    // Only redirect to HTTPS in non-Development environments.
+    // In Development the dev certificate may not be trusted, causing VS to
+    // report "Unable to connect to web server 'https'". Use the 'http' profile
+    // for local development, or run: dotnet dev-certs https --trust
+    if (!app.Environment.IsDevelopment())
+        app.UseHttpsRedirection();
     app.UseCors("AllowAngularApp");
 
     app.UseAuthentication();
