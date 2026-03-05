@@ -103,17 +103,16 @@ public sealed class AuthService : IAuthService
         // --- Extract required claims ---
         var azureObjectId =
             principal.FindFirstValue("oid") ??
-            principal.FindFirstValue(
-                "http://schemas.microsoft.com/identity/claims/objectidentifier") ??
             throw new UnauthorizedAccessException(
                 "Azure AD token is missing the oid claim.");
 
         var email =
             principal.FindFirstValue("preferred_username") ??
-            principal.FindFirstValue(JwtRegisteredClaimNames.Email) ??
             principal.FindFirstValue("email") ??
+            principal.FindFirstValue("upn") ??
+            principal.FindFirstValue("unique_name") ??
             throw new UnauthorizedAccessException(
-                "Azure AD token is missing an email or preferred_username claim.");
+                "Azure AD token is missing an email claim.");
 
         var displayName =
             principal.FindFirstValue("name") ??
@@ -339,8 +338,12 @@ public sealed class AuthService : IAuthService
 
         try
         {
-            return new JwtSecurityTokenHandler()
-                .ValidateToken(token, validationParameters, out _);
+            // Clear the default inbound claim-type map so JWT claim names
+            // (e.g. "preferred_username", "email", "oid") are preserved as-is
+            // in the ClaimsPrincipal rather than being remapped to long CLR URIs.
+            var handler = new JwtSecurityTokenHandler();
+            handler.InboundClaimTypeMap.Clear();
+            return handler.ValidateToken(token, validationParameters, out _);
         }
         catch (SecurityTokenException ex)
         {
