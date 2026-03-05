@@ -14,7 +14,7 @@ import {
   FormControl,
   Validators,
 } from '@angular/forms';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -50,14 +50,16 @@ export class RegisterADUserComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   // ── Search state ─────────────────────────────────────────────────────────────
-  readonly searchTerm = signal('');
-  readonly loading = signal(false);
-  readonly searchResults = signal<EmployeeSearchResult[]>([]);
-  readonly searchError = signal<string | null>(null);
-  readonly searchPage = signal(1);
-  readonly hasMore = signal(false);
+  readonly searchName        = signal('');
+  readonly searchArabicName  = signal('');
+  readonly searchEmpNo       = signal('');
+  readonly loading           = signal(false);
+  readonly searchResults     = signal<EmployeeSearchResult[]>([]);
+  readonly searchError       = signal<string | null>(null);
+  readonly searchPage        = signal(1);
+  readonly hasMore           = signal(false);
 
-  private readonly searchSubject = new Subject<string>();
+  private readonly searchTrigger = new Subject<void>();
 
   // ── Register form state ───────────────────────────────────────────────────────
   readonly selectedEmployee = signal<EmployeeSearchResult | null>(null);
@@ -77,11 +79,14 @@ export class RegisterADUserComponent implements OnInit {
   }) as FormGroup<ADUserForm>;
 
   ngOnInit(): void {
-    this.searchSubject
-      .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe(term => {
-        if (term.trim()) {
-          this.runSearch(term.trim(), 1);
+    this.searchTrigger
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const name       = this.searchName().trim();
+        const arabicName = this.searchArabicName().trim();
+        const empNo      = this.searchEmpNo().trim();
+        if (name || arabicName || empNo) {
+          this.runSearch(name, arabicName, empNo, 1);
         } else {
           this.searchResults.set([]);
           this.hasMore.set(false);
@@ -91,10 +96,19 @@ export class RegisterADUserComponent implements OnInit {
 
   // ── Search ────────────────────────────────────────────────────────────────────
 
-  onSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchTerm.set(value);
-    this.searchSubject.next(value);
+  onNameInput(event: Event): void {
+    this.searchName.set((event.target as HTMLInputElement).value);
+    this.searchTrigger.next();
+  }
+
+  onArabicNameInput(event: Event): void {
+    this.searchArabicName.set((event.target as HTMLInputElement).value);
+    this.searchTrigger.next();
+  }
+
+  onEmpNoInput(event: Event): void {
+    this.searchEmpNo.set((event.target as HTMLInputElement).value);
+    this.searchTrigger.next();
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -105,21 +119,31 @@ export class RegisterADUserComponent implements OnInit {
   }
 
   triggerSearch(): void {
-    const term = this.searchTerm().trim();
-    if (term) this.runSearch(term, 1);
+    const name       = this.searchName().trim();
+    const arabicName = this.searchArabicName().trim();
+    const empNo      = this.searchEmpNo().trim();
+    if (name || arabicName || empNo) {
+      this.runSearch(name, arabicName, empNo, 1);
+    }
   }
 
   loadMore(): void {
     const nextPage = this.searchPage() + 1;
-    this.runSearch(this.searchTerm().trim(), nextPage, true);
+    this.runSearch(
+      this.searchName().trim(),
+      this.searchArabicName().trim(),
+      this.searchEmpNo().trim(),
+      nextPage,
+      true
+    );
   }
 
-  private runSearch(term: string, page: number, append = false): void {
+  private runSearch(name: string, arabicName: string, empNo: string, page: number, append = false): void {
     this.loading.set(true);
     this.searchError.set(null);
 
     this.userMgmtService
-      .searchEmployees(term, page, SEARCH_PAGE_SIZE)
+      .searchEmployees(name, arabicName, empNo, page, SEARCH_PAGE_SIZE)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (results) => {

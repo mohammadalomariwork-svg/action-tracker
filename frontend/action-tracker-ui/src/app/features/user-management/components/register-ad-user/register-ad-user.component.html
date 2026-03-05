@@ -19,30 +19,69 @@
     <div class="card rau-card mb-4">
       <div class="card-body p-4">
 
-        <!-- Search bar -->
-        <label for="empSearch" class="form-label fw-medium">Search employees by name, email, or department</label>
-        <div class="input-group mb-3">
-          <input
-            id="empSearch"
-            type="search"
-            class="form-control"
-            placeholder="e.g. John Smith"
-            [value]="searchTerm()"
-            (input)="onSearchInput($event)"
-            (keydown)="onSearchKeydown($event)"
-            autocomplete="off"
-          />
-          <button
-            class="btn btn-primary d-inline-flex align-items-center gap-2"
-            type="button"
-            (click)="triggerSearch()"
-            [disabled]="loading()"
-          >
-            @if (loading()) {
-              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            }
-            Search
-          </button>
+        <!-- Search boxes -->
+        <p class="form-label fw-medium mb-3">Search employees — fill in one or more fields</p>
+        <div class="row g-3 mb-3">
+
+          <!-- English name -->
+          <div class="col-md-4">
+            <label for="searchName" class="form-label">Employee Name</label>
+            <input
+              id="searchName"
+              type="search"
+              class="form-control"
+              placeholder="e.g. John Smith"
+              [value]="searchName()"
+              (input)="onNameInput($event)"
+              (keydown)="onSearchKeydown($event)"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Arabic name -->
+          <div class="col-md-4">
+            <label for="searchArabicName" class="form-label">Arabic Name</label>
+            <input
+              id="searchArabicName"
+              type="search"
+              class="form-control rau-input-rtl"
+              placeholder="مثال: محمد علي"
+              dir="rtl"
+              [value]="searchArabicName()"
+              (input)="onArabicNameInput($event)"
+              (keydown)="onSearchKeydown($event)"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Employee number -->
+          <div class="col-md-4">
+            <label for="searchEmpNo" class="form-label">Employee No.</label>
+            <div class="input-group">
+              <input
+                id="searchEmpNo"
+                type="search"
+                class="form-control"
+                placeholder="e.g. 100042"
+                [value]="searchEmpNo()"
+                (input)="onEmpNoInput($event)"
+                (keydown)="onSearchKeydown($event)"
+                autocomplete="off"
+              />
+              <button
+                class="btn btn-primary d-inline-flex align-items-center gap-2"
+                type="button"
+                (click)="triggerSearch()"
+                [disabled]="loading()"
+              >
+                @if (loading()) {
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                }
+                Search
+              </button>
+            </div>
+          </div>
+
         </div>
 
         <!-- Search error -->
@@ -61,8 +100,12 @@
                 <div class="d-flex justify-content-between align-items-start gap-3">
                   <div class="rau-emp-info">
                     <span class="rau-emp-name">{{ emp.fullName }}</span>
+                    @if (emp.employeeArabicName) {
+                      <span class="rau-emp-name-ar d-block" dir="rtl">{{ emp.employeeArabicName }}</span>
+                    }
                     <span class="text-muted small d-block">
                       {{ emp.email }}
+                      @if (emp.empNo)     { &nbsp;·&nbsp; #{{ emp.empNo }} }
                       @if (emp.department) { &nbsp;·&nbsp; {{ emp.department }} }
                     </span>
                     @if (emp.jobTitle) {
@@ -102,7 +145,7 @@
               </button>
             </div>
           }
-        } @else if (!loading() && searchTerm().trim() && !searchError()) {
+        } @else if (!loading() && (searchName().trim() || searchArabicName().trim() || searchEmpNo().trim()) && !searchError()) {
           <p class="text-muted text-center py-3 mb-0">No employees found.</p>
         }
 

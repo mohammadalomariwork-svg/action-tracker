@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
@@ -55,15 +55,24 @@ export class UserManagementService {
 
   /**
    * Searches the AD employee directory for users not yet registered.
+   * At least one of name / arabicName / empNo must be provided.
    * Results include an `alreadyRegistered` flag for each match.
    */
   searchEmployees(
-    searchTerm: string,
+    name: string,
+    arabicName: string,
+    empNo: string,
     page: number,
     pageSize: number
   ): Observable<EmployeeSearchResult[]> {
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+    if (name)       params = params.set('name', name);
+    if (arabicName) params = params.set('arabicName', arabicName);
+    if (empNo)      params = params.set('empNo', empNo);
     return this.http.get<EmployeeSearchResult[]>(
-      `${this.baseUrl}/search-employees?searchTerm=${searchTerm}&page=${page}&pageSize=${pageSize}`
+      `${this.baseUrl}/search-employees`, { params }
     );
   }
 

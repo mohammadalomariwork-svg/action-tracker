@@ -54,7 +54,9 @@ export interface RegisterUserResponse {
 
 export interface EmployeeSearchResult {
   employeeId: string;
+  empNo?: string;
   fullName: string;
+  employeeArabicName?: string;
   email: string;
   department?: string;
   jobTitle?: string;
