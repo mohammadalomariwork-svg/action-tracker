@@ -116,6 +116,11 @@
                       class="btn btn-outline-danger btn-sm"
                       (click)="deactivate(user)"
                     >Deactivate</button>
+                  } @else {
+                    <button
+                      class="btn btn-outline-success btn-sm"
+                      (click)="reactivate(user)"
+                    >Activate</button>
                   }
                 }
               </td>
@@ -173,6 +178,11 @@
                   class="btn btn-outline-danger btn-sm"
                   (click)="deactivate(user)"
                 >Deactivate</button>
+              } @else {
+                <button
+                  class="btn btn-outline-success btn-sm"
+                  (click)="reactivate(user)"
+                >Activate</button>
               }
             </div>
 

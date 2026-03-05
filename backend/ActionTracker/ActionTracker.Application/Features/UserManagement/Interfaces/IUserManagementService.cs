@@ -89,4 +89,13 @@ public interface IUserManagementService
     Task DeactivateUserAsync(
         string            userId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reactivates a previously deactivated user account, restoring login access.
+    /// </summary>
+    /// <param name="userId">The ASP.NET Identity user ID (GUID string).</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    Task ReactivateUserAsync(
+        string            userId,
+        CancellationToken cancellationToken = default);
 }

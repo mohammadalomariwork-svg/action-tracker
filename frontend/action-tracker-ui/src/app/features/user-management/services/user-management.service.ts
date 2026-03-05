@@ -83,4 +83,9 @@ export class UserManagementService {
   deactivateUser(userId: string): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${userId}/deactivate`, null);
   }
+
+  /** Restores a deactivated user, allowing them to authenticate again. */
+  reactivateUser(userId: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${userId}/reactivate`, null);
+  }
 }

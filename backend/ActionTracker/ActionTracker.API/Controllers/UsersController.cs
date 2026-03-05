@@ -218,4 +218,32 @@ public class UsersController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
+
+    // -------------------------------------------------------------------------
+    // PUT api/users/{id}/reactivate
+    // -------------------------------------------------------------------------
+
+    /// <summary>Reactivate a previously deactivated user account.</summary>
+    [HttpPut("{id}/reactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ReactivateUser(string id, CancellationToken ct = default)
+    {
+        _logger.LogInformation("PUT /api/users/{Id}/reactivate", id);
+
+        try
+        {
+            await _userManagement.ReactivateUserAsync(id, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
 }

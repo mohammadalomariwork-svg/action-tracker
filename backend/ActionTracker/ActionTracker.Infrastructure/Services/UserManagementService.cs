@@ -277,6 +277,30 @@ public class UserManagementService : IUserManagementService
     }
 
     // -------------------------------------------------------------------------
+    // ReactivateUserAsync
+    // -------------------------------------------------------------------------
+
+    public async Task ReactivateUserAsync(
+        string            userId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId)
+            ?? throw new KeyNotFoundException($"User '{userId}' not found.");
+
+        user.IsActive = true;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            _logger.LogError("Failed to reactivate user {UserId}: {Errors}", userId, errors);
+            throw new InvalidOperationException($"Failed to reactivate user: {errors}");
+        }
+
+        _logger.LogInformation("User {UserId} reactivated", userId);
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 

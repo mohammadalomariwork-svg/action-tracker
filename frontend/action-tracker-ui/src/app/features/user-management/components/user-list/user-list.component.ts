@@ -137,6 +137,27 @@ export class UserListComponent implements OnInit {
       });
   }
 
+  // ── Reactivate ──────────────────────────────────────────────────────────────
+
+  reactivate(user: UserListItem): void {
+    if (!window.confirm(`Reactivate ${user.fullName}? They will be able to log in again.`)) {
+      return;
+    }
+
+    this.userMgmtService
+      .reactivateUser(user.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.toast.success(`${user.fullName} has been reactivated.`);
+          this.loadUsers();
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message ?? 'Failed to reactivate user.');
+        },
+      });
+  }
+
   // ── Navigation ──────────────────────────────────────────────────────────────
 
   navigateToRegisterExternal(): void {
