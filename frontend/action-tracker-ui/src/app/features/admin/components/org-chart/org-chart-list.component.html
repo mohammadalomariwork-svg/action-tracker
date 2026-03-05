@@ -1,12 +1,7 @@
 <div class="ocl-page">
 
   <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Organization Chart</li>
-    </ol>
-  </nav>
+  <app-admin-breadcrumb [items]="[{ label: 'Organization Chart' }]" class="mb-3 d-block" />
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Organization Chart</h2>

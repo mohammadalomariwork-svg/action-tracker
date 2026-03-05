@@ -1,12 +1,7 @@
 <div class="ap-page">
 
   <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a routerLink="/">Home</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Admin Panel</li>
-    </ol>
-  </nav>
+  <app-admin-breadcrumb [items]="[{ label: 'Admin Panel' }]" class="mb-3 d-block" />
 
   <!-- ── Page header ────────────────────────────────────────────────────────── -->
   <div class="ap-header d-flex align-items-center gap-3 mb-4 p-4 rounded-3">

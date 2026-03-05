@@ -13,12 +13,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { OrgUnitService } from '../../services/org-unit.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { OrgUnit, OrgUnitTree } from '../../models/org-chart.models';
-import { OrgUnitFormComponent } from './org-unit-form.component';
+import { OrgUnitFormComponent }      from './org-unit-form.component';
+import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 
 @Component({
   selector: 'app-org-chart-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent],
+  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, AdminBreadcrumbComponent],
   templateUrl: './org-chart-list.component.html',
   styleUrl: './org-chart-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

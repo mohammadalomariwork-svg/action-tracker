@@ -18,11 +18,12 @@ import { ToastService }                from '../../../../core/services/toast.ser
 import { Kpi, MeasurementPeriod, MeasurementPeriodLabels } from '../../models/kpi.models';
 import { StrategicObjective }          from '../../models/strategic-objectives.models';
 import { KpiFormComponent }            from './kpi-form.component';
+import { AdminBreadcrumbComponent }    from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 
 @Component({
   selector: 'app-kpi-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, KpiFormComponent],
+  imports: [CommonModule, FormsModule, KpiFormComponent, AdminBreadcrumbComponent],
   templateUrl: './kpi-list.component.html',
   styleUrl: './kpi-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

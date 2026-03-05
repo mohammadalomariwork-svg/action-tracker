@@ -18,11 +18,12 @@ import { ToastService }              from '../../../../core/services/toast.servi
 import { StrategicObjective }        from '../../models/strategic-objectives.models';
 import { OrgUnit }                   from '../../models/org-chart.models';
 import { ObjectiveFormComponent }    from './objective-form.component';
+import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 
 @Component({
   selector: 'app-objectives-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ObjectiveFormComponent],
+  imports: [CommonModule, FormsModule, ObjectiveFormComponent, AdminBreadcrumbComponent],
   templateUrl: './objectives-list.component.html',
   styleUrl: './objectives-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,23 +1,18 @@
 <div class="kl-page">
 
   <!-- ── Breadcrumb ────────────────────────────────────────────────────────────  -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a routerLink="/admin">Admin</a></li>
-      @if (contextObjective()) {
-        <li class="breadcrumb-item">
-          <a routerLink="/admin/strategic-objectives">Strategic Objectives</a>
-        </li>
-        <li class="breadcrumb-item">
-          <span class="badge bg-dark font-monospace me-1">{{ contextObjective()!.objectiveCode }}</span>
-          {{ contextObjective()!.statement | slice:0:60 }}{{ (contextObjective()!.statement.length > 60) ? '…' : '' }}
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">KPIs</li>
-      } @else {
-        <li class="breadcrumb-item active" aria-current="page">KPIs &amp; Targets</li>
-      }
-    </ol>
-  </nav>
+  @if (contextObjective()) {
+    <app-admin-breadcrumb
+      [items]="[
+        { label: 'Strategic Objectives', route: '/admin/objectives' },
+        { label: contextObjective()!.objectiveCode + ' — ' + (contextObjective()!.statement | slice:0:50) },
+        { label: 'KPIs' }
+      ]"
+      class="mb-3 d-block"
+    />
+  } @else {
+    <app-admin-breadcrumb [items]="[{ label: 'KPIs & Targets' }]" class="mb-3 d-block" />
+  }
 
   <!-- ── Header ────────────────────────────────────────────────────────────────  -->
   <div class="d-flex justify-content-between align-items-center mb-3">
