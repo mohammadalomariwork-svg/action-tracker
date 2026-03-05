@@ -10,8 +10,10 @@ using ActionTracker.Application.Features.Reports.Interfaces;
 using ActionTracker.Application.Features.Reports.Services;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
+using ActionTracker.Application.Features.UserManagement.Interfaces;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Helpers;
+using ActionTracker.Infrastructure.Services;
 using ActionTracker.API.Middleware;
 
 // Aliases to distinguish the two IAuthService definitions that currently coexist:
@@ -155,6 +157,16 @@ public static class ServiceCollectionExtensions
                     .AllowAnyHeader()
                     .AllowCredentials()));
 
+        return services;
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. User Management feature
+    // -------------------------------------------------------------------------
+
+    public static IServiceCollection AddUserManagement(this IServiceCollection services)
+    {
+        services.AddScoped<IUserManagementService, UserManagementService>();
         return services;
     }
 

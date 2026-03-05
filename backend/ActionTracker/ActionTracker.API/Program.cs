@@ -150,6 +150,11 @@ try
             policy.AddAuthenticationSchemes(schemes);
             policy.RequireRole("Admin");
         });
+        options.AddPolicy("AdminOrManager", policy =>
+        {
+            policy.AddAuthenticationSchemes(schemes);
+            policy.RequireRole("Admin", "Manager");
+        });
         options.AddPolicy("ManagerOrAdmin", policy =>
         {
             policy.AddAuthenticationSchemes(schemes);
@@ -184,6 +189,7 @@ try
     // Application services, Swagger
     // -----------------------------------------------------------------------
     builder.Services.AddApplicationServices();
+    builder.Services.AddUserManagement();
     builder.Services.AddSwaggerWithJwt();
 
     // -----------------------------------------------------------------------
@@ -253,6 +259,9 @@ try
     }
 
     // -----------------------------------------------------------------------
+    // Seed required roles (Admin, Manager, User, Viewer)
+    await RoleSeeder.SeedAsync(app.Services);
+
     // Database seeding — create roles and default admin user if absent
     // -----------------------------------------------------------------------
     using (var scope = app.Services.CreateScope())
