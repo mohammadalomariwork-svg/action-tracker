@@ -26,7 +26,7 @@ export class WorkspaceListComponent implements OnInit {
     this.loadWorkspaces();
   }
 
-  /** Loads all active workspaces from the API. */
+  /** Loads all workspaces (active and inactive) from the API. */
   loadWorkspaces(): void {
     this.isLoading    = true;
     this.errorMessage = null;
@@ -62,6 +62,21 @@ export class WorkspaceListComponent implements OnInit {
         next: () => this.loadWorkspaces(),
         error: (err) => {
           this.errorMessage = err?.error?.message ?? 'Failed to delete workspace.';
+        },
+      });
+  }
+
+  /** Restores a soft-deleted workspace after user confirmation, then reloads the list. */
+  onRestore(id: number): void {
+    if (!confirm('Restore this workspace?')) return;
+
+    this.workspaceService
+      .restoreWorkspace(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.loadWorkspaces(),
+        error: (err) => {
+          this.errorMessage = err?.error?.message ?? 'Failed to restore workspace.';
         },
       });
   }

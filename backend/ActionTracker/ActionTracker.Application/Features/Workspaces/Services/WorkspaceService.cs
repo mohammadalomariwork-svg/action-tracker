@@ -31,14 +31,13 @@ public class WorkspaceService : IWorkspaceService
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Returns all active workspaces ordered alphabetically by title.
+    /// Returns all workspaces (active and inactive) ordered alphabetically by title.
     /// </summary>
     public async Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync()
     {
         try
         {
             return await _db.Workspaces
-                .Where(w => w.IsActive)
                 .OrderBy(w => w.Title)
                 .Select(w => ToListDto(w))
                 .ToListAsync();
@@ -214,6 +213,40 @@ public class WorkspaceService : IWorkspaceService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting workspace {WorkspaceId}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Restores a soft-deleted workspace by setting <c>IsActive = true</c>.
+    /// Returns <c>false</c> if the workspace does not exist.
+    /// </summary>
+    /// <param name="id">Primary key of the workspace to restore.</param>
+    public async Task<bool> RestoreWorkspaceAsync(int id)
+    {
+        try
+        {
+            var workspace = await _db.Workspaces
+                .FirstOrDefaultAsync(w => w.Id == id);
+
+            if (workspace is null)
+            {
+                _logger.LogWarning("RestoreWorkspaceAsync: workspace {WorkspaceId} not found", id);
+                return false;
+            }
+
+            workspace.IsActive  = true;
+            workspace.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Workspace {WorkspaceId} restored", id);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring workspace {WorkspaceId}", id);
             throw;
         }
     }

@@ -188,4 +188,25 @@ public class WorkspacesController : ControllerBase
 
         return NoContent();
     }
+
+    // -------------------------------------------------------------------------
+    // PATCH api/workspaces/{id}/restore
+    // -------------------------------------------------------------------------
+
+    /// <summary>Restores a soft-deleted workspace by setting it active again.</summary>
+    /// <param name="id">Primary key of the workspace to restore.</param>
+    [HttpPatch("{id:int}/restore")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Restore(int id)
+    {
+        _logger.LogInformation("PATCH /api/workspaces/{Id}/restore", id);
+
+        var restored = await _workspaceService.RestoreWorkspaceAsync(id);
+        if (!restored)
+            return NotFound(ApiResponse<string>.Fail($"Workspace '{id}' not found."));
+
+        return NoContent();
+    }
 }

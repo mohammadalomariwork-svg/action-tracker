@@ -39,10 +39,18 @@ public interface IWorkspaceService
     Task<WorkspaceResponseDto?> UpdateWorkspaceAsync(int id, UpdateWorkspaceDto dto);
 
     /// <summary>
-    /// Deletes a workspace. Returns <c>true</c> if deleted, <c>false</c> if not found.
+    /// Soft-deletes a workspace (sets IsActive = false).
+    /// Returns <c>true</c> if deleted, <c>false</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the workspace to delete.</param>
     Task<bool> DeleteWorkspaceAsync(int id);
+
+    /// <summary>
+    /// Restores a soft-deleted workspace (sets IsActive = true).
+    /// Returns <c>true</c> if restored, <c>false</c> if not found.
+    /// </summary>
+    /// <param name="id">Primary key of the workspace to restore.</param>
+    Task<bool> RestoreWorkspaceAsync(int id);
 
     /// <summary>
     /// Returns <c>true</c> if a workspace with the given primary key exists.

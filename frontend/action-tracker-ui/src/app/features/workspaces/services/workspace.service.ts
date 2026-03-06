@@ -79,6 +79,15 @@ export class WorkspaceService {
   }
 
   /**
+   * Restores a soft-deleted workspace (sets it active again).
+   * Requires Admin role.
+   * @param id Primary key of the workspace to restore.
+   */
+  restoreWorkspace(id: number): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.apiUrl}/${id}/restore`, {});
+  }
+
+  /**
    * Returns non-deleted org units for the Organisation Unit dropdown.
    * Requires Admin role.
    */
