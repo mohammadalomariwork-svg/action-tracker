@@ -21,6 +21,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<Kpi>                 Kpis                 => Set<Kpi>();
     public DbSet<KpiTarget>           KpiTargets           => Set<KpiTarget>();
     public DbSet<Workspace>           Workspaces           => Set<Workspace>();
+    public DbSet<WorkspaceAdmin>      WorkspaceAdmins      => Set<WorkspaceAdmin>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,14 +50,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
                   .IsRequired()
                   .HasMaxLength(200);
 
-            entity.Property(e => e.AdminUserId)
-                  .IsRequired()
-                  .HasMaxLength(450);
-
-            entity.Property(e => e.AdminUserName)
-                  .IsRequired()
-                  .HasMaxLength(256);
-
             entity.Property(e => e.CreatedAt)
                   .IsRequired()
                   .HasDefaultValueSql("GETUTCDATE()");
@@ -68,8 +61,32 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
                   .IsRequired()
                   .HasDefaultValue(true);
 
-            entity.HasIndex(e => e.AdminUserId);
             entity.HasIndex(e => e.OrganizationUnit);
+
+            entity.HasMany(e => e.Admins)
+                  .WithOne(a => a.Workspace)
+                  .HasForeignKey(a => a.WorkspaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkspaceAdmin>(entity =>
+        {
+            entity.ToTable("WorkspaceAdmins");
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                  .UseIdentityColumn();
+
+            entity.Property(e => e.AdminUserId)
+                  .IsRequired()
+                  .HasMaxLength(450);
+
+            entity.Property(e => e.AdminUserName)
+                  .IsRequired()
+                  .HasMaxLength(256);
+
+            entity.HasIndex(e => e.WorkspaceId);
+            entity.HasIndex(e => e.AdminUserId);
         });
     }
 

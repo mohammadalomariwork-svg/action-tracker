@@ -1060,16 +1060,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("AdminUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("AdminUserName")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1085,11 +1075,55 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdminUserId");
-
                     b.HasIndex("OrganizationUnit");
 
                     b.ToTable("Workspaces");
+                });
+
+            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.WorkspaceAdmin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("WorkspaceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AdminUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AdminUserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("WorkspaceId");
+
+                    b.ToTable("WorkspaceAdmins");
+                });
+
+            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.WorkspaceAdmin", b =>
+                {
+                    b.HasOne("ActionTracker.Application.Features.Workspaces.Models.Workspace", "Workspace")
+                        .WithMany("Admins")
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
+            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.Workspace", b =>
+                {
+                    b.Navigation("Admins");
                 });
 #pragma warning restore 612, 618
         }

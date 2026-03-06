@@ -49,6 +49,22 @@
   }
 }
 
+// ── Admin list ────────────────────────────────────────────────────────────────
+.wf-admin-list {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color, #e2e8f0);
+
+  .list-group-item {
+    background: var(--bg-card, #ffffff);
+    font-size: 0.9rem;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+  }
+}
+
 // ── Active toggle ─────────────────────────────────────────────────────────────
 .form-switch .form-check-input {
   width: 2.25em;

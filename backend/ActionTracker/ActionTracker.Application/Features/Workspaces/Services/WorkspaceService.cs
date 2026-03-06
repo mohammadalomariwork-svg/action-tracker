@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
@@ -37,10 +41,12 @@ public class WorkspaceService : IWorkspaceService
     {
         try
         {
-            return await _db.Workspaces
+            var list = await _db.Workspaces
+                .Include(w => w.Admins)
                 .OrderBy(w => w.Title)
-                .Select(w => ToListDto(w))
                 .ToListAsync();
+
+            return list.Select(ToListDto);
         }
         catch (Exception ex)
         {
@@ -58,6 +64,7 @@ public class WorkspaceService : IWorkspaceService
         try
         {
             var workspace = await _db.Workspaces
+                .Include(w => w.Admins)
                 .FirstOrDefaultAsync(w => w.Id == id);
 
             return workspace is null ? null : ToResponseDto(workspace);
@@ -70,18 +77,20 @@ public class WorkspaceService : IWorkspaceService
     }
 
     /// <summary>
-    /// Returns all active workspaces where the given user is the admin.
+    /// Returns all active workspaces where the given user is one of the admins.
     /// </summary>
     /// <param name="adminUserId">The AspNetUsers.Id of the admin user.</param>
     public async Task<IEnumerable<WorkspaceListDto>> GetWorkspacesByAdminUserIdAsync(string adminUserId)
     {
         try
         {
-            return await _db.Workspaces
-                .Where(w => w.AdminUserId == adminUserId && w.IsActive)
+            var list = await _db.Workspaces
+                .Include(w => w.Admins)
+                .Where(w => w.IsActive && w.Admins.Any(a => a.AdminUserId == adminUserId))
                 .OrderBy(w => w.Title)
-                .Select(w => ToListDto(w))
                 .ToListAsync();
+
+            return list.Select(ToListDto);
         }
         catch (Exception ex)
         {
@@ -124,16 +133,24 @@ public class WorkspaceService : IWorkspaceService
             {
                 Title            = dto.Title,
                 OrganizationUnit = dto.OrganizationUnit,
-                AdminUserId      = dto.AdminUserId,
-                AdminUserName    = dto.AdminUserName,
                 CreatedAt        = DateTime.UtcNow,
                 IsActive         = true
             };
 
+            foreach (var a in dto.Admins)
+            {
+                workspace.Admins.Add(new WorkspaceAdmin
+                {
+                    AdminUserId   = a.UserId,
+                    AdminUserName = a.UserName
+                });
+            }
+
             _db.Workspaces.Add(workspace);
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Workspace {WorkspaceId} created", workspace.Id);
+            _logger.LogInformation("Workspace {WorkspaceId} created with {AdminCount} admin(s)",
+                workspace.Id, workspace.Admins.Count);
 
             return ToResponseDto(workspace);
         }
@@ -155,6 +172,7 @@ public class WorkspaceService : IWorkspaceService
         try
         {
             var workspace = await _db.Workspaces
+                .Include(w => w.Admins)
                 .FirstOrDefaultAsync(w => w.Id == id);
 
             if (workspace is null)
@@ -165,14 +183,27 @@ public class WorkspaceService : IWorkspaceService
 
             workspace.Title            = dto.Title;
             workspace.OrganizationUnit = dto.OrganizationUnit;
-            workspace.AdminUserId      = dto.AdminUserId;
-            workspace.AdminUserName    = dto.AdminUserName;
             workspace.IsActive         = dto.IsActive;
             workspace.UpdatedAt        = DateTime.UtcNow;
 
+            // Replace admin list
+            _db.WorkspaceAdmins.RemoveRange(workspace.Admins);
+            workspace.Admins.Clear();
+
+            foreach (var a in dto.Admins)
+            {
+                workspace.Admins.Add(new WorkspaceAdmin
+                {
+                    WorkspaceId   = id,
+                    AdminUserId   = a.UserId,
+                    AdminUserName = a.UserName
+                });
+            }
+
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Workspace {WorkspaceId} updated", id);
+            _logger.LogInformation("Workspace {WorkspaceId} updated with {AdminCount} admin(s)",
+                id, workspace.Admins.Count);
 
             return ToResponseDto(workspace);
         }
@@ -330,8 +361,9 @@ public class WorkspaceService : IWorkspaceService
         Id               = w.Id,
         Title            = w.Title,
         OrganizationUnit = w.OrganizationUnit,
-        AdminUserId      = w.AdminUserId,
-        AdminUserName    = w.AdminUserName,
+        Admins           = w.Admins
+                            .Select(a => new WorkspaceAdminDto { UserId = a.AdminUserId, UserName = a.AdminUserName })
+                            .ToList(),
         IsActive         = w.IsActive,
         CreatedAt        = w.CreatedAt,
         UpdatedAt        = w.UpdatedAt
@@ -342,7 +374,7 @@ public class WorkspaceService : IWorkspaceService
         Id               = w.Id,
         Title            = w.Title,
         OrganizationUnit = w.OrganizationUnit,
-        AdminUserName    = w.AdminUserName,
+        AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
         IsActive         = w.IsActive
     };
 }

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace ActionTracker.Application.Features.Workspaces.DTOs;
 
 /// <summary>
@@ -14,11 +17,8 @@ public class WorkspaceResponseDto
     /// <summary>Name of the organisational unit this workspace belongs to.</summary>
     public string OrganizationUnit { get; set; } = string.Empty;
 
-    /// <summary>The <c>Id</c> of the AspNetUsers record for the workspace admin.</summary>
-    public string AdminUserId { get; set; } = string.Empty;
-
-    /// <summary>Display name of the workspace admin.</summary>
-    public string AdminUserName { get; set; } = string.Empty;
+    /// <summary>All admin users assigned to this workspace.</summary>
+    public List<WorkspaceAdminDto> Admins { get; set; } = new();
 
     /// <summary>Whether the workspace is currently active.</summary>
     public bool IsActive { get; set; }

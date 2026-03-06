@@ -1,21 +1,16 @@
 import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  FormGroup,
-  Validators,
-} from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { WorkspaceService } from '../../services/workspace.service';
-import { OrgUnitDropdownItem, UserDropdownItem } from '../../models/workspace.model';
+import { OrgUnitDropdownItem, UserDropdownItem, WorkspaceAdmin } from '../../models/workspace.model';
 
 @Component({
   selector: 'app-workspace-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './workspace-form.component.html',
   styleUrl: './workspace-form.component.scss',
 })
@@ -34,6 +29,13 @@ export class WorkspaceFormComponent implements OnInit {
   orgUnits: OrgUnitDropdownItem[] = [];
   adminUsers: UserDropdownItem[]  = [];
 
+  /** Currently selected admins for this workspace. */
+  selectedAdmins: WorkspaceAdmin[] = [];
+  /** The user ID chosen in the "Add admin" dropdown. */
+  selectedUserId = '';
+  /** Whether the form was submitted with an empty admin list. */
+  adminsSubmitAttempted = false;
+
   form!: FormGroup;
 
   ngOnInit(): void {
@@ -51,13 +53,41 @@ export class WorkspaceFormComponent implements OnInit {
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // ── Admin list helpers ────────────────────────────────────────────────────────
 
-  /** Builds a visually indented label for an org-unit option (matches user-management style). */
+  /** Users not yet in selectedAdmins (prevents duplicates in the picker). */
+  get availableUsers(): UserDropdownItem[] {
+    return this.adminUsers.filter(u => !this.selectedAdmins.some(a => a.userId === u.id));
+  }
+
+  /** Adds the currently selected user to the admin list. */
+  addAdmin(): void {
+    if (!this.selectedUserId) return;
+    const user = this.adminUsers.find(u => u.id === this.selectedUserId);
+    if (!user) return;
+    this.selectedAdmins = [...this.selectedAdmins, { userId: user.id, userName: user.displayName }];
+    this.selectedUserId = '';
+  }
+
+  /** Removes an admin from the list by their user ID. */
+  removeAdmin(userId: string): void {
+    this.selectedAdmins = this.selectedAdmins.filter(a => a.userId !== userId);
+  }
+
+  /** True when the admin list is empty and user has tried to submit. */
+  get hasAdminsError(): boolean {
+    return this.adminsSubmitAttempted && this.selectedAdmins.length === 0;
+  }
+
+  // ── Org unit label ────────────────────────────────────────────────────────────
+
+  /** Builds a visually indented label for an org-unit option. */
   unitLabel(unit: OrgUnitDropdownItem): string {
     const indent = '— '.repeat(unit.level - 1);
     return `${indent}${unit.name}${unit.code ? ' (' + unit.code + ')' : ''}`;
   }
+
+  // ── Form helpers ──────────────────────────────────────────────────────────────
 
   /** Returns true when the given field is touched and has the given error. */
   hasError(field: string, error: string): boolean {
@@ -77,18 +107,8 @@ export class WorkspaceFormComponent implements OnInit {
     this.form = this.fb.group({
       title:            ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
       organizationUnit: ['', [Validators.required]],
-      adminUserId:      ['', [Validators.required]],
-      adminUserName:    ['', [Validators.required]],
       isActive:         [true],
     });
-
-    // Auto-populate adminUserName when adminUserId selection changes.
-    this.form.get('adminUserId')!.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((userId: string) => {
-        const user = this.adminUsers.find(u => u.id === userId);
-        this.form.patchValue({ adminUserName: user?.displayName ?? '' }, { emitEvent: false });
-      });
   }
 
   private loadDropdownData(): void {
@@ -121,10 +141,12 @@ export class WorkspaceFormComponent implements OnInit {
           this.form.patchValue({
             title:            w.title,
             organizationUnit: w.organizationUnit,
-            adminUserId:      w.adminUserId,
-            adminUserName:    w.adminUserName,
             isActive:         w.isActive,
           });
+          this.selectedAdmins = (w.admins ?? []).map(a => ({
+            userId:   a.userId,
+            userName: a.userName,
+          }));
           this.isLoading = false;
         },
         error: (err) => {
@@ -138,7 +160,9 @@ export class WorkspaceFormComponent implements OnInit {
 
   /** Submits the form — creates or updates depending on mode. */
   onSubmit(): void {
-    if (this.form.invalid) {
+    this.adminsSubmitAttempted = true;
+
+    if (this.form.invalid || this.selectedAdmins.length === 0) {
       this.form.markAllAsTouched();
       return;
     }
@@ -146,29 +170,24 @@ export class WorkspaceFormComponent implements OnInit {
     this.isLoading    = true;
     this.errorMessage = null;
 
-    const { title, organizationUnit, adminUserId, adminUserName, isActive } =
-      this.form.value as {
-        title: string;
-        organizationUnit: string;
-        adminUserId: string;
-        adminUserName: string;
-        isActive: boolean;
-      };
+    const { title, organizationUnit, isActive } = this.form.value as {
+      title: string;
+      organizationUnit: string;
+      isActive: boolean;
+    };
 
     const request$ = this.isEditMode && this.workspaceId !== null
       ? this.workspaceService.updateWorkspace(this.workspaceId, {
           id: this.workspaceId,
           title,
           organizationUnit,
-          adminUserId,
-          adminUserName,
+          admins: this.selectedAdmins,
           isActive,
         })
       : this.workspaceService.createWorkspace({
           title,
           organizationUnit,
-          adminUserId,
-          adminUserName,
+          admins: this.selectedAdmins,
         });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

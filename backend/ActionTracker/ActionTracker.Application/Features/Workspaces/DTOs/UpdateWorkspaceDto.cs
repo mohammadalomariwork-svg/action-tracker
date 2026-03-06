@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace ActionTracker.Application.Features.Workspaces.DTOs;
@@ -28,16 +29,12 @@ public class UpdateWorkspaceDto
     public string OrganizationUnit { get; set; } = string.Empty;
 
     /// <summary>
-    /// The <c>Id</c> of the AspNetUsers record for the workspace admin.
+    /// Replacement admin user list. The existing admin list is fully replaced
+    /// by this set. At least one admin is required.
     /// </summary>
     [Required]
-    public string AdminUserId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Display name of the workspace admin (denormalised for fast reads).
-    /// </summary>
-    [Required]
-    public string AdminUserName { get; set; } = string.Empty;
+    [MinLength(1, ErrorMessage = "At least one admin user is required.")]
+    public List<WorkspaceAdminDto> Admins { get; set; } = new();
 
     /// <summary>
     /// Whether the workspace is active. Set to <c>false</c> to deactivate.

@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace ActionTracker.Application.Features.Workspaces.Models;
 
 /// <summary>
 /// Represents a workspace — a logical grouping of action items scoped to an
-/// organisational unit and owned by a designated admin user.
+/// organisational unit and owned by one or more designated admin users.
 /// </summary>
 public class Workspace
 {
@@ -29,23 +30,6 @@ public class Workspace
     public string OrganizationUnit { get; set; } = string.Empty;
 
     /// <summary>
-    /// The <c>Id</c> of the AspNetUsers record for the workspace admin.
-    /// Stored as a plain string — no foreign key constraint or navigation
-    /// property to <c>IdentityUser</c>.
-    /// </summary>
-    [Required]
-    [MaxLength(450)]
-    public string AdminUserId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Denormalised display name of the workspace admin, cached here to
-    /// avoid joining AspNetUsers on every read.
-    /// </summary>
-    [Required]
-    [MaxLength(256)]
-    public string AdminUserName { get; set; } = string.Empty;
-
-    /// <summary>
     /// UTC timestamp when the workspace was created.
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -60,4 +44,9 @@ public class Workspace
     /// Inactive workspaces are hidden from normal queries.
     /// </summary>
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// The admin users assigned to this workspace.
+    /// </summary>
+    public ICollection<WorkspaceAdmin> Admins { get; set; } = new List<WorkspaceAdmin>();
 }

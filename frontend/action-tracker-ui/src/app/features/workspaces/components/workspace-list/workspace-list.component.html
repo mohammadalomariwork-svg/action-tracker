@@ -36,7 +36,7 @@
             <tr>
               <th scope="col">Title</th>
               <th scope="col">Organization Unit</th>
-              <th scope="col">Admin</th>
+              <th scope="col">Admins</th>
               <th scope="col">Status</th>
               <th scope="col" class="text-end">Actions</th>
             </tr>
@@ -46,7 +46,7 @@
               <tr>
                 <td class="fw-medium">{{ workspace.title }}</td>
                 <td>{{ workspace.organizationUnit }}</td>
-                <td>{{ workspace.adminUserName }}</td>
+                <td>{{ workspace.adminUserNames }}</td>
                 <td>
                   @if (workspace.isActive) {
                     <span class="badge bg-success">Active</span>

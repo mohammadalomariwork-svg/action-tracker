@@ -15,6 +15,7 @@ public interface IAppDbContext
     DbSet<ApplicationUser>          Users        { get; }
     DbSet<KuEmployeeInfo>           KuEmployeeInfo { get; }
     DbSet<OrgUnit>                  OrgUnits     { get; }
-    DbSet<Workspace>                Workspaces   { get; }
+    DbSet<Workspace>                Workspaces      { get; }
+    DbSet<WorkspaceAdmin>           WorkspaceAdmins { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
