@@ -1,4 +1,5 @@
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.Workspaces.Models;
 using ActionTracker.Domain.Common;
 using ActionTracker.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<StrategicObjective>  StrategicObjectives  => Set<StrategicObjective>();
     public DbSet<Kpi>                 Kpis                 => Set<Kpi>();
     public DbSet<KpiTarget>           KpiTargets           => Set<KpiTarget>();
+    public DbSet<Workspace>           Workspaces           => Set<Workspace>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +32,45 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
+
+        modelBuilder.Entity<Workspace>(entity =>
+        {
+            entity.ToTable("Workspaces");
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                  .UseIdentityColumn();
+
+            entity.Property(e => e.Title)
+                  .IsRequired()
+                  .HasMaxLength(200);
+
+            entity.Property(e => e.OrganizationUnit)
+                  .IsRequired()
+                  .HasMaxLength(200);
+
+            entity.Property(e => e.AdminUserId)
+                  .IsRequired()
+                  .HasMaxLength(450);
+
+            entity.Property(e => e.AdminUserName)
+                  .IsRequired()
+                  .HasMaxLength(256);
+
+            entity.Property(e => e.CreatedAt)
+                  .IsRequired()
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                  .IsRequired(false);
+
+            entity.Property(e => e.IsActive)
+                  .IsRequired()
+                  .HasDefaultValue(true);
+
+            entity.HasIndex(e => e.AdminUserId);
+            entity.HasIndex(e => e.OrganizationUnit);
+        });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

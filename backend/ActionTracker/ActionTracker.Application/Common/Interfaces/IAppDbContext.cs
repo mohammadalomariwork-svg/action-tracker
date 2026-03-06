@@ -1,3 +1,4 @@
+using ActionTracker.Application.Features.Workspaces.Models;
 using ActionTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,5 +14,6 @@ public interface IAppDbContext
     DbSet<RefreshToken>             RefreshTokens { get; }
     DbSet<ApplicationUser>          Users        { get; }
     DbSet<KuEmployeeInfo>           KuEmployeeInfo { get; }
+    DbSet<Workspace>                Workspaces   { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
