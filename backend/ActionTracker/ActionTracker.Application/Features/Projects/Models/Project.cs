@@ -156,13 +156,13 @@ public class Project
     public ICollection<Milestone> Milestones { get; set; } = new List<Milestone>();
 
     /// <summary>Project-level action items not assigned to any milestone.</summary>
-    public ICollection<ProjectActionItem> ActionItems { get; set; } = new List<ProjectActionItem>();
+    public ICollection<ActionItem> ActionItems { get; set; } = new List<ActionItem>();
 
     /// <summary>Uploaded documents attached to this project.</summary>
     public ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
 
     /// <summary>Discussion comments posted at the project level.</summary>
-    public ICollection<ProjectComment> Comments { get; set; } = new List<ProjectComment>();
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
     /// <summary>Optional budget record for this project.</summary>
     public ProjectBudget? Budget { get; set; }
