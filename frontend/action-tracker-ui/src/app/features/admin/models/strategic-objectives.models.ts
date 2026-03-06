@@ -9,6 +9,10 @@ export interface StrategicObjective {
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string;
+  deletedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  deletedBy?: string;
   kpiCount: number;
 }
 

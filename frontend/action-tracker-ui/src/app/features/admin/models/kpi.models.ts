@@ -22,6 +22,10 @@ export interface Kpi {
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string;
+  deletedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  deletedBy?: string;
   targetCount: number;
 }
 

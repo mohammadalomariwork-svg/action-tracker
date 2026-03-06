@@ -9,6 +9,10 @@ export interface OrgUnit {
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string;
+  deletedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  deletedBy?: string;
   childrenCount: number;
 }
 
@@ -20,6 +24,9 @@ export interface OrgUnitTree {
   level: number;
   parentId?: string;
   isDeleted: boolean;
+  createdBy?: string;
+  updatedBy?: string;
+  deletedBy?: string;
   children: OrgUnitTree[];
 }
 

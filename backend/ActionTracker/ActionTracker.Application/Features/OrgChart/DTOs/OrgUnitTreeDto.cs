@@ -9,5 +9,8 @@ public class OrgUnitTreeDto
     public int Level { get; set; }
     public Guid? ParentId { get; set; }
     public bool IsDeleted { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
+    public string? DeletedBy { get; set; }
     public List<OrgUnitTreeDto> Children { get; set; } = new();
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.OrgChart.DTOs;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
@@ -19,6 +20,12 @@ public class OrgUnitsController : ControllerBase
         _orgUnitService = orgUnitService;
         _logger         = logger;
     }
+
+    private string CurrentUserId =>
+        User.FindFirstValue(ClaimTypes.Email)
+        ?? User.FindFirstValue(ClaimTypes.Name)
+        ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? "Unknown";
 
     // -------------------------------------------------------------------------
     // GET api/orgunits/tree
@@ -120,7 +127,7 @@ public class OrgUnitsController : ControllerBase
 
         try
         {
-            var created = await _orgUnitService.CreateAsync(request, ct);
+            var created = await _orgUnitService.CreateAsync(request, CurrentUserId, ct);
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = created.Id },
@@ -157,7 +164,7 @@ public class OrgUnitsController : ControllerBase
 
         try
         {
-            var updated = await _orgUnitService.UpdateAsync(id, request, ct);
+            var updated = await _orgUnitService.UpdateAsync(id, request, CurrentUserId, ct);
             return Ok(ApiResponse<OrgUnitDto>.Ok(updated));
         }
         catch (KeyNotFoundException ex)
@@ -184,7 +191,7 @@ public class OrgUnitsController : ControllerBase
 
         try
         {
-            await _orgUnitService.SoftDeleteAsync(id, ct);
+            await _orgUnitService.SoftDeleteAsync(id, CurrentUserId, ct);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
@@ -207,7 +214,7 @@ public class OrgUnitsController : ControllerBase
 
         try
         {
-            await _orgUnitService.RestoreAsync(id, ct);
+            await _orgUnitService.RestoreAsync(id, CurrentUserId, ct);
             var restored = await _orgUnitService.GetByIdAsync(id, ct);
             return Ok(ApiResponse<OrgUnitDto>.Ok(restored!));
         }

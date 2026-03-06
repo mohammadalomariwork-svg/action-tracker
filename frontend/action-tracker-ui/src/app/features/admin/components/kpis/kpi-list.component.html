@@ -108,6 +108,9 @@
             <th style="width: 80px">Unit</th>
             <th class="text-center" style="width: 90px">Targets</th>
             <th style="width: 90px">Status</th>
+            <th style="width: 120px">Created By</th>
+            <th style="width: 120px">Updated By</th>
+            <th style="width: 120px">Deleted By</th>
             <th class="text-end" style="width: 175px">Actions</th>
           </tr>
         </thead>
@@ -159,6 +162,29 @@
                 }
               </td>
 
+              <!-- Created By -->
+              <td class="text-muted small">{{ kpi.createdBy || '—' }}</td>
+
+              <!-- Updated By -->
+              <td class="text-muted small">
+                @if (kpi.updatedBy) {
+                  {{ kpi.updatedBy }}<br>
+                  <span class="text-muted" style="font-size: 0.75em">{{ kpi.updatedAt | date:'dd MMM y' }}</span>
+                } @else {
+                  —
+                }
+              </td>
+
+              <!-- Deleted By -->
+              <td class="text-muted small">
+                @if (kpi.deletedBy) {
+                  {{ kpi.deletedBy }}<br>
+                  <span class="text-muted" style="font-size: 0.75em">{{ kpi.deletedAt | date:'dd MMM y' }}</span>
+                } @else {
+                  —
+                }
+              </td>
+
               <!-- Actions -->
               <td class="text-end">
                 <div class="d-flex gap-1 justify-content-end">
@@ -189,7 +215,7 @@
           }
           @if (filteredKpis().length === 0) {
             <tr>
-              <td colspan="8" class="text-center text-muted py-4">No KPIs found.</td>
+              <td colspan="11" class="text-center text-muted py-4">No KPIs found.</td>
             </tr>
           }
         </tbody>

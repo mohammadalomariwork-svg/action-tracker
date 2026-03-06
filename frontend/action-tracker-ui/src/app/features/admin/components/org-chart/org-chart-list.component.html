@@ -117,6 +117,14 @@
         <span class="badge bg-danger-subtle text-danger-emphasis">Deleted</span>
       }
 
+      <!-- Audit info tooltip -->
+      @if (node.createdBy || node.updatedBy || node.deletedBy) {
+        <span class="text-muted small ms-1"
+              [title]="'Created by: ' + (node.createdBy || '—') + (node.updatedBy ? ' | Updated by: ' + node.updatedBy : '') + (node.deletedBy ? ' | Deleted by: ' + node.deletedBy : '')">
+          <i class="bi bi-info-circle"></i>
+        </span>
+      }
+
       <!-- Actions -->
       <div class="ocl-actions d-flex gap-1 flex-shrink-0">
         @if (!node.isDeleted && node.level < 10) {

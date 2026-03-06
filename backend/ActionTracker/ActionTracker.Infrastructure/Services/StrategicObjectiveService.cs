@@ -103,6 +103,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
     public async Task<StrategicObjectiveDto> CreateAsync(
         CreateStrategicObjectiveRequestDto request,
+        string                             userId,
         CancellationToken                  ct = default)
     {
         try
@@ -129,6 +130,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 OrgUnitId     = request.OrgUnitId,
                 IsDeleted     = false,
                 CreatedAt     = DateTime.UtcNow,
+                CreatedBy     = userId,
             };
 
             _context.StrategicObjectives.Add(objective);
@@ -158,6 +160,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     public async Task<StrategicObjectiveDto> UpdateAsync(
         Guid                               id,
         UpdateStrategicObjectiveRequestDto request,
+        string                             userId,
         CancellationToken                  ct = default)
     {
         try
@@ -178,6 +181,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             objective.Description = request.Description;
             objective.OrgUnitId   = request.OrgUnitId;
             objective.UpdatedAt   = DateTime.UtcNow;
+            objective.UpdatedBy   = userId;
             // ObjectiveCode is intentionally NOT updated.
 
             await _context.SaveChangesAsync(ct);
@@ -201,7 +205,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     // SoftDeleteAsync
     // -------------------------------------------------------------------------
 
-    public async Task SoftDeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task SoftDeleteAsync(Guid id, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -209,9 +213,11 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .FirstOrDefaultAsync(o => o.Id == id, ct)
                 ?? throw new KeyNotFoundException($"Strategic objective '{id}' not found.");
 
+            var now = DateTime.UtcNow;
             objective.IsDeleted = true;
-            objective.DeletedAt = DateTime.UtcNow;
-            objective.UpdatedAt = DateTime.UtcNow;
+            objective.DeletedAt = now;
+            objective.UpdatedAt = now;
+            objective.DeletedBy = userId;
 
             await _context.SaveChangesAsync(ct);
 
@@ -229,7 +235,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     // RestoreAsync
     // -------------------------------------------------------------------------
 
-    public async Task RestoreAsync(Guid id, CancellationToken ct = default)
+    public async Task RestoreAsync(Guid id, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -240,7 +246,9 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             objective.IsDeleted = false;
             objective.DeletedAt = null;
+            objective.DeletedBy = null;
             objective.UpdatedAt = DateTime.UtcNow;
+            objective.UpdatedBy = userId;
 
             await _context.SaveChangesAsync(ct);
 
@@ -299,6 +307,10 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             IsDeleted      = o.IsDeleted,
             CreatedAt      = o.CreatedAt,
             UpdatedAt      = o.UpdatedAt,
+            DeletedAt      = o.DeletedAt,
+            CreatedBy      = o.CreatedBy,
+            UpdatedBy      = o.UpdatedBy,
+            DeletedBy      = o.DeletedBy,
             KpiCount       = kpiCount,
         };
 }

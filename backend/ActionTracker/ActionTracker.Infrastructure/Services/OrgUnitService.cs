@@ -148,6 +148,7 @@ public class OrgUnitService : IOrgUnitService
 
     public async Task<OrgUnitDto> CreateAsync(
         CreateOrgUnitRequestDto request,
+        string                  userId,
         CancellationToken       ct = default)
     {
         try
@@ -203,6 +204,7 @@ public class OrgUnitService : IOrgUnitService
                 ParentId    = request.ParentId,
                 IsDeleted   = false,
                 CreatedAt   = DateTime.UtcNow,
+                CreatedBy   = userId,
             };
 
             _context.OrgUnits.Add(unit);
@@ -228,6 +230,7 @@ public class OrgUnitService : IOrgUnitService
     public async Task<OrgUnitDto> UpdateAsync(
         Guid                    id,
         UpdateOrgUnitRequestDto request,
+        string                  userId,
         CancellationToken       ct = default)
     {
         try
@@ -287,6 +290,7 @@ public class OrgUnitService : IOrgUnitService
             unit.Description = request.Description;
             unit.ParentId    = request.ParentId;
             unit.UpdatedAt   = DateTime.UtcNow;
+            unit.UpdatedBy   = userId;
 
             await _context.SaveChangesAsync(ct);
 
@@ -311,7 +315,7 @@ public class OrgUnitService : IOrgUnitService
     // SoftDeleteAsync
     // -------------------------------------------------------------------------
 
-    public async Task SoftDeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task SoftDeleteAsync(Guid id, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -333,6 +337,7 @@ public class OrgUnitService : IOrgUnitService
                 u.IsDeleted  = true;
                 u.DeletedAt  = now;
                 u.UpdatedAt  = now;
+                u.DeletedBy  = userId;
             }
 
             await _context.SaveChangesAsync(ct);
@@ -352,7 +357,7 @@ public class OrgUnitService : IOrgUnitService
     // RestoreAsync
     // -------------------------------------------------------------------------
 
-    public async Task RestoreAsync(Guid id, CancellationToken ct = default)
+    public async Task RestoreAsync(Guid id, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -363,7 +368,9 @@ public class OrgUnitService : IOrgUnitService
 
             unit.IsDeleted = false;
             unit.DeletedAt = null;
+            unit.DeletedBy = null;
             unit.UpdatedAt = DateTime.UtcNow;
+            unit.UpdatedBy = userId;
 
             await _context.SaveChangesAsync(ct);
 
@@ -474,6 +481,10 @@ public class OrgUnitService : IOrgUnitService
             IsDeleted     = u.IsDeleted,
             CreatedAt     = u.CreatedAt,
             UpdatedAt     = u.UpdatedAt,
+            DeletedAt     = u.DeletedAt,
+            CreatedBy     = u.CreatedBy,
+            UpdatedBy     = u.UpdatedBy,
+            DeletedBy     = u.DeletedBy,
             ChildrenCount = childrenCount,
         };
 
@@ -487,6 +498,9 @@ public class OrgUnitService : IOrgUnitService
             Level       = node.Level,
             ParentId    = node.ParentId,
             IsDeleted   = node.IsDeleted,
+            CreatedBy   = node.CreatedBy,
+            UpdatedBy   = node.UpdatedBy,
+            DeletedBy   = node.DeletedBy,
             Children    = all
                 .Where(o => o.ParentId == node.Id)
                 .OrderBy(o => o.Name)

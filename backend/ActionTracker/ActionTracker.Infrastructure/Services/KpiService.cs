@@ -143,7 +143,7 @@ public class KpiService : IKpiService
     // CreateAsync
     // -------------------------------------------------------------------------
 
-    public async Task<KpiDto> CreateAsync(CreateKpiRequestDto request, CancellationToken ct = default)
+    public async Task<KpiDto> CreateAsync(CreateKpiRequestDto request, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -174,6 +174,7 @@ public class KpiService : IKpiService
                 StrategicObjectiveId = request.StrategicObjectiveId,
                 IsDeleted            = false,
                 CreatedAt            = DateTime.UtcNow,
+                CreatedBy            = userId,
             };
 
             _context.Kpis.Add(kpi);
@@ -200,9 +201,10 @@ public class KpiService : IKpiService
     // -------------------------------------------------------------------------
 
     public async Task<KpiDto> UpdateAsync(
-        Guid              id,
+        Guid                id,
         UpdateKpiRequestDto request,
-        CancellationToken ct = default)
+        string              userId,
+        CancellationToken   ct = default)
     {
         try
         {
@@ -218,6 +220,7 @@ public class KpiService : IKpiService
             kpi.Period            = (MeasurementPeriod)request.Period;
             kpi.Unit              = request.Unit;
             kpi.UpdatedAt         = DateTime.UtcNow;
+            kpi.UpdatedBy         = userId;
             // StrategicObjectiveId and KpiNumber are intentionally NOT updated.
 
             var targetCount = await _context.KpiTargets
@@ -241,7 +244,7 @@ public class KpiService : IKpiService
     // SoftDeleteAsync
     // -------------------------------------------------------------------------
 
-    public async Task SoftDeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task SoftDeleteAsync(Guid id, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -249,9 +252,11 @@ public class KpiService : IKpiService
                 .FirstOrDefaultAsync(k => k.Id == id, ct)
                 ?? throw new KeyNotFoundException($"KPI '{id}' not found.");
 
+            var now = DateTime.UtcNow;
             kpi.IsDeleted = true;
-            kpi.DeletedAt = DateTime.UtcNow;
-            kpi.UpdatedAt = DateTime.UtcNow;
+            kpi.DeletedAt = now;
+            kpi.UpdatedAt = now;
+            kpi.DeletedBy = userId;
 
             await _context.SaveChangesAsync(ct);
 
@@ -269,7 +274,7 @@ public class KpiService : IKpiService
     // RestoreAsync
     // -------------------------------------------------------------------------
 
-    public async Task RestoreAsync(Guid id, CancellationToken ct = default)
+    public async Task RestoreAsync(Guid id, string userId, CancellationToken ct = default)
     {
         try
         {
@@ -280,7 +285,9 @@ public class KpiService : IKpiService
 
             kpi.IsDeleted = false;
             kpi.DeletedAt = null;
+            kpi.DeletedBy = null;
             kpi.UpdatedAt = DateTime.UtcNow;
+            kpi.UpdatedBy = userId;
 
             await _context.SaveChangesAsync(ct);
 
@@ -496,6 +503,10 @@ public class KpiService : IKpiService
             IsDeleted            = k.IsDeleted,
             CreatedAt            = k.CreatedAt,
             UpdatedAt            = k.UpdatedAt,
+            DeletedAt            = k.DeletedAt,
+            CreatedBy            = k.CreatedBy,
+            UpdatedBy            = k.UpdatedBy,
+            DeletedBy            = k.DeletedBy,
             TargetCount          = targetCount,
         };
 

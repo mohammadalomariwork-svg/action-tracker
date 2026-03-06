@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Kpis.DTOs;
 using ActionTracker.Application.Features.Kpis.Interfaces;
@@ -19,6 +20,12 @@ public class KpisController : ControllerBase
         _service = service;
         _logger  = logger;
     }
+
+    private string CurrentUserId =>
+        User.FindFirstValue(ClaimTypes.Email)
+        ?? User.FindFirstValue(ClaimTypes.Name)
+        ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? "Unknown";
 
     // -------------------------------------------------------------------------
     // GET api/kpis
@@ -99,7 +106,7 @@ public class KpisController : ControllerBase
 
         try
         {
-            var created = await _service.CreateAsync(request, ct);
+            var created = await _service.CreateAsync(request, CurrentUserId, ct);
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = created.Id },
@@ -132,7 +139,7 @@ public class KpisController : ControllerBase
 
         try
         {
-            var updated = await _service.UpdateAsync(id, request, ct);
+            var updated = await _service.UpdateAsync(id, request, CurrentUserId, ct);
             return Ok(ApiResponse<KpiDto>.Ok(updated));
         }
         catch (KeyNotFoundException ex)
@@ -155,7 +162,7 @@ public class KpisController : ControllerBase
 
         try
         {
-            await _service.SoftDeleteAsync(id, ct);
+            await _service.SoftDeleteAsync(id, CurrentUserId, ct);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
@@ -178,7 +185,7 @@ public class KpisController : ControllerBase
 
         try
         {
-            await _service.RestoreAsync(id, ct);
+            await _service.RestoreAsync(id, CurrentUserId, ct);
             var restored = await _service.GetByIdAsync(id, null, ct);
             return Ok(ApiResponse<KpiDto>.Ok(restored!));
         }
