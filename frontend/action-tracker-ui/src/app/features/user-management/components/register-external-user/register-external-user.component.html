@@ -79,30 +79,8 @@
           </div>
         </div>
 
-        <!-- Row 2: Username + Phone -->
+        <!-- Row 2: Phone -->
         <div class="row g-3 mb-3">
-          <div class="col-md-6">
-            <label for="userName" class="form-label">
-              Username <span class="text-danger">*</span>
-            </label>
-            <input
-              id="userName"
-              type="text"
-              class="form-control"
-              [class.is-invalid]="isInvalid('userName')"
-              formControlName="userName"
-              placeholder="jane_doe"
-              autocomplete="username"
-            />
-            @if (isInvalid('userName')) {
-              <div class="invalid-feedback">
-                @if (ctrl('userName').hasError('required')) { Username is required. }
-                @else if (ctrl('userName').hasError('minlength')) { Must be at least 3 characters. }
-                @else if (ctrl('userName').hasError('pattern')) { Only letters, numbers, and underscores are allowed. }
-              </div>
-            }
-          </div>
-
           <div class="col-md-6">
             <label for="phoneNumber" class="form-label">Phone Number</label>
             <input

@@ -24,7 +24,6 @@ import { RegisterUserResponse } from '../../models/user-management.models';
 interface ExternalUserForm {
   fullName:        FormControl<string>;
   email:           FormControl<string>;
-  userName:        FormControl<string>;
   phoneNumber:     FormControl<string>;
   password:        FormControl<string>;
   confirmPassword: FormControl<string>;
@@ -63,11 +62,6 @@ export class RegisterExternalUserComponent {
       email: this.fb.nonNullable.control('', [
         Validators.required,
         Validators.email,
-      ]),
-      userName: this.fb.nonNullable.control('', [
-        Validators.required,
-        Validators.minLength(3),
-        Validators.pattern(/^\w+$/), // alphanumeric + underscore
       ]),
       phoneNumber: this.fb.nonNullable.control(''),
       password: this.fb.nonNullable.control('', [
@@ -115,7 +109,7 @@ export class RegisterExternalUserComponent {
       return;
     }
 
-    const { fullName, email, userName, phoneNumber, password, roleName } =
+    const { fullName, email, phoneNumber, password, roleName } =
       this.form.getRawValue();
 
     this.loading.set(true);
@@ -126,7 +120,6 @@ export class RegisterExternalUserComponent {
       .registerExternalUser({
         fullName,
         email,
-        userName,
         password,
         roleName,
         ...(phoneNumber ? { phoneNumber } : {}),

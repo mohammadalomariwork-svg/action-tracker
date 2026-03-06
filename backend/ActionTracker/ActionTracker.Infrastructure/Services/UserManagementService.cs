@@ -118,15 +118,11 @@ public class UserManagementService : IUserManagementService
             throw new ArgumentException(
                 $"A user with email '{request.Email}' is already registered.", nameof(request));
 
-        if (await _userManager.FindByNameAsync(request.UserName) is not null)
-            throw new ArgumentException(
-                $"Username '{request.UserName}' is already taken.", nameof(request));
-
         var (firstName, lastName) = SplitFullName(request.FullName);
 
         var user = new ApplicationUser
         {
-            UserName       = request.UserName,
+            UserName       = request.Email,   // email doubles as username for external accounts
             Email          = request.Email,
             FirstName      = firstName,
             LastName       = lastName,

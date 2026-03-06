@@ -24,7 +24,6 @@ export interface ApiResponse<T> {
 }
 
 export interface RegisterExternalUserRequest {
-  userName: string;
   email: string;
   fullName: string;
   phoneNumber?: string;
