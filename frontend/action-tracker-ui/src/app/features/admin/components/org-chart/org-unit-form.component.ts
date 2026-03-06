@@ -83,10 +83,6 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
         '',
         [Validators.required, Validators.minLength(2), Validators.maxLength(200)],
       ],
-      code: [
-        '',
-        [Validators.maxLength(50), Validators.pattern(/^[A-Z0-9]*$/)],
-      ],
       description: ['', [Validators.maxLength(500)]],
     });
 
@@ -97,11 +93,10 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
     if (this.mode === 'edit' && this.existingUnit) {
       this.form.patchValue({
         name:        this.existingUnit.name        ?? '',
-        code:        this.existingUnit.code        ?? '',
         description: this.existingUnit.description ?? '',
       });
     } else {
-      this.form.reset({ name: '', code: '', description: '' });
+      this.form.reset({ name: '', description: '' });
     }
     this.error.set(null);
   }
@@ -112,9 +107,8 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
       return;
     }
 
-    const { name, code, description } = this.form.value as {
+    const { name, description } = this.form.value as {
       name: string;
-      code: string;
       description: string;
     };
 
@@ -125,13 +119,11 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
       this.mode === 'add'
         ? this.orgUnitService.create({
             name,
-            code:        code        || undefined,
             description: description || undefined,
             parentId:    this.parentUnit?.id,
           })
         : this.orgUnitService.update(this.existingUnit!.id, {
             name,
-            code:        code        || undefined,
             description: description || undefined,
             parentId:    this.existingUnit!.parentId,
           });

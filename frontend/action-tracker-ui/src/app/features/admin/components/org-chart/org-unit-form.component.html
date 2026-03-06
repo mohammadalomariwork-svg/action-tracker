@@ -75,27 +75,13 @@
         }
       </div>
 
-      <!-- Code -->
-      <div class="mb-3">
-        <label for="oufCode" class="form-label">
-          Code <span class="text-muted fw-normal">(optional)</span>
-        </label>
-        <input
-          id="oufCode"
-          type="text"
-          class="form-control"
-          formControlName="code"
-          placeholder="e.g. ENG (uppercase letters and numbers)"
-          [class.is-invalid]="hasError('code', 'maxlength') || hasError('code', 'pattern')"
-          autocomplete="off"
-        />
-        @if (hasError('code', 'maxlength')) {
-          <div class="invalid-feedback">Code cannot exceed 50 characters.</div>
-        } @else if (hasError('code', 'pattern')) {
-          <div class="invalid-feedback">Code must contain uppercase letters and numbers only.</div>
-        }
-        <div class="form-text">Short identifier shown in the tree (e.g. CS, ENG).</div>
-      </div>
+      <!-- Code (auto-generated, read-only in edit mode) -->
+      @if (mode === 'edit' && existingUnit?.code) {
+        <div class="mb-3">
+          <label class="form-label">Code <span class="text-muted fw-normal">(auto-generated)</span></label>
+          <input type="text" class="form-control" [value]="existingUnit!.code" readonly />
+        </div>
+      }
 
       <!-- Description -->
       <div class="mb-4">

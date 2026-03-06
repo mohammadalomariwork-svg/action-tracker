@@ -22,7 +22,7 @@ public class OrgUnitService : IOrgUnitService
     // GetTreeAsync
     // -------------------------------------------------------------------------
 
-    public async Task<OrgUnitTreeDto> GetTreeAsync(
+    public async Task<OrgUnitTreeDto?> GetTreeAsync(
         bool              includeDeleted = false,
         CancellationToken ct             = default)
     {
@@ -37,14 +37,10 @@ public class OrgUnitService : IOrgUnitService
                 .ThenBy(o => o.Name)
                 .ToListAsync(ct);
 
-            var root = all.FirstOrDefault(o => o.ParentId == null)
-                ?? throw new InvalidOperationException("No root org unit found.");
+            var root = all.FirstOrDefault(o => o.ParentId == null);
+            if (root is null) return null;
 
             return MapToTreeDto(root, all);
-        }
-        catch (InvalidOperationException)
-        {
-            throw;
         }
         catch (Exception ex)
         {
@@ -185,12 +181,13 @@ public class OrgUnitService : IOrgUnitService
                         "Maximum org chart depth of 10 exceeded.");
             }
 
+            var newId = Guid.NewGuid();
             var unit = new OrgUnit
             {
-                Id          = Guid.NewGuid(),
+                Id          = newId,
                 Name        = request.Name,
                 Description = request.Description,
-                Code        = request.Code,
+                Code        = $"OC-{newId.ToString("N")[..8].ToUpper()}",
                 Level       = level,
                 ParentId    = request.ParentId,
                 IsDeleted   = false,
@@ -277,7 +274,6 @@ public class OrgUnitService : IOrgUnitService
 
             unit.Name        = request.Name;
             unit.Description = request.Description;
-            unit.Code        = request.Code;
             unit.ParentId    = request.ParentId;
             unit.UpdatedAt   = DateTime.UtcNow;
 

@@ -26,14 +26,12 @@ export interface OrgUnitTree {
 export interface CreateOrgUnitRequest {
   name: string;
   description?: string;
-  code?: string;
   parentId?: string;
 }
 
 export interface UpdateOrgUnitRequest {
   name: string;
   description?: string;
-  code?: string;
   parentId?: string;
 }
 

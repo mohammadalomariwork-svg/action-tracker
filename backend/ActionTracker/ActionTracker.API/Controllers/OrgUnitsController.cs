@@ -34,7 +34,7 @@ public class OrgUnitsController : ControllerBase
         _logger.LogInformation("GET /api/orgunits/tree includeDeleted={IncludeDeleted}", includeDeleted);
 
         var result = await _orgUnitService.GetTreeAsync(includeDeleted, ct);
-        return Ok(ApiResponse<OrgUnitTreeDto>.Ok(result));
+        return Ok(ApiResponse<OrgUnitTreeDto?>.Ok(result));
     }
 
     // -------------------------------------------------------------------------

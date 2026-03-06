@@ -4,8 +4,8 @@ namespace ActionTracker.Application.Features.OrgChart.Interfaces;
 
 public interface IOrgUnitService
 {
-    /// <summary>Returns full tree starting from root, including soft-deleted nodes if includeDeleted=true.</summary>
-    Task<OrgUnitTreeDto> GetTreeAsync(bool includeDeleted = false, CancellationToken ct = default);
+    /// <summary>Returns full tree starting from root, or null if no org units exist yet.</summary>
+    Task<OrgUnitTreeDto?> GetTreeAsync(bool includeDeleted = false, CancellationToken ct = default);
 
     /// <summary>Returns flat paged list of all org units.</summary>
     Task<OrgUnitListResponseDto> GetAllAsync(int page, int pageSize, bool includeDeleted = false, CancellationToken ct = default);

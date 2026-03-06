@@ -17,11 +17,11 @@ export class OrgUnitService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/orgunits`;
 
-  /** Returns the full recursive org chart tree starting from the root. */
-  getTree(includeDeleted = false): Observable<OrgUnitTree> {
+  /** Returns the full recursive org chart tree starting from the root, or null if no units exist. */
+  getTree(includeDeleted = false): Observable<OrgUnitTree | null> {
     const params = new HttpParams().set('includeDeleted', String(includeDeleted));
     return this.http
-      .get<ApiResponse<OrgUnitTree>>(`${this.base}/tree`, { params })
+      .get<ApiResponse<OrgUnitTree | null>>(`${this.base}/tree`, { params })
       .pipe(map((res) => res.data));
   }
 
