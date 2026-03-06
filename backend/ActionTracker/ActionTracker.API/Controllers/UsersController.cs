@@ -251,4 +251,40 @@ public class UsersController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
+
+    // -------------------------------------------------------------------------
+    // PUT api/users/{id}/assign-org-unit
+    // -------------------------------------------------------------------------
+
+    /// <summary>Assign (or unassign) an org unit for a user.</summary>
+    [HttpPut("{id}/assign-org-unit")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AssignOrgUnit(
+        string id,
+        [FromBody] AssignUserOrgUnitRequestDto request,
+        CancellationToken ct = default)
+    {
+        _logger.LogInformation(
+            "PUT /api/users/{Id}/assign-org-unit orgUnitId={OrgUnitId}", id, request.OrgUnitId);
+
+        try
+        {
+            await _userManagement.AssignUserOrgUnitAsync(id, request.OrgUnitId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
 }

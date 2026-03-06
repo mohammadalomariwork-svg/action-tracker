@@ -14,11 +14,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { UserManagementService } from '../../services/user-management.service';
+import { OrgUnitService } from '../../../admin/services/org-unit.service';
+import { OrgUnitTree } from '../../../admin/models/org-chart.models';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
   UserListItem,
   UpdateUserRoleRequest,
 } from '../../models/user-management.models';
+
+interface OrgUnitOption { id: string; label: string; }
 
 const AVAILABLE_ROLES = ['Admin', 'Manager', 'User', 'Viewer'] as const;
 
@@ -32,6 +36,7 @@ const AVAILABLE_ROLES = ['Admin', 'Manager', 'User', 'Viewer'] as const;
 })
 export class UserListComponent implements OnInit {
   private readonly userMgmtService = inject(UserManagementService);
+  private readonly orgUnitService  = inject(OrgUnitService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
@@ -52,6 +57,13 @@ export class UserListComponent implements OnInit {
   readonly roleEditingUserId = signal<string | null>(null);
   /** The role value held in the inline selector before submitting. */
   readonly pendingRole = signal<string>('');
+
+  /** Flat list of org units for the assignment dropdown. */
+  readonly orgUnitOptions = signal<OrgUnitOption[]>([]);
+  /** ID of the row currently showing the org unit picker. */
+  readonly orgUnitEditingUserId = signal<string | null>(null);
+  /** Pending org unit ID in the inline picker (empty string = unassign). */
+  readonly pendingOrgUnitId = signal<string>('');
 
   readonly totalPages = computed(() =>
     Math.max(1, Math.ceil(this.totalCount() / this.pageSize()))
@@ -75,6 +87,28 @@ export class UserListComponent implements OnInit {
       });
 
     this.loadUsers();
+    this.loadOrgUnits();
+  }
+
+  private loadOrgUnits(): void {
+    this.orgUnitService
+      .getTree()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (tree) => {
+          this.orgUnitOptions.set(tree ? this.flattenTree(tree) : []);
+        },
+      });
+  }
+
+  private flattenTree(node: OrgUnitTree, depth = 0): OrgUnitOption[] {
+    const indent  = '\u00A0\u00A0\u00A0\u00A0'.repeat(depth);
+    const prefix  = node.code ? `[${node.code}] ` : '';
+    const options: OrgUnitOption[] = [{ id: node.id, label: `${indent}${prefix}${node.name}` }];
+    for (const child of node.children ?? []) {
+      options.push(...this.flattenTree(child, depth + 1));
+    }
+    return options;
   }
 
   onSearchInput(value: string): void {
@@ -194,6 +228,36 @@ export class UserListComponent implements OnInit {
         },
         error: (err) => {
           this.toast.error(err?.error?.message ?? 'Failed to reactivate user.');
+        },
+      });
+  }
+
+  // ── Assign Org Unit ─────────────────────────────────────────────────────────
+
+  openOrgUnitEdit(user: UserListItem): void {
+    this.orgUnitEditingUserId.set(user.id);
+    this.pendingOrgUnitId.set(user.orgUnitId ?? '');
+  }
+
+  cancelOrgUnitEdit(): void {
+    this.orgUnitEditingUserId.set(null);
+  }
+
+  submitOrgUnitChange(userId: string): void {
+    const rawId = this.pendingOrgUnitId();
+    const orgUnitId = rawId === '' ? null : rawId;
+
+    this.userMgmtService
+      .assignOrgUnit(userId, { orgUnitId })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.orgUnitEditingUserId.set(null);
+          this.toast.success('Org unit updated successfully.');
+          this.loadUsers();
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message ?? 'Failed to update org unit.');
         },
       });
   }

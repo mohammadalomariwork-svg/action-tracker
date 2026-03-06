@@ -185,6 +185,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -194,6 +197,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("OrgUnitId")
+                        .HasDatabaseName("IX_AspNetUsers_OrgUnitId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -1026,6 +1032,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
+                    b.HasOne("ActionTracker.Domain.Entities.OrgUnit", null)
+                        .WithMany()
+                        .HasForeignKey("OrgUnitId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("AssignedActions");
                 });
 

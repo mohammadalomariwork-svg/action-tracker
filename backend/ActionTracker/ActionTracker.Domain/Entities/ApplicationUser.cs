@@ -34,6 +34,11 @@ public class ApplicationUser : IdentityUser
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// The org unit this user is assigned to. Null if unassigned.
+    /// </summary>
+    public Guid? OrgUnitId { get; set; }
+
+    /// <summary>
     /// UTC timestamp of when the account was created.
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

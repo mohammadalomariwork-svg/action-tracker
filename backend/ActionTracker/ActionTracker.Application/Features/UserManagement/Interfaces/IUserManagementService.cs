@@ -101,4 +101,13 @@ public interface IUserManagementService
     Task ReactivateUserAsync(
         string            userId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Assigns (or clears) the org unit for a user.
+    /// Pass null for <paramref name="orgUnitId"/> to unassign.
+    /// </summary>
+    Task AssignUserOrgUnitAsync(
+        string            userId,
+        Guid?             orgUnitId,
+        CancellationToken cancellationToken = default);
 }

@@ -71,11 +71,27 @@ public class UserManagementService : IUserManagementService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        // Batch-load org unit names for this page.
+        var orgUnitIds = users
+            .Where(u => u.OrgUnitId.HasValue)
+            .Select(u => u.OrgUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        var orgUnitNames = orgUnitIds.Count > 0
+            ? await _context.OrgUnits
+                .IgnoreQueryFilters()
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .ToDictionaryAsync(o => o.Id, o => o.Name, cancellationToken)
+            : new Dictionary<Guid, string>();
+
         var items = new List<UserListItemDto>(users.Count);
         foreach (var user in users)
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            items.Add(MapToListItem(user, roles));
+            var roles       = await _userManager.GetRolesAsync(user);
+            var orgUnitName = user.OrgUnitId.HasValue && orgUnitNames.TryGetValue(user.OrgUnitId.Value, out var n)
+                ? n : null;
+            items.Add(MapToListItem(user, roles, orgUnitName));
         }
 
         return new UserListResponseDto
@@ -98,8 +114,18 @@ public class UserManagementService : IUserManagementService
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null) return null;
 
+        string? orgUnitName = null;
+        if (user.OrgUnitId.HasValue)
+        {
+            orgUnitName = await _context.OrgUnits
+                .IgnoreQueryFilters()
+                .Where(o => o.Id == user.OrgUnitId.Value)
+                .Select(o => o.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         var roles = await _userManager.GetRolesAsync(user);
-        return MapToListItem(user, roles);
+        return MapToListItem(user, roles, orgUnitName);
     }
 
     // -------------------------------------------------------------------------
@@ -328,6 +354,42 @@ public class UserManagementService : IUserManagementService
     }
 
     // -------------------------------------------------------------------------
+    // AssignUserOrgUnitAsync
+    // -------------------------------------------------------------------------
+
+    public async Task AssignUserOrgUnitAsync(
+        string            userId,
+        Guid?             orgUnitId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId)
+            ?? throw new KeyNotFoundException($"User '{userId}' not found.");
+
+        if (orgUnitId.HasValue)
+        {
+            var unitExists = await _context.OrgUnits
+                .AnyAsync(o => o.Id == orgUnitId.Value, cancellationToken);
+
+            if (!unitExists)
+                throw new ArgumentException(
+                    $"Org unit '{orgUnitId}' does not exist.", nameof(orgUnitId));
+        }
+
+        user.OrgUnitId = orgUnitId;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            _logger.LogError("Failed to assign org unit for user {UserId}: {Errors}", userId, errors);
+            throw new InvalidOperationException($"Failed to assign org unit: {errors}");
+        }
+
+        _logger.LogInformation(
+            "User {UserId} assigned to org unit {OrgUnitId}", userId, orgUnitId?.ToString() ?? "none");
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 
@@ -354,7 +416,7 @@ public class UserManagementService : IUserManagementService
     }
 
     private static UserListItemDto MapToListItem(
-        ApplicationUser user, IList<string> roles) => new()
+        ApplicationUser user, IList<string> roles, string? orgUnitName = null) => new()
     {
         Id          = user.Id,
         UserName    = user.UserName ?? string.Empty,
@@ -365,6 +427,8 @@ public class UserManagementService : IUserManagementService
         IsActive    = user.IsActive,
         Roles       = [.. roles],
         CreatedAt   = user.CreatedAt,
+        OrgUnitId   = user.OrgUnitId,
+        OrgUnitName = orgUnitName,
     };
 
     private static RegisterUserResponseDto MapToResponse(

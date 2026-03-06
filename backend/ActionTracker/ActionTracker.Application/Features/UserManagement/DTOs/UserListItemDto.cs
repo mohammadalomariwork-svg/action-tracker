@@ -11,4 +11,6 @@ public class UserListItemDto
     public bool        IsActive    { get; set; }
     public List<string> Roles      { get; set; } = [];
     public DateTime    CreatedAt   { get; set; }
+    public Guid?       OrgUnitId   { get; set; }
+    public string?     OrgUnitName { get; set; }
 }

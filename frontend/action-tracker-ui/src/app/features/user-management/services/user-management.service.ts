@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import {
   ApiResponse,
+  AssignUserOrgUnitRequest,
   EmployeeSearchResult,
   RegisterADUserRequest,
   RegisterExternalUserRequest,
@@ -98,5 +99,10 @@ export class UserManagementService {
   /** Restores a deactivated user, allowing them to authenticate again. */
   reactivateUser(userId: string): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${userId}/reactivate`, null);
+  }
+
+  /** Assigns (or clears) the org unit for a user. Pass null orgUnitId to unassign. */
+  assignOrgUnit(userId: string, request: AssignUserOrgUnitRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${userId}/assign-org-unit`, request);
   }
 }

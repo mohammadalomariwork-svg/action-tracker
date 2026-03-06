@@ -8,6 +8,8 @@ export interface UserListItem {
   isActive: boolean;
   roles: string[];
   createdAt: string; // ISO date string
+  orgUnitId?: string;
+  orgUnitName?: string;
 }
 
 export interface UserListResponse {
@@ -67,4 +69,8 @@ export interface EmployeeSearchResult {
 export interface UpdateUserRoleRequest {
   userId: string;
   roleName: string;
+}
+
+export interface AssignUserOrgUnitRequest {
+  orgUnitId: string | null;
 }
