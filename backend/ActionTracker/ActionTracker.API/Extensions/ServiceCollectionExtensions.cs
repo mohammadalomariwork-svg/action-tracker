@@ -14,6 +14,8 @@ using ActionTracker.Application.Features.Kpis.Interfaces;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
+using ActionTracker.Application.Features.Workspaces.Interfaces;
+using ActionTracker.Application.Features.Workspaces.Services;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Helpers;
 using ActionTracker.Infrastructure.Services;
@@ -207,6 +209,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrgUnitService,            OrgUnitService>();
         services.AddScoped<IStrategicObjectiveService, StrategicObjectiveService>();
         services.AddScoped<IKpiService,                KpiService>();
+        services.AddScoped<IWorkspaceService,          WorkspaceService>();
         return services;
     }
 }
