@@ -12,7 +12,6 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -267,54 +266,6 @@ try
     // -----------------------------------------------------------------------
     // Seed required roles (Admin, Manager, User, Viewer)
     await RoleSeeder.SeedAsync(app.Services);
-
-    // Database seeding — create roles and default admin user if absent
-    // -----------------------------------------------------------------------
-    using (var scope = app.Services.CreateScope())
-    {
-        var roleManager = scope.ServiceProvider
-            .GetRequiredService<RoleManager<IdentityRole>>();
-
-        foreach (var roleName in new[] { "Admin", "Manager", "TeamMember" })
-        {
-            if (!await roleManager.RoleExistsAsync(roleName))
-                await roleManager.CreateAsync(new IdentityRole(roleName));
-        }
-
-        var userManager = scope.ServiceProvider
-            .GetRequiredService<UserManager<ApplicationUser>>();
-
-        const string adminEmail    = "Admin@action-tracker.com";
-        const string adminPassword = "Test@4321";
-
-        if (await userManager.FindByEmailAsync(adminEmail) is null)
-        {
-            var admin = new ApplicationUser
-            {
-                UserName    = adminEmail,
-                Email       = adminEmail,
-                DisplayName = "Admin",
-                FirstName   = "Admin",
-                LastName    = string.Empty,
-                Role        = "Admin",
-                IsActive    = true,
-                CreatedAt   = DateTime.UtcNow,
-            };
-
-            var result = await userManager.CreateAsync(admin, adminPassword);
-
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(admin, "Admin");
-                Log.Information("Default admin user seeded: {Email}", adminEmail);
-            }
-            else
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                Log.Warning("Failed to seed admin user: {Errors}", errors);
-            }
-        }
-    }
 
     // -----------------------------------------------------------------------
     // Run
