@@ -19,9 +19,11 @@ public class UserLookupService : IUserLookupService
         if (string.IsNullOrWhiteSpace(userId)) return null;
         var user = await _userManager.Users
             .Where(u => u.Id == userId)
-            .Select(u => new { u.FirstName, u.LastName })
+            .Select(u => new { u.FirstName, u.LastName, u.DisplayName })
             .FirstOrDefaultAsync(ct);
-        return user is null ? null : $"{user.FirstName} {user.LastName}".Trim();
+        if (user is null) return null;
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(fullName) ? fullName : user.DisplayName;
     }
 
     public async Task<Dictionary<string, string>> GetDisplayNamesAsync(
@@ -33,9 +35,13 @@ public class UserLookupService : IUserLookupService
 
         var users = await _userManager.Users
             .Where(u => ids.Contains(u.Id))
-            .Select(u => new { u.Id, u.FirstName, u.LastName })
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.DisplayName })
             .ToListAsync(ct);
 
-        return users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim());
+        return users.ToDictionary(u => u.Id, u =>
+        {
+            var fullName = $"{u.FirstName} {u.LastName}".Trim();
+            return !string.IsNullOrWhiteSpace(fullName) ? fullName : u.DisplayName ?? string.Empty;
+        });
     }
 }

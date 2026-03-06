@@ -168,12 +168,20 @@ public sealed class AuthService : IAuthService
                 "Use username/password login for this account.");
         }
 
-        // --- Backfill AzureObjectId for existing AzureAD users found only by email ---
+        // --- Backfill AzureObjectId and DisplayName for existing AzureAD users ---
+        var needsUpdate = false;
         if (user.AzureObjectId is null)
         {
             user.AzureObjectId = azureObjectId;
-            await _userManager.UpdateAsync(user);
+            needsUpdate = true;
         }
+        if (string.IsNullOrWhiteSpace(user.DisplayName))
+        {
+            user.DisplayName = displayName;
+            needsUpdate = true;
+        }
+        if (needsUpdate)
+            await _userManager.UpdateAsync(user);
 
         if (!user.IsActive)
         {
