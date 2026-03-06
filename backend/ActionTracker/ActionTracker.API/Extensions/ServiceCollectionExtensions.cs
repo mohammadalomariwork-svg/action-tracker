@@ -107,6 +107,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSwaggerWithJwt(
         this IServiceCollection services)
     {
+        services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo
