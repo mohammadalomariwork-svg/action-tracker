@@ -137,6 +137,38 @@ public class WorkspacesController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/workspaces/org-units  (dropdown data)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns a flat list of non-deleted org units for the workspace form dropdown.</summary>
+    [HttpGet("org-units")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrgUnitDropdownItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOrgUnitsForDropdown()
+    {
+        _logger.LogInformation("GET /api/workspaces/org-units");
+
+        var items = await _workspaceService.GetOrgUnitsForDropdownAsync();
+        return Ok(ApiResponse<IEnumerable<OrgUnitDropdownItemDto>>.Ok(items));
+    }
+
+    // -------------------------------------------------------------------------
+    // GET api/workspaces/active-users  (dropdown data)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns active users for the workspace admin dropdown.</summary>
+    [HttpGet("active-users")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<UserDropdownItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetActiveUsersForDropdown()
+    {
+        _logger.LogInformation("GET /api/workspaces/active-users");
+
+        var items = await _workspaceService.GetActiveUsersForDropdownAsync();
+        return Ok(ApiResponse<IEnumerable<UserDropdownItemDto>>.Ok(items));
+    }
+
+    // -------------------------------------------------------------------------
     // DELETE api/workspaces/{id}
     // -------------------------------------------------------------------------
 

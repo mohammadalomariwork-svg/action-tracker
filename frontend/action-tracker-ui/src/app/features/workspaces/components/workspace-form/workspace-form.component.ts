@@ -10,8 +10,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { WorkspaceService } from '../../services/workspace.service';
-import { UserService } from '../../../../core/services/user.service';
-import { UserProfile } from '../../../../core/models/user.model';
+import { OrgUnitDropdownItem, UserDropdownItem } from '../../models/workspace.model';
 
 @Component({
   selector: 'app-workspace-form',
@@ -23,7 +22,6 @@ import { UserProfile } from '../../../../core/models/user.model';
 export class WorkspaceFormComponent implements OnInit {
   private readonly fb               = inject(FormBuilder);
   private readonly workspaceService = inject(WorkspaceService);
-  private readonly userService      = inject(UserService);
   private readonly route            = inject(ActivatedRoute);
   private readonly router           = inject(Router);
   private readonly destroyRef       = inject(DestroyRef);
@@ -32,7 +30,9 @@ export class WorkspaceFormComponent implements OnInit {
   workspaceId: number | null = null;
   isLoading     = false;
   errorMessage: string | null = null;
-  users: UserProfile[] = [];
+
+  orgUnits: OrgUnitDropdownItem[] = [];
+  adminUsers: UserDropdownItem[]  = [];
 
   form!: FormGroup;
 
@@ -44,7 +44,7 @@ export class WorkspaceFormComponent implements OnInit {
     }
 
     this.buildForm();
-    this.loadUsers();
+    this.loadDropdownData();
 
     if (this.isEditMode && this.workspaceId !== null) {
       this.loadWorkspace(this.workspaceId);
@@ -70,32 +70,36 @@ export class WorkspaceFormComponent implements OnInit {
   private buildForm(): void {
     this.form = this.fb.group({
       title:            ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
-      organizationUnit: ['', [Validators.required, Validators.maxLength(200)]],
+      organizationUnit: ['', [Validators.required]],
       adminUserId:      ['', [Validators.required]],
       adminUserName:    ['', [Validators.required]],
       isActive:         [true],
     });
 
-    // Auto-populate adminUserName whenever adminUserId changes.
+    // Auto-populate adminUserName when adminUserId selection changes.
     this.form.get('adminUserId')!.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((userId: string) => {
-        const user = this.users.find(u => u.id === userId);
-        this.form.patchValue({ adminUserName: user?.fullName ?? '' }, { emitEvent: false });
+        const user = this.adminUsers.find(u => u.id === userId);
+        this.form.patchValue({ adminUserName: user?.displayName ?? '' }, { emitEvent: false });
       });
   }
 
-  private loadUsers(): void {
-    this.userService
-      .getAll()
+  private loadDropdownData(): void {
+    this.workspaceService
+      .getOrgUnitsForDropdown()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => {
-          this.users = res.data ?? [];
-        },
-        error: () => {
-          // Non-fatal — dropdown will be empty; user can still type manually if needed.
-        },
+        next: (res) => { this.orgUnits = res.data ?? []; },
+        error: () => { this.errorMessage = 'Failed to load organisation units.'; },
+      });
+
+    this.workspaceService
+      .getActiveUsersForDropdown()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.adminUsers = res.data ?? []; },
+        error: () => { this.errorMessage = 'Failed to load users.'; },
       });
   }
 

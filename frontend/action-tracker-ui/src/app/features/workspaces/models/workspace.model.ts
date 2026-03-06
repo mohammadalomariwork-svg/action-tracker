@@ -67,6 +67,28 @@ export interface CreateWorkspace {
 }
 
 /**
+ * Lightweight org unit item returned by GET /api/workspaces/org-units.
+ * Used to populate the Organisation Unit dropdown on the workspace form.
+ */
+export interface OrgUnitDropdownItem {
+  /** Org unit ID (Guid as string). */
+  id: string;
+  /** Display name of the org unit. */
+  name: string;
+}
+
+/**
+ * Lightweight user item returned by GET /api/workspaces/active-users.
+ * Only active users are included. Used for the Workspace Admin dropdown.
+ */
+export interface UserDropdownItem {
+  /** AspNetUsers.Id of the user. */
+  id: string;
+  /** Display name shown in the dropdown. */
+  displayName: string;
+}
+
+/**
  * Payload sent to PUT /api/workspaces/{id} to update an existing workspace.
  * The `id` field must match the route parameter.
  */

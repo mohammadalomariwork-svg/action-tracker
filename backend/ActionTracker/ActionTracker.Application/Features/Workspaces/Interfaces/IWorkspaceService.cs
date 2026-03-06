@@ -49,4 +49,16 @@ public interface IWorkspaceService
     /// </summary>
     /// <param name="id">Primary key to check.</param>
     Task<bool> WorkspaceExistsAsync(int id);
+
+    /// <summary>
+    /// Returns a flat list of non-deleted org units for use in dropdown menus,
+    /// ordered alphabetically by name.
+    /// </summary>
+    Task<IEnumerable<OrgUnitDropdownItemDto>> GetOrgUnitsForDropdownAsync();
+
+    /// <summary>
+    /// Returns a list of active (IsActive = true) users for use in the workspace
+    /// admin dropdown, ordered alphabetically by display name.
+    /// </summary>
+    Task<IEnumerable<UserDropdownItemDto>> GetActiveUsersForDropdownAsync();
 }

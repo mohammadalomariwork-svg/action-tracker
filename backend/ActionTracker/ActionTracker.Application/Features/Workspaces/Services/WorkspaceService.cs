@@ -219,6 +219,58 @@ public class WorkspaceService : IWorkspaceService
     }
 
     // -------------------------------------------------------------------------
+    // Dropdown helpers
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns all non-deleted org units ordered by name for use in dropdowns.
+    /// </summary>
+    public async Task<IEnumerable<OrgUnitDropdownItemDto>> GetOrgUnitsForDropdownAsync()
+    {
+        try
+        {
+            return await _db.OrgUnits
+                .Where(o => !o.IsDeleted)
+                .OrderBy(o => o.Name)
+                .Select(o => new OrgUnitDropdownItemDto
+                {
+                    Id   = o.Id.ToString(),
+                    Name = o.Name
+                })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving org units for dropdown");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Returns active users ordered by display name for use in the admin dropdown.
+    /// </summary>
+    public async Task<IEnumerable<UserDropdownItemDto>> GetActiveUsersForDropdownAsync()
+    {
+        try
+        {
+            return await _db.Users
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.DisplayName ?? (u.FirstName + " " + u.LastName))
+                .Select(u => new UserDropdownItemDto
+                {
+                    Id          = u.Id,
+                    DisplayName = u.DisplayName ?? (u.FirstName + " " + u.LastName)
+                })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving active users for dropdown");
+            throw;
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Private mapping helpers
     // -------------------------------------------------------------------------
 

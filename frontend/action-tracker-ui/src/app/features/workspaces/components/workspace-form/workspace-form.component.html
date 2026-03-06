@@ -54,19 +54,19 @@
           <label for="wfOrgUnit" class="form-label">
             Organization Unit <span class="text-danger">*</span>
           </label>
-          <input
+          <select
             id="wfOrgUnit"
-            type="text"
-            class="form-control"
+            class="form-select"
             formControlName="organizationUnit"
-            placeholder="e.g. College of Engineering"
-            autocomplete="off"
             [class.is-invalid]="isInvalid('organizationUnit')"
-          />
+          >
+            <option value="">— Select an organisation unit —</option>
+            @for (unit of orgUnits; track unit.id) {
+              <option [value]="unit.name">{{ unit.name }}</option>
+            }
+          </select>
           @if (hasError('organizationUnit', 'required')) {
             <div class="invalid-feedback">Organization unit is required.</div>
-          } @else if (hasError('organizationUnit', 'maxlength')) {
-            <div class="invalid-feedback">Organization unit cannot exceed 200 characters.</div>
           }
         </div>
 
@@ -82,8 +82,8 @@
             [class.is-invalid]="isInvalid('adminUserId')"
           >
             <option value="">— Select an admin user —</option>
-            @for (user of users; track user.id) {
-              <option [value]="user.id">{{ user.fullName }}</option>
+            @for (user of adminUsers; track user.id) {
+              <option [value]="user.id">{{ user.displayName }}</option>
             }
           </select>
           @if (hasError('adminUserId', 'required')) {

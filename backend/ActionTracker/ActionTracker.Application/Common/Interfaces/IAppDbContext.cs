@@ -14,6 +14,7 @@ public interface IAppDbContext
     DbSet<RefreshToken>             RefreshTokens { get; }
     DbSet<ApplicationUser>          Users        { get; }
     DbSet<KuEmployeeInfo>           KuEmployeeInfo { get; }
+    DbSet<OrgUnit>                  OrgUnits     { get; }
     DbSet<Workspace>                Workspaces   { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

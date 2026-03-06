@@ -8,6 +8,8 @@ import {
   WorkspaceList,
   CreateWorkspace,
   UpdateWorkspace,
+  OrgUnitDropdownItem,
+  UserDropdownItem,
 } from '../models/workspace.model';
 
 /**
@@ -74,5 +76,21 @@ export class WorkspaceService {
    */
   deleteWorkspace(id: number): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Returns non-deleted org units for the Organisation Unit dropdown.
+   * Requires Admin role.
+   */
+  getOrgUnitsForDropdown(): Observable<ApiResponse<OrgUnitDropdownItem[]>> {
+    return this.http.get<ApiResponse<OrgUnitDropdownItem[]>>(`${this.apiUrl}/org-units`);
+  }
+
+  /**
+   * Returns active users for the Workspace Admin dropdown.
+   * Requires Admin role.
+   */
+  getActiveUsersForDropdown(): Observable<ApiResponse<UserDropdownItem[]>> {
+    return this.http.get<ApiResponse<UserDropdownItem[]>>(`${this.apiUrl}/active-users`);
   }
 }
