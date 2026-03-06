@@ -17,7 +17,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private readonly http = inject(HttpClient);
-  private readonly base = `${environment.apiUrl}/api/kpis`;
+  private readonly base = `${environment.apiUrl}/kpis`;
 
   /** Returns a paged list of KPIs, optionally filtered by strategic objective. */
   getAll(

@@ -14,7 +14,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class StrategicObjectiveService {
   private readonly http = inject(HttpClient);
-  private readonly base = `${environment.apiUrl}/api/strategicobjectives`;
+  private readonly base = `${environment.apiUrl}/strategicobjectives`;
 
   /** Returns a paged list of strategic objectives, optionally filtered by org unit. */
   getAll(
