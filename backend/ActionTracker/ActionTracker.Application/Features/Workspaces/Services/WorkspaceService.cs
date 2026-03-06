@@ -223,21 +223,39 @@ public class WorkspaceService : IWorkspaceService
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Returns all non-deleted org units ordered by name for use in dropdowns.
+    /// Returns all non-deleted org units in tree-traversal order (parent before
+    /// children, siblings sorted alphabetically) with Level and Code so the
+    /// frontend can render a visually indented hierarchy.
     /// </summary>
     public async Task<IEnumerable<OrgUnitDropdownItemDto>> GetOrgUnitsForDropdownAsync()
     {
         try
         {
-            return await _db.OrgUnits
+            var all = await _db.OrgUnits
                 .Where(o => !o.IsDeleted)
-                .OrderBy(o => o.Name)
-                .Select(o => new OrgUnitDropdownItemDto
-                {
-                    Id   = o.Id.ToString(),
-                    Name = o.Name
-                })
+                .Select(o => new { o.Id, o.Name, o.Code, o.Level, o.ParentId })
                 .ToListAsync();
+
+            var lookup = all.ToLookup(o => o.ParentId);
+            var result = new List<OrgUnitDropdownItemDto>(all.Count);
+
+            void Flatten(Guid? parentId)
+            {
+                foreach (var o in lookup[parentId].OrderBy(o => o.Name))
+                {
+                    result.Add(new OrgUnitDropdownItemDto
+                    {
+                        Id    = o.Id.ToString(),
+                        Name  = o.Name,
+                        Code  = o.Code,
+                        Level = o.Level
+                    });
+                    Flatten(o.Id);
+                }
+            }
+
+            Flatten(null);
+            return result;
         }
         catch (Exception ex)
         {

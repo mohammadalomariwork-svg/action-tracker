@@ -75,6 +75,10 @@ export interface OrgUnitDropdownItem {
   id: string;
   /** Display name of the org unit. */
   name: string;
+  /** Auto-generated short code, e.g. "OC-1". */
+  code?: string;
+  /** Hierarchy depth — 1 for root, 2 for children, etc. */
+  level: number;
 }
 
 /**

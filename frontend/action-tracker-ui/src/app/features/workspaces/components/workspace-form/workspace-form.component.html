@@ -62,7 +62,7 @@
           >
             <option value="">— Select an organisation unit —</option>
             @for (unit of orgUnits; track unit.id) {
-              <option [value]="unit.name">{{ unit.name }}</option>
+              <option [value]="unit.name">{{ unitLabel(unit) }}</option>
             }
           </select>
           @if (hasError('organizationUnit', 'required')) {

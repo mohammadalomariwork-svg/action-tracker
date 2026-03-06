@@ -53,6 +53,12 @@ export class WorkspaceFormComponent implements OnInit {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
+  /** Builds a visually indented label for an org-unit option (matches user-management style). */
+  unitLabel(unit: OrgUnitDropdownItem): string {
+    const indent = '— '.repeat(unit.level - 1);
+    return `${indent}${unit.name}${unit.code ? ' (' + unit.code + ')' : ''}`;
+  }
+
   /** Returns true when the given field is touched and has the given error. */
   hasError(field: string, error: string): boolean {
     const ctrl = this.form.get(field);
