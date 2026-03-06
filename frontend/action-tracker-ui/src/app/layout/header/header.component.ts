@@ -15,6 +15,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'My Actions',      path: '/actions',     roles: null },
   { label: 'Reports',         path: '/reports',     roles: ['Admin', 'Manager'] },
   { label: 'Team Actions',    path: '/management',  roles: ['Admin', 'Manager'] },
+  { label: 'Workspaces',      path: '/workspaces',  roles: ['Admin', 'Manager'] },
   { label: 'Admin Panel',     path: '/admin',       roles: ['Admin'] },
 ];
 
