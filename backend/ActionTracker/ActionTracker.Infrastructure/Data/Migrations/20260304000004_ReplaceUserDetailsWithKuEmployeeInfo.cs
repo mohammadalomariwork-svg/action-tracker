@@ -89,10 +89,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     EmployeeData_Html  = table.Column<string> (type: "nvarchar(max)",  nullable: true),
                     LastUpdate_Html    = table.Column<DateTime?>(type: "datetime",     nullable: true)
                 },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ku_employee_info", x => x.AssignmentId);
-                });
+                constraints: table => { });
         }
 
         /// <inheritdoc />
