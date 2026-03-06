@@ -24,10 +24,7 @@ public class StrategicObjectivesController : ControllerBase
     }
 
     private string CurrentUserId =>
-        User.FindFirstValue(ClaimTypes.Email)
-        ?? User.FindFirstValue(ClaimTypes.Name)
-        ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
-        ?? "Unknown";
+        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Unknown";
 
     // -------------------------------------------------------------------------
     // GET api/strategicobjectives

@@ -34,6 +34,11 @@ interface TargetRow {
   draftTarget: string;
   draftActual: string;
   draftNotes: string;
+  // Audit
+  createdByName?: string;
+  updatedByName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const MONTH_NAMES = [
@@ -141,6 +146,10 @@ export class KpiTargetsComponent implements OnInit {
         draftTarget: String(existing?.target ?? ''),
         draftActual: String(existing?.actual ?? ''),
         draftNotes:  existing?.notes ?? '',
+        createdByName: existing?.createdByName,
+        updatedByName: existing?.updatedByName,
+        createdAt: existing?.createdAt,
+        updatedAt: existing?.updatedAt,
       };
     });
 

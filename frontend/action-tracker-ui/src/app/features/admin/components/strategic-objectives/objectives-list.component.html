@@ -149,12 +149,12 @@
               </td>
 
               <!-- Created By -->
-              <td class="text-muted small">{{ obj.createdBy || '—' }}</td>
+              <td class="text-muted small">{{ obj.createdByName || '—' }}</td>
 
               <!-- Updated By -->
               <td class="text-muted small">
-                @if (obj.updatedBy) {
-                  {{ obj.updatedBy }}<br>
+                @if (obj.updatedByName) {
+                  {{ obj.updatedByName }}<br>
                   <span class="text-muted" style="font-size: 0.75em">{{ obj.updatedAt | date:'dd MMM y' }}</span>
                 } @else {
                   —
@@ -163,8 +163,8 @@
 
               <!-- Deleted By -->
               <td class="text-muted small">
-                @if (obj.deletedBy) {
-                  {{ obj.deletedBy }}<br>
+                @if (obj.deletedByName) {
+                  {{ obj.deletedByName }}<br>
                   <span class="text-muted" style="font-size: 0.75em">{{ obj.deletedAt | date:'dd MMM y' }}</span>
                 } @else {
                   —

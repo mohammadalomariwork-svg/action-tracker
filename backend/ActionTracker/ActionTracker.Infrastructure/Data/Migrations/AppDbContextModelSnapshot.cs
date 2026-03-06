@@ -279,6 +279,15 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Property<decimal?>("Actual")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<Guid>("KpiId")
                         .HasColumnType("uniqueidentifier");
 
@@ -291,6 +300,13 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
                     b.Property<decimal?>("Target")
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<int>("Year")
                         .HasColumnType("int");

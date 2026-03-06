@@ -13,6 +13,9 @@ export interface StrategicObjective {
   createdBy?: string;
   updatedBy?: string;
   deletedBy?: string;
+  createdByName?: string;
+  updatedByName?: string;
+  deletedByName?: string;
   kpiCount: number;
 }
 

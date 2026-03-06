@@ -86,6 +86,8 @@
             <th style="width: 120px">Variance</th>
             <th style="width: 130px">% Achievement</th>
             <th>Notes</th>
+            <th style="width: 130px">Created By</th>
+            <th style="width: 130px">Updated By</th>
             <th style="width: 70px" class="text-center">Edit</th>
           </tr>
         </thead>
@@ -173,6 +175,26 @@
                 }
               </td>
 
+              <!-- Created By -->
+              <td class="text-muted small">
+                @if (row.createdByName) {
+                  {{ row.createdByName }}<br>
+                  <span style="font-size: 0.75em">{{ row.createdAt | date:'dd MMM y' }}</span>
+                } @else {
+                  —
+                }
+              </td>
+
+              <!-- Updated By -->
+              <td class="text-muted small">
+                @if (row.updatedByName) {
+                  {{ row.updatedByName }}<br>
+                  <span style="font-size: 0.75em">{{ row.updatedAt | date:'dd MMM y' }}</span>
+                } @else {
+                  —
+                }
+              </td>
+
               <!-- Edit / confirm / cancel -->
               <td class="text-center">
                 @if (!row.editing) {
@@ -221,7 +243,7 @@
                 </span>
               } @else { N/A }
             </td>
-            <td colspan="2"></td>
+            <td colspan="4"></td>
           </tr>
         </tfoot>
       </table>

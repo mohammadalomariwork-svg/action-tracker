@@ -203,6 +203,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddAdminPanelServices(this IServiceCollection services)
     {
+        services.AddScoped<IUserLookupService,         UserLookupService>();
         services.AddScoped<IOrgUnitService,            OrgUnitService>();
         services.AddScoped<IStrategicObjectiveService, StrategicObjectiveService>();
         services.AddScoped<IKpiService,                KpiService>();

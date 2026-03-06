@@ -16,5 +16,8 @@ public class StrategicObjectiveDto
     public string? CreatedBy { get; set; }
     public string? UpdatedBy { get; set; }
     public string? DeletedBy { get; set; }
+    public string? CreatedByName { get; set; }
+    public string? UpdatedByName { get; set; }
+    public string? DeletedByName { get; set; }
     public int KpiCount { get; set; }
 }

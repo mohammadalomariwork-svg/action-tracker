@@ -12,5 +12,8 @@ public class OrgUnitTreeDto
     public string? CreatedBy { get; set; }
     public string? UpdatedBy { get; set; }
     public string? DeletedBy { get; set; }
+    public string? CreatedByName { get; set; }
+    public string? UpdatedByName { get; set; }
+    public string? DeletedByName { get; set; }
     public List<OrgUnitTreeDto> Children { get; set; } = new();
 }

@@ -26,10 +26,10 @@ public interface IKpiService
     Task<List<KpiDto>> GetByObjectiveAsync(Guid objectiveId, CancellationToken ct = default);
 
     /// <summary>Upserts a single month target (insert if not exists, update if exists).</summary>
-    Task<KpiTargetDto> UpsertTargetAsync(UpsertKpiTargetRequestDto request, CancellationToken ct = default);
+    Task<KpiTargetDto> UpsertTargetAsync(UpsertKpiTargetRequestDto request, string userId, CancellationToken ct = default);
 
     /// <summary>Saves all 12 months for a KPI/year combination in one transaction.</summary>
-    Task<List<KpiTargetDto>> BulkUpsertTargetsAsync(BulkUpsertKpiTargetsRequestDto request, CancellationToken ct = default);
+    Task<List<KpiTargetDto>> BulkUpsertTargetsAsync(BulkUpsertKpiTargetsRequestDto request, string userId, CancellationToken ct = default);
 
     /// <summary>Returns all targets for a KPI in the specified year.</summary>
     Task<List<KpiTargetDto>> GetTargetsAsync(Guid kpiId, int year, CancellationToken ct = default);

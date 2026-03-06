@@ -26,6 +26,9 @@ export interface Kpi {
   createdBy?: string;
   updatedBy?: string;
   deletedBy?: string;
+  createdByName?: string;
+  updatedByName?: string;
+  deletedByName?: string;
   targetCount: number;
 }
 
@@ -38,6 +41,12 @@ export interface KpiTarget {
   target?: number;
   actual?: number;
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdByName?: string;
+  updatedByName?: string;
 }
 
 export interface KpiWithTargets extends Kpi {

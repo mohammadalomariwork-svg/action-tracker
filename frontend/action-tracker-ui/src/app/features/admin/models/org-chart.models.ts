@@ -13,6 +13,9 @@ export interface OrgUnit {
   createdBy?: string;
   updatedBy?: string;
   deletedBy?: string;
+  createdByName?: string;
+  updatedByName?: string;
+  deletedByName?: string;
   childrenCount: number;
 }
 
@@ -27,6 +30,9 @@ export interface OrgUnitTree {
   createdBy?: string;
   updatedBy?: string;
   deletedBy?: string;
+  createdByName?: string;
+  updatedByName?: string;
+  deletedByName?: string;
   children: OrgUnitTree[];
 }
 

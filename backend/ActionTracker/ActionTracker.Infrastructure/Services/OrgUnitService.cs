@@ -1,3 +1,4 @@
+using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.OrgChart.DTOs;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
 using ActionTracker.Domain.Entities;
@@ -9,13 +10,18 @@ namespace ActionTracker.Infrastructure.Services;
 
 public class OrgUnitService : IOrgUnitService
 {
-    private readonly AppDbContext          _context;
-    private readonly ILogger<OrgUnitService> _logger;
+    private readonly AppDbContext              _context;
+    private readonly IUserLookupService        _userLookup;
+    private readonly ILogger<OrgUnitService>   _logger;
 
-    public OrgUnitService(AppDbContext context, ILogger<OrgUnitService> logger)
+    public OrgUnitService(
+        AppDbContext            context,
+        IUserLookupService      userLookup,
+        ILogger<OrgUnitService> logger)
     {
-        _context = context;
-        _logger  = logger;
+        _context    = context;
+        _userLookup = userLookup;
+        _logger     = logger;
     }
 
     // -------------------------------------------------------------------------
@@ -40,7 +46,8 @@ public class OrgUnitService : IOrgUnitService
             var root = all.FirstOrDefault(o => o.ParentId == null);
             if (root is null) return null;
 
-            return MapToTreeDto(root, all);
+            var names = await ResolveNamesAsync(all, ct);
+            return MapToTreeDto(root, all, names);
         }
         catch (Exception ex)
         {
@@ -85,11 +92,13 @@ public class OrgUnitService : IOrgUnitService
                 .GroupBy(o => o.ParentId!.Value)
                 .ToDictionary(g => g.Key, g => g.Count());
 
+            var names = await ResolveNamesAsync(units, ct);
+
             var dtos = units.Select(u =>
             {
                 var parentName    = u.ParentId.HasValue && nameLookup.TryGetValue(u.ParentId.Value, out var pn) ? pn : null;
                 var childrenCount = childrenCounts.TryGetValue(u.Id, out var cc) ? cc : 0;
-                return MapToDto(u, parentName, childrenCount);
+                return MapToDto(u, parentName, childrenCount, names);
             }).ToList();
 
             return new OrgUnitListResponseDto
@@ -133,7 +142,8 @@ public class OrgUnitService : IOrgUnitService
                 .IgnoreQueryFilters()
                 .CountAsync(o => o.ParentId == id, ct);
 
-            return MapToDto(unit, parentName, childrenCount);
+            var names = await ResolveNamesAsync([unit], ct);
+            return MapToDto(unit, parentName, childrenCount, names);
         }
         catch (Exception ex)
         {
@@ -212,7 +222,8 @@ public class OrgUnitService : IOrgUnitService
 
             _logger.LogInformation("Created OrgUnit {Id} '{Name}' at level {Level}", unit.Id, unit.Name, unit.Level);
 
-            return MapToDto(unit, parentName, childrenCount: 0);
+            var names = await ResolveNamesAsync([unit], ct);
+            return MapToDto(unit, parentName, childrenCount: 0, names);
         }
         catch (KeyNotFoundException) { throw; }
         catch (InvalidOperationException) { throw; }
@@ -300,7 +311,8 @@ public class OrgUnitService : IOrgUnitService
                 .IgnoreQueryFilters()
                 .CountAsync(o => o.ParentId == id, ct);
 
-            return MapToDto(unit, parentName, childrenCount);
+            var names = await ResolveNamesAsync([unit], ct);
+            return MapToDto(unit, parentName, childrenCount, names);
         }
         catch (KeyNotFoundException) { throw; }
         catch (InvalidOperationException) { throw; }
@@ -413,11 +425,13 @@ public class OrgUnitService : IOrgUnitService
 
             var countLookup = grandchildCounts.ToDictionary(g => g.ParentId, g => g.Count);
 
+            var names = await ResolveNamesAsync(children, ct);
             return children
                 .Select(c => MapToDto(
                     c,
                     parentName:    parent.Name,
-                    childrenCount: countLookup.TryGetValue(c.Id, out var cc) ? cc : 0))
+                    childrenCount: countLookup.TryGetValue(c.Id, out var cc) ? cc : 0,
+                    names))
                 .ToList();
         }
         catch (KeyNotFoundException) { throw; }
@@ -468,7 +482,26 @@ public class OrgUnitService : IOrgUnitService
         }
     }
 
-    private static OrgUnitDto MapToDto(OrgUnit u, string? parentName = null, int childrenCount = 0) =>
+    private async Task<Dictionary<string, string>> ResolveNamesAsync(
+        IEnumerable<OrgUnit> units,
+        CancellationToken    ct)
+    {
+        var ids = units
+            .SelectMany(u => new[] { u.CreatedBy, u.UpdatedBy, u.DeletedBy })
+            .Where(id => id != null)
+            .Cast<string>()
+            .Distinct();
+        return await _userLookup.GetDisplayNamesAsync(ids, ct);
+    }
+
+    private static string? Resolve(string? userId, Dictionary<string, string> names)
+        => userId != null && names.TryGetValue(userId, out var n) ? n : null;
+
+    private static OrgUnitDto MapToDto(
+        OrgUnit                    u,
+        string?                    parentName,
+        int                        childrenCount,
+        Dictionary<string, string> names) =>
         new()
         {
             Id            = u.Id,
@@ -485,26 +518,35 @@ public class OrgUnitService : IOrgUnitService
             CreatedBy     = u.CreatedBy,
             UpdatedBy     = u.UpdatedBy,
             DeletedBy     = u.DeletedBy,
+            CreatedByName = Resolve(u.CreatedBy, names),
+            UpdatedByName = Resolve(u.UpdatedBy, names),
+            DeletedByName = Resolve(u.DeletedBy, names),
             ChildrenCount = childrenCount,
         };
 
-    private static OrgUnitTreeDto MapToTreeDto(OrgUnit node, List<OrgUnit> all) =>
+    private static OrgUnitTreeDto MapToTreeDto(
+        OrgUnit                    node,
+        List<OrgUnit>              all,
+        Dictionary<string, string> names) =>
         new()
         {
-            Id          = node.Id,
-            Name        = node.Name,
-            Code        = node.Code,
-            Description = node.Description,
-            Level       = node.Level,
-            ParentId    = node.ParentId,
-            IsDeleted   = node.IsDeleted,
-            CreatedBy   = node.CreatedBy,
-            UpdatedBy   = node.UpdatedBy,
-            DeletedBy   = node.DeletedBy,
-            Children    = all
+            Id            = node.Id,
+            Name          = node.Name,
+            Code          = node.Code,
+            Description   = node.Description,
+            Level         = node.Level,
+            ParentId      = node.ParentId,
+            IsDeleted     = node.IsDeleted,
+            CreatedBy     = node.CreatedBy,
+            UpdatedBy     = node.UpdatedBy,
+            DeletedBy     = node.DeletedBy,
+            CreatedByName = Resolve(node.CreatedBy, names),
+            UpdatedByName = Resolve(node.UpdatedBy, names),
+            DeletedByName = Resolve(node.DeletedBy, names),
+            Children      = all
                 .Where(o => o.ParentId == node.Id)
                 .OrderBy(o => o.Name)
-                .Select(child => MapToTreeDto(child, all))
+                .Select(child => MapToTreeDto(child, all, names))
                 .ToList(),
         };
 }

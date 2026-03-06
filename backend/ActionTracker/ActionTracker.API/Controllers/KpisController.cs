@@ -22,10 +22,7 @@ public class KpisController : ControllerBase
     }
 
     private string CurrentUserId =>
-        User.FindFirstValue(ClaimTypes.Email)
-        ?? User.FindFirstValue(ClaimTypes.Name)
-        ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
-        ?? "Unknown";
+        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "Unknown";
 
     // -------------------------------------------------------------------------
     // GET api/kpis
@@ -216,7 +213,7 @@ public class KpisController : ControllerBase
 
         try
         {
-            var result = await _service.UpsertTargetAsync(request, ct);
+            var result = await _service.UpsertTargetAsync(request, CurrentUserId, ct);
             return Ok(ApiResponse<KpiTargetDto>.Ok(result));
         }
         catch (ArgumentException ex)
@@ -246,7 +243,7 @@ public class KpisController : ControllerBase
 
         try
         {
-            var result = await _service.BulkUpsertTargetsAsync(request, ct);
+            var result = await _service.BulkUpsertTargetsAsync(request, CurrentUserId, ct);
             return Ok(ApiResponse<List<KpiTargetDto>>.Ok(result));
         }
         catch (KeyNotFoundException ex)

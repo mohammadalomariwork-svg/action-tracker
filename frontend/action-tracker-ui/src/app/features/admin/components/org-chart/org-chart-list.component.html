@@ -118,9 +118,9 @@
       }
 
       <!-- Audit info tooltip -->
-      @if (node.createdBy || node.updatedBy || node.deletedBy) {
+      @if (node.createdByName || node.updatedByName || node.deletedByName) {
         <span class="text-muted small ms-1"
-              [title]="'Created by: ' + (node.createdBy || '—') + (node.updatedBy ? ' | Updated by: ' + node.updatedBy : '') + (node.deletedBy ? ' | Deleted by: ' + node.deletedBy : '')">
+              [title]="'Created by: ' + (node.createdByName || '—') + (node.updatedByName ? ' | Updated by: ' + node.updatedByName : '') + (node.deletedByName ? ' | Deleted by: ' + node.deletedByName : '')">
           <i class="bi bi-info-circle"></i>
         </span>
       }

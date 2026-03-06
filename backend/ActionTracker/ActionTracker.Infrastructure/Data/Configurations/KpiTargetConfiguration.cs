@@ -37,6 +37,12 @@ public class KpiTargetConfiguration : IEntityTypeConfiguration<KpiTarget>
         builder.Property(t => t.Notes)
             .HasMaxLength(500);
 
+        builder.Property(t => t.CreatedAt)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.Property(t => t.CreatedBy).HasMaxLength(256);
+        builder.Property(t => t.UpdatedBy).HasMaxLength(256);
+
         builder.HasIndex(t => new { t.KpiId, t.Year, t.Month })
             .IsUnique();
 

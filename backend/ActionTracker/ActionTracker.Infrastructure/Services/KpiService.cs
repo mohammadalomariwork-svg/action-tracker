@@ -1,4 +1,5 @@
 using System.Globalization;
+using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Kpis.DTOs;
 using ActionTracker.Application.Features.Kpis.Interfaces;
 using ActionTracker.Domain.Entities;
@@ -10,13 +11,18 @@ namespace ActionTracker.Infrastructure.Services;
 
 public class KpiService : IKpiService
 {
-    private readonly AppDbContext      _context;
+    private readonly AppDbContext        _context;
+    private readonly IUserLookupService  _userLookup;
     private readonly ILogger<KpiService> _logger;
 
-    public KpiService(AppDbContext context, ILogger<KpiService> logger)
+    public KpiService(
+        AppDbContext        context,
+        IUserLookupService  userLookup,
+        ILogger<KpiService> logger)
     {
-        _context = context;
-        _logger  = logger;
+        _context    = context;
+        _userLookup = userLookup;
+        _logger     = logger;
     }
 
     // -------------------------------------------------------------------------
@@ -62,8 +68,9 @@ public class KpiService : IKpiService
 
             var countLookup = targetCounts.ToDictionary(g => g.KpiId, g => g.Count);
 
+            var kpiNames = await ResolveKpiNamesAsync(kpis, ct);
             var dtos = kpis
-                .Select(k => MapToDto(k, targetCount: countLookup.TryGetValue(k.Id, out var c) ? c : 0))
+                .Select(k => MapToDto(k, targetCount: countLookup.TryGetValue(k.Id, out var c) ? c : 0, kpiNames))
                 .ToList();
 
             return new KpiListResponseDto
@@ -112,6 +119,9 @@ public class KpiService : IKpiService
                 .ThenBy(t => t.Month)
                 .ToListAsync(ct);
 
+            var kpiNames    = await ResolveKpiNamesAsync([kpi], ct);
+            var targetNames = await ResolveTargetNamesAsync(targets, ct);
+
             return new KpiWithTargetsDto
             {
                 Id                   = kpi.Id,
@@ -128,8 +138,14 @@ public class KpiService : IKpiService
                 IsDeleted            = kpi.IsDeleted,
                 CreatedAt            = kpi.CreatedAt,
                 UpdatedAt            = kpi.UpdatedAt,
+                CreatedBy            = kpi.CreatedBy,
+                UpdatedBy            = kpi.UpdatedBy,
+                DeletedBy            = kpi.DeletedBy,
+                CreatedByName        = Resolve(kpi.CreatedBy, kpiNames),
+                UpdatedByName        = Resolve(kpi.UpdatedBy, kpiNames),
+                DeletedByName        = Resolve(kpi.DeletedBy, kpiNames),
                 TargetCount          = targets.Count,
-                Targets              = targets.Select(MapToTargetDto).ToList(),
+                Targets              = targets.Select(t => MapToTargetDto(t, targetNames)).ToList(),
             };
         }
         catch (Exception ex)
@@ -186,7 +202,8 @@ public class KpiService : IKpiService
 
             kpi.StrategicObjective = objective;
 
-            return MapToDto(kpi, targetCount: 0);
+            var names = await ResolveKpiNamesAsync([kpi], ct);
+            return MapToDto(kpi, targetCount: 0, names);
         }
         catch (ArgumentException) { throw; }
         catch (Exception ex)
@@ -230,7 +247,8 @@ public class KpiService : IKpiService
 
             _logger.LogInformation("Updated KPI {Id}", id);
 
-            return MapToDto(kpi, targetCount);
+            var names = await ResolveKpiNamesAsync([kpi], ct);
+            return MapToDto(kpi, targetCount, names);
         }
         catch (KeyNotFoundException) { throw; }
         catch (Exception ex)
@@ -324,8 +342,9 @@ public class KpiService : IKpiService
 
             var countLookup = targetCounts.ToDictionary(g => g.KpiId, g => g.Count);
 
+            var names = await ResolveKpiNamesAsync(kpis, ct);
             return kpis
-                .Select(k => MapToDto(k, targetCount: countLookup.TryGetValue(k.Id, out var c) ? c : 0))
+                .Select(k => MapToDto(k, targetCount: countLookup.TryGetValue(k.Id, out var c) ? c : 0, names))
                 .ToList();
         }
         catch (Exception ex)
@@ -341,6 +360,7 @@ public class KpiService : IKpiService
 
     public async Task<KpiTargetDto> UpsertTargetAsync(
         UpsertKpiTargetRequestDto request,
+        string                    userId,
         CancellationToken         ct = default)
     {
         try
@@ -351,23 +371,28 @@ public class KpiService : IKpiService
                     t.Year  == request.Year  &&
                     t.Month == request.Month, ct);
 
+            var now = DateTime.UtcNow;
             if (existing is not null)
             {
-                existing.Target = request.Target;
-                existing.Actual = request.Actual;
-                existing.Notes  = request.Notes;
+                existing.Target    = request.Target;
+                existing.Actual    = request.Actual;
+                existing.Notes     = request.Notes;
+                existing.UpdatedAt = now;
+                existing.UpdatedBy = userId;
             }
             else
             {
                 existing = new KpiTarget
                 {
-                    Id     = Guid.NewGuid(),
-                    KpiId  = request.KpiId,
-                    Year   = request.Year,
-                    Month  = request.Month,
-                    Target = request.Target,
-                    Actual = request.Actual,
-                    Notes  = request.Notes,
+                    Id        = Guid.NewGuid(),
+                    KpiId     = request.KpiId,
+                    Year      = request.Year,
+                    Month     = request.Month,
+                    Target    = request.Target,
+                    Actual    = request.Actual,
+                    Notes     = request.Notes,
+                    CreatedAt = now,
+                    CreatedBy = userId,
                 };
                 _context.KpiTargets.Add(existing);
             }
@@ -377,7 +402,8 @@ public class KpiService : IKpiService
             _logger.LogInformation(
                 "Upserted KpiTarget for KPI {KpiId} {Year}/{Month}", request.KpiId, request.Year, request.Month);
 
-            return MapToTargetDto(existing);
+            var names = await ResolveTargetNamesAsync([existing], ct);
+            return MapToTargetDto(existing, names);
         }
         catch (Exception ex)
         {
@@ -394,6 +420,7 @@ public class KpiService : IKpiService
 
     public async Task<List<KpiTargetDto>> BulkUpsertTargetsAsync(
         BulkUpsertKpiTargetsRequestDto request,
+        string                         userId,
         CancellationToken              ct = default)
     {
         try
@@ -404,48 +431,52 @@ public class KpiService : IKpiService
             if (!kpiExists)
                 throw new KeyNotFoundException($"KPI '{request.KpiId}' not found.");
 
-            // Load all existing targets for this KPI/year in one query.
             var existingTargets = await _context.KpiTargets
                 .Where(t => t.KpiId == request.KpiId && t.Year == request.Year)
                 .ToListAsync(ct);
 
             var existingByMonth = existingTargets.ToDictionary(t => t.Month);
             var upserted        = new List<KpiTarget>(request.Targets.Count);
+            var now             = DateTime.UtcNow;
 
             foreach (var monthDto in request.Targets)
             {
                 if (existingByMonth.TryGetValue(monthDto.Month, out var existing))
                 {
-                    existing.Target = monthDto.Target;
-                    existing.Actual = monthDto.Actual;
-                    existing.Notes  = monthDto.Notes;
+                    existing.Target    = monthDto.Target;
+                    existing.Actual    = monthDto.Actual;
+                    existing.Notes     = monthDto.Notes;
+                    existing.UpdatedAt = now;
+                    existing.UpdatedBy = userId;
                     upserted.Add(existing);
                 }
                 else
                 {
                     var newTarget = new KpiTarget
                     {
-                        Id     = Guid.NewGuid(),
-                        KpiId  = request.KpiId,
-                        Year   = request.Year,
-                        Month  = monthDto.Month,
-                        Target = monthDto.Target,
-                        Actual = monthDto.Actual,
-                        Notes  = monthDto.Notes,
+                        Id        = Guid.NewGuid(),
+                        KpiId     = request.KpiId,
+                        Year      = request.Year,
+                        Month     = monthDto.Month,
+                        Target    = monthDto.Target,
+                        Actual    = monthDto.Actual,
+                        Notes     = monthDto.Notes,
+                        CreatedAt = now,
+                        CreatedBy = userId,
                     };
                     _context.KpiTargets.Add(newTarget);
                     upserted.Add(newTarget);
                 }
             }
 
-            // Single SaveChangesAsync — all changes tracked in one transaction.
             await _context.SaveChangesAsync(ct);
 
             _logger.LogInformation(
                 "Bulk-upserted {Count} KpiTargets for KPI {KpiId} year {Year}",
                 upserted.Count, request.KpiId, request.Year);
 
-            return upserted.OrderBy(t => t.Month).Select(MapToTargetDto).ToList();
+            var names = await ResolveTargetNamesAsync(upserted, ct);
+            return upserted.OrderBy(t => t.Month).Select(t => MapToTargetDto(t, names)).ToList();
         }
         catch (KeyNotFoundException) { throw; }
         catch (Exception ex)
@@ -473,7 +504,8 @@ public class KpiService : IKpiService
                 .OrderBy(t => t.Month)
                 .ToListAsync(ct);
 
-            return targets.Select(MapToTargetDto).ToList();
+            var names = await ResolveTargetNamesAsync(targets, ct);
+            return targets.Select(t => MapToTargetDto(t, names)).ToList();
         }
         catch (Exception ex)
         {
@@ -486,7 +518,30 @@ public class KpiService : IKpiService
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private static KpiDto MapToDto(Kpi k, int targetCount) =>
+    private async Task<Dictionary<string, string>> ResolveKpiNamesAsync(
+        IEnumerable<Kpi>  kpis,
+        CancellationToken ct)
+    {
+        var ids = kpis
+            .SelectMany(k => new[] { k.CreatedBy, k.UpdatedBy, k.DeletedBy })
+            .Where(id => id != null).Cast<string>().Distinct();
+        return await _userLookup.GetDisplayNamesAsync(ids, ct);
+    }
+
+    private async Task<Dictionary<string, string>> ResolveTargetNamesAsync(
+        IEnumerable<KpiTarget> targets,
+        CancellationToken      ct)
+    {
+        var ids = targets
+            .SelectMany(t => new[] { t.CreatedBy, t.UpdatedBy })
+            .Where(id => id != null).Cast<string>().Distinct();
+        return await _userLookup.GetDisplayNamesAsync(ids, ct);
+    }
+
+    private static string? Resolve(string? userId, Dictionary<string, string> names)
+        => userId != null && names.TryGetValue(userId, out var n) ? n : null;
+
+    private static KpiDto MapToDto(Kpi k, int targetCount, Dictionary<string, string> names) =>
         new()
         {
             Id                   = k.Id,
@@ -507,19 +562,28 @@ public class KpiService : IKpiService
             CreatedBy            = k.CreatedBy,
             UpdatedBy            = k.UpdatedBy,
             DeletedBy            = k.DeletedBy,
+            CreatedByName        = Resolve(k.CreatedBy, names),
+            UpdatedByName        = Resolve(k.UpdatedBy, names),
+            DeletedByName        = Resolve(k.DeletedBy, names),
             TargetCount          = targetCount,
         };
 
-    private static KpiTargetDto MapToTargetDto(KpiTarget t) =>
+    private static KpiTargetDto MapToTargetDto(KpiTarget t, Dictionary<string, string> names) =>
         new()
         {
-            Id        = t.Id,
-            KpiId     = t.KpiId,
-            Year      = t.Year,
-            Month     = t.Month,
-            MonthName = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(t.Month),
-            Target    = t.Target,
-            Actual    = t.Actual,
-            Notes     = t.Notes,
+            Id            = t.Id,
+            KpiId         = t.KpiId,
+            Year          = t.Year,
+            Month         = t.Month,
+            MonthName     = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(t.Month),
+            Target        = t.Target,
+            Actual        = t.Actual,
+            Notes         = t.Notes,
+            CreatedAt     = t.CreatedAt,
+            UpdatedAt     = t.UpdatedAt,
+            CreatedBy     = t.CreatedBy,
+            UpdatedBy     = t.UpdatedBy,
+            CreatedByName = Resolve(t.CreatedBy, names),
+            UpdatedByName = Resolve(t.UpdatedBy, names),
         };
 }

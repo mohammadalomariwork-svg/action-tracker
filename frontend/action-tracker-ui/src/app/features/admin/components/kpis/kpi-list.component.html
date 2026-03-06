@@ -163,12 +163,12 @@
               </td>
 
               <!-- Created By -->
-              <td class="text-muted small">{{ kpi.createdBy || '—' }}</td>
+              <td class="text-muted small">{{ kpi.createdByName || '—' }}</td>
 
               <!-- Updated By -->
               <td class="text-muted small">
-                @if (kpi.updatedBy) {
-                  {{ kpi.updatedBy }}<br>
+                @if (kpi.updatedByName) {
+                  {{ kpi.updatedByName }}<br>
                   <span class="text-muted" style="font-size: 0.75em">{{ kpi.updatedAt | date:'dd MMM y' }}</span>
                 } @else {
                   —
@@ -177,8 +177,8 @@
 
               <!-- Deleted By -->
               <td class="text-muted small">
-                @if (kpi.deletedBy) {
-                  {{ kpi.deletedBy }}<br>
+                @if (kpi.deletedByName) {
+                  {{ kpi.deletedByName }}<br>
                   <span class="text-muted" style="font-size: 0.75em">{{ kpi.deletedAt | date:'dd MMM y' }}</span>
                 } @else {
                   —

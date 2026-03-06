@@ -1,3 +1,4 @@
+using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.StrategicObjectives.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
 using ActionTracker.Domain.Entities;
@@ -10,12 +11,17 @@ namespace ActionTracker.Infrastructure.Services;
 public class StrategicObjectiveService : IStrategicObjectiveService
 {
     private readonly AppDbContext                        _context;
+    private readonly IUserLookupService                 _userLookup;
     private readonly ILogger<StrategicObjectiveService> _logger;
 
-    public StrategicObjectiveService(AppDbContext context, ILogger<StrategicObjectiveService> logger)
+    public StrategicObjectiveService(
+        AppDbContext                        context,
+        IUserLookupService                 userLookup,
+        ILogger<StrategicObjectiveService> logger)
     {
-        _context = context;
-        _logger  = logger;
+        _context    = context;
+        _userLookup = userLookup;
+        _logger     = logger;
     }
 
     // -------------------------------------------------------------------------
@@ -51,8 +57,10 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .Take(pageSize)
                 .ToListAsync(ct);
 
+            var names = await ResolveNamesAsync(objectives, ct);
+
             var dtos = objectives
-                .Select(o => MapToDto(o, kpiCount: o.Kpis.Count(k => !k.IsDeleted)))
+                .Select(o => MapToDto(o, kpiCount: o.Kpis.Count(k => !k.IsDeleted), names))
                 .ToList();
 
             return new StrategicObjectiveListResponseDto
@@ -88,7 +96,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             if (objective is null) return null;
 
-            return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted));
+            var names = await ResolveNamesAsync([objective], ct);
+            return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted), names);
         }
         catch (Exception ex)
         {
@@ -114,7 +123,6 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                     $"Org unit '{request.OrgUnitId}' does not exist or has been deleted.",
                     nameof(request.OrgUnitId));
 
-            // Count ALL objectives ever created (including deleted) to never reuse a code.
             var count = await _context.StrategicObjectives
                 .IgnoreQueryFilters()
                 .CountAsync(ct);
@@ -140,10 +148,10 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 "Created StrategicObjective {Id} '{Code}' for OrgUnit {OrgUnitId}",
                 objective.Id, objectiveCode, request.OrgUnitId);
 
-            // Attach OrgUnit navigation for mapping.
             objective.OrgUnit = orgUnit;
 
-            return MapToDto(objective, kpiCount: 0);
+            var names = await ResolveNamesAsync([objective], ct);
+            return MapToDto(objective, kpiCount: 0, names);
         }
         catch (ArgumentException) { throw; }
         catch (Exception ex)
@@ -182,7 +190,6 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             objective.OrgUnitId   = request.OrgUnitId;
             objective.UpdatedAt   = DateTime.UtcNow;
             objective.UpdatedBy   = userId;
-            // ObjectiveCode is intentionally NOT updated.
 
             await _context.SaveChangesAsync(ct);
 
@@ -190,7 +197,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             objective.OrgUnit = orgUnit;
 
-            return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted));
+            var names = await ResolveNamesAsync([objective], ct);
+            return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted), names);
         }
         catch (KeyNotFoundException) { throw; }
         catch (ArgumentException) { throw; }
@@ -279,8 +287,10 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .OrderBy(o => o.ObjectiveCode)
                 .ToListAsync(ct);
 
+            var names = await ResolveNamesAsync(objectives, ct);
+
             return objectives
-                .Select(o => MapToDto(o, kpiCount: o.Kpis.Count(k => !k.IsDeleted)))
+                .Select(o => MapToDto(o, kpiCount: o.Kpis.Count(k => !k.IsDeleted), names))
                 .ToList();
         }
         catch (Exception ex)
@@ -294,7 +304,25 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private static StrategicObjectiveDto MapToDto(StrategicObjective o, int kpiCount) =>
+    private async Task<Dictionary<string, string>> ResolveNamesAsync(
+        IEnumerable<StrategicObjective> objectives,
+        CancellationToken               ct)
+    {
+        var ids = objectives
+            .SelectMany(o => new[] { o.CreatedBy, o.UpdatedBy, o.DeletedBy })
+            .Where(id => id != null)
+            .Cast<string>()
+            .Distinct();
+        return await _userLookup.GetDisplayNamesAsync(ids, ct);
+    }
+
+    private static string? Resolve(string? userId, Dictionary<string, string> names)
+        => userId != null && names.TryGetValue(userId, out var n) ? n : null;
+
+    private static StrategicObjectiveDto MapToDto(
+        StrategicObjective      o,
+        int                     kpiCount,
+        Dictionary<string, string> names) =>
         new()
         {
             Id             = o.Id,
@@ -302,7 +330,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             Statement      = o.Statement,
             Description    = o.Description,
             OrgUnitId      = o.OrgUnitId,
-            OrgUnitName    = o.OrgUnit?.Name   ?? string.Empty,
+            OrgUnitName    = o.OrgUnit?.Name ?? string.Empty,
             OrgUnitCode    = o.OrgUnit?.Code,
             IsDeleted      = o.IsDeleted,
             CreatedAt      = o.CreatedAt,
@@ -311,6 +339,9 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             CreatedBy      = o.CreatedBy,
             UpdatedBy      = o.UpdatedBy,
             DeletedBy      = o.DeletedBy,
+            CreatedByName  = Resolve(o.CreatedBy, names),
+            UpdatedByName  = Resolve(o.UpdatedBy, names),
+            DeletedByName  = Resolve(o.DeletedBy, names),
             KpiCount       = kpiCount,
         };
 }
