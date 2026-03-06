@@ -43,60 +43,93 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
   private readonly orgUnitService = inject(OrgUnitService);
   private readonly destroyRef     = inject(DestroyRef);
 
-  readonly submitting = signal(false);
-  readonly error      = signal<string | null>(null);
+  readonly submitting          = signal(false);
+  readonly error               = signal<string | null>(null);
+  readonly allUnits            = signal<OrgUnit[]>([]);
+  readonly loadingUnits        = signal(false);
+  /** Level of the currently selected parent (null = no parent = root). */
+  readonly selectedParentLevel = signal<number | null>(null);
 
   form!: FormGroup;
 
   get computedLevel(): number {
-    if (this.mode === 'add') {
-      return this.parentUnit ? this.parentUnit.level + 1 : 1;
-    }
-    return this.existingUnit?.level ?? 1;
+    const pl = this.selectedParentLevel();
+    return pl !== null ? pl + 1 : 1;
   }
 
   get exceedsMaxDepth(): boolean {
     return this.computedLevel > 10;
   }
 
-  get parentLabel(): string {
-    if (this.mode === 'add') {
-      return this.parentUnit ? `${this.parentUnit.name} (Level ${this.parentUnit.level})` : 'Root unit (KU)';
-    }
-    // edit: existingUnit's parent info not directly available in OrgUnitTree, show level
-    return this.existingUnit ? `Level ${this.existingUnit.level}` : '—';
-  }
-
   ngOnInit(): void {
     this.buildForm();
+    this.loadUnits();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes['existingUnit'] || changes['mode']) && this.form) {
+    if ((changes['existingUnit'] || changes['mode'] || changes['parentUnit']) && this.form) {
       this.patchForm();
     }
   }
 
+  private loadUnits(): void {
+    this.loadingUnits.set(true);
+    this.orgUnitService
+      .getAll(1, 1000, false)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.allUnits.set(res.orgUnits);
+          this.loadingUnits.set(false);
+          // Re-sync level in case units loaded after patchForm ran
+          const parentId = this.form.get('parentId')?.value as string;
+          const parent   = res.orgUnits.find(u => u.id === parentId);
+          this.selectedParentLevel.set(parent?.level ?? null);
+        },
+        error: () => this.loadingUnits.set(false),
+      });
+  }
+
+  /** Options for the parent dropdown, excluding the unit being edited. */
+  get parentOptions(): OrgUnit[] {
+    const editingId = this.mode === 'edit' ? this.existingUnit?.id : null;
+    return this.allUnits().filter(u => u.id !== editingId);
+  }
+
   private buildForm(): void {
+    const initialParentId = this.mode === 'edit'
+      ? (this.existingUnit?.parentId ?? '')
+      : (this.parentUnit?.id ?? '');
+
     this.form = this.fb.group({
-      name: [
-        '',
-        [Validators.required, Validators.minLength(2), Validators.maxLength(200)],
-      ],
+      name:        ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
+      parentId:    [initialParentId],
       description: ['', [Validators.maxLength(500)]],
     });
+
+    // Keep selectedParentLevel in sync so computedLevel updates reactively
+    this.form.get('parentId')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id: string) => {
+        const parent = this.allUnits().find(u => u.id === id);
+        this.selectedParentLevel.set(parent?.level ?? null);
+      });
 
     this.patchForm();
   }
 
   private patchForm(): void {
+    if (!this.form) return;
+
     if (this.mode === 'edit' && this.existingUnit) {
-      this.form.patchValue({
-        name:        this.existingUnit.name        ?? '',
-        description: this.existingUnit.description ?? '',
-      });
+      const parentId = this.existingUnit.parentId ?? '';
+      this.form.patchValue({ name: this.existingUnit.name ?? '', description: this.existingUnit.description ?? '', parentId });
+      const parent = this.allUnits().find(u => u.id === parentId);
+      this.selectedParentLevel.set(parent?.level ?? null);
     } else {
-      this.form.reset({ name: '', description: '' });
+      const parentId = this.parentUnit?.id ?? '';
+      this.form.reset({ name: '', description: '', parentId });
+      this.selectedParentLevel.set(this.parentUnit?.level ?? null);
     }
     this.error.set(null);
   }
@@ -107,9 +140,10 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
       return;
     }
 
-    const { name, description } = this.form.value as {
+    const { name, description, parentId } = this.form.value as {
       name: string;
       description: string;
+      parentId: string;
     };
 
     this.submitting.set(true);
@@ -120,12 +154,12 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
         ? this.orgUnitService.create({
             name,
             description: description || undefined,
-            parentId:    this.parentUnit?.id,
+            parentId:    parentId    || undefined,
           })
         : this.orgUnitService.update(this.existingUnit!.id, {
             name,
             description: description || undefined,
-            parentId:    this.existingUnit!.parentId,
+            parentId:    parentId    || undefined,
           });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -144,9 +178,14 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
     this.cancelled.emit();
   }
 
-  // Template helpers for validation messages
   hasError(field: string, error: string): boolean {
     const ctrl = this.form.get(field);
     return !!(ctrl?.touched && ctrl.hasError(error));
+  }
+
+  /** Label shown in the dropdown (indented by level using em dashes). */
+  unitLabel(unit: OrgUnit): string {
+    const indent = '— '.repeat(unit.level - 1);
+    return `${indent}${unit.name}${unit.code ? ' (' + unit.code + ')' : ''}`;
   }
 }

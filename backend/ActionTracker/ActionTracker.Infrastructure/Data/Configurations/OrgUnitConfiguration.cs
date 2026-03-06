@@ -24,6 +24,10 @@ public class OrgUnitConfiguration : IEntityTypeConfiguration<OrgUnit>
         builder.Property(o => o.Code)
             .HasMaxLength(50);
 
+        builder.HasIndex(o => o.Code)
+            .IsUnique()
+            .HasFilter("[Code] IS NOT NULL");
+
         builder.Property(o => o.Description)
             .HasMaxLength(500);
 

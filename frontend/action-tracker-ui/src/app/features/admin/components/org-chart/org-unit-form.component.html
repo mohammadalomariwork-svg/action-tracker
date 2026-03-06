@@ -19,36 +19,6 @@
       </div>
     }
 
-    <!-- Context info -->
-    <div class="ouf-context p-3 rounded mb-4">
-      <div class="d-flex gap-4 flex-wrap">
-        <div>
-          <span class="ouf-label">Parent</span>
-          <span class="ouf-value">
-            @if (mode === 'add') {
-              {{ parentUnit ? parentUnit.name + ' (Level ' + parentUnit.level + ')' : 'None — Root unit (KU)' }}
-            } @else {
-              Level {{ existingUnit?.level }}
-            }
-          </span>
-        </div>
-        <div>
-          <span class="ouf-label">This unit's Level</span>
-          <span class="ouf-value" [class.text-danger]="exceedsMaxDepth">
-            {{ computedLevel }}
-            @if (exceedsMaxDepth) { <span class="text-danger ms-1">(max 10!)</span> }
-          </span>
-        </div>
-      </div>
-
-      @if (exceedsMaxDepth) {
-        <div class="alert alert-warning py-2 mt-2 mb-0 small">
-          <i class="bi bi-exclamation-triangle-fill me-1"></i>
-          Cannot add a unit at level {{ computedLevel }}. Maximum depth is 10.
-        </div>
-      }
-    </div>
-
     <!-- Form -->
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
 
@@ -73,6 +43,28 @@
         } @else if (hasError('name', 'maxlength')) {
           <div class="invalid-feedback">Name cannot exceed 200 characters.</div>
         }
+      </div>
+
+      <!-- Parent unit selector -->
+      <div class="mb-3">
+        <label for="oufParent" class="form-label">Parent Unit</label>
+        @if (loadingUnits()) {
+          <div class="form-control text-muted">Loading units…</div>
+        } @else {
+          <select id="oufParent" class="form-select" formControlName="parentId">
+            <option value="">None — Root unit</option>
+            @for (unit of parentOptions; track unit.id) {
+              <option [value]="unit.id">{{ unitLabel(unit) }}</option>
+            }
+          </select>
+        }
+        <!-- Level indicator -->
+        <div class="form-text d-flex align-items-center gap-2 mt-1">
+          <span>This unit will be at <strong>Level {{ computedLevel }}</strong></span>
+          @if (exceedsMaxDepth) {
+            <span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Maximum depth is 10</span>
+          }
+        </div>
       </div>
 
       <!-- Code (auto-generated, read-only in edit mode) -->

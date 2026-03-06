@@ -181,13 +181,24 @@ public class OrgUnitService : IOrgUnitService
                         "Maximum org chart depth of 10 exceeded.");
             }
 
-            var newId = Guid.NewGuid();
+            // Generate sequential OC-N code
+            var existingCodes = await _context.OrgUnits
+                .IgnoreQueryFilters()
+                .Where(o => o.Code != null)
+                .Select(o => o.Code!)
+                .ToListAsync(ct);
+
+            var maxSeq = existingCodes
+                .Select(c => c.StartsWith("OC-") && int.TryParse(c[3..], out var n) ? n : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
             var unit = new OrgUnit
             {
-                Id          = newId,
+                Id          = Guid.NewGuid(),
                 Name        = request.Name,
                 Description = request.Description,
-                Code        = $"OC-{newId.ToString("N")[..8].ToUpper()}",
+                Code        = $"OC-{maxSeq + 1}",
                 Level       = level,
                 ParentId    = request.ParentId,
                 IsDeleted   = false,

@@ -612,6 +612,10 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[Code] IS NOT NULL");
+
                     b.HasIndex("ParentId");
 
                     b.ToTable("OrgUnits", null, t =>
