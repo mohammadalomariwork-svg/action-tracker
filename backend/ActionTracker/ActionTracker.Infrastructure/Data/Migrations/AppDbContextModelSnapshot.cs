@@ -892,7 +892,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
                     b.Navigation("Children");
                     b.Navigation("Parent");
-                    b.Navigation("StrategicObjectives");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.StrategicObjective", b =>
@@ -977,6 +976,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
                 {
                     b.Navigation("Targets");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.OrgUnit", b =>
+                {
+                    b.Navigation("StrategicObjectives");
                 });
 #pragma warning restore 612, 618
         }
