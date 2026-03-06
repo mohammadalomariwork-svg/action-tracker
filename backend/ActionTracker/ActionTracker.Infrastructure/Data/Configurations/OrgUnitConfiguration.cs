@@ -45,6 +45,10 @@ public class OrgUnitConfiguration : IEntityTypeConfiguration<OrgUnit>
         builder.Property(o => o.CreatedAt)
             .HasDefaultValueSql("GETUTCDATE()");
 
+        builder.Property(o => o.CreatedBy).HasMaxLength(256);
+        builder.Property(o => o.UpdatedBy).HasMaxLength(256);
+        builder.Property(o => o.DeletedBy).HasMaxLength(256);
+
         builder.HasOne(o => o.Parent)
             .WithMany(o => o.Children)
             .HasForeignKey(o => o.ParentId)

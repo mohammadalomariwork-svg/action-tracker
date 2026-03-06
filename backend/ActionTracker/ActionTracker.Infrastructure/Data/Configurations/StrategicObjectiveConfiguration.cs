@@ -41,6 +41,10 @@ public class StrategicObjectiveConfiguration : IEntityTypeConfiguration<Strategi
         builder.Property(s => s.CreatedAt)
             .HasDefaultValueSql("GETUTCDATE()");
 
+        builder.Property(s => s.CreatedBy).HasMaxLength(256);
+        builder.Property(s => s.UpdatedBy).HasMaxLength(256);
+        builder.Property(s => s.DeletedBy).HasMaxLength(256);
+
         builder.HasOne(s => s.OrgUnit)
             .WithMany(o => o.StrategicObjectives)
             .HasForeignKey(s => s.OrgUnitId)

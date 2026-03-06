@@ -51,6 +51,10 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
         builder.Property(k => k.CreatedAt)
             .HasDefaultValueSql("GETUTCDATE()");
 
+        builder.Property(k => k.CreatedBy).HasMaxLength(256);
+        builder.Property(k => k.UpdatedBy).HasMaxLength(256);
+        builder.Property(k => k.DeletedBy).HasMaxLength(256);
+
         builder.HasOne(k => k.StrategicObjective)
             .WithMany(s => s.Kpis)
             .HasForeignKey(k => k.StrategicObjectiveId)
