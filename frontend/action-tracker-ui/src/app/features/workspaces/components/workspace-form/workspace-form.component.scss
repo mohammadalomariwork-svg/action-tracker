@@ -1,0 +1,60 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.wf-page {
+  padding: 1.5rem;
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+.wf-card {
+  width: 100%;
+  max-width: 680px;
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+  align-self: flex-start;
+
+  .card-header {
+    background-color: var(--bg-card, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--border-radius, 12px) var(--border-radius, 12px) 0 0;
+
+    h5 {
+      color: var(--text-primary, #1e293b);
+      font-weight: 600;
+    }
+  }
+
+  .card-body {
+    padding: 1.75rem;
+  }
+}
+
+// ── Form field spacing ────────────────────────────────────────────────────────
+.form-label {
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+  margin-bottom: 0.35rem;
+}
+
+.form-control,
+.form-select {
+  border-color: var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.95rem;
+
+  &:focus {
+    border-color: var(--primary, #4f46e5);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+}
+
+// ── Active toggle ─────────────────────────────────────────────────────────────
+.form-switch .form-check-input {
+  width: 2.25em;
+
+  &:checked {
+    background-color: var(--primary, #4f46e5);
+    border-color: var(--primary, #4f46e5);
+  }
+}

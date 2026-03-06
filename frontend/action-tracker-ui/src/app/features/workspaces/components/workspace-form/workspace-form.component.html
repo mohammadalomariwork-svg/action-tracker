@@ -1,0 +1,144 @@
+<div class="wf-page">
+
+  <div class="card wf-card">
+
+    <!-- ── Card header ────────────────────────────────────────────────────────── -->
+    <div class="card-header d-flex align-items-center gap-2 py-3">
+      @if (isEditMode) {
+        <i class="bi bi-pencil-fill text-primary"></i>
+        <h5 class="mb-0">Edit Workspace</h5>
+      } @else {
+        <i class="bi bi-plus-circle-fill text-success"></i>
+        <h5 class="mb-0">New Workspace</h5>
+      }
+    </div>
+
+    <div class="card-body">
+
+      <!-- ── Error alert ────────────────────────────────────────────────────── -->
+      @if (errorMessage) {
+        <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-4" role="alert">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
+
+      <!-- ── Form ──────────────────────────────────────────────────────────── -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+        <!-- Title -->
+        <div class="mb-3">
+          <label for="wfTitle" class="form-label">
+            Title <span class="text-danger">*</span>
+          </label>
+          <input
+            id="wfTitle"
+            type="text"
+            class="form-control"
+            formControlName="title"
+            placeholder="e.g. Q1 Strategic Actions"
+            autocomplete="off"
+            [class.is-invalid]="isInvalid('title')"
+          />
+          @if (hasError('title', 'required')) {
+            <div class="invalid-feedback">Title is required.</div>
+          } @else if (hasError('title', 'minlength')) {
+            <div class="invalid-feedback">Title must be at least 3 characters.</div>
+          } @else if (hasError('title', 'maxlength')) {
+            <div class="invalid-feedback">Title cannot exceed 200 characters.</div>
+          }
+        </div>
+
+        <!-- Organization Unit -->
+        <div class="mb-3">
+          <label for="wfOrgUnit" class="form-label">
+            Organization Unit <span class="text-danger">*</span>
+          </label>
+          <input
+            id="wfOrgUnit"
+            type="text"
+            class="form-control"
+            formControlName="organizationUnit"
+            placeholder="e.g. College of Engineering"
+            autocomplete="off"
+            [class.is-invalid]="isInvalid('organizationUnit')"
+          />
+          @if (hasError('organizationUnit', 'required')) {
+            <div class="invalid-feedback">Organization unit is required.</div>
+          } @else if (hasError('organizationUnit', 'maxlength')) {
+            <div class="invalid-feedback">Organization unit cannot exceed 200 characters.</div>
+          }
+        </div>
+
+        <!-- Admin User -->
+        <div class="mb-3">
+          <label for="wfAdmin" class="form-label">
+            Workspace Admin <span class="text-danger">*</span>
+          </label>
+          <select
+            id="wfAdmin"
+            class="form-select"
+            formControlName="adminUserId"
+            [class.is-invalid]="isInvalid('adminUserId')"
+          >
+            <option value="">— Select an admin user —</option>
+            @for (user of users; track user.id) {
+              <option [value]="user.id">{{ user.fullName }}</option>
+            }
+          </select>
+          @if (hasError('adminUserId', 'required')) {
+            <div class="invalid-feedback">Please select an admin user.</div>
+          }
+          <!-- Hidden field — auto-populated from selection -->
+          <input type="hidden" formControlName="adminUserName" />
+        </div>
+
+        <!-- isActive toggle (edit mode only) -->
+        @if (isEditMode) {
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input
+                id="wfIsActive"
+                type="checkbox"
+                class="form-check-input"
+                formControlName="isActive"
+                role="switch"
+              />
+              <label for="wfIsActive" class="form-check-label">Active</label>
+            </div>
+            <div class="form-text">Inactive workspaces are hidden from the list view.</div>
+          </div>
+        }
+
+        <!-- ── Actions ─────────────────────────────────────────────────────── -->
+        <div class="d-flex gap-2 justify-content-end mt-4">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="onCancel()"
+            [disabled]="isLoading"
+          >
+            <i class="bi bi-x-lg me-1"></i>Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary d-inline-flex align-items-center gap-2"
+            [disabled]="isLoading"
+          >
+            @if (isLoading) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Saving…
+            } @else if (isEditMode) {
+              <i class="bi bi-check-lg"></i>Save Changes
+            } @else {
+              <i class="bi bi-plus-circle"></i>Create Workspace
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
