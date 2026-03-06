@@ -13,9 +13,15 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             // The real [dbo].[ku_employee_info] table (populated by the Oracle
             // EBS ETL) has no primary key.  Drop the surrogate PK that was
             // added when the migration first created the table locally.
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_ku_employee_info",
-                table: "ku_employee_info");
+            // Use conditional SQL in case the PK was never created (e.g. when
+            // the ETL-synced table already existed without a primary key).
+            migrationBuilder.Sql(@"
+                IF EXISTS (
+                    SELECT 1 FROM sys.key_constraints
+                    WHERE name = 'PK_ku_employee_info' AND type = 'PK'
+                )
+                    ALTER TABLE [ku_employee_info] DROP CONSTRAINT [PK_ku_employee_info];
+            ");
         }
 
         /// <inheritdoc />
