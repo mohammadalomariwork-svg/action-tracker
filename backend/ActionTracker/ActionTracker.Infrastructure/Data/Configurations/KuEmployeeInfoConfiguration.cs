@@ -10,11 +10,10 @@ public class KuEmployeeInfoConfiguration : IEntityTypeConfiguration<KuEmployeeIn
     {
         builder.ToTable("ku_employee_info");
 
-        // AssignmentId is the PK — sourced externally, never auto-generated.
-        builder.HasKey(e => e.AssignmentId);
-        builder.Property(e => e.AssignmentId)
-            .HasColumnType("numeric(18, 0)")
-            .ValueGeneratedNever();
+        // No primary key — this is a read-only HR data table populated by ETL.
+        builder.HasNoKey();
+
+        builder.Property(e => e.AssignmentId).HasColumnType("numeric(18, 0)");
 
         // ── numeric types ────────────────────────────────────────────────────
         builder.Property(e => e.PersonID)   .HasColumnType("numeric(18, 0)");

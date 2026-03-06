@@ -563,7 +563,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.HasKey("AssignmentId");
+                    b.HasNoKey();
 
                     b.ToTable("ku_employee_info");
                 });

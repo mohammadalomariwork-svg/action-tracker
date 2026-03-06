@@ -4,15 +4,13 @@ namespace ActionTracker.Domain.Entities;
 /// Mirror of [dbo].[ku_employee_info] — the HR employee data table
 /// populated by the external Oracle EBS ETL process.
 /// <para>
-/// AssignmentId is used as the primary key (the only non-nullable
-/// numeric identifier in the original schema).
+/// This table has no primary key; it is read-only from the application.
 /// </para>
 /// </summary>
 public class KuEmployeeInfo
 {
     // ── Identity / IDs ────────────────────────────────────────────────────────
 
-    public long    AssignmentId      { get; set; }   // numeric(18,0) NOT NULL — PK
     public string? EmpNo             { get; set; }   // nvarchar(255)
     public long?   PersonID          { get; set; }   // numeric(18,0)
     public string? EBSEmployeeNumber { get; set; }   // nvarchar(256)
@@ -102,6 +100,7 @@ public class KuEmployeeInfo
     public string? SystemPersonType   { get; set; }  // nvarchar(255)
     public string? ContractType       { get; set; }  // nvarchar(255)
     public string? EmployeeCategory   { get; set; }  // nvarchar(255)
+    public long    AssignmentId       { get; set; }  // numeric(18,0) NOT NULL
 
     // ── Compensation ──────────────────────────────────────────────────────────
 
