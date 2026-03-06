@@ -1,13 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using ActionTracker.Application.Features.Projects.Models;
 
 namespace ActionTracker.Application.Features.Projects.DTOs;
 
 /// <summary>
-/// Lightweight action-item representation used in list views and as nested items
+/// Lightweight action-item representation for list views and as nested items
 /// inside <see cref="MilestoneDetailDto"/>.
-/// Full create/update DTOs are defined alongside this class (B-P05).
 /// </summary>
 public class ActionItemListDto
 {
@@ -41,13 +41,16 @@ public class ActionItemListDto
     /// <summary>Actual completion date (UTC), or <c>null</c> if still open.</summary>
     public DateTime? ActualCompletionDate { get; set; }
 
-    /// <summary>AspNetUsers.Id of the internal assignee, or <c>null</c> for external.</summary>
-    public string? AssignedToUserId { get; set; }
-
-    /// <summary>Display name of the internal assignee, or <c>null</c> for external.</summary>
+    /// <summary>
+    /// Display name of the internal assignee, or <c>null</c> when the assignee
+    /// is external.
+    /// </summary>
     public string? AssignedToUserName { get; set; }
 
-    /// <summary>Full name of the external assignee when <see cref="IsExternalAssignee"/> is <c>true</c>.</summary>
+    /// <summary>
+    /// Full name of the external assignee when <see cref="IsExternalAssignee"/>
+    /// is <c>true</c>.
+    /// </summary>
     public string? AssignedToExternalName { get; set; }
 
     /// <summary>Whether the assignee is an external party without a system account.</summary>
@@ -58,31 +61,44 @@ public class ActionItemListDto
 }
 
 /// <summary>
-/// Full action-item record including description, documents, and comments.
-/// Returned by single action-item GET endpoints.
-/// (Full definition completed in B-P05.)
+/// Full action-item record including description, identifiers, documents,
+/// and comments. Returned by single action-item GET endpoints.
 /// </summary>
 public class ActionItemDetailDto : ActionItemListDto
 {
     /// <summary>Optional detailed description of the work and acceptance criteria.</summary>
     public string? Description { get; set; }
 
-    /// <summary>UTC timestamp when the action item was created.</summary>
-    public DateTime CreatedAt { get; set; }
+    /// <summary>
+    /// AspNetUsers.Id of the internal assignee, or <c>null</c> when the
+    /// assignee is external.
+    /// </summary>
+    public string? AssignedToUserId { get; set; }
 
-    /// <summary>UTC timestamp of the most recent update, or <c>null</c>.</summary>
-    public DateTime? UpdatedAt { get; set; }
+    /// <summary>
+    /// E-mail address of the external assignee, or <c>null</c> for internal
+    /// assignees.
+    /// </summary>
+    public string? AssignedToExternalEmail { get; set; }
 
     /// <summary>AspNetUsers.Id of the user who created this action item.</summary>
     public string CreatedByUserId { get; set; } = string.Empty;
 
-    /// <summary>Discussion comments on this action item.</summary>
+    /// <summary>UTC timestamp when the action item was created.</summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>UTC timestamp of the most recent update, or <c>null</c> if never updated.</summary>
+    public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>Documents attached to this action item.</summary>
+    public List<DocumentDto> Documents { get; set; } = new();
+
+    /// <summary>Discussion comments posted on this action item.</summary>
     public List<CommentDto> Comments { get; set; } = new();
 }
 
 /// <summary>
 /// Payload for creating a new action item.
-/// (Full definition completed in B-P05.)
 /// </summary>
 public class CreateActionItemDto
 {
@@ -101,13 +117,21 @@ public class CreateActionItemDto
     [MaxLength(300)]
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Optional detailed description (max 2000 chars).</summary>
+    /// <summary>Optional detailed description of the work (max 2000 chars).</summary>
     [MaxLength(2000)]
     public string? Description { get; set; }
 
-    /// <summary>Urgency/importance classification (required).</summary>
-    [Required]
-    public ActionItemPriority Priority { get; set; }
+    /// <summary>
+    /// Initial status. Defaults to <see cref="ActionItemStatus.NotStarted"/>
+    /// when not supplied.
+    /// </summary>
+    public ActionItemStatus Status { get; set; } = ActionItemStatus.NotStarted;
+
+    /// <summary>
+    /// Urgency/importance classification. Defaults to
+    /// <see cref="ActionItemPriority.Medium"/> when not supplied.
+    /// </summary>
+    public ActionItemPriority Priority { get; set; } = ActionItemPriority.Medium;
 
     /// <summary>Planned start date (required).</summary>
     [Required]
@@ -117,33 +141,46 @@ public class CreateActionItemDto
     [Required]
     public DateTime DueDate { get; set; }
 
-    /// <summary>Internal assignee user ID (nullable — use when <see cref="IsExternalAssignee"/> is false).</summary>
+    /// <summary>
+    /// AspNetUsers.Id of the internal assignee (nullable — omit when assigning
+    /// an external party).
+    /// </summary>
     [MaxLength(450)]
     public string? AssignedToUserId { get; set; }
 
-    /// <summary>Internal assignee display name (nullable).</summary>
+    /// <summary>Display name of the internal assignee (nullable).</summary>
     [MaxLength(256)]
     public string? AssignedToUserName { get; set; }
 
-    /// <summary>External assignee full name (nullable — use when <see cref="IsExternalAssignee"/> is true).</summary>
+    /// <summary>
+    /// Full name of the external assignee (nullable — set only when
+    /// <see cref="IsExternalAssignee"/> is <c>true</c>).
+    /// </summary>
     [MaxLength(256)]
     public string? AssignedToExternalName { get; set; }
 
-    /// <summary>External assignee e-mail (nullable).</summary>
+    /// <summary>
+    /// E-mail of the external assignee (nullable — set only when
+    /// <see cref="IsExternalAssignee"/> is <c>true</c>).
+    /// </summary>
     [MaxLength(256)]
     public string? AssignedToExternalEmail { get; set; }
 
-    /// <summary>Whether the assignee is external (no system account).</summary>
-    public bool IsExternalAssignee { get; set; }
+    /// <summary>
+    /// Whether the assignee is an external party without a system account.
+    /// Defaults to <c>false</c>.
+    /// </summary>
+    public bool IsExternalAssignee { get; set; } = false;
 
     /// <summary>AspNetUsers.Id of the user creating this action item (required).</summary>
     [Required]
+    [MaxLength(450)]
     public string CreatedByUserId { get; set; } = string.Empty;
 }
 
 /// <summary>
 /// Payload for updating an existing action item.
-/// (Full definition completed in B-P05.)
+/// All fields are optional; the service layer applies only non-null values.
 /// </summary>
 public class UpdateActionItemDto
 {
@@ -159,7 +196,7 @@ public class UpdateActionItemDto
     [MaxLength(2000)]
     public string? Description { get; set; }
 
-    /// <summary>Updated status.</summary>
+    /// <summary>Updated execution status.</summary>
     public ActionItemStatus? Status { get; set; }
 
     /// <summary>Updated priority.</summary>
