@@ -87,6 +87,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'workspaces',
+        loadChildren: () =>
+          import('./features/workspaces/workspace.routes').then(m => m.default),
+      },
+      {
         path: 'admin',
         loadChildren: () =>
           import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
