@@ -198,9 +198,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.HasIndex("OrgUnitId")
-                        .HasDatabaseName("IX_AspNetUsers_OrgUnitId");
-
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
@@ -1032,11 +1029,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
-                    b.HasOne("ActionTracker.Domain.Entities.OrgUnit", null)
-                        .WithMany()
-                        .HasForeignKey("OrgUnitId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("AssignedActions");
                 });
 
