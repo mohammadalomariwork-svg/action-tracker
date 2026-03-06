@@ -96,6 +96,12 @@ export class OrgChartListComponent implements OnInit {
 
   // ── Node actions ─────────────────────────────────────────────────────────────
 
+  onAddRoot(): void {
+    this.parentForAdd.set(null);
+    this.selectedNode.set(null);
+    this.mode.set('add');
+  }
+
   onAddChild(node: OrgUnitTree): void {
     this.parentForAdd.set(node);
     this.selectedNode.set(null);

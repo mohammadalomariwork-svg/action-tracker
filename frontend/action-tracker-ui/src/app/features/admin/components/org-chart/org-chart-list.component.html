@@ -5,6 +5,11 @@
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Organization Chart</h2>
+    @if (!tree()) {
+      <button class="btn btn-primary" (click)="onAddRoot()">
+        <i class="bi bi-plus-circle me-1"></i>Add Root Unit
+      </button>
+    }
   </div>
 
   <div class="row g-3">
@@ -50,7 +55,12 @@
               ></ng-container>
             </ul>
           } @else {
-            <p class="text-center text-muted py-4">No org units found.</p>
+            <div class="text-center py-4">
+              <p class="text-muted mb-2">No org units found.</p>
+              <button class="btn btn-primary btn-sm" (click)="onAddRoot()">
+                <i class="bi bi-plus-circle me-1"></i>Add Root Unit
+              </button>
+            </div>
           }
         </div>
       </div>

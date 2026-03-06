@@ -15,7 +15,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class OrgUnitService {
   private readonly http = inject(HttpClient);
-  private readonly base = `${environment.apiUrl}/api/orgunits`;
+  private readonly base = `${environment.apiUrl}/orgunits`;
 
   /** Returns the full recursive org chart tree starting from the root. */
   getTree(includeDeleted = false): Observable<OrgUnitTree> {
