@@ -33,7 +33,7 @@ export class MilestoneListComponent implements OnInit {
   errorMessage: string | null = null;
 
   showForm = false;
-  editingMilestone: MilestoneDetail | null = null;
+  editingMilestone: MilestoneDetail | undefined = undefined;
   expandedMilestoneId: number | null = null;
 
   newMilestoneForm!: FormGroup;
@@ -62,7 +62,7 @@ export class MilestoneListComponent implements OnInit {
   // ── CRUD actions ───────────────────────────────────────────────────────────
 
   onAddMilestone(): void {
-    this.editingMilestone = null;
+    this.editingMilestone = undefined;
     this.showForm = !this.showForm;
     if (this.showForm) {
       this.newMilestoneForm.reset({
@@ -81,11 +81,11 @@ export class MilestoneListComponent implements OnInit {
   }
 
   onCancelEdit(): void {
-    this.editingMilestone = null;
+    this.editingMilestone = undefined;
   }
 
   onMilestoneSaved(): void {
-    this.editingMilestone = null;
+    this.editingMilestone = undefined;
     this.showForm = false;
     this.loadMilestones();
   }
