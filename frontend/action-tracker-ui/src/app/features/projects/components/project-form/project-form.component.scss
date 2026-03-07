@@ -1,0 +1,103 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.pf-page {
+  padding: 1.5rem;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+.pf-card {
+  width: 100%;
+  max-width: 740px;
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+  align-self: flex-start;
+
+  .card-header {
+    background-color: var(--bg-card, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--border-radius, 12px) var(--border-radius, 12px) 0 0;
+
+    h5 {
+      color: var(--text-primary, #1e293b);
+      font-weight: 600;
+    }
+  }
+
+  .card-body {
+    padding: 1.75rem;
+  }
+}
+
+// ── Section separators ────────────────────────────────────────────────────────
+.pf-section {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+
+  &:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+.pf-section-title {
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+// ── Form fields ───────────────────────────────────────────────────────────────
+.form-label {
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+  margin-bottom: 0.35rem;
+}
+
+.form-control,
+.form-select {
+  border-color: var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.95rem;
+
+  &:focus {
+    border-color: var(--primary, #4f46e5);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+}
+
+// ── Date field with lock icon overlay ─────────────────────────────────────────
+.pf-date-wrapper {
+  position: relative;
+}
+
+.pf-date-locked {
+  .form-control {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+}
+
+.pf-lock-icon {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+// ── Btn-group radio styling ──────────────────────────────────────────────────
+.btn-group {
+  .btn-check:checked + .btn-outline-primary {
+    background-color: var(--primary, #4f46e5);
+    border-color: var(--primary, #4f46e5);
+    color: #fff;
+  }
+}
