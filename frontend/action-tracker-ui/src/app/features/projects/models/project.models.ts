@@ -43,7 +43,7 @@ export enum ChangeRequestStatus {
 
 /** Represents a strategic objective linked to projects. */
 export interface StrategicObjective {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   organizationUnit: string;
@@ -53,8 +53,8 @@ export interface StrategicObjective {
 
 /** Summary representation of a project used in list views. */
 export interface ProjectList {
-  id: number;
-  workspaceId: number;
+  id: string;
+  workspaceId: string;
   title: string;
   projectType: ProjectType;
   status: ProjectStatus;
@@ -69,7 +69,7 @@ export interface ProjectList {
 /** Detailed representation of a project including audit and aggregate fields. */
 export interface ProjectDetail extends ProjectList {
   description?: string;
-  strategicObjectiveId?: number;
+  strategicObjectiveId?: string;
   strategicObjectiveTitle?: string;
   sponsorUserId: string;
   projectManagerUserId: string;
@@ -86,11 +86,11 @@ export interface ProjectDetail extends ProjectList {
 
 /** Payload for creating a new project. */
 export interface CreateProject {
-  workspaceId: number;
+  workspaceId: string;
   title: string;
   description?: string;
   projectType: ProjectType;
-  strategicObjectiveId?: number;
+  strategicObjectiveId?: string;
   sponsorUserId: string;
   sponsorUserName: string;
   projectManagerUserId: string;
@@ -102,12 +102,12 @@ export interface CreateProject {
 
 /** Payload for updating an existing project. */
 export interface UpdateProject {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   projectType: ProjectType;
   status: ProjectStatus;
-  strategicObjectiveId?: number;
+  strategicObjectiveId?: string;
   sponsorUserId: string;
   sponsorUserName: string;
   projectManagerUserId: string;
@@ -120,8 +120,8 @@ export interface UpdateProject {
 
 /** Summary representation of a milestone used in list views. */
 export interface MilestoneList {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   title: string;
   sequenceOrder: number;
   status: MilestoneStatus;
@@ -143,7 +143,7 @@ export interface MilestoneDetail extends MilestoneList {
 
 /** Payload for creating a new milestone. */
 export interface CreateMilestone {
-  projectId: number;
+  projectId: string;
   title: string;
   description?: string;
   sequenceOrder: number;
@@ -153,7 +153,7 @@ export interface CreateMilestone {
 
 /** Payload for updating an existing milestone. */
 export interface UpdateMilestone {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   sequenceOrder: number;
@@ -167,10 +167,10 @@ export interface UpdateMilestone {
 
 /** Summary representation of an action item used in list views. */
 export interface ActionItemList {
-  id: number;
-  workspaceId: number;
-  projectId?: number;
-  milestoneId?: number;
+  id: string;
+  workspaceId: string;
+  projectId?: string;
+  milestoneId?: string;
   title: string;
   status: ActionItemStatus;
   priority: ActionItemPriority;
@@ -197,9 +197,9 @@ export interface ActionItemDetail extends ActionItemList {
 
 /** Payload for creating a new action item. */
 export interface CreateActionItem {
-  workspaceId: number;
-  projectId?: number;
-  milestoneId?: number;
+  workspaceId: string;
+  projectId?: string;
+  milestoneId?: string;
   title: string;
   description?: string;
   status: ActionItemStatus;
@@ -216,13 +216,13 @@ export interface CreateActionItem {
 
 /** Represents a comment on a project, milestone, or action item. */
 export interface Comment {
-  id: number;
+  id: string;
   content: string;
   authorUserId: string;
   authorUserName: string;
-  actionItemId?: number;
-  milestoneId?: number;
-  projectId?: number;
+  actionItemId?: string;
+  milestoneId?: string;
+  projectId?: string;
   createdAt: Date;
   updatedAt?: Date;
   isEdited: boolean;
@@ -233,14 +233,14 @@ export interface CreateComment {
   content: string;
   authorUserId: string;
   authorUserName: string;
-  actionItemId?: number;
-  milestoneId?: number;
-  projectId?: number;
+  actionItemId?: string;
+  milestoneId?: string;
+  projectId?: string;
 }
 
 /** Metadata for an uploaded document attached to an action item. */
 export interface DocumentInfo {
-  id: number;
+  id: string;
   title: string;
   fileName: string;
   contentType: string;
@@ -251,8 +251,8 @@ export interface DocumentInfo {
 
 /** Budget information associated with a project. */
 export interface ProjectBudget {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   totalBudget: number;
   spentAmount: number;
   currency: string;
@@ -262,8 +262,8 @@ export interface ProjectBudget {
 
 /** Represents a contract linked to a project. */
 export interface Contract {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   contractNumber: string;
   contractorName: string;
   contractorContact?: string;
@@ -277,8 +277,8 @@ export interface Contract {
 
 /** Snapshot of a project's planned dates at the time of baselining. */
 export interface ProjectBaseline {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   baselinedAt: Date;
   baselinedByUserName: string;
   baselinePlannedStartDate: Date;
@@ -287,8 +287,8 @@ export interface ProjectBaseline {
 
 /** Represents a request to change a baselined project's scope or schedule. */
 export interface BaselineChangeRequest {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   requestedByUserName: string;
   changeJustification: string;
   proposedChangesJson: string;

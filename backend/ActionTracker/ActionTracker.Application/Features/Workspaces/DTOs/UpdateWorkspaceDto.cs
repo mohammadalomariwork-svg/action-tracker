@@ -12,7 +12,7 @@ public class UpdateWorkspaceDto
     /// Primary key of the workspace to update.
     /// </summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>
     /// Updated title of the workspace.

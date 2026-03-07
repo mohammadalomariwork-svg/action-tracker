@@ -55,8 +55,8 @@ export class ProjectFormComponent implements OnInit {
   private readonly destroyRef              = inject(DestroyRef);
 
   isEditMode = false;
-  projectId: number | null = null;
-  workspaceId!: number;
+  projectId: string | null = null;
+  workspaceId!: string;
   workspaceOrgUnit = '';
   isBaselined = false;
 
@@ -76,12 +76,12 @@ export class ProjectFormComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.isEditMode = true;
-      this.projectId = +idParam;
+      this.projectId = idParam;
     }
 
     const wsId = this.route.snapshot.queryParamMap.get('workspaceId');
     if (wsId) {
-      this.workspaceId = +wsId;
+      this.workspaceId = wsId;
     }
 
     this.buildForm();
@@ -291,7 +291,7 @@ export class ProjectFormComponent implements OnInit {
   }
 
   /** Loads workspace org unit for filtering strategic objectives and users. */
-  private loadWorkspaceOrgUnit(workspaceId: number): void {
+  private loadWorkspaceOrgUnit(workspaceId: string): void {
     this.workspaceService
       .getWorkspaceById(workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -310,7 +310,7 @@ export class ProjectFormComponent implements OnInit {
   }
 
   /** Loads the project for edit mode. */
-  private loadProject(id: number): void {
+  private loadProject(id: string): void {
     this.isLoading = true;
 
     this.projectService

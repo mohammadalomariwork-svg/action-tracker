@@ -92,7 +92,7 @@ public class ActionItemService : IActionItemService
         };
     }
 
-    public async Task<ActionItemResponseDto?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<ActionItemResponseDto?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .Include(a => a.Assignee)
@@ -108,14 +108,14 @@ public class ActionItemService : IActionItemService
     public async Task<ActionItemResponseDto> CreateAsync(
         ActionItemCreateDto dto, string createdByUserId, CancellationToken ct)
     {
-        // Determine next ActionId sequence across all rows including soft-deleted ones
-        var maxId = await _dbContext.ActionItems
+        // Determine next ActionId sequence by counting existing rows
+        var count = await _dbContext.ActionItems
             .IgnoreQueryFilters()
-            .MaxAsync(a => (int?)a.Id, ct) ?? 0;
+            .CountAsync(ct);
 
         var item = new ActionItem
         {
-            ActionId    = $"ACT-{maxId + 1:000}",
+            ActionId    = $"ACT-{count + 1:000}",
             Title       = dto.Title,
             Description = dto.Description,
             AssigneeId  = dto.AssigneeId,
@@ -144,7 +144,7 @@ public class ActionItemService : IActionItemService
     }
 
     public async Task<ActionItemResponseDto> UpdateAsync(
-        int id, ActionItemUpdateDto dto, CancellationToken ct)
+        Guid id, ActionItemUpdateDto dto, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .Include(a => a.Assignee)
@@ -175,7 +175,7 @@ public class ActionItemService : IActionItemService
         return MapToDto(updated);
     }
 
-    public async Task DeleteAsync(int id, CancellationToken ct)
+    public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .FirstOrDefaultAsync(a => a.Id == id, ct)
@@ -187,7 +187,7 @@ public class ActionItemService : IActionItemService
         _logger.LogInformation("ActionItem {Id} soft-deleted", id);
     }
 
-    public async Task UpdateStatusAsync(int id, ActionStatus newStatus, CancellationToken ct)
+    public async Task UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .FirstOrDefaultAsync(a => a.Id == id, ct)

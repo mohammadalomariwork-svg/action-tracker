@@ -11,10 +11,10 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class ProjectBudgetDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Project this budget belongs to.</summary>
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>Total approved budget for the project.</summary>
     public decimal TotalBudget { get; set; }
@@ -49,7 +49,7 @@ public class CreateUpdateBudgetDto
 {
     /// <summary>Project the budget belongs to (required).</summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>
     /// Total approved budget (required).
@@ -87,10 +87,10 @@ public class CreateUpdateBudgetDto
 public class ContractDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Project this contract is associated with.</summary>
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>Official contract or purchase-order number.</summary>
     public string ContractNumber { get; set; } = string.Empty;
@@ -127,7 +127,7 @@ public class CreateContractDto
 {
     /// <summary>Project the contract is associated with (required).</summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>Official contract or purchase-order number (required, max 100 chars).</summary>
     [Required]
@@ -174,7 +174,7 @@ public class UpdateContractDto
 {
     /// <summary>Primary key of the contract to update (required).</summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Updated contract or purchase-order number (max 100 chars).</summary>
     [MaxLength(100)]

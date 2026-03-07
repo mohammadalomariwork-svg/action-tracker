@@ -12,16 +12,16 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class ActionItemListDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Workspace this action item belongs to.</summary>
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Project this action item belongs to, or <c>null</c> for standalone actions.</summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     /// <summary>Milestone this action item is assigned to, or <c>null</c>.</summary>
-    public int? MilestoneId { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     /// <summary>Short descriptive title of the action item.</summary>
     public string Title { get; set; } = string.Empty;
@@ -104,13 +104,13 @@ public class CreateActionItemDto
 {
     /// <summary>Workspace the action item belongs to (required).</summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Project the action item belongs to (nullable).</summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     /// <summary>Milestone the action item is assigned to (nullable).</summary>
-    public int? MilestoneId { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     /// <summary>Short descriptive title (required, max 300 chars).</summary>
     [Required]
@@ -186,7 +186,7 @@ public class UpdateActionItemDto
 {
     /// <summary>Primary key of the action item to update (required).</summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Updated title (max 300 chars).</summary>
     [MaxLength(300)]

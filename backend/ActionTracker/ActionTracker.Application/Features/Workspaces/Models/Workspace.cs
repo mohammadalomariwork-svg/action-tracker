@@ -11,9 +11,9 @@ namespace ActionTracker.Application.Features.Workspaces.Models;
 public class Workspace
 {
     /// <summary>
-    /// Primary key — auto-incremented integer identity.
+    /// Primary key — GUID primary key.
     /// </summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Human-readable title of the workspace.

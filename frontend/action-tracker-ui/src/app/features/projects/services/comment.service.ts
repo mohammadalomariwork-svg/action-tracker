@@ -18,7 +18,7 @@ export class CommentService {
    * @param id Primary key of the action item.
    * @returns Observable of comments.
    */
-  getByActionItem(id: number): Observable<Comment[]> {
+  getByActionItem(id: string): Observable<Comment[]> {
     return this.http.get<Comment[]>(`${this.apiUrl}/action-item/${id}`);
   }
 
@@ -27,7 +27,7 @@ export class CommentService {
    * @param id Primary key of the milestone.
    * @returns Observable of comments.
    */
-  getByMilestone(id: number): Observable<Comment[]> {
+  getByMilestone(id: string): Observable<Comment[]> {
     return this.http.get<Comment[]>(`${this.apiUrl}/milestone/${id}`);
   }
 
@@ -36,7 +36,7 @@ export class CommentService {
    * @param id Primary key of the project.
    * @returns Observable of comments.
    */
-  getByProject(id: number): Observable<Comment[]> {
+  getByProject(id: string): Observable<Comment[]> {
     return this.http.get<Comment[]>(`${this.apiUrl}/project/${id}`);
   }
 
@@ -55,7 +55,7 @@ export class CommentService {
    * @param content The new comment content.
    * @returns Observable of the updated comment.
    */
-  update(id: number, content: string): Observable<Comment> {
+  update(id: string, content: string): Observable<Comment> {
     return this.http.put<Comment>(`${this.apiUrl}/${id}`, { content });
   }
 
@@ -63,7 +63,7 @@ export class CommentService {
    * Deletes a comment.
    * @param id Primary key of the comment to delete.
    */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }

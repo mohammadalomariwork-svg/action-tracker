@@ -40,9 +40,9 @@ public class ProjectActionItemsController : ControllerBase
     /// Returns standalone action items in a workspace — those with no project or
     /// milestone association.
     /// </summary>
-    [HttpGet("workspace/{workspaceId:int}/standalone")]
+    [HttpGet("workspace/{workspaceId:guid}/standalone")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ActionItemListDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStandaloneByWorkspace(int workspaceId)
+    public async Task<IActionResult> GetStandaloneByWorkspace(Guid workspaceId)
     {
         _logger.LogInformation(
             "GET api/project-action-items/workspace/{WorkspaceId}/standalone", workspaceId);
@@ -56,9 +56,9 @@ public class ProjectActionItemsController : ControllerBase
     /// Returns all active action items that belong to the given project, including
     /// project-level and milestone-nested items.
     /// </summary>
-    [HttpGet("project/{projectId:int}")]
+    [HttpGet("project/{projectId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ActionItemListDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProject(int projectId)
+    public async Task<IActionResult> GetByProject(Guid projectId)
     {
         _logger.LogInformation("GET api/project-action-items/project/{ProjectId}", projectId);
         var result = await _service.GetByProjectAsync(projectId);
@@ -68,9 +68,9 @@ public class ProjectActionItemsController : ControllerBase
     // ── GET api/project-action-items/milestone/{milestoneId} ─────────────────
 
     /// <summary>Returns all active action items assigned to a specific milestone.</summary>
-    [HttpGet("milestone/{milestoneId:int}")]
+    [HttpGet("milestone/{milestoneId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ActionItemListDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByMilestone(int milestoneId)
+    public async Task<IActionResult> GetByMilestone(Guid milestoneId)
     {
         _logger.LogInformation(
             "GET api/project-action-items/milestone/{MilestoneId}", milestoneId);
@@ -81,10 +81,10 @@ public class ProjectActionItemsController : ControllerBase
     // ── GET api/project-action-items/{id} ────────────────────────────────────
 
     /// <summary>Returns an action item's full detail including documents and comments.</summary>
-    [HttpGet("{id:int}", Name = nameof(GetActionItemById))]
+    [HttpGet("{id:guid}", Name = nameof(GetActionItemById))]
     [ProducesResponseType(typeof(ApiResponse<ActionItemDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetActionItemById(int id)
+    public async Task<IActionResult> GetActionItemById(Guid id)
     {
         _logger.LogInformation("GET api/project-action-items/{Id}", id);
         var result = await _service.GetByIdAsync(id);
@@ -124,11 +124,11 @@ public class ProjectActionItemsController : ControllerBase
     // ── PUT api/project-action-items/{id} ─────────────────────────────────────
 
     /// <summary>Updates an existing action item using patch semantics (only non-null fields applied).</summary>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ActionItemDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateActionItemDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateActionItemDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
@@ -147,11 +147,11 @@ public class ProjectActionItemsController : ControllerBase
     /// Soft-deletes an action item and cascades to its attached documents.
     /// Restricted to Admin and Manager roles.
     /// </summary>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         _logger.LogInformation(
             "DELETE api/project-action-items/{Id} by user {UserId}", id, CurrentUserId);

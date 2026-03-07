@@ -12,7 +12,7 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class StrategicObjective
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Short, descriptive title of the strategic objective.

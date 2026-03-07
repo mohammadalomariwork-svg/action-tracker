@@ -33,7 +33,7 @@ public class BaselineService : IBaselineService
     // ── Baseline queries ──────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<ProjectBaselineDto?> GetBaselineByProjectAsync(int projectId)
+    public async Task<ProjectBaselineDto?> GetBaselineByProjectAsync(Guid projectId)
     {
         try
         {
@@ -58,7 +58,7 @@ public class BaselineService : IBaselineService
     /// Thrown when the project does not exist or has no active milestones.
     /// </exception>
     public async Task<ProjectBaselineDto> CreateBaselineAsync(
-        int projectId, string userId, string userName)
+        Guid projectId, string userId, string userName)
     {
         try
         {
@@ -156,7 +156,7 @@ public class BaselineService : IBaselineService
 
     /// <inheritdoc/>
     public async Task<IEnumerable<BaselineChangeRequestDto>> GetChangeRequestsByProjectAsync(
-        int projectId)
+        Guid projectId)
     {
         try
         {
@@ -309,7 +309,7 @@ public class BaselineService : IBaselineService
     /// <see cref="ChangeRequestStatus.ApprovedBySponsor"/>.
     /// </exception>
     public async Task<bool> ImplementApprovedChangeAsync(
-        int changeRequestId, string implementedByUserId)
+        Guid changeRequestId, string implementedByUserId)
     {
         try
         {

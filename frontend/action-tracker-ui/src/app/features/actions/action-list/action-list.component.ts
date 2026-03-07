@@ -79,8 +79,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly teamMembers  = signal<TeamMember[]>([]);
   readonly cardView     = signal(false);
   readonly exportingCsv = signal(false);
-  readonly openStatusRowId  = signal<number | null>(null);
-  readonly pendingDeleteId  = signal<number | null>(null);
+  readonly openStatusRowId  = signal<string | null>(null);
+  readonly pendingDeleteId  = signal<string | null>(null);
 
   // ── Filters ───────────────────────────────────────────
   readonly searchCtrl     = new FormControl<string>('');
@@ -217,7 +217,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   }
 
   // ── Inline status ─────────────────────────────────────
-  toggleStatusMenu(id: number, event: Event): void {
+  toggleStatusMenu(id: string, event: Event): void {
     event.stopPropagation();
     this.openStatusRowId.update(cur => cur === id ? null : id);
   }
@@ -239,7 +239,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   closeStatusMenu(): void { this.openStatusRowId.set(null); }
 
   // ── Delete ────────────────────────────────────────────
-  confirmDelete(id: number): void {
+  confirmDelete(id: string): void {
     this.pendingDeleteId.set(id);
     this.deleteDialog.open();
   }
@@ -304,5 +304,5 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
   toggleCardView(): void { this.cardView.update(v => !v); }
 
-  trackById(_: number, item: ActionItem): number { return item.id; }
+  trackById(_: number, item: ActionItem): string { return item.id; }
 }

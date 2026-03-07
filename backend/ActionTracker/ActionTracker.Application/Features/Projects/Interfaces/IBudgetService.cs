@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -15,7 +16,7 @@ public interface IBudgetService
     /// no budget has been set up yet.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<ProjectBudgetDto?> GetByProjectAsync(int projectId);
+    Task<ProjectBudgetDto?> GetByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Creates a new budget record for the project, or fully replaces it if
@@ -29,7 +30,7 @@ public interface IBudgetService
     /// Returns all active contracts associated with the specified project.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<IEnumerable<ContractDto>> GetContractsByProjectAsync(int projectId);
+    Task<IEnumerable<ContractDto>> GetContractsByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Creates a new contract record associated with a project.
@@ -47,7 +48,7 @@ public interface IBudgetService
     /// <returns>
     /// The updated contract, or <c>null</c> if not found.
     /// </returns>
-    Task<ContractDto?> UpdateContractAsync(int id, UpdateContractDto dto);
+    Task<ContractDto?> UpdateContractAsync(Guid id, UpdateContractDto dto);
 
     /// <summary>
     /// Soft-deletes the contract with the given primary key by setting its
@@ -58,5 +59,5 @@ public interface IBudgetService
     /// <c>true</c> if the record was found and soft-deleted; <c>false</c>
     /// otherwise.
     /// </returns>
-    Task<bool> DeleteContractAsync(int id);
+    Task<bool> DeleteContractAsync(Guid id);
 }

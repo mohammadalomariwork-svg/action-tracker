@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -16,14 +17,14 @@ public interface IProjectService
     /// workspace, suitable for dashboard and list views.
     /// </summary>
     /// <param name="workspaceId">Primary key of the workspace.</param>
-    Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(int workspaceId);
+    Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(Guid workspaceId);
 
     /// <summary>
     /// Returns the project with the given primary key, or <c>null</c> if not
     /// found. Includes standard detail fields but not nested collections.
     /// </summary>
     /// <param name="id">Primary key of the project.</param>
-    Task<ProjectDetailDto?> GetByIdAsync(int id);
+    Task<ProjectDetailDto?> GetByIdAsync(Guid id);
 
     /// <summary>
     /// Creates a new project from the supplied data.
@@ -41,7 +42,7 @@ public interface IProjectService
     /// <returns>
     /// The updated project, or <c>null</c> if not found.
     /// </returns>
-    Task<ProjectDetailDto?> UpdateAsync(int id, UpdateProjectDto dto);
+    Task<ProjectDetailDto?> UpdateAsync(Guid id, UpdateProjectDto dto);
 
     /// <summary>
     /// Soft-deletes the project with the given primary key.
@@ -53,7 +54,7 @@ public interface IProjectService
     /// <c>true</c> if the record was found and soft-deleted; <c>false</c>
     /// otherwise.
     /// </returns>
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(Guid id);
 
     /// <summary>
     /// Creates an immutable baseline snapshot of the project's current schedule
@@ -69,7 +70,7 @@ public interface IProjectService
     /// </param>
     /// <returns>The newly created baseline record.</returns>
     Task<ProjectBaselineDto> BaselineProjectAsync(
-        int projectId,
+        Guid projectId,
         string baselinedByUserId,
         string baselinedByUserName);
 
@@ -83,7 +84,7 @@ public interface IProjectService
     /// <c>true</c> if the project was found and unfrozen; <c>false</c>
     /// otherwise.
     /// </returns>
-    Task<bool> UnfreezeProjectAsync(int projectId);
+    Task<bool> UnfreezeProjectAsync(Guid projectId);
 
     /// <summary>
     /// Returns the project with the given primary key together with its full
@@ -95,5 +96,5 @@ public interface IProjectService
     /// <returns>
     /// The fully-hydrated project, or <c>null</c> if not found.
     /// </returns>
-    Task<ProjectDetailDto?> GetProjectWithFullDetailsAsync(int id);
+    Task<ProjectDetailDto?> GetProjectWithFullDetailsAsync(Guid id);
 }

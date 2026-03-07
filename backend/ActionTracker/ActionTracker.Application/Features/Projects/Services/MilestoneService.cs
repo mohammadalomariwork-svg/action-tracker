@@ -32,7 +32,7 @@ public class MilestoneService : IMilestoneService
 
     /// <inheritdoc/>
     /// <remarks>Results are ordered ascending by <see cref="Milestone.SequenceOrder"/>.</remarks>
-    public async Task<IEnumerable<MilestoneListDto>> GetByProjectAsync(int projectId)
+    public async Task<IEnumerable<MilestoneListDto>> GetByProjectAsync(Guid projectId)
     {
         try
         {
@@ -59,7 +59,7 @@ public class MilestoneService : IMilestoneService
     /// <remarks>
     /// Loads the milestone together with its active action items and comments.
     /// </remarks>
-    public async Task<MilestoneDetailDto?> GetByIdAsync(int id)
+    public async Task<MilestoneDetailDto?> GetByIdAsync(Guid id)
     {
         try
         {
@@ -117,7 +117,7 @@ public class MilestoneService : IMilestoneService
     }
 
     /// <inheritdoc/>
-    public async Task<MilestoneDetailDto?> UpdateAsync(int id, UpdateMilestoneDto dto)
+    public async Task<MilestoneDetailDto?> UpdateAsync(Guid id, UpdateMilestoneDto dto)
     {
         try
         {
@@ -156,7 +156,7 @@ public class MilestoneService : IMilestoneService
     /// Soft-deletes the milestone (<c>IsActive = false</c>) and cascades the
     /// same soft-delete to all child action items in a single transaction.
     /// </remarks>
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         try
         {
@@ -200,7 +200,7 @@ public class MilestoneService : IMilestoneService
     /// <paramref name="orderedMilestoneIds"/> (1-based).  All updates are
     /// committed in a single <c>SaveChangesAsync</c> call.
     /// </remarks>
-    public async Task<bool> ReorderMilestonesAsync(int projectId, List<int> orderedMilestoneIds)
+    public async Task<bool> ReorderMilestonesAsync(Guid projectId, List<Guid> orderedMilestoneIds)
     {
         try
         {

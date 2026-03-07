@@ -22,7 +22,7 @@ export class ProjectActionItemService {
    * @param workspaceId The workspace to fetch action items for.
    * @returns Observable of action item list items.
    */
-  getStandaloneByWorkspace(workspaceId: number): Observable<ActionItemList[]> {
+  getStandaloneByWorkspace(workspaceId: string): Observable<ActionItemList[]> {
     return this.http.get<ActionItemList[]>(
       `${this.apiUrl}/workspace/${workspaceId}/standalone`
     );
@@ -33,7 +33,7 @@ export class ProjectActionItemService {
    * @param projectId The project to fetch action items for.
    * @returns Observable of action item list items.
    */
-  getByProject(projectId: number): Observable<ActionItemList[]> {
+  getByProject(projectId: string): Observable<ActionItemList[]> {
     return this.http.get<ActionItemList[]>(`${this.apiUrl}/project/${projectId}`);
   }
 
@@ -42,7 +42,7 @@ export class ProjectActionItemService {
    * @param milestoneId The milestone to fetch action items for.
    * @returns Observable of action item list items.
    */
-  getByMilestone(milestoneId: number): Observable<ActionItemList[]> {
+  getByMilestone(milestoneId: string): Observable<ActionItemList[]> {
     return this.http.get<ActionItemList[]>(`${this.apiUrl}/milestone/${milestoneId}`);
   }
 
@@ -51,7 +51,7 @@ export class ProjectActionItemService {
    * @param id Primary key of the action item.
    * @returns Observable of the action item detail.
    */
-  getById(id: number): Observable<ActionItemDetail> {
+  getById(id: string): Observable<ActionItemDetail> {
     return this.http.get<ActionItemDetail>(`${this.apiUrl}/${id}`);
   }
 
@@ -70,7 +70,7 @@ export class ProjectActionItemService {
    * @param data Partial update payload.
    * @returns Observable of the updated action item detail.
    */
-  update(id: number, data: Partial<CreateActionItem>): Observable<ActionItemDetail> {
+  update(id: string, data: Partial<CreateActionItem>): Observable<ActionItemDetail> {
     return this.http.put<ActionItemDetail>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -78,7 +78,7 @@ export class ProjectActionItemService {
    * Deletes an action item.
    * @param id Primary key of the action item to delete.
    */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }

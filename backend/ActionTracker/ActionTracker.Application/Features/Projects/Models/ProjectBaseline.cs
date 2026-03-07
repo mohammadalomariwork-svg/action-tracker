@@ -12,14 +12,14 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class ProjectBaseline
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Foreign key of the baselined project.
     /// Unique — each project may have at most one baseline record.
     /// </summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>UTC timestamp when the project was baselined.</summary>
     public DateTime BaselinedAt { get; set; }

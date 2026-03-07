@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -37,13 +38,13 @@ public interface IDocumentService
     /// Returns all active documents attached to the specified project.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<IEnumerable<DocumentDto>> GetByProjectAsync(int projectId);
+    Task<IEnumerable<DocumentDto>> GetByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Returns all active documents attached to the specified action item.
     /// </summary>
     /// <param name="actionItemId">Primary key of the action item.</param>
-    Task<IEnumerable<DocumentDto>> GetByActionItemAsync(int actionItemId);
+    Task<IEnumerable<DocumentDto>> GetByActionItemAsync(Guid actionItemId);
 
     /// <summary>
     /// Reads a document from storage and returns its raw bytes together with
@@ -59,7 +60,7 @@ public interface IDocumentService
     /// A tuple of (<c>bytes</c>, <c>contentType</c>, <c>fileName</c>).
     /// </returns>
     Task<(byte[] bytes, string contentType, string fileName)> DownloadAsync(
-        int documentId,
+        Guid documentId,
         bool isProjectDocument);
 
     /// <summary>
@@ -74,7 +75,7 @@ public interface IDocumentService
     /// <c>true</c> if the document was found and deleted; <c>false</c> if not
     /// found or not authorised.
     /// </returns>
-    Task<bool> DeleteProjectDocumentAsync(int documentId, string requestingUserId);
+    Task<bool> DeleteProjectDocumentAsync(Guid documentId, string requestingUserId);
 
     /// <summary>
     /// Soft-deletes an action-item document.  Only the uploader or a workspace
@@ -88,5 +89,5 @@ public interface IDocumentService
     /// <c>true</c> if the document was found and deleted; <c>false</c> if not
     /// found or not authorised.
     /// </returns>
-    Task<bool> DeleteActionDocumentAsync(int documentId, string requestingUserId);
+    Task<bool> DeleteActionDocumentAsync(Guid documentId, string requestingUserId);
 }

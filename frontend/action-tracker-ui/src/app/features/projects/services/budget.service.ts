@@ -19,7 +19,7 @@ export class BudgetService {
    * @param projectId The project to fetch the budget for.
    * @returns Observable of the project budget, or null if none exists.
    */
-  getByProject(projectId: number): Observable<ProjectBudget | null> {
+  getByProject(projectId: string): Observable<ProjectBudget | null> {
     return this.http.get<ProjectBudget | null>(`${this.budgetUrl}/project/${projectId}`);
   }
 
@@ -37,7 +37,7 @@ export class BudgetService {
    * @param projectId The project to fetch contracts for.
    * @returns Observable of contracts.
    */
-  getContracts(projectId: number): Observable<Contract[]> {
+  getContracts(projectId: string): Observable<Contract[]> {
     return this.http.get<Contract[]>(`${this.contractUrl}/project/${projectId}`);
   }
 
@@ -56,7 +56,7 @@ export class BudgetService {
    * @param data Contract update payload.
    * @returns Observable of the updated contract.
    */
-  updateContract(id: number, data: Partial<Contract>): Observable<Contract> {
+  updateContract(id: string, data: Partial<Contract>): Observable<Contract> {
     return this.http.put<Contract>(`${this.contractUrl}/${id}`, data);
   }
 
@@ -64,7 +64,7 @@ export class BudgetService {
    * Deletes a contract.
    * @param id Primary key of the contract to delete.
    */
-  deleteContract(id: number): Observable<void> {
+  deleteContract(id: string): Observable<void> {
     return this.http.delete<void>(`${this.contractUrl}/${id}`);
   }
 }

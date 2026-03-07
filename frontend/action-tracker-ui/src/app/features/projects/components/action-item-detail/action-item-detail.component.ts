@@ -39,7 +39,7 @@ export class ActionItemDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  actionItemId!: number;
+  actionItemId!: string;
   actionItem: ActionItemDetail | null = null;
   users: UserProfile[] = [];
   isLoading = false;
@@ -54,7 +54,7 @@ export class ActionItemDetailComponent implements OnInit {
   readonly ActionItemPriority = ActionItemPriority;
 
   ngOnInit(): void {
-    this.actionItemId = Number(this.route.snapshot.paramMap.get('id'));
+    this.actionItemId = this.route.snapshot.paramMap.get('id')!;
     this.buildEditForm();
     this.loadActionItem();
     this.loadUsers();

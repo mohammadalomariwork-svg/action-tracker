@@ -13,10 +13,10 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class ProjectBaselineDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Project this baseline belongs to.</summary>
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>UTC timestamp when the project was formally baselined.</summary>
     public DateTime BaselinedAt { get; set; }
@@ -49,10 +49,10 @@ public class ProjectBaselineDto
 public class BaselineChangeRequestDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Project this change request is raised against.</summary>
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>Display name of the user (typically the PM) who submitted the request.</summary>
     public string RequestedByUserName { get; set; } = string.Empty;
@@ -93,7 +93,7 @@ public class CreateBaselineChangeRequestDto
 {
     /// <summary>Project the change request is raised against (required).</summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>
     /// AspNetUsers.Id of the user submitting the request (required).
@@ -134,7 +134,7 @@ public class ReviewChangeRequestDto
 {
     /// <summary>Primary key of the change request to review (required).</summary>
     [Required]
-    public int ChangeRequestId { get; set; }
+    public Guid ChangeRequestId { get; set; }
 
     /// <summary>
     /// AspNetUsers.Id of the reviewing Sponsor (required).

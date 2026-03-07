@@ -35,10 +35,10 @@ public class BudgetController : ControllerBase
     /// Returns the budget record for the given project, or 404 when none has
     /// been set up yet.
     /// </summary>
-    [HttpGet("project/{projectId:int}")]
+    [HttpGet("project/{projectId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ProjectBudgetDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetByProject(int projectId)
+    public async Task<IActionResult> GetByProject(Guid projectId)
     {
         _logger.LogInformation("GET api/budget/project/{ProjectId}", projectId);
         var result = await _service.GetByProjectAsync(projectId);
@@ -72,9 +72,9 @@ public class BudgetController : ControllerBase
     // ── GET api/budget/project/{projectId}/contracts ──────────────────────────
 
     /// <summary>Returns all active contracts associated with the given project.</summary>
-    [HttpGet("project/{projectId:int}/contracts")]
+    [HttpGet("project/{projectId:guid}/contracts")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ContractDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetContracts(int projectId)
+    public async Task<IActionResult> GetContracts(Guid projectId)
     {
         _logger.LogInformation("GET api/budget/project/{ProjectId}/contracts", projectId);
         var result = await _service.GetContractsByProjectAsync(projectId);
@@ -105,12 +105,12 @@ public class BudgetController : ControllerBase
     // ── PUT api/budget/contracts/{id} ─────────────────────────────────────────
 
     /// <summary>Updates a contract record. Restricted to Admin and Manager roles.</summary>
-    [HttpPut("contracts/{id:int}")]
+    [HttpPut("contracts/{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(typeof(ApiResponse<ContractDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateContract(int id, [FromBody] UpdateContractDto dto)
+    public async Task<IActionResult> UpdateContract(Guid id, [FromBody] UpdateContractDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
@@ -129,11 +129,11 @@ public class BudgetController : ControllerBase
     /// <summary>
     /// Soft-deletes a contract record. Restricted to Admin and Manager roles.
     /// </summary>
-    [HttpDelete("contracts/{id:int}")]
+    [HttpDelete("contracts/{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteContract(int id)
+    public async Task<IActionResult> DeleteContract(Guid id)
     {
         _logger.LogInformation(
             "DELETE api/budget/contracts/{Id} by user {UserId}", id, CurrentUserId);

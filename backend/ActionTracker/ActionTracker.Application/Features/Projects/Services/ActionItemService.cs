@@ -36,7 +36,7 @@ public class ActionItemService : IActionItemService
     /// Returns only standalone actions — those where <c>ProjectId IS NULL</c>.
     /// Project-scoped and milestone-scoped actions are excluded.
     /// </remarks>
-    public async Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(int workspaceId)
+    public async Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(Guid workspaceId)
     {
         try
         {
@@ -64,7 +64,7 @@ public class ActionItemService : IActionItemService
     /// The <see cref="ActionItemListDto.MilestoneId"/> field gives callers
     /// the context of which milestone each item belongs to.
     /// </remarks>
-    public async Task<IEnumerable<ActionItemListDto>> GetByProjectAsync(int projectId)
+    public async Task<IEnumerable<ActionItemListDto>> GetByProjectAsync(Guid projectId)
     {
         try
         {
@@ -85,7 +85,7 @@ public class ActionItemService : IActionItemService
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<ActionItemListDto>> GetByMilestoneAsync(int milestoneId)
+    public async Task<IEnumerable<ActionItemListDto>> GetByMilestoneAsync(Guid milestoneId)
     {
         try
         {
@@ -108,7 +108,7 @@ public class ActionItemService : IActionItemService
     /// <remarks>
     /// Loads the action item together with its attached documents and comments.
     /// </remarks>
-    public async Task<ActionItemDetailDto?> GetByIdAsync(int id)
+    public async Task<ActionItemDetailDto?> GetByIdAsync(Guid id)
     {
         try
         {
@@ -194,7 +194,7 @@ public class ActionItemService : IActionItemService
     }
 
     /// <inheritdoc/>
-    public async Task<ActionItemDetailDto?> UpdateAsync(int id, UpdateActionItemDto dto)
+    public async Task<ActionItemDetailDto?> UpdateAsync(Guid id, UpdateActionItemDto dto)
     {
         try
         {
@@ -238,7 +238,7 @@ public class ActionItemService : IActionItemService
     /// same soft-delete to all attached <c>ActionDocument</c> records in a
     /// single <c>SaveChangesAsync</c> call.
     /// </remarks>
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         try
         {

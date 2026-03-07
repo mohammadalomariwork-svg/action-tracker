@@ -191,7 +191,7 @@ export class BaselinePanelComponent implements OnInit {
 
   // ── Implement (PM/Admin) ────────────────────────────────────────────────────
 
-  onImplementChange(requestId: number): void {
+  onImplementChange(requestId: string): void {
     if (!confirm('Implement this approved change? The baseline dates will be updated.')) {
       return;
     }

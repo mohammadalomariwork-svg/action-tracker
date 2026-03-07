@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -15,27 +16,27 @@ public interface IActionItemService
     /// workspace but are not associated with any project.
     /// </summary>
     /// <param name="workspaceId">Primary key of the workspace.</param>
-    Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(int workspaceId);
+    Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(Guid workspaceId);
 
     /// <summary>
     /// Returns all action items that belong to the specified project, including
     /// both project-level actions and those nested under individual milestones.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<IEnumerable<ActionItemListDto>> GetByProjectAsync(int projectId);
+    Task<IEnumerable<ActionItemListDto>> GetByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Returns all action items assigned to the specified milestone.
     /// </summary>
     /// <param name="milestoneId">Primary key of the milestone.</param>
-    Task<IEnumerable<ActionItemListDto>> GetByMilestoneAsync(int milestoneId);
+    Task<IEnumerable<ActionItemListDto>> GetByMilestoneAsync(Guid milestoneId);
 
     /// <summary>
     /// Returns the action item with the given primary key, including its
     /// attached documents and comments, or <c>null</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the action item.</param>
-    Task<ActionItemDetailDto?> GetByIdAsync(int id);
+    Task<ActionItemDetailDto?> GetByIdAsync(Guid id);
 
     /// <summary>
     /// Creates a new action item from the supplied data.
@@ -53,7 +54,7 @@ public interface IActionItemService
     /// <returns>
     /// The updated action item, or <c>null</c> if not found.
     /// </returns>
-    Task<ActionItemDetailDto?> UpdateAsync(int id, UpdateActionItemDto dto);
+    Task<ActionItemDetailDto?> UpdateAsync(Guid id, UpdateActionItemDto dto);
 
     /// <summary>
     /// Deletes the action item with the given primary key.
@@ -62,5 +63,5 @@ public interface IActionItemService
     /// <returns>
     /// <c>true</c> if the record was found and deleted; <c>false</c> otherwise.
     /// </returns>
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(Guid id);
 }

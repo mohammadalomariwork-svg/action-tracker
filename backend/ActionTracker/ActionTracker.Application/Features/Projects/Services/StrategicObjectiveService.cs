@@ -70,7 +70,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     }
 
     /// <inheritdoc/>
-    public async Task<StrategicObjectiveDto?> GetByIdAsync(int id)
+    public async Task<StrategicObjectiveDto?> GetByIdAsync(Guid id)
     {
         try
         {
@@ -117,7 +117,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     }
 
     /// <inheritdoc/>
-    public async Task<StrategicObjectiveDto?> UpdateAsync(int id, UpdateStrategicObjectiveDto dto)
+    public async Task<StrategicObjectiveDto?> UpdateAsync(Guid id, UpdateStrategicObjectiveDto dto)
     {
         try
         {
@@ -147,7 +147,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
     /// <inheritdoc/>
     /// <remarks>Performs a soft delete by setting <c>IsActive = false</c>.</remarks>
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         try
         {

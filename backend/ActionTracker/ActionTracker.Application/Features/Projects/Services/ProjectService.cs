@@ -37,7 +37,7 @@ public class ProjectService : IProjectService
     /// <see cref="ProjectListDto.CompletionPercentage"/> without fetching full
     /// entity graphs.
     /// </remarks>
-    public async Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(int workspaceId)
+    public async Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(Guid workspaceId)
     {
         try
         {
@@ -77,7 +77,7 @@ public class ProjectService : IProjectService
     }
 
     /// <inheritdoc/>
-    public async Task<ProjectDetailDto?> GetByIdAsync(int id)
+    public async Task<ProjectDetailDto?> GetByIdAsync(Guid id)
     {
         try
         {
@@ -101,7 +101,7 @@ public class ProjectService : IProjectService
     }
 
     /// <inheritdoc/>
-    public async Task<ProjectDetailDto?> GetProjectWithFullDetailsAsync(int id)
+    public async Task<ProjectDetailDto?> GetProjectWithFullDetailsAsync(Guid id)
     {
         try
         {
@@ -188,7 +188,7 @@ public class ProjectService : IProjectService
     /// Thrown when the project is baselined and the caller attempts to modify
     /// <see cref="Project.PlannedStartDate"/> or <see cref="Project.PlannedEndDate"/>.
     /// </exception>
-    public async Task<ProjectDetailDto?> UpdateAsync(int id, UpdateProjectDto dto)
+    public async Task<ProjectDetailDto?> UpdateAsync(Guid id, UpdateProjectDto dto)
     {
         try
         {
@@ -249,7 +249,7 @@ public class ProjectService : IProjectService
 
     /// <inheritdoc/>
     /// <remarks>Performs a soft delete by setting <c>IsActive = false</c>.</remarks>
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         try
         {
@@ -277,7 +277,7 @@ public class ProjectService : IProjectService
     /// captured using <see cref="System.Text.Json"/>.
     /// </remarks>
     public async Task<ProjectBaselineDto> BaselineProjectAsync(
-        int projectId, string baselinedByUserId, string baselinedByUserName)
+        Guid projectId, string baselinedByUserId, string baselinedByUserName)
     {
         try
         {
@@ -380,7 +380,7 @@ public class ProjectService : IProjectService
     }
 
     /// <inheritdoc/>
-    public async Task<bool> UnfreezeProjectAsync(int projectId)
+    public async Task<bool> UnfreezeProjectAsync(Guid projectId)
     {
         try
         {

@@ -35,7 +35,7 @@ export class WorkspaceService {
    * Requires Admin or Manager role.
    * @param id Primary key of the workspace.
    */
-  getWorkspaceById(id: number): Observable<ApiResponse<Workspace>> {
+  getWorkspaceById(id: string): Observable<ApiResponse<Workspace>> {
     return this.http.get<ApiResponse<Workspace>>(`${this.apiUrl}/${id}`);
   }
 
@@ -65,7 +65,7 @@ export class WorkspaceService {
    * @param id Primary key of the workspace to update.
    * @param data Update payload.
    */
-  updateWorkspace(id: number, data: UpdateWorkspace): Observable<ApiResponse<Workspace>> {
+  updateWorkspace(id: string, data: UpdateWorkspace): Observable<ApiResponse<Workspace>> {
     return this.http.put<ApiResponse<Workspace>>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -74,7 +74,7 @@ export class WorkspaceService {
    * Requires Admin role.
    * @param id Primary key of the workspace to delete.
    */
-  deleteWorkspace(id: number): Observable<ApiResponse<void>> {
+  deleteWorkspace(id: string): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
   }
 
@@ -83,7 +83,7 @@ export class WorkspaceService {
    * Requires Admin role.
    * @param id Primary key of the workspace to restore.
    */
-  restoreWorkspace(id: number): Observable<ApiResponse<void>> {
+  restoreWorkspace(id: string): Observable<ApiResponse<void>> {
     return this.http.patch<ApiResponse<void>>(`${this.apiUrl}/${id}/restore`, {});
   }
 

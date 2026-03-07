@@ -13,7 +13,7 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class Comment
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Text body of the comment. Supports plain text; rendering is handled
@@ -39,19 +39,19 @@ public class Comment
     /// FK to the action item this comment belongs to,
     /// or <c>null</c> if attached to a milestone or project instead.
     /// </summary>
-    public int? ActionItemId { get; set; }
+    public Guid? ActionItemId { get; set; }
 
     /// <summary>
     /// FK to the milestone this comment belongs to,
     /// or <c>null</c> if attached to an action item or project instead.
     /// </summary>
-    public int? MilestoneId { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     /// <summary>
     /// FK to the project this comment belongs to,
     /// or <c>null</c> if attached to an action item or milestone instead.
     /// </summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     // ── Audit ─────────────────────────────────────────────────────────────────
 

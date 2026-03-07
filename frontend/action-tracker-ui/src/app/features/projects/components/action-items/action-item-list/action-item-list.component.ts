@@ -23,9 +23,9 @@ import { UserProfile } from '../../../../../core/models/user.model';
   styleUrl: './action-item-list.component.scss',
 })
 export class ActionItemListComponent implements OnInit {
-  @Input() workspaceId?: number;
-  @Input() projectId?: number;
-  @Input() milestoneId?: number;
+  @Input() workspaceId?: string;
+  @Input() projectId?: string;
+  @Input() milestoneId?: string;
   @Input() canEdit = false;
   @Input() isCompact = false;
 
@@ -112,7 +112,7 @@ export class ActionItemListComponent implements OnInit {
       });
   }
 
-  onDeleteAction(id: number): void {
+  onDeleteAction(id: string): void {
     if (!confirm('Are you sure you want to delete this action item?')) return;
 
     this.actionItemService
@@ -166,7 +166,7 @@ export class ActionItemListComponent implements OnInit {
         .subscribe(user => {
           this.actionItemService
             .create({
-              workspaceId: this.workspaceId ?? 0,
+              workspaceId: this.workspaceId ?? '',
               projectId: this.projectId,
               milestoneId: this.milestoneId,
               title: v.title,
@@ -201,7 +201,7 @@ export class ActionItemListComponent implements OnInit {
     this.editingAction = null;
   }
 
-  onViewDetail(id: number): void {
+  onViewDetail(id: string): void {
     this.router.navigate(['/action-items', id]);
   }
 

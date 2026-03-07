@@ -28,7 +28,7 @@ export interface TeamWorkload {
 }
 
 export interface AtRiskItem {
-  id: number;
+  id: string;
   actionId: string;
   title: string;
   assigneeName: string;

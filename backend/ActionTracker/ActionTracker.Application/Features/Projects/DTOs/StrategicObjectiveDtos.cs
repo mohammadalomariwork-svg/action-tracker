@@ -8,7 +8,7 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class StrategicObjectiveDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Short, descriptive title of the objective.</summary>
     public string Title { get; set; } = string.Empty;
@@ -57,7 +57,7 @@ public class UpdateStrategicObjectiveDto
 {
     /// <summary>Primary key of the objective to update.</summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Updated title (max 300 chars).</summary>
     [MaxLength(300)]

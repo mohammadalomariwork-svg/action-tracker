@@ -12,10 +12,10 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class ProjectListDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Workspace this project belongs to.</summary>
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Human-readable title of the project.</summary>
     public string Title { get; set; } = string.Empty;
@@ -58,7 +58,7 @@ public class ProjectDetailDto : ProjectListDto
     public string? Description { get; set; }
 
     /// <summary>FK to the strategic objective this project is aligned with (null for operational).</summary>
-    public int? StrategicObjectiveId { get; set; }
+    public Guid? StrategicObjectiveId { get; set; }
 
     /// <summary>Title of the linked strategic objective, or <c>null</c> if not aligned.</summary>
     public string? StrategicObjectiveTitle { get; set; }
@@ -108,7 +108,7 @@ public class CreateProjectDto
 {
     /// <summary>Workspace the project will belong to (required).</summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Human-readable project title (required, max 300 chars).</summary>
     [Required]
@@ -128,7 +128,7 @@ public class CreateProjectDto
     /// Service layer enforces this is set when <see cref="ProjectType"/> is
     /// <see cref="ProjectType.Strategic"/>.
     /// </summary>
-    public int? StrategicObjectiveId { get; set; }
+    public Guid? StrategicObjectiveId { get; set; }
 
     /// <summary>AspNetUsers.Id of the sponsor (required).</summary>
     [Required]
@@ -170,7 +170,7 @@ public class UpdateProjectDto
 {
     /// <summary>Primary key of the project to update.</summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Updated project title (max 300 chars).</summary>
     [MaxLength(300)]
@@ -187,7 +187,7 @@ public class UpdateProjectDto
     public ProjectStatus? Status { get; set; }
 
     /// <summary>Updated strategic objective alignment (set to <c>null</c> to remove alignment).</summary>
-    public int? StrategicObjectiveId { get; set; }
+    public Guid? StrategicObjectiveId { get; set; }
 
     /// <summary>Updated sponsor user ID.</summary>
     [MaxLength(450)]

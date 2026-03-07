@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -30,7 +31,7 @@ public interface IStrategicObjectiveService
     /// <c>null</c> if no matching record exists.
     /// </summary>
     /// <param name="id">Primary key of the strategic objective.</param>
-    Task<StrategicObjectiveDto?> GetByIdAsync(int id);
+    Task<StrategicObjectiveDto?> GetByIdAsync(Guid id);
 
     /// <summary>
     /// Creates a new strategic objective from the supplied data.
@@ -48,7 +49,7 @@ public interface IStrategicObjectiveService
     /// <returns>
     /// The updated strategic objective, or <c>null</c> if not found.
     /// </returns>
-    Task<StrategicObjectiveDto?> UpdateAsync(int id, UpdateStrategicObjectiveDto dto);
+    Task<StrategicObjectiveDto?> UpdateAsync(Guid id, UpdateStrategicObjectiveDto dto);
 
     /// <summary>
     /// Deletes the strategic objective with the given primary key.
@@ -57,5 +58,5 @@ public interface IStrategicObjectiveService
     /// <returns>
     /// <c>true</c> if the record was found and deleted; <c>false</c> otherwise.
     /// </returns>
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(Guid id);
 }

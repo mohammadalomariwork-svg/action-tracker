@@ -18,26 +18,26 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class ActionItem
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Foreign key of the workspace this action item belongs to.
     /// Every action item — regardless of context — is scoped to a workspace.
     /// </summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>
     /// Foreign key of the project this action item belongs to,
     /// or <c>null</c> if it is a standalone workspace action.
     /// </summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     /// <summary>
     /// Foreign key of the milestone this action item is assigned to,
     /// or <c>null</c> if it is a project-level or standalone action.
     /// </summary>
-    public int? MilestoneId { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     /// <summary>Short, descriptive title of the action item.</summary>
     [Required]

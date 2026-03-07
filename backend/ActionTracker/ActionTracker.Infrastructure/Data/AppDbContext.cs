@@ -29,7 +29,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<WorkspaceAdmin>      WorkspaceAdmins      => Set<WorkspaceAdmin>();
 
     // ── Projects feature sets ─────────────────────────────────────────────────
-    // NOTE: PM.StrategicObjective (workspace-scoped, int PK) is a different
+    // NOTE: PM.StrategicObjective (workspace-scoped, Guid PK) is a different
     //       entity from the domain StrategicObjective (admin panel, Guid PK).
     //       It maps to "WorkspaceStrategicObjectives" to avoid a table clash.
     public DbSet<PM.StrategicObjective>      WorkspaceStrategicObjectives => Set<PM.StrategicObjective>();
@@ -63,7 +63,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id)
-                  .UseIdentityColumn();
+                  .ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -98,7 +98,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id)
-                  .UseIdentityColumn();
+                  .ValueGeneratedNever();
 
             entity.Property(e => e.AdminUserId)
                   .IsRequired()
@@ -113,14 +113,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         });
 
         // ── WorkspaceStrategicObjective ───────────────────────────────────────
-        // Workspace-scoped strategic objectives (int PK). Distinct from the
+        // Workspace-scoped strategic objectives (Guid PK). Distinct from the
         // admin-panel StrategicObjective (Guid PK) which owns "StrategicObjectives".
         modelBuilder.Entity<PM.StrategicObjective>(entity =>
         {
             entity.ToTable("WorkspaceStrategicObjectives");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -152,7 +152,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("Projects");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -223,7 +223,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("Milestones");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -264,7 +264,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("ProjectActionItems");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -335,7 +335,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("Comments");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Content)
                   .IsRequired()
@@ -383,7 +383,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("ProjectDocuments");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -427,7 +427,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("ActionDocuments");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.Title)
                   .IsRequired()
@@ -471,7 +471,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("ProjectBudgets");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.TotalBudget)
                   .IsRequired()
@@ -504,7 +504,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("Contracts");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.ContractNumber)
                   .IsRequired()
@@ -545,7 +545,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("ProjectBaselines");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.BaselinedByUserId)
                   .IsRequired()
@@ -574,7 +574,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.ToTable("BaselineChangeRequests");
 
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).UseIdentityColumn();
+            entity.Property(e => e.Id).ValueGeneratedNever();
 
             entity.Property(e => e.RequestedByUserId)
                   .IsRequired()

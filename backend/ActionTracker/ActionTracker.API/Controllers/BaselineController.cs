@@ -41,10 +41,10 @@ public class BaselineController : ControllerBase
     /// Returns the approved baseline snapshot for the given project, or 404 if
     /// the project has not yet been baselined.
     /// </summary>
-    [HttpGet("project/{projectId:int}")]
+    [HttpGet("project/{projectId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ProjectBaselineDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetBaseline(int projectId)
+    public async Task<IActionResult> GetBaseline(Guid projectId)
     {
         _logger.LogInformation("GET api/baseline/project/{ProjectId}", projectId);
         var result = await _service.GetBaselineByProjectAsync(projectId);
@@ -59,9 +59,9 @@ public class BaselineController : ControllerBase
     /// Returns all baseline change requests for a project, ordered by
     /// submission date descending.
     /// </summary>
-    [HttpGet("project/{projectId:int}/change-requests")]
+    [HttpGet("project/{projectId:guid}/change-requests")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<BaselineChangeRequestDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetChangeRequests(int projectId)
+    public async Task<IActionResult> GetChangeRequests(Guid projectId)
     {
         _logger.LogInformation(
             "GET api/baseline/project/{ProjectId}/change-requests", projectId);
@@ -109,14 +109,14 @@ public class BaselineController : ControllerBase
     /// Only <c>ApprovedBySponsor</c> or <c>Rejected</c> are accepted.
     /// Restricted to Admin and Manager roles.
     /// </summary>
-    [HttpPut("change-requests/{id:int}/review")]
+    [HttpPut("change-requests/{id:guid}/review")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(typeof(ApiResponse<BaselineChangeRequestDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ReviewChangeRequest(
-        int id, [FromBody] ReviewChangeRequestDto dto)
+        Guid id, [FromBody] ReviewChangeRequestDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
@@ -154,12 +154,12 @@ public class BaselineController : ControllerBase
     /// The change request must be in <c>ApprovedBySponsor</c> status.
     /// Restricted to Admin and Manager roles.
     /// </summary>
-    [HttpPut("change-requests/{id:int}/implement")]
+    [HttpPut("change-requests/{id:guid}/implement")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ImplementChangeRequest(int id)
+    public async Task<IActionResult> ImplementChangeRequest(Guid id)
     {
         _logger.LogInformation(
             "PUT api/baseline/change-requests/{Id}/implement by user {UserId}", id, CurrentUserId);

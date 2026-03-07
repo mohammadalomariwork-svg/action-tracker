@@ -62,10 +62,10 @@ public class ProjectStrategicObjectivesController : ControllerBase
     // ── GET api/strategic-objectives/{id} ────────────────────────────────────
 
     /// <summary>Returns a single strategic objective by its integer primary key.</summary>
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         _logger.LogInformation("GET api/strategic-objectives/{Id}", id);
         var result = await _service.GetByIdAsync(id);
@@ -96,12 +96,12 @@ public class ProjectStrategicObjectivesController : ControllerBase
     // ── PUT api/strategic-objectives/{id} ────────────────────────────────────
 
     /// <summary>Updates an existing strategic objective. Restricted to Admin role.</summary>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateStrategicObjectiveDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateStrategicObjectiveDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
@@ -117,11 +117,11 @@ public class ProjectStrategicObjectivesController : ControllerBase
     // ── DELETE api/strategic-objectives/{id} ─────────────────────────────────
 
     /// <summary>Soft-deletes a strategic objective. Restricted to Admin role.</summary>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         _logger.LogInformation("DELETE api/strategic-objectives/{Id} by user {UserId}", id, CurrentUserId);
 

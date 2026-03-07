@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -17,7 +18,7 @@ public interface IBaselineService
     /// if the project has not yet been baselined.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<ProjectBaselineDto?> GetBaselineByProjectAsync(int projectId);
+    Task<ProjectBaselineDto?> GetBaselineByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Creates an immutable baseline snapshot of the project's current schedule
@@ -31,14 +32,14 @@ public interface IBaselineService
     /// Display name of the user performing the baselining action.
     /// </param>
     /// <returns>The newly created baseline record.</returns>
-    Task<ProjectBaselineDto> CreateBaselineAsync(int projectId, string userId, string userName);
+    Task<ProjectBaselineDto> CreateBaselineAsync(Guid projectId, string userId, string userName);
 
     /// <summary>
     /// Returns all baseline change requests that have been submitted for the
     /// specified project, ordered by creation time descending.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<IEnumerable<BaselineChangeRequestDto>> GetChangeRequestsByProjectAsync(int projectId);
+    Task<IEnumerable<BaselineChangeRequestDto>> GetChangeRequestsByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Submits a new baseline change request on behalf of the project manager.
@@ -80,5 +81,5 @@ public interface IBaselineService
     /// <c>true</c> if the change request was found and marked implemented;
     /// <c>false</c> otherwise.
     /// </returns>
-    Task<bool> ImplementApprovedChangeAsync(int changeRequestId, string implementedByUserId);
+    Task<bool> ImplementApprovedChangeAsync(Guid changeRequestId, string implementedByUserId);
 }

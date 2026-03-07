@@ -39,7 +39,7 @@ public class CommentService : ICommentService
     // ── Queries ───────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<CommentDto>> GetByActionItemAsync(int actionItemId)
+    public async Task<IEnumerable<CommentDto>> GetByActionItemAsync(Guid actionItemId)
     {
         try
         {
@@ -59,7 +59,7 @@ public class CommentService : ICommentService
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<CommentDto>> GetByMilestoneAsync(int milestoneId)
+    public async Task<IEnumerable<CommentDto>> GetByMilestoneAsync(Guid milestoneId)
     {
         try
         {
@@ -79,7 +79,7 @@ public class CommentService : ICommentService
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<CommentDto>> GetByProjectAsync(int projectId)
+    public async Task<IEnumerable<CommentDto>> GetByProjectAsync(Guid projectId)
     {
         try
         {
@@ -153,7 +153,7 @@ public class CommentService : ICommentService
     /// Thrown when <paramref name="requestingUserId"/> does not match the
     /// comment's <c>AuthorUserId</c>.
     /// </exception>
-    public async Task<CommentDto?> UpdateAsync(int id, UpdateCommentDto dto, string requestingUserId)
+    public async Task<CommentDto?> UpdateAsync(Guid id, UpdateCommentDto dto, string requestingUserId)
     {
         try
         {
@@ -192,7 +192,7 @@ public class CommentService : ICommentService
     /// author OR when the user holds the <c>Admin</c> role (checked via
     /// <see cref="UserManager{TUser}.IsInRoleAsync"/>).
     /// </remarks>
-    public async Task<bool> DeleteAsync(int id, string requestingUserId)
+    public async Task<bool> DeleteAsync(Guid id, string requestingUserId)
     {
         try
         {

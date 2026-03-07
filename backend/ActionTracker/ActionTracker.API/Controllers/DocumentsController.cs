@@ -39,9 +39,9 @@ public class DocumentsController : ControllerBase
     // ── GET api/documents/project/{projectId} ────────────────────────────────
 
     /// <summary>Returns all active documents attached to the given project.</summary>
-    [HttpGet("project/{projectId:int}")]
+    [HttpGet("project/{projectId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<DocumentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProject(int projectId)
+    public async Task<IActionResult> GetByProject(Guid projectId)
     {
         _logger.LogInformation("GET api/documents/project/{ProjectId}", projectId);
         var result = await _service.GetByProjectAsync(projectId);
@@ -51,9 +51,9 @@ public class DocumentsController : ControllerBase
     // ── GET api/documents/action-item/{actionItemId} ─────────────────────────
 
     /// <summary>Returns all active documents attached to the given action item.</summary>
-    [HttpGet("action-item/{actionItemId:int}")]
+    [HttpGet("action-item/{actionItemId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<DocumentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByActionItem(int actionItemId)
+    public async Task<IActionResult> GetByActionItem(Guid actionItemId)
     {
         _logger.LogInformation("GET api/documents/action-item/{ActionItemId}", actionItemId);
         var result = await _service.GetByActionItemAsync(actionItemId);
@@ -143,11 +143,11 @@ public class DocumentsController : ControllerBase
     /// table.  Returns a <see cref="FileContentResult"/> with the original file
     /// name and MIME type.
     /// </summary>
-    [HttpGet("{id:int}/download")]
+    [HttpGet("{id:guid}/download")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Download(int id, [FromQuery] string type = "project")
+    public async Task<IActionResult> Download(Guid id, [FromQuery] string type = "project")
     {
         bool isProjectDocument = type.Equals("project", StringComparison.OrdinalIgnoreCase);
 
@@ -173,11 +173,11 @@ public class DocumentsController : ControllerBase
     /// Soft-deletes a project document and removes the physical file.
     /// Only the uploader or an Admin may delete.
     /// </summary>
-    [HttpDelete("project/{id:int}")]
+    [HttpDelete("project/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProjectDocument(int id)
+    public async Task<IActionResult> DeleteProjectDocument(Guid id)
     {
         _logger.LogInformation(
             "DELETE api/documents/project/{Id} by user {UserId}", id, CurrentUserId);
@@ -195,11 +195,11 @@ public class DocumentsController : ControllerBase
     /// Soft-deletes an action-item document and removes the physical file.
     /// Only the uploader or an Admin may delete.
     /// </summary>
-    [HttpDelete("action-item/{id:int}")]
+    [HttpDelete("action-item/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteActionDocument(int id)
+    public async Task<IActionResult> DeleteActionDocument(Guid id)
     {
         _logger.LogInformation(
             "DELETE api/documents/action-item/{Id} by user {UserId}", id, CurrentUserId);

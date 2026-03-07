@@ -11,7 +11,7 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class CommentDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Text body of the comment.</summary>
     public string Content { get; set; } = string.Empty;
@@ -23,13 +23,13 @@ public class CommentDto
     public string AuthorUserName { get; set; } = string.Empty;
 
     /// <summary>FK to the action item this comment is attached to, or <c>null</c>.</summary>
-    public int? ActionItemId { get; set; }
+    public Guid? ActionItemId { get; set; }
 
     /// <summary>FK to the milestone this comment is attached to, or <c>null</c>.</summary>
-    public int? MilestoneId { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     /// <summary>FK to the project this comment is attached to, or <c>null</c>.</summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     /// <summary>UTC timestamp when the comment was posted.</summary>
     public DateTime CreatedAt { get; set; }
@@ -68,13 +68,13 @@ public class CreateCommentDto
     public string AuthorUserName { get; set; } = string.Empty;
 
     /// <summary>FK of the action item to attach this comment to (nullable).</summary>
-    public int? ActionItemId { get; set; }
+    public Guid? ActionItemId { get; set; }
 
     /// <summary>FK of the milestone to attach this comment to (nullable).</summary>
-    public int? MilestoneId { get; set; }
+    public Guid? MilestoneId { get; set; }
 
     /// <summary>FK of the project to attach this comment to (nullable).</summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 }
 
 /// <summary>
@@ -85,7 +85,7 @@ public class UpdateCommentDto
 {
     /// <summary>Primary key of the comment to update (required).</summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Updated text body (required, max 2000 chars).</summary>
     [Required]

@@ -89,7 +89,7 @@ public class DocumentService : IDocumentService
     {
         ValidateFile(file);
 
-        int projectId = dto.ProjectId
+        Guid projectId = dto.ProjectId
             ?? throw new ArgumentException("ProjectId is required for a project document upload.",
                                            nameof(dto.ProjectId));
 
@@ -146,7 +146,7 @@ public class DocumentService : IDocumentService
     {
         ValidateFile(file);
 
-        int actionItemId = dto.ActionItemId
+        Guid actionItemId = dto.ActionItemId
             ?? throw new ArgumentException("ActionItemId is required for an action document upload.",
                                            nameof(dto.ActionItemId));
 
@@ -197,7 +197,7 @@ public class DocumentService : IDocumentService
     // ── Queries ───────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<DocumentDto>> GetByProjectAsync(int projectId)
+    public async Task<IEnumerable<DocumentDto>> GetByProjectAsync(Guid projectId)
     {
         try
         {
@@ -217,7 +217,7 @@ public class DocumentService : IDocumentService
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<DocumentDto>> GetByActionItemAsync(int actionItemId)
+    public async Task<IEnumerable<DocumentDto>> GetByActionItemAsync(Guid actionItemId)
     {
         try
         {
@@ -244,7 +244,7 @@ public class DocumentService : IDocumentService
     /// found on disk.
     /// </exception>
     public async Task<(byte[] bytes, string contentType, string fileName)> DownloadAsync(
-        int documentId, bool isProjectDocument)
+        Guid documentId, bool isProjectDocument)
     {
         try
         {
@@ -307,7 +307,7 @@ public class DocumentService : IDocumentService
     /// also removed from disk when the deletion succeeds.
     /// Only the uploader or a user in the <c>Admin</c> role may delete.
     /// </remarks>
-    public async Task<bool> DeleteProjectDocumentAsync(int documentId, string requestingUserId)
+    public async Task<bool> DeleteProjectDocumentAsync(Guid documentId, string requestingUserId)
     {
         try
         {
@@ -349,7 +349,7 @@ public class DocumentService : IDocumentService
     /// also removed from disk when the deletion succeeds.
     /// Only the uploader or a user in the <c>Admin</c> role may delete.
     /// </remarks>
-    public async Task<bool> DeleteActionDocumentAsync(int documentId, string requestingUserId)
+    public async Task<bool> DeleteActionDocumentAsync(Guid documentId, string requestingUserId)
     {
         try
         {

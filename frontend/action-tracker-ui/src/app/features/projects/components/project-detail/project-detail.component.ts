@@ -48,7 +48,7 @@ export class ProjectDetailComponent implements OnInit {
   private readonly route             = inject(ActivatedRoute);
   private readonly destroyRef        = inject(DestroyRef);
 
-  projectId!: number;
+  projectId!: string;
   project: ProjectDetail | null = null;
   milestones: MilestoneList[] = [];
   projectActions: ActionItemList[] = [];
@@ -73,7 +73,7 @@ export class ProjectDetailComponent implements OnInit {
   readonly ActionItemPriority = ActionItemPriority;
 
   ngOnInit(): void {
-    this.projectId = Number(this.route.snapshot.paramMap.get('id'));
+    this.projectId = this.route.snapshot.paramMap.get('id')!;
     this.loadData();
   }
 
@@ -104,7 +104,7 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   /** Navigates to a milestone detail (or could open modal). */
-  navigateToMilestone(milestoneId: number): void {
+  navigateToMilestone(milestoneId: string): void {
     this.router.navigate(['/projects', this.projectId, 'milestones', milestoneId]);
   }
 

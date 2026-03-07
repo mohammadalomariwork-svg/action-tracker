@@ -32,7 +32,7 @@ public class BudgetService : IBudgetService
     // ── Budget ────────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<ProjectBudgetDto?> GetByProjectAsync(int projectId)
+    public async Task<ProjectBudgetDto?> GetByProjectAsync(Guid projectId)
     {
         try
         {
@@ -112,7 +112,7 @@ public class BudgetService : IBudgetService
     // ── Contracts ─────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<ContractDto>> GetContractsByProjectAsync(int projectId)
+    public async Task<IEnumerable<ContractDto>> GetContractsByProjectAsync(Guid projectId)
     {
         try
         {
@@ -170,7 +170,7 @@ public class BudgetService : IBudgetService
     }
 
     /// <inheritdoc/>
-    public async Task<ContractDto?> UpdateContractAsync(int id, UpdateContractDto dto)
+    public async Task<ContractDto?> UpdateContractAsync(Guid id, UpdateContractDto dto)
     {
         try
         {
@@ -203,7 +203,7 @@ public class BudgetService : IBudgetService
 
     /// <inheritdoc/>
     /// <remarks>Performs a soft delete by setting <c>IsActive = false</c>.</remarks>
-    public async Task<bool> DeleteContractAsync(int id)
+    public async Task<bool> DeleteContractAsync(Guid id)
     {
         try
         {

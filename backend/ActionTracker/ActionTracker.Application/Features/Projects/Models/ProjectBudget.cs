@@ -12,14 +12,14 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class ProjectBudget
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Foreign key of the project this budget belongs to.
     /// Unique — each project may have at most one budget record.
     /// </summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>
     /// Total approved budget for the project.

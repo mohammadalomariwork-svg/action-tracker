@@ -23,7 +23,7 @@ public interface IAppDbContext
 
     // ── Projects feature sets ─────────────────────────────────────────────────
     /// <summary>
-    /// Workspace-scoped strategic objectives (int PK).
+    /// Workspace-scoped strategic objectives (Guid PK).
     /// Distinct from the admin-panel <c>StrategicObjective</c> (Guid PK).
     /// Stored in table "WorkspaceStrategicObjectives".
     /// </summary>
@@ -31,7 +31,7 @@ public interface IAppDbContext
     DbSet<PM.Project>               Projects                     { get; }
     DbSet<PM.Milestone>             Milestones                   { get; }
     /// <summary>
-    /// Project/milestone-scoped action items (int PK).
+    /// Project/milestone-scoped action items (Guid PK).
     /// Distinct from the legacy domain <c>ActionItem</c>.
     /// Stored in table "ProjectActionItems".
     /// </summary>

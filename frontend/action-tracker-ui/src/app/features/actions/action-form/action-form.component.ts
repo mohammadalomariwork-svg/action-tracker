@@ -121,7 +121,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode.set(true);
-      this.loadForEdit(+id);
+      this.loadForEdit(id);
     }
 
     this.wireValueChanges();
@@ -133,7 +133,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   }
 
   // ── Load for edit ─────────────────────────────────────
-  private loadForEdit(id: number): void {
+  private loadForEdit(id: string): void {
     this.loadingItem.set(true);
     this.actionSvc.getById(id).subscribe({
       next: r => {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -15,21 +16,21 @@ public interface ICommentService
     /// creation time ascending.
     /// </summary>
     /// <param name="actionItemId">Primary key of the action item.</param>
-    Task<IEnumerable<CommentDto>> GetByActionItemAsync(int actionItemId);
+    Task<IEnumerable<CommentDto>> GetByActionItemAsync(Guid actionItemId);
 
     /// <summary>
     /// Returns all comments posted on the specified milestone, ordered by
     /// creation time ascending.
     /// </summary>
     /// <param name="milestoneId">Primary key of the milestone.</param>
-    Task<IEnumerable<CommentDto>> GetByMilestoneAsync(int milestoneId);
+    Task<IEnumerable<CommentDto>> GetByMilestoneAsync(Guid milestoneId);
 
     /// <summary>
     /// Returns all comments posted directly on the specified project (not on
     /// nested milestones or action items), ordered by creation time ascending.
     /// </summary>
     /// <param name="projectId">Primary key of the project.</param>
-    Task<IEnumerable<CommentDto>> GetByProjectAsync(int projectId);
+    Task<IEnumerable<CommentDto>> GetByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Posts a new comment.  Exactly one of the target ID fields
@@ -53,7 +54,7 @@ public interface ICommentService
     /// <returns>
     /// The updated comment, or <c>null</c> if not found or not authorised.
     /// </returns>
-    Task<CommentDto?> UpdateAsync(int id, UpdateCommentDto dto, string requestingUserId);
+    Task<CommentDto?> UpdateAsync(Guid id, UpdateCommentDto dto, string requestingUserId);
 
     /// <summary>
     /// Deletes a comment.  Only the original author or a workspace admin may
@@ -67,5 +68,5 @@ public interface ICommentService
     /// <c>true</c> if the comment was found and deleted; <c>false</c> if not
     /// found or not authorised.
     /// </returns>
-    Task<bool> DeleteAsync(int id, string requestingUserId);
+    Task<bool> DeleteAsync(Guid id, string requestingUserId);
 }

@@ -14,10 +14,10 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class MilestoneListDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Project this milestone belongs to.</summary>
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>Human-readable title of the milestone.</summary>
     public string Title { get; set; } = string.Empty;
@@ -77,7 +77,7 @@ public class CreateMilestoneDto
 {
     /// <summary>Project the milestone belongs to (required).</summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>Human-readable milestone title (required, max 300 chars).</summary>
     [Required]
@@ -112,7 +112,7 @@ public class UpdateMilestoneDto
 {
     /// <summary>Primary key of the milestone to update (required).</summary>
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Updated title (max 300 chars).</summary>
     [MaxLength(300)]

@@ -20,7 +20,7 @@ import {
   styleUrl: './milestone-list.component.scss',
 })
 export class MilestoneListComponent implements OnInit {
-  @Input({ required: true }) projectId!: number;
+  @Input({ required: true }) projectId!: string;
   @Input() isBaselined = false;
   @Input() canEdit = false;
 
@@ -34,7 +34,7 @@ export class MilestoneListComponent implements OnInit {
 
   showForm = false;
   editingMilestone: MilestoneDetail | undefined = undefined;
-  expandedMilestoneId: number | null = null;
+  expandedMilestoneId: string | null = null;
 
   newMilestoneForm!: FormGroup;
 
@@ -50,12 +50,12 @@ export class MilestoneListComponent implements OnInit {
 
   // ── Accordion toggle ───────────────────────────────────────────────────────
 
-  toggleAccordion(milestoneId: number): void {
+  toggleAccordion(milestoneId: string): void {
     this.expandedMilestoneId =
       this.expandedMilestoneId === milestoneId ? null : milestoneId;
   }
 
-  isExpanded(milestoneId: number): boolean {
+  isExpanded(milestoneId: string): boolean {
     return this.expandedMilestoneId === milestoneId;
   }
 
@@ -90,7 +90,7 @@ export class MilestoneListComponent implements OnInit {
     this.loadMilestones();
   }
 
-  onDeleteMilestone(id: number): void {
+  onDeleteMilestone(id: string): void {
     if (!confirm('Are you sure you want to delete this milestone?')) return;
 
     this.milestoneService

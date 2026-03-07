@@ -11,7 +11,7 @@ namespace ActionTracker.Application.Features.Projects.DTOs;
 public class DocumentDto
 {
     /// <summary>Primary key.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>User-supplied display title for the document.</summary>
     public string Title { get; set; } = string.Empty;
@@ -55,13 +55,13 @@ public class UploadDocumentDto
     /// FK of the project to attach this document to (nullable).
     /// Set this or <see cref="ActionItemId"/>, not both.
     /// </summary>
-    public int? ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     /// <summary>
     /// FK of the action item to attach this document to (nullable).
     /// Set this or <see cref="ProjectId"/>, not both.
     /// </summary>
-    public int? ActionItemId { get; set; }
+    public Guid? ActionItemId { get; set; }
 
     /// <summary>AspNetUsers.Id of the uploader (required).</summary>
     [Required]

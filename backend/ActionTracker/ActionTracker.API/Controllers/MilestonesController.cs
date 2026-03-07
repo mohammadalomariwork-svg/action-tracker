@@ -32,9 +32,9 @@ public class MilestonesController : ControllerBase
     // ── GET api/milestones/project/{projectId} ────────────────────────────────
 
     /// <summary>Returns all active milestones for a project, ordered by SequenceOrder.</summary>
-    [HttpGet("project/{projectId:int}")]
+    [HttpGet("project/{projectId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<MilestoneListDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProject(int projectId)
+    public async Task<IActionResult> GetByProject(Guid projectId)
     {
         _logger.LogInformation("GET api/milestones/project/{ProjectId}", projectId);
         var result = await _service.GetByProjectAsync(projectId);
@@ -44,10 +44,10 @@ public class MilestonesController : ControllerBase
     // ── GET api/milestones/{id} ───────────────────────────────────────────────
 
     /// <summary>Returns a milestone's full detail including action items and comments.</summary>
-    [HttpGet("{id:int}", Name = nameof(GetMilestoneById))]
+    [HttpGet("{id:guid}", Name = nameof(GetMilestoneById))]
     [ProducesResponseType(typeof(ApiResponse<MilestoneDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMilestoneById(int id)
+    public async Task<IActionResult> GetMilestoneById(Guid id)
     {
         _logger.LogInformation("GET api/milestones/{Id}", id);
         var result = await _service.GetByIdAsync(id);
@@ -79,12 +79,12 @@ public class MilestonesController : ControllerBase
     // ── PUT api/milestones/{id} ───────────────────────────────────────────────
 
     /// <summary>Updates a milestone's fields. Restricted to Admin and Manager roles.</summary>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(typeof(ApiResponse<MilestoneDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateMilestoneDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMilestoneDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
@@ -103,11 +103,11 @@ public class MilestonesController : ControllerBase
     /// Soft-deletes a milestone and cascades the soft-delete to its child action items.
     /// Restricted to Admin and Manager roles.
     /// </summary>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         _logger.LogInformation("DELETE api/milestones/{Id} by user {UserId}", id, CurrentUserId);
 
@@ -124,12 +124,12 @@ public class MilestonesController : ControllerBase
     /// The request body must contain every milestone ID in the desired display order.
     /// Restricted to Admin and Manager roles.
     /// </summary>
-    [HttpPut("project/{projectId:int}/reorder")]
+    [HttpPut("project/{projectId:guid}/reorder")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Reorder(int projectId, [FromBody] List<int> orderedMilestoneIds)
+    public async Task<IActionResult> Reorder(Guid projectId, [FromBody] List<Guid> orderedMilestoneIds)
     {
         if (orderedMilestoneIds is null || orderedMilestoneIds.Count == 0)
             return BadRequest(ApiResponse<string>.Fail("orderedMilestoneIds must not be empty."));

@@ -13,13 +13,13 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class Milestone
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Foreign key of the project this milestone belongs to.
     /// </summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>
     /// Human-readable title of the milestone / work package.

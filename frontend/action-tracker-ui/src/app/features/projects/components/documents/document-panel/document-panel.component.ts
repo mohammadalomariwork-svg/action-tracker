@@ -34,8 +34,8 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
   styleUrl: './document-panel.component.scss',
 })
 export class DocumentPanelComponent implements OnInit {
-  @Input() projectId?: number;
-  @Input() actionItemId?: number;
+  @Input() projectId?: string;
+  @Input() actionItemId?: string;
 
   private readonly documentService = inject(DocumentService);
   private readonly fb = inject(FormBuilder);
@@ -164,7 +164,7 @@ export class DocumentPanelComponent implements OnInit {
       });
   }
 
-  onDelete(id: number): void {
+  onDelete(id: string): void {
     if (!confirm('Are you sure you want to delete this document?')) return;
 
     const delete$ = this.projectId

@@ -15,7 +15,7 @@ import { ProjectBudget, Contract } from '../../../models/project.models';
   styleUrl: './budget-panel.component.scss',
 })
 export class BudgetPanelComponent implements OnInit {
-  @Input({ required: true }) projectId!: number;
+  @Input({ required: true }) projectId!: string;
   @Input() canEdit = false;
 
   readonly Math = Math;
@@ -31,7 +31,7 @@ export class BudgetPanelComponent implements OnInit {
 
   showBudgetForm = false;
   showContractForm = false;
-  editingContractId: number | null = null;
+  editingContractId: string | null = null;
 
   budgetForm!: FormGroup;
   contractForm!: FormGroup;
@@ -192,7 +192,7 @@ export class BudgetPanelComponent implements OnInit {
     });
   }
 
-  onDeleteContract(id: number): void {
+  onDeleteContract(id: string): void {
     if (!confirm('Are you sure you want to delete this contract?')) return;
 
     this.budgetService

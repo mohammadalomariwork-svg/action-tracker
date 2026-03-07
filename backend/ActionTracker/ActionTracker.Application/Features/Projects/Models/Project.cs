@@ -14,13 +14,13 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class Project
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
     /// Foreign key of the workspace this project belongs to.
     /// </summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>
     /// Human-readable title of the project.
@@ -52,7 +52,7 @@ public class Project
     /// Required when <see cref="ProjectType"/> is <see cref="ProjectType.Strategic"/>;
     /// <c>null</c> for operational projects.
     /// </summary>
-    public int? StrategicObjectiveId { get; set; }
+    public Guid? StrategicObjectiveId { get; set; }
 
     // ── Sponsor ───────────────────────────────────────────────────────────────
 

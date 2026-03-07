@@ -24,7 +24,7 @@ export enum ActionCategory {
 }
 
 export interface ActionItem {
-  id: number;
+  id: string;
   actionId: string;
   title: string;
   description: string;

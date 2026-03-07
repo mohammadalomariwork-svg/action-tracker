@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -15,14 +16,14 @@ public interface IMilestoneService
     /// their display order.
     /// </summary>
     /// <param name="projectId">Primary key of the parent project.</param>
-    Task<IEnumerable<MilestoneListDto>> GetByProjectAsync(int projectId);
+    Task<IEnumerable<MilestoneListDto>> GetByProjectAsync(Guid projectId);
 
     /// <summary>
     /// Returns the milestone with the given primary key including its nested
     /// action items, or <c>null</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the milestone.</param>
-    Task<MilestoneDetailDto?> GetByIdAsync(int id);
+    Task<MilestoneDetailDto?> GetByIdAsync(Guid id);
 
     /// <summary>
     /// Creates a new milestone from the supplied data.
@@ -40,7 +41,7 @@ public interface IMilestoneService
     /// <returns>
     /// The updated milestone, or <c>null</c> if not found.
     /// </returns>
-    Task<MilestoneDetailDto?> UpdateAsync(int id, UpdateMilestoneDto dto);
+    Task<MilestoneDetailDto?> UpdateAsync(Guid id, UpdateMilestoneDto dto);
 
     /// <summary>
     /// Deletes the milestone with the given primary key.
@@ -49,7 +50,7 @@ public interface IMilestoneService
     /// <returns>
     /// <c>true</c> if the record was found and deleted; <c>false</c> otherwise.
     /// </returns>
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(Guid id);
 
     /// <summary>
     /// Persists the display order of all milestones within a project based on
@@ -64,5 +65,5 @@ public interface IMilestoneService
     /// <c>true</c> if the reorder succeeded; <c>false</c> if the project or
     /// any ID was not found.
     /// </returns>
-    Task<bool> ReorderMilestonesAsync(int projectId, List<int> orderedMilestoneIds);
+    Task<bool> ReorderMilestonesAsync(Guid projectId, List<Guid> orderedMilestoneIds);
 }

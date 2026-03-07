@@ -15,9 +15,9 @@ import { Comment } from '../../../models/project.models';
   styleUrl: './comment-panel.component.scss',
 })
 export class CommentPanelComponent implements OnInit {
-  @Input() projectId?: number;
-  @Input() milestoneId?: number;
-  @Input() actionItemId?: number;
+  @Input() projectId?: string;
+  @Input() milestoneId?: string;
+  @Input() actionItemId?: string;
 
   private readonly commentService = inject(CommentService);
   private readonly authService = inject(AuthService);
@@ -29,7 +29,7 @@ export class CommentPanelComponent implements OnInit {
   errorMessage: string | null = null;
 
   newCommentContent = '';
-  editingCommentId: number | null = null;
+  editingCommentId: string | null = null;
   editContent = '';
 
   currentUserId = '';
@@ -120,7 +120,7 @@ export class CommentPanelComponent implements OnInit {
     this.editContent = '';
   }
 
-  onSaveEdit(id: number): void {
+  onSaveEdit(id: string): void {
     const content = this.editContent.trim();
     if (!content) return;
 
@@ -141,7 +141,7 @@ export class CommentPanelComponent implements OnInit {
 
   // ── Delete comment ──────────────────────────────────────────────────────────
 
-  onDeleteComment(id: number): void {
+  onDeleteComment(id: string): void {
     if (!confirm('Are you sure you want to delete this comment?')) return;
 
     this.commentService

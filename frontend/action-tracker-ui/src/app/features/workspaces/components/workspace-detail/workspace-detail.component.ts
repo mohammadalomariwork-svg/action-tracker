@@ -34,7 +34,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
 
-  workspaceId!: number;
+  workspaceId!: string;
   workspace: WorkspaceList | null = null;
   projects: ProjectList[] = [];
   standaloneActions: ActionItemList[] = [];
@@ -50,7 +50,7 @@ export class WorkspaceDetailComponent implements OnInit {
   readonly ActionItemPriority = ActionItemPriority;
 
   ngOnInit(): void {
-    this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
+    this.workspaceId = this.route.snapshot.paramMap.get('id')!;
     this.loadData();
   }
 
@@ -103,7 +103,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   /** Navigates to the project detail page. */
-  navigateToProject(projectId: number): void {
+  navigateToProject(projectId: string): void {
     this.router.navigate(['/projects', projectId]);
   }
 
@@ -122,7 +122,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   /** Confirms and deletes a project, then reloads the list. */
-  onDeleteProject(projectId: number): void {
+  onDeleteProject(projectId: string): void {
     if (!confirm('Are you sure you want to delete this project?')) return;
 
     this.projectService

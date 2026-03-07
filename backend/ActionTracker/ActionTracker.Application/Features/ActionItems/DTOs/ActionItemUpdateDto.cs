@@ -6,7 +6,7 @@ namespace ActionTracker.Application.Features.ActionItems.DTOs;
 public class ActionItemUpdateDto
 {
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     [MaxLength(255)]
     public string? Title { get; set; }

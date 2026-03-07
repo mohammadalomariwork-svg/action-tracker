@@ -22,7 +22,7 @@ export class BaselineService {
    * @param projectId The project to fetch the baseline for.
    * @returns Observable of the project baseline, or null if none exists.
    */
-  getByProject(projectId: number): Observable<ProjectBaseline | null> {
+  getByProject(projectId: string): Observable<ProjectBaseline | null> {
     return this.http.get<ProjectBaseline | null>(`${this.apiUrl}/project/${projectId}`);
   }
 
@@ -31,7 +31,7 @@ export class BaselineService {
    * @param projectId The project to fetch change requests for.
    * @returns Observable of baseline change requests.
    */
-  getChangeRequests(projectId: number): Observable<BaselineChangeRequest[]> {
+  getChangeRequests(projectId: string): Observable<BaselineChangeRequest[]> {
     return this.http.get<BaselineChangeRequest[]>(
       `${this.apiUrl}/project/${projectId}/change-requests`
     );
@@ -53,7 +53,7 @@ export class BaselineService {
    * @returns Observable of the updated change request.
    */
   reviewChangeRequest(
-    id: number,
+    id: string,
     data: { status: ChangeRequestStatus; reviewNotes?: string }
   ): Observable<BaselineChangeRequest> {
     return this.http.put<BaselineChangeRequest>(
@@ -66,7 +66,7 @@ export class BaselineService {
    * Implements an approved baseline change request.
    * @param id Primary key of the change request to implement.
    */
-  implementChange(id: number): Observable<void> {
+  implementChange(id: string): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/change-requests/${id}/implement`, {});
   }
 }

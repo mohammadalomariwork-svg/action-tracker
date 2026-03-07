@@ -22,7 +22,7 @@ export class WorkspaceFormComponent implements OnInit {
   private readonly destroyRef       = inject(DestroyRef);
 
   isEditMode    = false;
-  workspaceId: number | null = null;
+  workspaceId: string | null = null;
   isLoading     = false;
   errorMessage: string | null = null;
 
@@ -42,7 +42,7 @@ export class WorkspaceFormComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.isEditMode  = true;
-      this.workspaceId = +idParam;
+      this.workspaceId = idParam;
     }
 
     this.buildForm();
@@ -129,7 +129,7 @@ export class WorkspaceFormComponent implements OnInit {
       });
   }
 
-  private loadWorkspace(id: number): void {
+  private loadWorkspace(id: string): void {
     this.isLoading = true;
 
     this.workspaceService

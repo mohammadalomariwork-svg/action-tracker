@@ -23,7 +23,7 @@ export class MilestoneService {
    * @param projectId The project to fetch milestones for.
    * @returns Observable of milestone list items.
    */
-  getByProject(projectId: number): Observable<MilestoneList[]> {
+  getByProject(projectId: string): Observable<MilestoneList[]> {
     return this.http.get<MilestoneList[]>(`${this.apiUrl}/project/${projectId}`);
   }
 
@@ -32,7 +32,7 @@ export class MilestoneService {
    * @param id Primary key of the milestone.
    * @returns Observable of the milestone detail.
    */
-  getById(id: number): Observable<MilestoneDetail> {
+  getById(id: string): Observable<MilestoneDetail> {
     return this.http.get<MilestoneDetail>(`${this.apiUrl}/${id}`);
   }
 
@@ -51,7 +51,7 @@ export class MilestoneService {
    * @param data Update payload.
    * @returns Observable of the updated milestone detail.
    */
-  update(id: number, data: UpdateMilestone): Observable<MilestoneDetail> {
+  update(id: string, data: UpdateMilestone): Observable<MilestoneDetail> {
     return this.http.put<MilestoneDetail>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -59,7 +59,7 @@ export class MilestoneService {
    * Deletes a milestone.
    * @param id Primary key of the milestone to delete.
    */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
@@ -68,7 +68,7 @@ export class MilestoneService {
    * @param projectId The project whose milestones are being reordered.
    * @param orderedIds Array of milestone IDs in the desired order.
    */
-  reorder(projectId: number, orderedIds: number[]): Observable<void> {
+  reorder(projectId: string, orderedIds: string[]): Observable<void> {
     return this.http.put<void>(
       `${this.apiUrl}/project/${projectId}/reorder`,
       orderedIds

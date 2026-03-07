@@ -28,7 +28,7 @@ import {
 })
 export class MilestoneFormComponent implements OnInit, OnChanges {
   @Input() milestone?: MilestoneDetail;
-  @Input({ required: true }) projectId!: number;
+  @Input({ required: true }) projectId!: string;
   @Input() isBaselined = false;
 
   @Output() saved = new EventEmitter<MilestoneDetail>();

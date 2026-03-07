@@ -38,9 +38,9 @@ public class CommentsController : ControllerBase
     // ── GET api/comments/action-item/{actionItemId} ───────────────────────────
 
     /// <summary>Returns all active comments on an action item, ordered chronologically.</summary>
-    [HttpGet("action-item/{actionItemId:int}")]
+    [HttpGet("action-item/{actionItemId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<CommentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByActionItem(int actionItemId)
+    public async Task<IActionResult> GetByActionItem(Guid actionItemId)
     {
         _logger.LogInformation("GET api/comments/action-item/{ActionItemId}", actionItemId);
         var result = await _service.GetByActionItemAsync(actionItemId);
@@ -50,9 +50,9 @@ public class CommentsController : ControllerBase
     // ── GET api/comments/milestone/{milestoneId} ──────────────────────────────
 
     /// <summary>Returns all active comments on a milestone, ordered chronologically.</summary>
-    [HttpGet("milestone/{milestoneId:int}")]
+    [HttpGet("milestone/{milestoneId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<CommentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByMilestone(int milestoneId)
+    public async Task<IActionResult> GetByMilestone(Guid milestoneId)
     {
         _logger.LogInformation("GET api/comments/milestone/{MilestoneId}", milestoneId);
         var result = await _service.GetByMilestoneAsync(milestoneId);
@@ -62,9 +62,9 @@ public class CommentsController : ControllerBase
     // ── GET api/comments/project/{projectId} ──────────────────────────────────
 
     /// <summary>Returns all active project-level comments, ordered chronologically.</summary>
-    [HttpGet("project/{projectId:int}")]
+    [HttpGet("project/{projectId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<CommentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProject(int projectId)
+    public async Task<IActionResult> GetByProject(Guid projectId)
     {
         _logger.LogInformation("GET api/comments/project/{ProjectId}", projectId);
         var result = await _service.GetByProjectAsync(projectId);
@@ -110,12 +110,12 @@ public class CommentsController : ControllerBase
     /// Edits a comment's body. Only the original author may call this endpoint.
     /// Returns 403 Forbidden if the requesting user is not the author.
     /// </summary>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<CommentDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateCommentDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCommentDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
@@ -142,11 +142,11 @@ public class CommentsController : ControllerBase
     /// Deletes a comment. Only the original author or an Admin may delete.
     /// Returns 403 Forbidden if the requesting user has neither permission.
     /// </summary>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         _logger.LogInformation("DELETE api/comments/{Id} by user {UserId}", id, CurrentUserId);
 

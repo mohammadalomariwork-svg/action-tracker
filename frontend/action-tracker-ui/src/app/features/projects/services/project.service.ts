@@ -24,7 +24,7 @@ export class ProjectService {
    * @param workspaceId The workspace to fetch projects for.
    * @returns Observable of project list items.
    */
-  getByWorkspace(workspaceId: number): Observable<ProjectList[]> {
+  getByWorkspace(workspaceId: string): Observable<ProjectList[]> {
     return this.http.get<ProjectList[]>(`${this.apiUrl}/workspace/${workspaceId}`);
   }
 
@@ -33,7 +33,7 @@ export class ProjectService {
    * @param id Primary key of the project.
    * @returns Observable of the project detail.
    */
-  getById(id: number): Observable<ProjectDetail> {
+  getById(id: string): Observable<ProjectDetail> {
     return this.http.get<ProjectDetail>(`${this.apiUrl}/${id}`);
   }
 
@@ -42,7 +42,7 @@ export class ProjectService {
    * @param id Primary key of the project.
    * @returns Observable of the full project detail.
    */
-  getFullDetail(id: number): Observable<any> {
+  getFullDetail(id: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/${id}/full`);
   }
 
@@ -61,7 +61,7 @@ export class ProjectService {
    * @param data Update payload.
    * @returns Observable of the updated project detail.
    */
-  update(id: number, data: UpdateProject): Observable<ProjectDetail> {
+  update(id: string, data: UpdateProject): Observable<ProjectDetail> {
     return this.http.put<ProjectDetail>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -69,7 +69,7 @@ export class ProjectService {
    * Deletes a project.
    * @param id Primary key of the project to delete.
    */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
@@ -78,7 +78,7 @@ export class ProjectService {
    * @param id Primary key of the project to baseline.
    * @returns Observable of the created baseline.
    */
-  baselineProject(id: number): Observable<ProjectBaseline> {
+  baselineProject(id: string): Observable<ProjectBaseline> {
     return this.http.post<ProjectBaseline>(`${this.apiUrl}/${id}/baseline`, {});
   }
 
@@ -87,7 +87,7 @@ export class ProjectService {
    * @param id Primary key of the project.
    * @returns Observable of the project baseline.
    */
-  getBaseline(id: number): Observable<ProjectBaseline> {
+  getBaseline(id: string): Observable<ProjectBaseline> {
     return this.http.get<ProjectBaseline>(`${this.apiUrl}/${id}/baseline`);
   }
 }

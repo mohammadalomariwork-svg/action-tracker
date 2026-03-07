@@ -37,7 +37,7 @@ export class StrategicObjectiveService {
    * @param id Primary key of the strategic objective.
    * @returns Observable of the strategic objective.
    */
-  getById(id: number): Observable<StrategicObjective> {
+  getById(id: string): Observable<StrategicObjective> {
     return this.http.get<StrategicObjective>(`${this.apiUrl}/${id}`);
   }
 
@@ -56,7 +56,7 @@ export class StrategicObjectiveService {
    * @param data Update payload.
    * @returns Observable of the updated strategic objective.
    */
-  update(id: number, data: Partial<StrategicObjective>): Observable<StrategicObjective> {
+  update(id: string, data: Partial<StrategicObjective>): Observable<StrategicObjective> {
     return this.http.put<StrategicObjective>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -64,7 +64,7 @@ export class StrategicObjectiveService {
    * Deletes a strategic objective.
    * @param id Primary key of the strategic objective to delete.
    */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }

@@ -40,12 +40,12 @@ public class ActionItemsController : ControllerBase
     // GET api/action-items/{id}
     // -------------------------------------------------------------------------
 
-    /// <summary>Returns a single action item by integer ID, or 404 if not found.</summary>
-    [HttpGet("{id:int}", Name = nameof(GetById))]
+    /// <summary>Returns a single action item by GUID ID, or 404 if not found.</summary>
+    [HttpGet("{id:guid}", Name = nameof(GetById))]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> GetById(
-        int id, CancellationToken ct)
+        Guid id, CancellationToken ct)
     {
         var item = await _service.GetByIdAsync(id, ct);
 
@@ -88,11 +88,11 @@ public class ActionItemsController : ControllerBase
     // -------------------------------------------------------------------------
 
     /// <summary>Updates an existing action item. Only supplied fields are changed.</summary>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> Update(
-        int id, [FromBody] ActionItemUpdateDto dto, CancellationToken ct)
+        Guid id, [FromBody] ActionItemUpdateDto dto, CancellationToken ct)
     {
         try
         {
@@ -111,11 +111,11 @@ public class ActionItemsController : ControllerBase
     // -------------------------------------------------------------------------
 
     /// <summary>Soft-deletes an action item. Restricted to Admin and Manager roles.</summary>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         try
         {
@@ -134,11 +134,11 @@ public class ActionItemsController : ControllerBase
     // -------------------------------------------------------------------------
 
     /// <summary>Updates the status of an action item. Completing an item sets Progress to 100.</summary>
-    [HttpPatch("{id:int}/status")]
+    [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> UpdateStatus(
-        int id, [FromBody] UpdateStatusRequest request, CancellationToken ct)
+        Guid id, [FromBody] UpdateStatusRequest request, CancellationToken ct)
     {
         try
         {

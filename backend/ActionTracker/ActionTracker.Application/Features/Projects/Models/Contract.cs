@@ -12,11 +12,11 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class Contract
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>Foreign key of the project this contract belongs to.</summary>
     [Required]
-    public int ProjectId { get; set; }
+    public Guid ProjectId { get; set; }
 
     /// <summary>
     /// Official contract or purchase-order number used for tracking

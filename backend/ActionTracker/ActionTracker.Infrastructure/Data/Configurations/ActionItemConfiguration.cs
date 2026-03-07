@@ -11,6 +11,7 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
         builder.ToTable("ActionItems");
 
         builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
 
         builder.Property(a => a.ActionId)
             .IsRequired()

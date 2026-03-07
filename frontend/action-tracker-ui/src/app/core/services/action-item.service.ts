@@ -26,7 +26,7 @@ export class ActionItemService {
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(this.apiUrl, { params });
   }
 
-  getById(id: number): Observable<ApiResponse<ActionItem>> {
+  getById(id: string): Observable<ApiResponse<ActionItem>> {
     return this.http.get<ApiResponse<ActionItem>>(`${this.apiUrl}/${id}`);
   }
 
@@ -34,15 +34,15 @@ export class ActionItemService {
     return this.http.post<ApiResponse<ActionItem>>(this.apiUrl, item);
   }
 
-  update(id: number, item: Partial<ActionItemCreate>): Observable<ApiResponse<ActionItem>> {
+  update(id: string, item: Partial<ActionItemCreate>): Observable<ApiResponse<ActionItem>> {
     return this.http.put<ApiResponse<ActionItem>>(`${this.apiUrl}/${id}`, item);
   }
 
-  delete(id: number): Observable<ApiResponse<void>> {
+  delete(id: string): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
   }
 
-  updateStatus(id: number, status: ActionStatus): Observable<ApiResponse<ActionItem>> {
+  updateStatus(id: string, status: ActionStatus): Observable<ApiResponse<ActionItem>> {
     return this.http.patch<ApiResponse<ActionItem>>(`${this.apiUrl}/${id}/status`, { status });
   }
 

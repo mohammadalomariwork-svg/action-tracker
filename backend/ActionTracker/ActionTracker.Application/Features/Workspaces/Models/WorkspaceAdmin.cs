@@ -1,3 +1,5 @@
+using System;
+
 namespace ActionTracker.Application.Features.Workspaces.Models;
 
 /// <summary>
@@ -7,10 +9,10 @@ namespace ActionTracker.Application.Features.Workspaces.Models;
 public class WorkspaceAdmin
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>Foreign key to the owning workspace.</summary>
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>
     /// The <c>Id</c> of the AspNetUsers record.

@@ -11,11 +11,11 @@ namespace ActionTracker.Application.Features.Projects.Models;
 public class ActionDocument
 {
     /// <summary>Primary key — auto-incremented integer identity.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>Foreign key of the action item this document is attached to.</summary>
     [Required]
-    public int ActionItemId { get; set; }
+    public Guid ActionItemId { get; set; }
 
     /// <summary>
     /// User-supplied display title for the document
