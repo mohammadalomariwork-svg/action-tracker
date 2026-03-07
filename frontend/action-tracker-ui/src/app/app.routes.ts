@@ -97,6 +97,13 @@ export const routes: Routes = [
           import('./features/projects/project.routes').then(m => m.default),
       },
       {
+        path: 'action-items/:id',
+        loadComponent: () =>
+          import('./features/projects/components/action-item-detail/action-item-detail.component').then(
+            m => m.ActionItemDetailComponent
+          ),
+      },
+      {
         path: 'admin',
         loadChildren: () =>
           import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
