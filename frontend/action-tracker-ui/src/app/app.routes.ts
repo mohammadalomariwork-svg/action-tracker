@@ -97,11 +97,17 @@ export const routes: Routes = [
           import('./features/projects/project.routes').then(m => m.default),
       },
       {
-        path: 'action-items/:id',
+        path: 'workspaces/:id',
         loadComponent: () =>
-          import('./features/projects/components/action-item-detail/action-item-detail.component').then(
-            m => m.ActionItemDetailComponent
+          import('./features/workspaces/components/workspace-detail/workspace-detail.component').then(
+            m => m.WorkspaceDetailComponent
           ),
+        canActivate: [authGuard],
+      },
+      {
+        path: 'action-items',
+        loadChildren: () =>
+          import('./features/action-items/action-item.routes').then(m => m.default),
       },
       {
         path: 'admin',
