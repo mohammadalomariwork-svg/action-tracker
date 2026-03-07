@@ -11,8 +11,8 @@ import { ProjectBudget, Contract } from '../models/project.models';
 @Injectable({ providedIn: 'root' })
 export class BudgetService {
   private readonly http = inject(HttpClient);
-  private readonly budgetUrl = `${environment.apiUrl}/budgets`;
-  private readonly contractUrl = `${environment.apiUrl}/contracts`;
+  private readonly budgetUrl = `${environment.apiUrl}/budget`;
+  private readonly contractUrl = `${environment.apiUrl}/budget/contracts`;
 
   /**
    * Fetches the budget for a given project.
@@ -38,7 +38,7 @@ export class BudgetService {
    * @returns Observable of contracts.
    */
   getContracts(projectId: string): Observable<Contract[]> {
-    return this.http.get<Contract[]>(`${this.contractUrl}/project/${projectId}`);
+    return this.http.get<Contract[]>(`${this.budgetUrl}/project/${projectId}/contracts`);
   }
 
   /**

@@ -8,13 +8,8 @@ import { ProjectDetailComponent } from './components/project-detail/project-deta
 const projectRoutes: Routes = [
   {
     path: '',
-    redirectTo: 'workspaces',
+    redirectTo: '/workspaces',
     pathMatch: 'full',
-  },
-  {
-    path: ':id',
-    component: ProjectDetailComponent,
-    canActivate: [authGuard],
   },
   {
     path: 'new',
@@ -27,6 +22,11 @@ const projectRoutes: Routes = [
     component: ProjectFormComponent,
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin', 'Manager'] },
+  },
+  {
+    path: ':id',
+    component: ProjectDetailComponent,
+    canActivate: [authGuard],
   },
 ];
 
