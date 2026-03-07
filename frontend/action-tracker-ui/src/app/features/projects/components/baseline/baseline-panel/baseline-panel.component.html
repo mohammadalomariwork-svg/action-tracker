@@ -1,0 +1,317 @@
+<div class="blp-container">
+
+  <!-- ── Error alert ───────────────────────────────────────────────────────── -->
+  @if (errorMessage) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <!-- ── Success alert ─────────────────────────────────────────────────────── -->
+  @if (successMessage) {
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+
+  <!-- ── Loading ───────────────────────────────────────────────────────────── -->
+  @if (isLoading) {
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  @if (!isLoading) {
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SECTION: Baseline Info                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="blp-section">
+      <h5 class="mb-3">
+        <i class="bi bi-lock me-2"></i>Baseline Info
+      </h5>
+
+      @if (!project.isBaselined) {
+        <!-- Not baselined -->
+        <div class="card blp-info-card">
+          <div class="card-body">
+            <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
+              <i class="bi bi-info-circle-fill mt-1"></i>
+              <div>
+                <strong>This project has not been baselined yet.</strong>
+                <p class="mb-0 mt-1 small">
+                  Baselining captures a snapshot of the current planned dates. Once baselined,
+                  planned dates on the project and its milestones become frozen. Any date changes
+                  must be submitted as formal change requests and approved by the sponsor.
+                </p>
+              </div>
+            </div>
+            @if (canBaseline) {
+              <button class="btn btn-dark" (click)="onBaselineProject()">
+                <i class="bi bi-lock me-1"></i>Baseline Project
+              </button>
+            }
+          </div>
+        </div>
+      } @else {
+        <!-- Baselined -->
+        <div class="card blp-baseline-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span class="badge bg-dark">
+                <i class="bi bi-lock-fill me-1"></i>Frozen
+              </span>
+              <span class="text-muted small">Planned dates are locked</span>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="blp-detail-item">
+                  <span class="blp-detail-label">Baselined At</span>
+                  <span class="blp-detail-value">{{ baseline?.baselinedAt | date:'medium' }}</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="blp-detail-item">
+                  <span class="blp-detail-label">Baselined By</span>
+                  <span class="blp-detail-value">{{ baseline?.baselinedByUserName }}</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="blp-detail-item">
+                  <span class="blp-detail-label">Baseline Planned Dates</span>
+                  <span class="blp-detail-value">
+                    {{ baseline?.baselinePlannedStartDate | date:'mediumDate' }} –
+                    {{ baseline?.baselinePlannedEndDate | date:'mediumDate' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SECTION: Change Requests                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    @if (project.isBaselined) {
+      <div class="blp-section">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0">
+            <i class="bi bi-arrow-repeat me-2"></i>Change Requests
+            <span class="badge bg-secondary ms-1">{{ changeRequests.length }}</span>
+          </h5>
+          @if (!hasPendingRequest) {
+            <button class="btn btn-outline-primary btn-sm" (click)="toggleChangeRequestForm()">
+              <i class="bi bi-plus-circle me-1"></i>Request Date Change
+            </button>
+          }
+        </div>
+
+        <!-- Change request form (collapsible) -->
+        @if (showChangeRequestForm) {
+          <div class="card blp-form-card mb-3">
+            <div class="card-body">
+              <h6 class="fw-semibold mb-3">
+                <i class="bi bi-pencil-square me-1"></i>New Change Request
+              </h6>
+              <form [formGroup]="changeRequestForm" (ngSubmit)="onSubmitChangeRequest()" novalidate>
+                <div class="mb-3">
+                  <label for="blpJustification" class="form-label">
+                    Justification <span class="text-danger">*</span>
+                  </label>
+                  <textarea
+                    id="blpJustification"
+                    class="form-control form-control-sm"
+                    formControlName="changeJustification"
+                    rows="3"
+                    placeholder="Explain why this change is needed…"
+                    [class.is-invalid]="isCrFormInvalid('changeJustification')"
+                  ></textarea>
+                  @if (hasCrFormError('changeJustification', 'required')) {
+                    <div class="invalid-feedback">Justification is required.</div>
+                  } @else if (hasCrFormError('changeJustification', 'maxlength')) {
+                    <div class="invalid-feedback">Maximum 2000 characters.</div>
+                  }
+                </div>
+
+                <div class="mb-3">
+                  <label for="blpProposed" class="form-label">
+                    Proposed Changes <span class="text-danger">*</span>
+                  </label>
+                  <textarea
+                    id="blpProposed"
+                    class="form-control form-control-sm"
+                    formControlName="proposedChangesJson"
+                    rows="4"
+                    placeholder="Describe the proposed new dates for milestones/actions. Example:&#10;Milestone 1: Start 2026-04-01 → 2026-04-15&#10;Milestone 2: End 2026-06-30 → 2026-07-15"
+                    [class.is-invalid]="isCrFormInvalid('proposedChangesJson')"
+                  ></textarea>
+                  @if (hasCrFormError('proposedChangesJson', 'required')) {
+                    <div class="invalid-feedback">Proposed changes are required.</div>
+                  }
+                  <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Describe the proposed new dates for milestones or action items.
+                  </div>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="toggleChangeRequestForm()">
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-send me-1"></i>Submit Request
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        }
+
+        <!-- Change requests table -->
+        @if (changeRequests.length > 0) {
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Requested By</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Justification</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Review Notes</th>
+                  <th scope="col" class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (cr of changeRequests; track cr.id) {
+                  <tr>
+                    <td class="fw-medium">{{ cr.requestedByUserName }}</td>
+                    <td class="text-muted small">{{ cr.createdAt | date:'mediumDate' }}</td>
+                    <td class="text-truncate" style="max-width: 250px;" [title]="cr.changeJustification">
+                      {{ cr.changeJustification }}
+                    </td>
+                    <td>
+                      <span class="badge" [ngClass]="getStatusClass(cr.status)">
+                        {{ getStatusLabel(cr.status) }}
+                      </span>
+                    </td>
+                    <td class="text-muted small">
+                      @if (cr.reviewNotes) {
+                        <span [title]="cr.reviewNotes">{{ cr.reviewNotes }}</span>
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td class="text-end">
+                      <div class="d-flex gap-1 justify-content-end">
+                        <!-- Sponsor: Approve/Reject pending requests -->
+                        @if (isSponsor && cr.status === ChangeRequestStatus.Pending) {
+                          <button
+                            class="btn btn-outline-success btn-sm blp-action-btn"
+                            title="Review this request"
+                            (click)="onReviewRequest(cr)"
+                          >
+                            <i class="bi bi-check-circle me-1"></i>Review
+                          </button>
+                        }
+                        <!-- PM/Admin: Implement approved requests -->
+                        @if (canBaseline && cr.status === ChangeRequestStatus.ApprovedBySponsor) {
+                          <button
+                            class="btn btn-outline-info btn-sm blp-action-btn"
+                            title="Implement this change"
+                            (click)="onImplementChange(cr.id)"
+                          >
+                            <i class="bi bi-gear me-1"></i>Implement
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Inline review form -->
+                  @if (reviewingRequest?.id === cr.id) {
+                    <tr class="blp-review-row">
+                      <td colspan="6">
+                        <div class="card blp-review-card">
+                          <div class="card-body py-3">
+                            <h6 class="fw-semibold mb-3">
+                              <i class="bi bi-clipboard-check me-1"></i>Review Change Request
+                            </h6>
+                            <form [formGroup]="reviewForm" (ngSubmit)="onSubmitReview()" novalidate>
+                              <div class="mb-3">
+                                <label class="form-label d-block">Decision <span class="text-danger">*</span></label>
+                                <div class="btn-group" role="group">
+                                  <input
+                                    type="radio"
+                                    class="btn-check"
+                                    id="reviewApprove"
+                                    formControlName="status"
+                                    [value]="ChangeRequestStatus.ApprovedBySponsor"
+                                  />
+                                  <label class="btn btn-outline-success btn-sm" for="reviewApprove">
+                                    <i class="bi bi-check-lg me-1"></i>Approve
+                                  </label>
+
+                                  <input
+                                    type="radio"
+                                    class="btn-check"
+                                    id="reviewReject"
+                                    formControlName="status"
+                                    [value]="ChangeRequestStatus.Rejected"
+                                  />
+                                  <label class="btn btn-outline-danger btn-sm" for="reviewReject">
+                                    <i class="bi bi-x-lg me-1"></i>Reject
+                                  </label>
+                                </div>
+                              </div>
+
+                              <div class="mb-3">
+                                <label for="reviewNotes" class="form-label">Review Notes</label>
+                                <textarea
+                                  id="reviewNotes"
+                                  class="form-control form-control-sm"
+                                  formControlName="reviewNotes"
+                                  rows="2"
+                                  placeholder="Optional notes for the requester"
+                                ></textarea>
+                              </div>
+
+                              <div class="d-flex gap-2 justify-content-end">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onCancelReview()">
+                                  Cancel
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                  <i class="bi bi-send me-1"></i>Submit Review
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Empty state -->
+        @if (changeRequests.length === 0 && !showChangeRequestForm) {
+          <div class="blp-empty text-center py-4">
+            <i class="bi bi-arrow-repeat blp-empty-icon text-muted"></i>
+            <p class="text-muted mt-2 mb-0">No change requests have been submitted.</p>
+          </div>
+        }
+      </div>
+    }
+
+  }
+
+</div>
