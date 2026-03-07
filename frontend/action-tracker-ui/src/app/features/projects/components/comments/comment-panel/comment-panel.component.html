@@ -1,0 +1,149 @@
+<div class="cp-container">
+
+  <!-- ── Section header ────────────────────────────────────────────────────── -->
+  <h5 class="mb-3">
+    <i class="bi bi-chat-dots me-2"></i>Comments &amp; Updates
+    <span class="badge bg-secondary ms-1">{{ comments.length }}</span>
+  </h5>
+
+  <!-- ── Error alert ───────────────────────────────────────────────────────── -->
+  @if (errorMessage) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <!-- ── Loading ───────────────────────────────────────────────────────────── -->
+  @if (isLoading) {
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Comment Thread                                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (!isLoading && comments.length > 0) {
+    <div class="cp-thread">
+      @for (comment of comments; track comment.id) {
+        <div class="cp-comment" [class.cp-own]="isOwnComment(comment)">
+          <div class="d-flex gap-3">
+            <!-- Avatar -->
+            <div
+              class="cp-avatar flex-shrink-0"
+              [style.background-color]="getAvatarColor(comment.authorUserName)"
+            >
+              {{ getInitials(comment.authorUserName) }}
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow-1 min-width-0">
+              <!-- Header -->
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <span class="fw-semibold small">{{ comment.authorUserName }}</span>
+                @if (comment.isEdited) {
+                  <span class="text-muted small fst-italic">(edited)</span>
+                }
+                <span class="text-muted small ms-auto">
+                  {{ formatRelativeTime(comment.createdAt) }}
+                </span>
+              </div>
+
+              <!-- Body or Edit Mode -->
+              @if (editingCommentId === comment.id) {
+                <div class="cp-edit-form">
+                  <textarea
+                    class="form-control form-control-sm mb-2"
+                    [(ngModel)]="editContent"
+                    rows="3"
+                  ></textarea>
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button class="btn btn-outline-secondary btn-sm" (click)="onCancelEdit()">
+                      Cancel
+                    </button>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      [disabled]="!editContent.trim()"
+                      (click)="onSaveEdit(comment.id)"
+                    >
+                      <i class="bi bi-check-lg me-1"></i>Save
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="cp-content">{{ comment.content }}</div>
+
+                <!-- Actions (own comments only) -->
+                @if (isOwnComment(comment)) {
+                  <div class="cp-actions mt-1">
+                    <button
+                      class="btn btn-link btn-sm text-muted p-0 me-2"
+                      (click)="onEditComment(comment)"
+                    >
+                      <i class="bi bi-pencil me-1"></i>Edit
+                    </button>
+                    <button
+                      class="btn btn-link btn-sm text-danger p-0"
+                      (click)="onDeleteComment(comment.id)"
+                    >
+                      <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Empty state ───────────────────────────────────────────────────────── -->
+  @if (!isLoading && comments.length === 0) {
+    <div class="cp-empty text-center py-4">
+      <i class="bi bi-chat-dots cp-empty-icon text-muted"></i>
+      <p class="text-muted mt-2 mb-0">No comments yet. Be the first to add an update.</p>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- New Comment Form                                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="cp-new-comment mt-3">
+    <div class="d-flex gap-3">
+      <div
+        class="cp-avatar flex-shrink-0"
+        [style.background-color]="getAvatarColor(currentUserName)"
+      >
+        {{ getInitials(currentUserName) }}
+      </div>
+      <div class="flex-grow-1">
+        <textarea
+          class="form-control"
+          [(ngModel)]="newCommentContent"
+          rows="3"
+          placeholder="Add a comment or update…"
+          [disabled]="isSubmitting"
+        ></textarea>
+        <div class="d-flex justify-content-end mt-2">
+          <button
+            class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1"
+            [disabled]="!newCommentContent.trim() || isSubmitting"
+            (click)="onSubmitComment()"
+          >
+            @if (isSubmitting) {
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Posting…
+            } @else {
+              <i class="bi bi-send"></i>Post Comment
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
