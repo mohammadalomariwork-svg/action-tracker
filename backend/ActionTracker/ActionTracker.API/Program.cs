@@ -190,6 +190,7 @@ try
     builder.Services.AddApplicationServices();
     builder.Services.AddUserManagement();
     builder.Services.AddAdminPanelServices();
+    builder.Services.AddProjectsFeatureServices(); // B-P11: Projects feature services
     builder.Services.AddSwaggerWithJwt();
 
     // -----------------------------------------------------------------------
@@ -217,6 +218,14 @@ try
     // Build
     // -----------------------------------------------------------------------
     var app = builder.Build();
+
+    // -----------------------------------------------------------------------
+    // Ensure file-storage directory exists (B-P11 / DocumentService)
+    // -----------------------------------------------------------------------
+    var storagePath = Path.Combine(
+        builder.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+        "uploads", "documents");
+    Directory.CreateDirectory(storagePath);
 
     // -----------------------------------------------------------------------
     // Middleware pipeline (order matters)
