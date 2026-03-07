@@ -13,10 +13,9 @@
         @for (link of visibleLinks(); track link.label) {
           <a
             [routerLink]="link.path"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: link.path === '/dashboard' }"
             (click)="closeMenu()"
             class="nav-link"
+            [class.active]="isLinkActive(link)"
           >
             {{ link.label }}
           </a>
