@@ -46,6 +46,11 @@ export class WorkspaceListComponent implements OnInit {
       });
   }
 
+  /** Navigates to the workspace detail / homepage. */
+  onView(id: number): void {
+    this.router.navigate(['/workspaces', id]);
+  }
+
   /** Navigates to the edit form for the given workspace. */
   onEdit(id: number): void {
     this.router.navigate(['/workspaces/edit', id]);
