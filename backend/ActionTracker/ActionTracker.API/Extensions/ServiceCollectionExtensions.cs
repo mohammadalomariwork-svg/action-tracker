@@ -158,6 +158,11 @@ public static class ServiceCollectionExtensions
             {
                 { securityScheme, Array.Empty<string>() },
             });
+
+            // Prevent schema ID collisions when two features share a DTO name
+            // (e.g. Features.StrategicObjectives.DTOs.StrategicObjectiveDto vs
+            //       Features.Projects.DTOs.StrategicObjectiveDto).
+            options.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
         });
 
         return services;
