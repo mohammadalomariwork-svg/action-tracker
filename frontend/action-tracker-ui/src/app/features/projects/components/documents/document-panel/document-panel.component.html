@@ -1,0 +1,187 @@
+<div class="dp-container">
+
+  <!-- ── Section header ────────────────────────────────────────────────────── -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0">
+      <i class="bi bi-file-earmark me-2"></i>Documents
+      <span class="badge bg-secondary ms-1">{{ documents.length }}</span>
+    </h5>
+    <button class="btn btn-primary btn-sm" (click)="toggleUploadForm()">
+      <i class="bi bi-cloud-upload me-1"></i>Upload
+    </button>
+  </div>
+
+  <!-- ── Error alert ───────────────────────────────────────────────────────── -->
+  @if (errorMessage) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <!-- ── Success alert ─────────────────────────────────────────────────────── -->
+  @if (successMessage) {
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+
+  <!-- ── Loading ───────────────────────────────────────────────────────────── -->
+  @if (isLoading) {
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Upload Form (collapsible)                                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (showUploadForm) {
+    <div class="card dp-upload-card mb-3">
+      <div class="card-body">
+        <h6 class="fw-semibold mb-3"><i class="bi bi-cloud-upload me-1"></i>Upload Document</h6>
+
+        <form [formGroup]="uploadForm" (ngSubmit)="onUpload()" novalidate>
+
+          <!-- Title -->
+          <div class="mb-3">
+            <label for="dpTitle" class="form-label">Document Title <span class="text-danger">*</span></label>
+            <input
+              id="dpTitle"
+              type="text"
+              class="form-control form-control-sm"
+              formControlName="title"
+              placeholder="e.g. Project Charter v2"
+              [class.is-invalid]="isInvalid('title')"
+            />
+            @if (hasError('title', 'required')) {
+              <div class="invalid-feedback">Title is required.</div>
+            }
+          </div>
+
+          <!-- File drop zone -->
+          <div class="mb-3">
+            <label class="form-label">File <span class="text-danger">*</span></label>
+            <div
+              class="dp-drop-zone d-flex flex-column align-items-center justify-content-center"
+              [class.dp-drag-over]="isDragOver"
+              [class.dp-has-file]="selectedFile"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+              (click)="fileInput.click()"
+            >
+              @if (selectedFile) {
+                <i class="bi bi-file-earmark-check-fill dp-drop-icon text-success"></i>
+                <span class="fw-medium mt-1">{{ selectedFile.name }}</span>
+                <span class="text-muted small">{{ formatFileSize(selectedFile.size) }}</span>
+              } @else {
+                <i class="bi bi-cloud-arrow-up dp-drop-icon text-muted"></i>
+                <span class="text-muted mt-1">Drag and drop a file here, or click to browse</span>
+              }
+              <input
+                #fileInput
+                type="file"
+                class="d-none"
+                [accept]="allowedExtensions"
+                (change)="onFileSelected($event)"
+              />
+            </div>
+            <div class="form-text mt-1">
+              <i class="bi bi-info-circle me-1"></i>
+              Allowed: {{ allowedExtensions }} — Max 20 MB
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-2 justify-content-end">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="toggleUploadForm()"
+              [disabled]="isUploading"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1"
+              [disabled]="isUploading || !selectedFile"
+            >
+              @if (isUploading) {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Uploading…
+              } @else {
+                <i class="bi bi-cloud-upload"></i>Upload
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Documents List                                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (!isLoading && documents.length > 0) {
+    <div class="row g-3">
+      @for (doc of documents; track doc.id) {
+        <div class="col-12">
+          <div class="card dp-doc-card">
+            <div class="card-body d-flex align-items-center gap-3 py-2 px-3">
+              <!-- File icon -->
+              <i class="bi dp-file-icon" [ngClass]="[getFileIcon(doc.contentType), getFileIconColor(doc.contentType)]"></i>
+
+              <!-- Document info -->
+              <div class="flex-grow-1 min-width-0">
+                <div class="fw-medium text-truncate">{{ doc.title }}</div>
+                <div class="text-muted small text-truncate">
+                  {{ doc.fileName }} &middot; {{ formatFileSize(doc.fileSizeBytes) }}
+                </div>
+                <div class="text-muted small">
+                  <i class="bi bi-person me-1"></i>{{ doc.uploadedByUserName }}
+                  &middot;
+                  <i class="bi bi-clock me-1"></i>{{ doc.uploadedAt | date:'medium' }}
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button
+                  class="btn btn-outline-primary btn-sm dp-action-btn"
+                  title="Download"
+                  (click)="onDownload(doc)"
+                >
+                  <i class="bi bi-download"></i>
+                </button>
+                <button
+                  class="btn btn-outline-danger btn-sm dp-action-btn"
+                  title="Delete"
+                  (click)="onDelete(doc.id)"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Empty state ───────────────────────────────────────────────────────── -->
+  @if (!isLoading && documents.length === 0 && !showUploadForm) {
+    <div class="dp-empty text-center py-5">
+      <i class="bi bi-file-earmark dp-empty-icon text-muted"></i>
+      <p class="text-muted mt-3 mb-0">No documents uploaded yet.</p>
+      <button class="btn btn-primary btn-sm mt-3" (click)="toggleUploadForm()">
+        <i class="bi bi-cloud-upload me-1"></i>Upload First Document
+      </button>
+    </div>
+  }
+
+</div>

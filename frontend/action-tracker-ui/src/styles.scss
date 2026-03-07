@@ -1,0 +1,44 @@
+@use 'assets/styles/variables' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: $font-family-base;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--primary-dark);
+  }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+
+  &:hover,
+  &:focus {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+  }
+}

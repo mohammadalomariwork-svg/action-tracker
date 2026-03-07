@@ -1,0 +1,89 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.wd-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Header card ──────────────────────────────────────────────────────────────
+.wd-header-card {
+  border: none;
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  background-color: var(--bg-card, #ffffff);
+}
+
+// ── Project cards ────────────────────────────────────────────────────────────
+.wd-project-card {
+  cursor: pointer;
+  border-radius: var(--border-radius, 12px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+.wd-project-meta {
+  line-height: 1.6;
+}
+
+// ── Status / type badges ─────────────────────────────────────────────────────
+// Distinct colours are handled via Bootstrap's bg-* utility classes in the
+// template. These overrides ensure badges are always legible and compact.
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+// ── Progress bars ────────────────────────────────────────────────────────────
+.progress {
+  background-color: var(--border-color, #e2e8f0);
+  border-radius: 999px;
+}
+
+// ── Tab navigation ───────────────────────────────────────────────────────────
+.nav-tabs .nav-link {
+  color: var(--text-primary, #1e293b);
+  font-weight: 500;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.6rem 1rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--primary, #4f46e5);
+    border-bottom-color: rgba(79, 70, 229, 0.3);
+  }
+
+  &.active {
+    color: var(--primary, #4f46e5);
+    border-bottom-color: var(--primary, #4f46e5);
+    background: transparent;
+  }
+}
+
+// ── Table ────────────────────────────────────────────────────────────────────
+.table {
+  tbody tr {
+    transition: background-color 0.12s ease;
+
+    &:hover {
+      background-color: rgba(79, 70, 229, 0.04);
+    }
+  }
+}
+
+// ── Empty state ──────────────────────────────────────────────────────────────
+.wd-empty {
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  background-color: var(--bg-card, #ffffff);
+}
+
+.wd-empty-icon {
+  font-size: 3rem;
+  display: block;
+}

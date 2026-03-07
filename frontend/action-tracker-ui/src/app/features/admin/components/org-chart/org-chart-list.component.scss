@@ -1,0 +1,116 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.ocl-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Tree body ─────────────────────────────────────────────────────────────────
+.ocl-tree-body {
+  max-height: calc(100vh - 220px);
+}
+
+// ── Tree list ─────────────────────────────────────────────────────────────────
+.ocl-tree,
+.ocl-children {
+  padding-left: 0;
+}
+
+.ocl-node {
+  position: relative;
+}
+
+.ocl-children {
+  padding-left: 20px;
+  border-left: 2px solid #dee2e6;
+  margin-left: 12px;
+}
+
+// ── Node row ──────────────────────────────────────────────────────────────────
+.ocl-node-row {
+  transition: background-color 0.12s ease;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: rgba(13, 110, 253, 0.06);
+    cursor: pointer;
+  }
+
+  &--root {
+    background-color: rgba(13, 110, 253, 0.08);
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+
+    .ocl-level-badge {
+      font-size: 0.7rem;
+    }
+  }
+}
+
+// ── Deleted node ──────────────────────────────────────────────────────────────
+.ocl-node--deleted > .ocl-node-row {
+  opacity: 0.6;
+}
+
+// ── Name ──────────────────────────────────────────────────────────────────────
+.ocl-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+.ocl-level-badge {
+  font-size: 0.65rem;
+  min-width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ocl-code-badge {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+.ocl-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ocl-node-row:hover .ocl-actions {
+  opacity: 1;
+}
+
+.btn-xs {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  border-radius: 4px;
+}
+
+// ── Collapse toggle ───────────────────────────────────────────────────────────
+.ocl-toggle {
+  color: #6c757d;
+  min-width: 18px;
+  flex-shrink: 0;
+
+  &:hover {
+    color: #0d6efd;
+  }
+}
+
+.ocl-leaf-spacer {
+  display: inline-block;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+// ── Mobile: full-width tree ───────────────────────────────────────────────────
+@media (max-width: 991.98px) {
+  .ocl-tree-body {
+    max-height: 50vh;
+  }
+}

@@ -1,0 +1,52 @@
+// Variables are defined as CSS custom properties in:
+// src/assets/styles/_variables.scss → available globally via styles.scss
+
+// ── Page shell ────────────────────────────────────────────────────────────────
+.wl-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Page header ───────────────────────────────────────────────────────────────
+.wl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+
+  @media (max-width: 575.98px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.wl-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+.table {
+  tbody tr {
+    transition: background-color 0.12s ease;
+
+    &:hover {
+      background-color: rgba(79, 70, 229, 0.04); // --primary at low opacity
+      cursor: default;
+    }
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.wl-empty {
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  background-color: var(--bg-card, #ffffff);
+}
+
+.wl-empty-icon {
+  font-size: 3rem;
+  display: block;
+}

@@ -1,0 +1,159 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.pd-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Header card ──────────────────────────────────────────────────────────────
+.pd-header-card {
+  border: none;
+  border-radius: var(--border-radius, 12px);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  overflow: hidden;
+}
+
+.pd-title {
+  color: var(--text-primary, #1e293b);
+  font-weight: 700;
+}
+
+// ── Info items (key info row) ────────────────────────────────────────────────
+.pd-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pd-info-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pd-info-value {
+  font-size: 0.9rem;
+  color: var(--text-primary, #1e293b);
+  font-weight: 500;
+}
+
+// ── Strategic objective badge ────────────────────────────────────────────────
+.pd-strategic-badge {
+  background-color: rgba(79, 70, 229, 0.06);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.88rem;
+  color: var(--primary, #4f46e5);
+}
+
+// ── Tab navigation ───────────────────────────────────────────────────────────
+.nav-tabs .nav-link {
+  color: var(--text-primary, #1e293b);
+  font-weight: 500;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.6rem 1rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--primary, #4f46e5);
+    border-bottom-color: rgba(79, 70, 229, 0.3);
+  }
+
+  &.active {
+    color: var(--primary, #4f46e5);
+    border-bottom-color: var(--primary, #4f46e5);
+    background: transparent;
+  }
+}
+
+// ── Summary cards ────────────────────────────────────────────────────────────
+.pd-summary-card {
+  border-radius: var(--border-radius, 12px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.pd-summary-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary, #4f46e5);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.pd-summary-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+// ── Progress bars ────────────────────────────────────────────────────────────
+.progress {
+  background-color: var(--border-color, #e2e8f0);
+  border-radius: 999px;
+}
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+// ── Table ────────────────────────────────────────────────────────────────────
+.table {
+  tbody tr {
+    transition: background-color 0.12s ease;
+
+    &:hover {
+      background-color: rgba(79, 70, 229, 0.04);
+    }
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+// ── Empty state ──────────────────────────────────────────────────────────────
+.pd-empty {
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  background-color: var(--bg-card, #ffffff);
+}
+
+.pd-empty-icon {
+  font-size: 3rem;
+  display: block;
+}
+
+// ── Status-specific header accents ──────────────────────────────────────────
+// Applied via [attr.data-status] on the header card if desired
+.pd-header-card[data-status='active'] {
+  border-left: 4px solid #22c55e;
+}
+
+.pd-header-card[data-status='onhold'] {
+  border-left: 4px solid #f59e0b;
+}
+
+.pd-header-card[data-status='completed'] {
+  border-left: 4px solid #06b6d4;
+}
+
+.pd-header-card[data-status='cancelled'] {
+  border-left: 4px solid #ef4444;
+}
+
+.pd-header-card[data-status='draft'] {
+  border-left: 4px solid #94a3b8;
+}

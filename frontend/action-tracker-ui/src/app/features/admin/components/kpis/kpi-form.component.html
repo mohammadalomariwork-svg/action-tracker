@@ -1,0 +1,164 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate class="kf-form">
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center py-2 mb-3">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+    </div>
+  }
+
+  <!-- KPI number info panel -->
+  @if (!isEditMode) {
+    <div class="alert alert-info py-2 mb-4 d-flex align-items-center gap-2">
+      <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+      <span>KPI number will be <strong>auto-assigned</strong> within the selected objective (e.g. <span class="badge bg-dark font-monospace">SO-3-KPI-2</span>).</span>
+    </div>
+  } @else {
+    <div class="kf-code-preview mb-4 p-3 rounded">
+      <span class="kf-code-label">KPI Code</span>
+      <span class="badge bg-dark font-monospace kf-code-value">
+        {{ existingKpi?.objectiveCode }}-KPI-{{ existingKpi?.kpiNumber }}
+      </span>
+      <span class="text-muted small ms-2">(read-only)</span>
+    </div>
+  }
+
+  <!-- Strategic Objective -->
+  <div class="mb-3">
+    <label for="kfObjective" class="form-label">
+      Strategic Objective <span class="text-danger">*</span>
+    </label>
+    <select
+      id="kfObjective"
+      class="form-select"
+      formControlName="strategicObjectiveId"
+      [class.is-invalid]="hasError('strategicObjectiveId', 'required')"
+    >
+      <option value="" disabled>Select an objective…</option>
+      @for (obj of objectives(); track obj.id) {
+        <option [value]="obj.id">
+          [{{ obj.objectiveCode }}] {{ obj.statement | slice:0:80 }}{{ obj.statement.length > 80 ? '…' : '' }}
+        </option>
+      }
+    </select>
+    @if (isEditMode) {
+      <div class="form-text text-muted">Objective cannot be changed after creation.</div>
+    }
+    @if (hasError('strategicObjectiveId', 'required')) {
+      <div class="invalid-feedback">Please select a strategic objective.</div>
+    }
+  </div>
+
+  <!-- Name -->
+  <div class="mb-3">
+    <label for="kfName" class="form-label">Name <span class="text-danger">*</span></label>
+    <input
+      id="kfName"
+      type="text"
+      class="form-control"
+      formControlName="name"
+      placeholder="e.g. Student Satisfaction Rate"
+      autocomplete="off"
+      [class.is-invalid]="hasError('name', 'required') || hasError('name', 'maxlength')"
+    />
+    @if (hasError('name', 'required')) {
+      <div class="invalid-feedback">Name is required.</div>
+    } @else if (hasError('name', 'maxlength')) {
+      <div class="invalid-feedback">Name cannot exceed 300 characters.</div>
+    }
+    <div class="form-text text-end text-muted small">{{ charCount('name') }} / 300</div>
+  </div>
+
+  <!-- Description -->
+  <div class="mb-3">
+    <label for="kfDesc" class="form-label">Description <span class="text-danger">*</span></label>
+    <textarea
+      id="kfDesc"
+      class="form-control"
+      formControlName="description"
+      rows="4"
+      placeholder="Describe what this KPI measures…"
+      [class.is-invalid]="hasError('description', 'required') || hasError('description', 'maxlength')"
+    ></textarea>
+    @if (hasError('description', 'required')) {
+      <div class="invalid-feedback">Description is required.</div>
+    } @else if (hasError('description', 'maxlength')) {
+      <div class="invalid-feedback">Description cannot exceed 1000 characters.</div>
+    }
+    <div class="form-text text-end text-muted small">{{ charCount('description') }} / 1000</div>
+  </div>
+
+  <!-- Calculation Method -->
+  <div class="mb-3">
+    <label for="kfCalc" class="form-label">Calculation Method <span class="text-danger">*</span></label>
+    <textarea
+      id="kfCalc"
+      class="form-control"
+      formControlName="calculationMethod"
+      rows="3"
+      placeholder="e.g. (Total satisfied students / Total surveyed) × 100"
+      [class.is-invalid]="hasError('calculationMethod', 'required') || hasError('calculationMethod', 'maxlength')"
+    ></textarea>
+    @if (hasError('calculationMethod', 'required')) {
+      <div class="invalid-feedback">Calculation method is required.</div>
+    } @else if (hasError('calculationMethod', 'maxlength')) {
+      <div class="invalid-feedback">Cannot exceed 500 characters.</div>
+    }
+    <div class="form-text text-end text-muted small">{{ charCount('calculationMethod') }} / 500</div>
+  </div>
+
+  <!-- Period + Unit row -->
+  <div class="row g-3 mb-4">
+    <div class="col-7">
+      <label for="kfPeriod" class="form-label">Measurement Period <span class="text-danger">*</span></label>
+      <select
+        id="kfPeriod"
+        class="form-select"
+        formControlName="period"
+        [class.is-invalid]="hasError('period', 'required')"
+      >
+        <option [value]="null" disabled>Select period…</option>
+        @for (opt of periodOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+      @if (hasError('period', 'required')) {
+        <div class="invalid-feedback">Please select a measurement period.</div>
+      }
+    </div>
+    <div class="col-5">
+      <label for="kfUnit" class="form-label">Unit <span class="text-muted small">(optional)</span></label>
+      <input
+        id="kfUnit"
+        type="text"
+        class="form-control"
+        formControlName="unit"
+        placeholder="%, count, score, AED…"
+        autocomplete="off"
+        [class.is-invalid]="hasError('unit', 'maxlength')"
+      />
+      @if (hasError('unit', 'maxlength')) {
+        <div class="invalid-feedback">Unit cannot exceed 50 characters.</div>
+      }
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="d-flex gap-2 justify-content-end border-top pt-3">
+    <button type="button" class="btn btn-outline-secondary"
+            (click)="cancel()" [disabled]="submitting()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2"
+            [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Saving…
+      } @else {
+        @if (!isEditMode) { <i class="bi bi-plus-circle"></i> Create KPI }
+        @else             { <i class="bi bi-check-lg"></i> Save Changes }
+      }
+    </button>
+  </div>
+
+</form>

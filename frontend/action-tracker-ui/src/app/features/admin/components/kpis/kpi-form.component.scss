@@ -1,0 +1,19 @@
+.kf-code-preview {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.kf-code-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6c757d;
+}
+
+.kf-code-value { font-size: 0.9rem; }
+
+.form-text { font-size: 0.75rem; }

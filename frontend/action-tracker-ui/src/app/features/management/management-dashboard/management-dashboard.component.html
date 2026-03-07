@@ -1,0 +1,262 @@
+<div class="md-page">
+
+  <!-- ── Page header ──────────────────────────────────── -->
+  <app-page-header
+    title="Management Dashboard"
+    subtitle="Executive overview of action item performance"
+    icon="📊"
+  >
+    @if (lastUpdated()) {
+      <span class="last-updated">
+        🕐 Updated {{ lastUpdated() | date:'HH:mm:ss' }}
+      </span>
+    }
+  </app-page-header>
+
+  <div class="md-body">
+
+    <!-- ── Loading skeleton ─────────────────────────────── -->
+    @if (loading()) {
+      <div class="skeleton-grid">
+        @for (i of [1,2,3,4]; track i) {
+          <div class="sk-kpi"><span class="sk"></span><span class="sk sk--sm"></span></div>
+        }
+      </div>
+      <div class="sk-charts">
+        <div class="sk-chart-box"><span class="sk" style="height:260px"></span></div>
+        <div class="sk-chart-box"><span class="sk" style="height:260px"></span></div>
+      </div>
+    }
+
+    @if (!loading() && dashboard()) {
+
+      <!-- ── Section 1: KPI Cards ──────────────────────── -->
+      <section class="kpi-row">
+        <app-kpi-card
+          title="Completion Rate"
+          [value]="completionRate() + '%'"
+          subtitle="actions closed"
+          icon="✅"
+          colorClass="success"
+          [trend]="null"
+        />
+        <app-kpi-card
+          title="On-Time Delivery"
+          [value]="onTimeRate() + '%'"
+          subtitle="delivered on schedule"
+          icon="📅"
+          colorClass="primary"
+          [trend]="null"
+        />
+        <app-kpi-card
+          title="Active Escalations"
+          [value]="escalations()"
+          subtitle="require attention"
+          icon="🚨"
+          [colorClass]="escalations() > 0 ? 'danger' : 'success'"
+          [trend]="null"
+        />
+        <app-kpi-card
+          title="Team Velocity"
+          [value]="velocity()"
+          subtitle="actions completed this period"
+          icon="⚡"
+          colorClass="purple"
+          [trend]="null"
+        />
+      </section>
+
+      <!-- ── Section 2: Charts ─────────────────────────── -->
+      <section class="charts-row">
+
+        <!-- Doughnut: Status Breakdown -->
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h3 class="chart-title">Status Breakdown</h3>
+            <span class="chart-badge">{{ totalStatusCount() }} total</span>
+          </div>
+          <div class="chart-container chart-container--doughnut">
+            <canvas baseChart
+              [data]="doughnutData"
+              [type]="doughnutType"
+              [options]="doughnutOptions"
+            ></canvas>
+            <!-- Center label -->
+            <div class="doughnut-center">
+              <span class="doughnut-center__num">{{ totalStatusCount() }}</span>
+              <span class="doughnut-center__lbl">items</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bar: Team Workload -->
+        <div class="chart-card">
+          <div class="chart-card__header">
+            <h3 class="chart-title">Team Workload</h3>
+            <span class="chart-hint">Click a bar to filter</span>
+          </div>
+          <div class="chart-container chart-container--bar">
+            <canvas baseChart
+              [data]="barData"
+              [type]="barType"
+              [options]="barOptions"
+            ></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ── Section 3: Risk panel + Activity timeline ── -->
+      <section class="panels-row">
+
+        <!-- At-Risk Items -->
+        <div class="panel-card">
+          <div class="panel-card__header">
+            <h3 class="panel-title">⚠️ At-Risk &amp; Escalated Items</h3>
+            <a routerLink="/actions" class="panel-link">View all →</a>
+          </div>
+
+          @if (atRiskItems().length === 0) {
+            <div class="panel-empty">
+              <span class="panel-empty__icon">🎉</span>
+              <p>No at-risk items — great work!</p>
+            </div>
+          }
+
+          <ul class="risk-list">
+            @for (item of atRiskItems(); track item.id) {
+              <li class="risk-item" [class]="severityClass(item)"
+                [routerLink]="['/actions', item.id, 'edit']">
+                <div class="risk-item__top">
+                  <span class="risk-id">{{ item.actionId }}</span>
+                  @if (item.isEscalated) {
+                    <span class="escalation-badge">🚨 Escalated</span>
+                  }
+                </div>
+                <p class="risk-title">{{ item.title }}</p>
+                <div class="risk-meta">
+                  <span class="risk-assignee">
+                    <span class="avatar-xs">{{ avatarInitial(item.assigneeName) }}</span>
+                    {{ item.assigneeName }}
+                  </span>
+                  @if (item.daysOverdue > 0) {
+                    <span class="risk-overdue">{{ item.daysOverdue }}d overdue</span>
+                  }
+                  <span class="risk-priority">{{ item.priority }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <!-- Recent Activity Timeline -->
+        <div class="panel-card">
+          <div class="panel-card__header">
+            <h3 class="panel-title">🕐 Recent Activity</h3>
+          </div>
+
+          @if (recentActivity().length === 0) {
+            <div class="panel-empty">
+              <span class="panel-empty__icon">📭</span>
+              <p>No recent activity.</p>
+            </div>
+          }
+
+          <ul class="timeline">
+            @for (act of recentActivity(); track $index) {
+              <li class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <p class="timeline-title">{{ act.title ?? act.actionTitle ?? 'Action updated' }}</p>
+                  <div class="timeline-meta">
+                    @if (act.assigneeName) {
+                      <span class="timeline-assignee">
+                        <span class="avatar-xs">{{ avatarInitial(act.assigneeName) }}</span>
+                        {{ act.assigneeName }}
+                      </span>
+                    }
+                    <span class="timeline-date">
+                      {{ (act.createdAt ?? act.updatedAt) | date:'MMM d, HH:mm' }}
+                    </span>
+                    @if (act.status !== undefined) {
+                      <app-status-badge [status]="act.status" />
+                    }
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+
+      </section>
+
+      <!-- ── Section 4: Critical Actions Table ─────────── -->
+      <section class="crit-section">
+        <div class="crit-header">
+          <h3 class="panel-title">🔴 Critical &amp; High Priority Actions</h3>
+          <span class="chart-badge">{{ criticalActions().length }} items</span>
+        </div>
+
+        <div class="crit-table-wrap">
+          <table class="crit-table">
+            <thead>
+              <tr>
+                <th>Action ID</th>
+                <th>Title</th>
+                <th>Owner</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Escalated</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (criticalActions().length === 0) {
+                <tr>
+                  <td colspan="7" class="crit-empty">
+                    <span>🎉 No critical actions outstanding</span>
+                  </td>
+                </tr>
+              }
+              @for (item of criticalActions(); track trackById($index, item)) {
+                <tr
+                  class="crit-row"
+                  [class.crit-row--overdue]="item.isOverdue"
+                  [routerLink]="['/actions', item.id, 'edit']"
+                  style="cursor:pointer"
+                >
+                  <td class="td-id">
+                    <span class="action-id">{{ item.actionId }}</span>
+                  </td>
+                  <td class="td-title">
+                    <span class="title-ellipsis" [title]="item.title">{{ item.title }}</span>
+                  </td>
+                  <td>
+                    <div class="assignee-cell">
+                      <span class="avatar-xs">{{ avatarInitial(item.assigneeName) }}</span>
+                      {{ item.assigneeName }}
+                    </div>
+                  </td>
+                  <td><app-priority-badge [priority]="item.priority" /></td>
+                  <td><app-status-badge   [status]="item.status"   /></td>
+                  <td class="td-due" [class.td-due--overdue]="item.isOverdue">
+                    {{ item.dueDate | date:'MMM d, y' }}
+                    @if (item.isOverdue) { <span class="overdue-tag">Overdue</span> }
+                  </td>
+                  <td class="td-esc">
+                    @if (item.isEscalated) {
+                      <span class="esc-pill">🚨 Yes</span>
+                    } @else {
+                      <span class="no-esc">—</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    }<!-- /!loading -->
+  </div><!-- /md-body -->
+</div><!-- /md-page -->

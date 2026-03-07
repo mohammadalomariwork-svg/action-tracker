@@ -1,0 +1,277 @@
+<div class="td-page">
+
+  <!-- ── Greeting banner ──────────────────────────────── -->
+  <div class="greeting-banner">
+    <div class="greeting-banner__left">
+      <h1 class="greeting-title">
+        {{ greeting() }}, {{ firstName() }}! 👋
+      </h1>
+      <p class="greeting-sub">
+        Here's an overview of your actions and team activity.
+      </p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a routerLink="/actions/new"   class="btn btn-primary">+ New Action</a>
+      <a routerLink="/actions"       class="btn btn-outline">View All Actions</a>
+      @if (isPrivileged()) {
+        <a routerLink="/management" class="btn btn-outline btn-outline--purple">📊 Management View</a>
+      }
+    </div>
+  </div>
+
+  <div class="td-body">
+
+    <!-- ── Stats bar ──────────────────────────────────── -->
+    @if (loadingKpis()) {
+      <div class="stats-bar">
+        @for (i of [1,2,3,4,5]; track i) {
+          <div class="stat-card">
+            <span class="sk" style="height:36px;width:50%"></span>
+            <span class="sk sk--sm"></span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (!loadingKpis()) {
+      <div class="stats-bar">
+        <div class="stat-card stat-card--primary">
+          <div class="stat-body">
+            <span class="stat-value">{{ totalActions() }}</span>
+            <span class="stat-label">Total Actions</span>
+          </div>
+          <span class="stat-icon">📋</span>
+        </div>
+        <div class="stat-card stat-card--success">
+          <div class="stat-body">
+            <span class="stat-value">{{ completionRate() }}%</span>
+            <span class="stat-label">Completion Rate</span>
+          </div>
+          <span class="stat-icon">✅</span>
+        </div>
+        <div class="stat-card stat-card--info">
+          <div class="stat-body">
+            <span class="stat-value">{{ onTimeRate() }}%</span>
+            <span class="stat-label">On-Time Delivery</span>
+          </div>
+          <span class="stat-icon">📅</span>
+        </div>
+        <div class="stat-card" [class.stat-card--danger]="escalations() > 0" [class.stat-card--success]="escalations() === 0">
+          <div class="stat-body">
+            <span class="stat-value">{{ escalations() }}</span>
+            <span class="stat-label">Escalations</span>
+          </div>
+          <span class="stat-icon">🚨</span>
+        </div>
+        <div class="stat-card" [class.stat-card--danger]="overdueCount() > 0" [class.stat-card--success]="overdueCount() === 0">
+          <div class="stat-body">
+            <span class="stat-value">{{ overdueCount() }}</span>
+            <span class="stat-label">Overdue</span>
+          </div>
+          <span class="stat-icon">⏰</span>
+        </div>
+      </div>
+    }
+
+    <!-- ── Two-column layout ──────────────────────────── -->
+    <div class="two-col">
+
+      <!-- ── My Actions ─────────────────────────────────── -->
+      <section class="panel">
+        <div class="panel__header">
+          <h2 class="panel__title">📌 My Actions</h2>
+          <a
+            [routerLink]="myActionsLink()"
+            [queryParams]="myActionsQueryParams()"
+            class="panel__link"
+          >View all →</a>
+        </div>
+
+        @if (loadingMine()) {
+          @for (r of skeletonRows; track $index) {
+            <div class="sk-row">
+              <span class="sk" style="width:55%"></span>
+              <span class="sk" style="width:20%"></span>
+              <span class="sk" style="width:18%"></span>
+              <span class="sk" style="width:15%"></span>
+            </div>
+          }
+        }
+
+        @if (!loadingMine()) {
+          @if (myActions().length === 0) {
+            <div class="empty-panel">
+              <span class="empty-panel__icon">🎉</span>
+              <p>No actions assigned to you — great work!</p>
+            </div>
+          } @else {
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of myActions(); track item.id) {
+                    <tr class="mini-row" [routerLink]="['/actions', item.id, 'edit']">
+                      <td class="td-title">
+                        <span class="title-ellipsis" [title]="item.title">{{ item.title }}</span>
+                      </td>
+                      <td><app-priority-badge [priority]="item.priority" /></td>
+                      <td><app-status-badge   [status]="item.status"   /></td>
+                      <td>
+                        <div class="due-cell" [class]="dueDateClass(item)">
+                          <span class="due-date">{{ item.dueDate | date:'MMM d' }}</span>
+                          <span class="due-badge">{{ dueDateLabel(item) }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </section>
+
+      <!-- ── Team Activity ──────────────────────────────── -->
+      <section class="panel">
+        <div class="panel__header">
+          <h2 class="panel__title">📊 Team Activity</h2>
+        </div>
+
+        <!-- Summary pills -->
+        <div class="activity-pills">
+          <div class="activity-pill activity-pill--danger">
+            <span class="pill-val">{{ overdueCount() }}</span>
+            <span class="pill-lbl">Overdue</span>
+          </div>
+          <div class="activity-pill activity-pill--warning">
+            <span class="pill-val">{{ dueThisWeek() }}</span>
+            <span class="pill-lbl">Due this week</span>
+          </div>
+          <div class="activity-pill activity-pill--success">
+            <span class="pill-val">{{ doneCount() }}</span>
+            <span class="pill-lbl">Completed</span>
+          </div>
+        </div>
+
+        <!-- Status distribution horizontal bar chart -->
+        @if (statusBreakdown().length > 0) {
+          <div class="chart-wrap">
+            <canvas baseChart
+              [data]="hBarData"
+              [type]="hBarType"
+              [options]="hBarOptions"
+            ></canvas>
+          </div>
+        } @else {
+          <div class="chart-wrap chart-wrap--empty">
+            <p class="chart-empty-msg">No status data available yet.</p>
+          </div>
+        }
+
+        <!-- Stacked progress bar (visual summary) -->
+        @if (statusBreakdown().length > 0) {
+          <div class="stacked-bar">
+            @for (item of statusBreakdown(); track item.status) {
+              @if (item.percentage > 0) {
+                <div
+                  class="stacked-segment"
+                  [style.width.%]="item.percentage"
+                  [style.background]="'#94a3b8'"
+                  [title]="item.status + ': ' + item.count + ' (' + (item.percentage | number:'1.0-0') + '%)'"
+                ></div>
+              }
+            }
+          </div>
+          <div class="stacked-legend">
+            @for (item of statusBreakdown(); track item.status) {
+              <span class="legend-item">
+                <span class="legend-dot" [style.background]="'var(--status-' + item.status.replace(' ','').toLowerCase() + ', #94a3b8)'"></span>
+                {{ item.status }} ({{ item.count }})
+              </span>
+            }
+          </div>
+        }
+
+      </section>
+    </div>
+
+    <!-- ── Recent Items ───────────────────────────────── -->
+    <section class="panel panel--full">
+      <div class="panel__header">
+        <h2 class="panel__title">🕐 Recent Items</h2>
+        <a routerLink="/actions" class="panel__link">View all →</a>
+      </div>
+
+      @if (loadingRecent()) {
+        @for (r of skeletonRows; track $index) {
+          <div class="sk-row">
+            <span class="sk" style="width:12%"></span>
+            <span class="sk" style="width:40%"></span>
+            <span class="sk" style="width:18%"></span>
+            <span class="sk" style="width:15%"></span>
+            <span class="sk" style="width:15%"></span>
+          </div>
+        }
+      }
+
+      @if (!loadingRecent()) {
+        @if (recentActions().length === 0) {
+          <div class="empty-panel">
+            <span class="empty-panel__icon">📭</span>
+            <p>No action items yet. Create your first one!</p>
+            <a routerLink="/actions/new" class="btn btn-primary" style="margin-top:.75rem">+ New Action</a>
+          </div>
+        } @else {
+          <div class="mini-table-wrap">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>Assignee</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Due Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of recentActions(); track item.id) {
+                  <tr class="mini-row" [routerLink]="['/actions', item.id, 'edit']">
+                    <td><span class="action-id">{{ item.actionId }}</span></td>
+                    <td class="td-title">
+                      <span class="title-ellipsis" [title]="item.title">{{ item.title }}</span>
+                    </td>
+                    <td>
+                      <div class="assignee-cell">
+                        <span class="avatar-xs">{{ item.assigneeName.charAt(0).toUpperCase() }}</span>
+                        {{ item.assigneeName }}
+                      </div>
+                    </td>
+                    <td><app-priority-badge [priority]="item.priority" /></td>
+                    <td><app-status-badge   [status]="item.status"   /></td>
+                    <td>
+                      <div class="due-cell" [class]="dueDateClass(item)">
+                        <span class="due-date">{{ item.dueDate | date:'MMM d, y' }}</span>
+                        <span class="due-badge">{{ dueDateLabel(item) }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </section>
+
+  </div><!-- /td-body -->
+</div><!-- /td-page -->

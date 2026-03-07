@@ -1,0 +1,46 @@
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+
+  &.progress--green {
+    background: linear-gradient(90deg, #059669, #34d399, #059669);
+  }
+
+  &.progress--blue {
+    background: linear-gradient(90deg, #0284c7, #38bdf8, #0284c7);
+  }
+
+  &.progress--red {
+    background: linear-gradient(90deg, #dc2626, #f87171, #dc2626);
+  }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 2.5rem;
+  text-align: right;
+}

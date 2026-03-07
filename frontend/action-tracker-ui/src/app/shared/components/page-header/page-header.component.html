@@ -1,0 +1,18 @@
+<div class="page-header">
+  <div class="page-header__left">
+    @if (icon()) {
+      <span class="page-header__icon">{{ icon() }}</span>
+    }
+    <div class="page-header__text">
+      <h1 class="page-header__title">{{ title() }}</h1>
+      @if (subtitle()) {
+        <p class="page-header__subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+  </div>
+
+  <!-- Breadcrumb / action slot -->
+  <div class="page-header__actions">
+    <ng-content />
+  </div>
+</div>

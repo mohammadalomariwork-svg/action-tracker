@@ -1,0 +1,113 @@
+// Bootstrap 5.3 defaults: $gray-100:#f8f9fa  $gray-200:#e9ecef
+//   $gray-300:#dee2e6  $gray-400:#ced4da  $gray-700:#495057  $primary:#0d6efd
+
+// ── Page shell ────────────────────────────────────────────────────────────────
+.rau-page {
+  padding: 1.5rem;
+}
+
+.rau-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+// ── Shared card ───────────────────────────────────────────────────────────────
+.rau-card {
+  border-radius: 0.6rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+}
+
+// ── Card header (selected employee banner) ────────────────────────────────────
+.rau-card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.rau-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: #0d6efd;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+// ── Search results list ───────────────────────────────────────────────────────
+.rau-results {
+  border-radius: 0.4rem;
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+}
+
+.rau-result-row {
+  padding: 0.85rem 1rem;
+  transition: background-color 0.1s ease;
+
+  &:hover:not(.rau-result-row--disabled) {
+    background-color: rgba(13, 110, 253, 0.04);
+  }
+
+  &--disabled {
+    opacity: 0.6;
+    cursor: default;
+    background-color: #f8f9fa;
+  }
+}
+
+.rau-emp-name {
+  font-weight: 600;
+  font-size: 0.925rem;
+}
+
+.rau-emp-name-ar {
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.rau-input-rtl {
+  text-align: right;
+}
+
+// ── "Already Registered" badge ────────────────────────────────────────────────
+.rau-badge-registered {
+  background-color: #ced4da;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+// ── Readonly fields ───────────────────────────────────────────────────────────
+.rau-readonly {
+  background-color: #f8f9fa;
+  color: #495057;
+  cursor: default;
+
+  &:focus {
+    box-shadow: none;
+    border-color: #dee2e6;
+  }
+}
+
+// ── Back link ─────────────────────────────────────────────────────────────────
+.rau-back-link {
+  font-size: 0.875rem;
+  text-decoration: none;
+  color: #0d6efd;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ── Form labels ───────────────────────────────────────────────────────────────
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}

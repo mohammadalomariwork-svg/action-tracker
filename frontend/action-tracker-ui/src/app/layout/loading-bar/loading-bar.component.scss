@@ -1,0 +1,42 @@
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 9999;
+  overflow: hidden;
+  background: transparent;
+}
+
+.loading-bar__progress {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0%,
+    #818cf8 50%,
+    var(--primary) 100%
+  );
+  background-size: 200% 100%;
+  animation: loading-slide 1.4s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+@keyframes loading-slide {
+  0% {
+    background-position: 200% 0;
+    transform: scaleX(0.1);
+  }
+  40% {
+    transform: scaleX(0.6);
+  }
+  70% {
+    background-position: -50% 0;
+    transform: scaleX(0.85);
+  }
+  100% {
+    background-position: -200% 0;
+    transform: scaleX(1);
+  }
+}

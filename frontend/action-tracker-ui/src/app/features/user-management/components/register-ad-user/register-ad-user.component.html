@@ -1,0 +1,306 @@
+<div class="rau-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
+      <li class="breadcrumb-item"><a href="/admin/users">Users</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Add AD User / Search Employee</li>
+    </ol>
+  </nav>
+
+  <h2 class="rau-title mb-4">Add AD User / Search Employee</h2>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════
+       SECTION 1 — Employee Search
+       ════════════════════════════════════════════════════════════════════════════ -->
+  @if (!selectedEmployee()) {
+
+    <div class="card rau-card mb-4">
+      <div class="card-body p-4">
+
+        <!-- Search boxes -->
+        <p class="form-label fw-medium mb-3">Search employees — fill in one or more fields</p>
+        <div class="row g-3 mb-3">
+
+          <!-- English name -->
+          <div class="col-md-3">
+            <label for="searchName" class="form-label">Employee Name</label>
+            <input
+              id="searchName"
+              type="search"
+              class="form-control"
+              placeholder="e.g. John Smith"
+              [value]="searchName()"
+              (input)="onNameInput($event)"
+              (keydown)="onSearchKeydown($event)"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Arabic name -->
+          <div class="col-md-3">
+            <label for="searchArabicName" class="form-label">Arabic Name</label>
+            <input
+              id="searchArabicName"
+              type="search"
+              class="form-control rau-input-rtl"
+              placeholder="مثال: محمد علي"
+              dir="rtl"
+              [value]="searchArabicName()"
+              (input)="onArabicNameInput($event)"
+              (keydown)="onSearchKeydown($event)"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Employee number -->
+          <div class="col-md-3">
+            <label for="searchEmpNo" class="form-label">Employee No. <span class="text-muted fw-normal small">(current or EBS)</span></label>
+            <input
+              id="searchEmpNo"
+              type="search"
+              class="form-control"
+              placeholder="e.g. 100042"
+              [value]="searchEmpNo()"
+              (input)="onEmpNoInput($event)"
+              (keydown)="onSearchKeydown($event)"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Email -->
+          <div class="col-md-3">
+            <label for="searchEmail" class="form-label">Email Address</label>
+            <div class="input-group">
+              <input
+                id="searchEmail"
+                type="search"
+                class="form-control"
+                placeholder="e.g. john@company.com"
+                [value]="searchEmail()"
+                (input)="onEmailInput($event)"
+                (keydown)="onSearchKeydown($event)"
+                autocomplete="off"
+              />
+              <button
+                class="btn btn-primary d-inline-flex align-items-center gap-2"
+                type="button"
+                (click)="triggerSearch()"
+                [disabled]="loading()"
+              >
+                @if (loading()) {
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                }
+                Search
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Search error -->
+        @if (searchError()) {
+          <div class="alert alert-danger py-2">{{ searchError() }}</div>
+        }
+
+        <!-- Results list -->
+        @if (searchResults().length > 0) {
+          <ul class="list-group list-group-flush rau-results">
+            @for (emp of searchResults(); track emp.employeeId) {
+              <li
+                class="list-group-item rau-result-row"
+                [class.rau-result-row--disabled]="emp.alreadyRegistered"
+              >
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div class="rau-emp-info">
+                    <span class="rau-emp-name">{{ emp.fullName }}</span>
+                    @if (emp.employeeArabicName) {
+                      <span class="rau-emp-name-ar d-block" dir="rtl">{{ emp.employeeArabicName }}</span>
+                    }
+                    <span class="text-muted small d-block">
+                      {{ emp.email }}
+                      @if (emp.empNo)            { &nbsp;·&nbsp; #{{ emp.empNo }} }
+                      @if (emp.ebsEmployeeNumber) { &nbsp;·&nbsp; <span title="Old EBS Employee No.">EBS #{{ emp.ebsEmployeeNumber }}</span> }
+                      @if (emp.department)        { &nbsp;·&nbsp; {{ emp.department }} }
+                    </span>
+                    @if (emp.jobTitle) {
+                      <span class="badge bg-secondary mt-1">{{ emp.jobTitle }}</span>
+                    }
+                  </div>
+
+                  <div class="flex-shrink-0 pt-1">
+                    @if (emp.alreadyRegistered) {
+                      <span class="badge rau-badge-registered">Already Registered</span>
+                    } @else {
+                      <button
+                        class="btn btn-primary btn-sm"
+                        type="button"
+                        (click)="selectEmployee(emp)"
+                      >Register as User →</button>
+                    }
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+
+          <!-- Load more -->
+          @if (hasMore()) {
+            <div class="text-center mt-3">
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                type="button"
+                (click)="loadMore()"
+                [disabled]="loading()"
+              >
+                @if (loading()) {
+                  <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                }
+                Load more
+              </button>
+            </div>
+          }
+        } @else if (!loading() && (searchName().trim() || searchArabicName().trim() || searchEmpNo().trim() || searchEmail().trim()) && !searchError()) {
+          <p class="text-muted text-center py-3 mb-0">No employees found.</p>
+        }
+
+      </div>
+    </div>
+
+    <div class="text-end">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="cancel()">
+        ← Back to Users
+      </button>
+    </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════════════════════════════
+       SECTION 2 — Register Form
+       ════════════════════════════════════════════════════════════════════════════ -->
+  @if (selectedEmployee(); as emp) {
+
+    <!-- Back link -->
+    <button class="btn btn-link ps-0 mb-3 rau-back-link" type="button" (click)="backToSearch()">
+      ← Back to Search
+    </button>
+
+    <!-- Success alert -->
+    @if (successMessage()) {
+      <div class="alert alert-success d-flex align-items-center" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        {{ successMessage() }}
+        <span class="ms-1 text-muted">(Redirecting…)</span>
+      </div>
+    }
+
+    <!-- Error alert -->
+    @if (formError()) {
+      <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ formError() }}
+      </div>
+    }
+
+    <div class="card rau-card">
+      <div class="card-header rau-card-header py-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rau-avatar">{{ emp.fullName.charAt(0).toUpperCase() }}</div>
+          <div>
+            <div class="fw-semibold">{{ emp.fullName }}</div>
+            <div class="text-muted small">{{ emp.email }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+          <!-- Row 1: Full Name + Email (readonly) -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-control rau-readonly" formControlName="fullName" readonly />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control rau-readonly" formControlName="email" readonly />
+            </div>
+          </div>
+
+          <!-- Row 2: Department + Job Title (readonly) -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Department</label>
+              <input type="text" class="form-control rau-readonly" formControlName="department" readonly />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Job Title</label>
+              <input type="text" class="form-control rau-readonly" formControlName="jobTitle" readonly />
+            </div>
+          </div>
+
+          <!-- Row 3: Phone + Role -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label for="phoneNumber" class="form-label">Phone Number <span class="text-muted fw-normal">(optional)</span></label>
+              <input
+                id="phoneNumber"
+                type="tel"
+                class="form-control"
+                formControlName="phoneNumber"
+                placeholder="+1 555 000 0000"
+                autocomplete="tel"
+              />
+            </div>
+            <div class="col-md-6">
+              <label for="roleName" class="form-label">
+                Role <span class="text-danger">*</span>
+              </label>
+              <select
+                id="roleName"
+                class="form-select"
+                formControlName="roleName"
+                [class.is-invalid]="form.controls.roleName.invalid && form.controls.roleName.touched"
+              >
+                <option value="" disabled>Select a role…</option>
+                @for (role of availableRoles; track role) {
+                  <option [value]="role">{{ role }}</option>
+                }
+              </select>
+              @if (form.controls.roleName.invalid && form.controls.roleName.touched) {
+                <div class="invalid-feedback">Please select a role.</div>
+              }
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-2 justify-content-end">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="backToSearch()"
+              [disabled]="submitting()"
+            >Cancel</button>
+
+            <button
+              type="submit"
+              class="btn btn-primary d-inline-flex align-items-center gap-2"
+              [disabled]="submitting()"
+            >
+              @if (submitting()) {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Registering…
+              } @else {
+                Register AD User
+              }
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  }
+
+</div>

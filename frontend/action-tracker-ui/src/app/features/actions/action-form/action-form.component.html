@@ -1,0 +1,266 @@
+<div class="af-page">
+
+  <app-page-header
+    [title]="pageTitle()"
+    subtitle="{{ isEditMode() ? 'Update the details below and save.' : 'Fill in the details below to create a new action item.' }}"
+    [icon]="pageIcon()"
+  >
+    <a routerLink="/actions" class="btn btn-outline">← Cancel</a>
+  </app-page-header>
+
+  <div class="af-body">
+
+    <!-- Loading overlay while fetching edit data -->
+    @if (loadingItem()) {
+      <div class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading action item…</p>
+      </div>
+    }
+
+    @if (!loadingItem()) {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="af-form">
+
+        <!-- ── Section: Core details ───────────────────── -->
+        <section class="form-section">
+          <h2 class="section-title">Core Details</h2>
+
+          <!-- Title (full width) -->
+          <div class="field field--full">
+            <label class="field__label" for="title">
+              Title <span class="req">*</span>
+            </label>
+            <input
+              id="title"
+              type="text"
+              class="field__input"
+              [class.field__input--error]="isInvalid('title')"
+              formControlName="title"
+              placeholder="Brief, actionable title…"
+              maxlength="200"
+            />
+            @if (isInvalid('title')) {
+              <span class="field__error">
+                @if (ctrl('title').errors?.['required']) { Title is required. }
+                @else if (ctrl('title').errors?.['maxlength']) { Max 200 characters. }
+              </span>
+            }
+          </div>
+
+          <!-- Description (full width) -->
+          <div class="field field--full">
+            <label class="field__label" for="description">Description</label>
+            <div class="textarea-wrap">
+              <textarea
+                id="description"
+                class="field__textarea"
+                [class.field__input--error]="isInvalid('description')"
+                formControlName="description"
+                placeholder="Provide context, background, and expected outcome…"
+                rows="4"
+                [maxlength]="DESC_MAX"
+              ></textarea>
+              <span class="char-counter" [class.char-counter--warn]="descLength() > DESC_MAX - 200">
+                {{ descLength() }} / {{ DESC_MAX }}
+              </span>
+            </div>
+            @if (isInvalid('description')) {
+              <span class="field__error">Description cannot exceed {{ DESC_MAX }} characters.</span>
+            }
+          </div>
+        </section>
+
+        <!-- ── Section: Assignment & Classification ───── -->
+        <section class="form-section">
+          <h2 class="section-title">Assignment &amp; Classification</h2>
+
+          <div class="form-grid">
+
+            <!-- Assignee -->
+            <div class="field">
+              <label class="field__label" for="assigneeId">Assignee</label>
+              <select
+                id="assigneeId"
+                class="field__select"
+                formControlName="assigneeId"
+              >
+                <option value="">— Select assignee —</option>
+                @for (m of teamMembers(); track m.id) {
+                  <option [value]="m.id">{{ m.fullName }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Category -->
+            <div class="field">
+              <label class="field__label" for="category">
+                Category <span class="req">*</span>
+              </label>
+              <select
+                id="category"
+                class="field__select"
+                [class.field__input--error]="isInvalid('category')"
+                formControlName="category"
+              >
+                <option value="">— Select category —</option>
+                @for (opt of CATEGORY_OPTIONS; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+              @if (isInvalid('category')) {
+                <span class="field__error">Category is required.</span>
+              }
+            </div>
+
+            <!-- Priority -->
+            <div class="field">
+              <label class="field__label" for="priority">
+                Priority <span class="req">*</span>
+              </label>
+              <div class="priority-wrap">
+                <select
+                  id="priority"
+                  class="field__select field__select--priority"
+                  [class.field__input--error]="isInvalid('priority')"
+                  formControlName="priority"
+                >
+                  <option value="">— Select priority —</option>
+                  @for (opt of PRIORITY_OPTIONS; track opt.value) {
+                    <option [value]="opt.value">{{ opt.dot }} {{ opt.label }}</option>
+                  }
+                </select>
+              </div>
+              @if (isInvalid('priority')) {
+                <span class="field__error">Priority is required.</span>
+              }
+            </div>
+
+            <!-- Status -->
+            <div class="field">
+              <label class="field__label" for="status">Status</label>
+              <select
+                id="status"
+                class="field__select"
+                formControlName="status"
+              >
+                @for (opt of STATUS_OPTIONS; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Due Date -->
+            <div class="field">
+              <label class="field__label" for="dueDate">
+                Due Date <span class="req">*</span>
+              </label>
+              <input
+                id="dueDate"
+                type="date"
+                class="field__input"
+                [class.field__input--error]="isInvalid('dueDate')"
+                formControlName="dueDate"
+                [min]="isEditMode() ? '' : TODAY"
+              />
+              @if (isInvalid('dueDate')) {
+                <span class="field__error">Due date is required.</span>
+              }
+            </div>
+
+            <!-- Is Escalated toggle -->
+            <div class="field field--toggle">
+              <label class="field__label" for="isEscalated">Escalation</label>
+              <label class="toggle-switch">
+                <input
+                  id="isEscalated"
+                  type="checkbox"
+                  class="toggle-switch__input"
+                  formControlName="isEscalated"
+                />
+                <span class="toggle-switch__track"></span>
+                <span class="toggle-switch__label">
+                  {{ ctrl('isEscalated').value ? '🚨 Escalated' : 'Not escalated' }}
+                </span>
+              </label>
+            </div>
+
+          </div><!-- /form-grid -->
+        </section>
+
+        <!-- ── Section: Progress ──────────────────────── -->
+        <section class="form-section">
+          <h2 class="section-title">Progress &amp; Notes</h2>
+
+          <div class="form-grid">
+
+            <!-- Progress slider -->
+            <div class="field field--full">
+              <label class="field__label" for="progress">
+                Progress — <strong>{{ progressVal() }}%</strong>
+              </label>
+              <div class="slider-wrap">
+                <span class="slider-bound">0%</span>
+                <input
+                  id="progress"
+                  type="range"
+                  class="slider"
+                  min="0" max="100" step="1"
+                  formControlName="progress"
+                />
+                <span class="slider-bound">100%</span>
+              </div>
+              <!-- Progress track fill -->
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  [class.progress-fill--green]="progressVal() >= 75"
+                  [class.progress-fill--blue]="progressVal() >= 40 && progressVal() < 75"
+                  [class.progress-fill--red]="progressVal() < 40"
+                  [style.width.%]="progressVal()"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="field field--full">
+              <label class="field__label" for="notes">Notes</label>
+              <div class="textarea-wrap">
+                <textarea
+                  id="notes"
+                  class="field__textarea"
+                  [class.field__input--error]="isInvalid('notes')"
+                  formControlName="notes"
+                  placeholder="Additional context, blockers, or next steps…"
+                  rows="3"
+                  [maxlength]="NOTES_MAX"
+                ></textarea>
+                <span class="char-counter" [class.char-counter--warn]="notesLength() > NOTES_MAX - 100">
+                  {{ notesLength() }} / {{ NOTES_MAX }}
+                </span>
+              </div>
+              @if (isInvalid('notes')) {
+                <span class="field__error">Notes cannot exceed {{ NOTES_MAX }} characters.</span>
+              }
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── Form actions ───────────────────────────── -->
+        <div class="form-actions">
+          <a routerLink="/actions" class="btn btn-outline">Cancel</a>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner"></span>
+              {{ isEditMode() ? 'Saving…' : 'Creating…' }}
+            } @else {
+              {{ isEditMode() ? '💾 Save Changes' : '✅ Create Action' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    }
+
+  </div><!-- /af-body -->
+</div><!-- /af-page -->

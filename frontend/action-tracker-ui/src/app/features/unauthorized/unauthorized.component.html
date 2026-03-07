@@ -1,0 +1,87 @@
+<div class="unauth-page">
+  <div class="unauth-card">
+    <div class="unauth-icon">🚫</div>
+    <h1 class="unauth-code">403</h1>
+    <h2 class="unauth-title">Access Denied</h2>
+    <p class="unauth-msg">
+      You do not have permission to view this page.<br />
+      Contact your administrator if you believe this is an error.
+    </p>
+    <a routerLink="/dashboard" class="unauth-btn">
+      ← Go to Dashboard
+    </a>
+  </div>
+</div>
+
+<style>
+  .unauth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-main);
+    padding: 2rem;
+  }
+
+  .unauth-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 3rem 2.5rem;
+    text-align: center;
+    max-width: 440px;
+    width: 100%;
+  }
+
+  .unauth-icon {
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+  }
+
+  .unauth-code {
+    margin: 0 0 0.25rem;
+    font-size: 4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .unauth-title {
+    margin: 0 0 1rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .unauth-msg {
+    margin: 0 0 2rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .unauth-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.4rem;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.15s;
+
+    &:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      color: #fff;
+    }
+  }
+</style>

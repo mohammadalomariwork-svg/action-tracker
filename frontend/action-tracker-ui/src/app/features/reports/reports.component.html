@@ -1,0 +1,246 @@
+<div class="rp-page">
+
+  <app-page-header
+    title="Reports"
+    subtitle="Export data and review performance statistics"
+    icon="📁"
+  />
+
+  <div class="rp-body">
+
+    <!-- ── Section 1: Export ────────────────────────────── -->
+    <section class="rp-card export-card">
+      <div class="section-header">
+        <div class="section-header__left">
+          <span class="section-icon">⬇️</span>
+          <div>
+            <h2 class="section-title">Export Action Items</h2>
+            <p class="section-sub">Apply optional filters then download as CSV</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter grid -->
+      <div class="filter-grid">
+
+        <!-- Status -->
+        <div class="filter-field">
+          <label class="filter-label">Status</label>
+          <select class="filter-select" [ngModel]="filterStatus()"
+            (ngModelChange)="filterStatus.set($event)">
+            @for (opt of STATUS_OPTIONS; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Priority -->
+        <div class="filter-field">
+          <label class="filter-label">Priority</label>
+          <select class="filter-select" [ngModel]="filterPriority()"
+            (ngModelChange)="filterPriority.set($event)">
+            @for (opt of PRIORITY_OPTIONS; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Assignee -->
+        <div class="filter-field">
+          <label class="filter-label">Assignee</label>
+          <select class="filter-select" [ngModel]="filterAssignee()"
+            (ngModelChange)="filterAssignee.set($event)">
+            <option value="">All Assignees</option>
+            @for (m of teamMembers(); track m.id) {
+              <option [value]="m.id">{{ m.fullName }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Date From -->
+        <div class="filter-field">
+          <label class="filter-label">Due Date From</label>
+          <input
+            type="date"
+            class="filter-select"
+            [ngModel]="filterDateFrom()"
+            (ngModelChange)="filterDateFrom.set($event)"
+          />
+        </div>
+
+        <!-- Date To -->
+        <div class="filter-field">
+          <label class="filter-label">Due Date To</label>
+          <input
+            type="date"
+            class="filter-select"
+            [ngModel]="filterDateTo()"
+            (ngModelChange)="filterDateTo.set($event)"
+          />
+        </div>
+
+      </div><!-- /filter-grid -->
+
+      <!-- Actions row -->
+      <div class="export-actions">
+        @if (hasFilters()) {
+          <button class="btn btn-ghost" (click)="clearFilters()">✕ Clear Filters</button>
+        }
+        <button
+          class="btn btn-primary"
+          (click)="exportCsv()"
+          [disabled]="exporting()"
+        >
+          @if (exporting()) {
+            <span class="spinner"></span> Exporting…
+          } @else {
+            ⬇ Export to CSV
+          }
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ── Section 2: Summary Statistics ────────────────── -->
+    @if (loading()) {
+      <div class="sk-grid">
+        @for (i of [1,2,3,4,5,6,7,8]; track i) {
+          <div class="sk-metric"><span class="sk"></span><span class="sk sk--sm"></span></div>
+        }
+      </div>
+    }
+
+    @if (!loading()) {
+      <section class="rp-card">
+        <div class="section-header">
+          <div class="section-header__left">
+            <span class="section-icon">📊</span>
+            <div>
+              <h2 class="section-title">Summary Statistics</h2>
+              <p class="section-sub">Aggregate performance metrics</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric tiles -->
+        <div class="metrics-grid">
+          <div class="metric-tile metric-tile--primary">
+            <span class="metric-icon">📋</span>
+            <span class="metric-value">{{ totalActions() }}</span>
+            <span class="metric-label">Total Actions</span>
+          </div>
+          <div class="metric-tile metric-tile--success">
+            <span class="metric-icon">✅</span>
+            <span class="metric-value">{{ completionRate() }}%</span>
+            <span class="metric-label">Completion Rate</span>
+          </div>
+          <div class="metric-tile metric-tile--info">
+            <span class="metric-icon">📅</span>
+            <span class="metric-value">{{ onTimeRate() }}%</span>
+            <span class="metric-label">On-Time Delivery</span>
+          </div>
+          <div class="metric-tile" [class.metric-tile--danger]="escalations() > 0" [class.metric-tile--success]="escalations() === 0">
+            <span class="metric-icon">🚨</span>
+            <span class="metric-value">{{ escalations() }}</span>
+            <span class="metric-label">Active Escalations</span>
+          </div>
+          <div class="metric-tile metric-tile--warning">
+            <span class="metric-icon">⏰</span>
+            <span class="metric-value">{{ overdueCount() }}</span>
+            <span class="metric-label">Overdue Items</span>
+          </div>
+          <div class="metric-tile metric-tile--danger">
+            <span class="metric-icon">🔴</span>
+            <span class="metric-value">{{ critHighCount() }}</span>
+            <span class="metric-label">Critical / High</span>
+          </div>
+          <div class="metric-tile metric-tile--blue">
+            <span class="metric-icon">⚙️</span>
+            <span class="metric-value">{{ inProgressCount() }}</span>
+            <span class="metric-label">In Progress</span>
+          </div>
+          <div class="metric-tile metric-tile--purple">
+            <span class="metric-icon">⚡</span>
+            <span class="metric-value">{{ velocity() }}</span>
+            <span class="metric-label">Team Velocity</span>
+          </div>
+        </div>
+
+        <!-- Status breakdown bars -->
+        @if (statusBreakdown().length > 0) {
+          <div class="breakdown-section">
+            <h3 class="breakdown-title">Status Distribution</h3>
+            <div class="breakdown-bars">
+              @for (item of statusBreakdown(); track item.status) {
+                <div class="breakdown-row">
+                  <span class="breakdown-label">{{ item.status }}</span>
+                  <div class="breakdown-track">
+                    <div
+                      class="breakdown-fill"
+                      [style.width.%]="item.percentage"
+                      [style.background]="statusColor(item.status)"
+                    ></div>
+                  </div>
+                  <span class="breakdown-pct">{{ item.count }} <span class="breakdown-pct-num">({{ item.percentage | number:'1.0-0' }}%)</span></span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </section>
+
+      <!-- ── Section 3: Charts ─────────────────────────── -->
+      <section class="charts-row">
+
+        <!-- Bar: Actions by Category -->
+        <div class="rp-card chart-card">
+          <div class="section-header">
+            <div class="section-header__left">
+              <span class="section-icon">📂</span>
+              <div>
+                <h2 class="section-title">Actions by Category</h2>
+                <p class="section-sub">Distribution across departments</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-area">
+            <canvas baseChart
+              [data]="barData"
+              [type]="barType"
+              [options]="barOptions"
+            ></canvas>
+          </div>
+        </div>
+
+        <!-- Doughnut: Actions by Priority -->
+        <div class="rp-card chart-card">
+          <div class="section-header">
+            <div class="section-header__left">
+              <span class="section-icon">🎯</span>
+              <div>
+                <h2 class="section-title">Actions by Priority</h2>
+                <p class="section-sub">Breakdown by urgency level</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-area chart-area--doughnut">
+            <canvas baseChart
+              [data]="doughnutData"
+              [type]="doughnutType"
+              [options]="doughnutOptions"
+            ></canvas>
+            <!-- Priority legend with counts -->
+            <div class="priority-legend">
+              <div class="priority-legend__item priority-legend__item--critical">🔴 Critical</div>
+              <div class="priority-legend__item priority-legend__item--high">🟠 High</div>
+              <div class="priority-legend__item priority-legend__item--medium">🟡 Medium</div>
+              <div class="priority-legend__item priority-legend__item--low">🟢 Low</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    }
+
+  </div><!-- /rp-body -->
+</div><!-- /rp-page -->

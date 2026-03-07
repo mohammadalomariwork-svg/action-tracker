@@ -10,3 +10,4 @@ appsettings.Development.json
 *.swp
 .env
 .aider*
+backend/ActionTracker/ActionTracker.API/appsettings.json

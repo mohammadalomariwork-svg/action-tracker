@@ -1,0 +1,170 @@
+// ── Container ─────────────────────────────────────────────────────────────────
+.blp-container {
+  padding: 0;
+}
+
+// ── Section dividers ──────────────────────────────────────────────────────────
+.blp-section {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+// ── Baseline info card ────────────────────────────────────────────────────────
+.blp-info-card {
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  background-color: var(--bg-card, #ffffff);
+}
+
+// ── Baselined card — frozen visual motif ──────────────────────────────────────
+.blp-baseline-card {
+  border: 1px solid #475569;
+  border-left: 4px solid #1e293b;
+  border-radius: var(--border-radius, 12px);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.blp-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.blp-detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.blp-detail-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+}
+
+// ── Form cards ────────────────────────────────────────────────────────────────
+.blp-form-card {
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  background-color: var(--bg-card, #ffffff);
+
+  .form-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+}
+
+// ── Review card (inline) ──────────────────────────────────────────────────────
+.blp-review-row {
+  background-color: rgba(79, 70, 229, 0.02) !important;
+}
+
+.blp-review-card {
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  border-radius: 10px;
+  background-color: rgba(79, 70, 229, 0.02);
+}
+
+// ── Status badges ─────────────────────────────────────────────────────────────
+.badge-pending {
+  background-color: #f59e0b;
+  color: #000;
+}
+
+.badge-approved {
+  background-color: #22c55e;
+  color: #fff;
+}
+
+.badge-rejected {
+  background-color: #ef4444;
+  color: #fff;
+}
+
+.badge-implemented {
+  background-color: #06b6d4;
+  color: #fff;
+}
+
+// ── Form controls ─────────────────────────────────────────────────────────────
+.form-control,
+.form-select {
+  border-color: var(--border-color, #e2e8f0);
+  border-radius: 6px;
+
+  &:focus {
+    border-color: var(--primary, #4f46e5);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+  }
+}
+
+// ── Btn-group radio ───────────────────────────────────────────────────────────
+.btn-group {
+  .btn-check:checked + .btn-outline-success {
+    background-color: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+  }
+
+  .btn-check:checked + .btn-outline-danger {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+  }
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+.table {
+  font-size: 0.9rem;
+
+  th {
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    transition: background-color 0.12s ease;
+
+    &:hover {
+      background-color: rgba(79, 70, 229, 0.04);
+    }
+  }
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+.blp-action-btn {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.5rem;
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+.badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.blp-empty {
+  border: 2px dashed var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  background-color: var(--bg-card, #ffffff);
+}
+
+.blp-empty-icon {
+  font-size: 2.5rem;
+  display: block;
+}
