@@ -190,7 +190,6 @@ try
     builder.Services.AddApplicationServices();
     builder.Services.AddUserManagement();
     builder.Services.AddAdminPanelServices();
-    builder.Services.AddProjectsFeatureServices(); // B-P11: Projects feature services
     builder.Services.AddSwaggerWithJwt();
 
     // -----------------------------------------------------------------------

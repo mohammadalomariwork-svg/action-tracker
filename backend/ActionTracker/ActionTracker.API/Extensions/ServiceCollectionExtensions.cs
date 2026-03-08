@@ -21,24 +21,7 @@ using ActionTracker.Infrastructure.Helpers;
 using ActionTracker.Infrastructure.Services;
 using ActionTracker.API.Middleware;
 
-// Projects feature — aliased to avoid ambiguity with the admin-panel
-// IStrategicObjectiveService (Guid PK) registered in AddAdminPanelServices.
-using IProjectStrategicObjectiveService = ActionTracker.Application.Features.Projects.Interfaces.IStrategicObjectiveService;
-using ProjectStrategicObjectiveService  = ActionTracker.Application.Features.Projects.Services.StrategicObjectiveService;
-using IProjectService          = ActionTracker.Application.Features.Projects.Interfaces.IProjectService;
-using ProjectService           = ActionTracker.Application.Features.Projects.Services.ProjectService;
-using IMilestoneService        = ActionTracker.Application.Features.Projects.Interfaces.IMilestoneService;
-using MilestoneService         = ActionTracker.Application.Features.Projects.Services.MilestoneService;
-using IProjectActionItemService = ActionTracker.Application.Features.Projects.Interfaces.IActionItemService;
-using ProjectActionItemService  = ActionTracker.Application.Features.Projects.Services.ActionItemService;
-using ICommentService          = ActionTracker.Application.Features.Projects.Interfaces.ICommentService;
-using CommentService           = ActionTracker.Application.Features.Projects.Services.CommentService;
-using IDocumentService         = ActionTracker.Application.Features.Projects.Interfaces.IDocumentService;
-using DocumentService          = ActionTracker.Application.Features.Projects.Services.DocumentService;
-using IBudgetService           = ActionTracker.Application.Features.Projects.Interfaces.IBudgetService;
-using BudgetService            = ActionTracker.Application.Features.Projects.Services.BudgetService;
-using IBaselineService         = ActionTracker.Application.Features.Projects.Interfaces.IBaselineService;
-using BaselineService          = ActionTracker.Application.Features.Projects.Services.BaselineService;
+
 
 // Aliases to distinguish the two IAuthService definitions that currently coexist:
 // the original (Interfaces.IAuthService) and the new contract (Features.Auth.IAuthService).
@@ -249,16 +232,5 @@ public static class ServiceCollectionExtensions
     /// the admin-panel <c>IStrategicObjectiveService</c> (Guid PK) and the
     /// workspace-scoped one (int PK) used by the Projects feature.
     /// </summary>
-    public static IServiceCollection AddProjectsFeatureServices(this IServiceCollection services)
-    {
-        services.AddScoped<IProjectStrategicObjectiveService, ProjectStrategicObjectiveService>();
-        services.AddScoped<IProjectService,             ProjectService>();
-        services.AddScoped<IMilestoneService,           MilestoneService>();
-        services.AddScoped<IProjectActionItemService,   ProjectActionItemService>();
-        services.AddScoped<ICommentService,             CommentService>();
-        services.AddScoped<IDocumentService,            DocumentService>();
-        services.AddScoped<IBudgetService,              BudgetService>();
-        services.AddScoped<IBaselineService,            BaselineService>();
-        return services;
-    }
+    
 }
