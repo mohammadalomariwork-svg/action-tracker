@@ -210,6 +210,7 @@
                 <th>Assignee(s)</th>
                 <th>Priority</th>
                 <th>Status</th>
+                <th>Start Date</th>
                 <th>Due Date</th>
                 <th>Progress</th>
                 @if (canManage) {
@@ -240,6 +241,9 @@
                   </td>
                   <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
                   <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
+                  <td>
+                    <span class="text-muted">{{ item.startDate ? (item.startDate | date:'MMM d, y') : '—' }}</span>
+                  </td>
                   <td>
                     <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                   </td>
@@ -522,7 +526,10 @@
         </div>
         <div class="col-6">
           <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.dueDate" />
+          <input type="date" class="form-control" [(ngModel)]="actionForm.dueDate" [min]="actionForm.startDate || ''" />
+          @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
+            <small class="text-danger">Due date must be same or after start date.</small>
+          }
         </div>
       </div>
 
@@ -562,7 +569,7 @@
           type="button"
           class="btn btn-primary d-inline-flex align-items-center gap-2"
           (click)="saveAction()"
-          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate"
+          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate)"
         >
           @if (actionSaving) {
             <span class="spinner-border spinner-border-sm" role="status"></span>
