@@ -51,6 +51,44 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
     }
 }
 
+public class ActionItemEscalationConfiguration : IEntityTypeConfiguration<ActionItemEscalation>
+{
+    public void Configure(EntityTypeBuilder<ActionItemEscalation> builder)
+    {
+        builder.ToTable("ActionItemEscalations");
+
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id)
+            .HasColumnType("uniqueidentifier")
+            .HasDefaultValueSql("NEWID()")
+            .ValueGeneratedOnAdd();
+
+        builder.Property(e => e.Explanation)
+            .IsRequired()
+            .HasMaxLength(2000);
+
+        builder.Property(e => e.EscalatedByUserId)
+            .IsRequired()
+            .HasMaxLength(450);
+
+        builder.Property(e => e.CreatedAt)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.HasOne(e => e.ActionItem)
+            .WithMany(a => a.Escalations)
+            .HasForeignKey(e => e.ActionItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(e => e.EscalatedByUser)
+            .WithMany()
+            .HasForeignKey(e => e.EscalatedByUserId)
+            .HasPrincipalKey(u => u.Id)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(e => e.ActionItemId);
+    }
+}
+
 public class ActionItemAssigneeConfiguration : IEntityTypeConfiguration<ActionItemAssignee>
 {
     public void Configure(EntityTypeBuilder<ActionItemAssignee> builder)

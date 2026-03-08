@@ -817,6 +817,40 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ActionItemAssignees", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemEscalation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<Guid>("ActionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("EscalatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionItemId");
+
+                    b.HasIndex("EscalatedByUserId");
+
+                    b.ToTable("ActionItemEscalations", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -1870,6 +1904,25 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemEscalation", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
+                        .WithMany("Escalations")
+                        .HasForeignKey("ActionItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "EscalatedByUser")
+                        .WithMany()
+                        .HasForeignKey("EscalatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActionItem");
+
+                    b.Navigation("EscalatedByUser");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.StrategicObjective", "StrategicObjective")
@@ -2027,6 +2080,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItem", b =>
                 {
                     b.Navigation("Assignees");
+
+                    b.Navigation("Escalations");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
