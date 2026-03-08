@@ -15,7 +15,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class BaselineService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/baselines`;
+  private readonly apiUrl = `${environment.apiUrl}/baseline`;
 
   /**
    * Fetches the baseline for a given project.

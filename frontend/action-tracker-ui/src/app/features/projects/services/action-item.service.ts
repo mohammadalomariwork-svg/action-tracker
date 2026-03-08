@@ -15,7 +15,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ProjectActionItemService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/action-items`;
+  private readonly apiUrl = `${environment.apiUrl}/project-action-items`;
 
   /**
    * Fetches standalone action items for a workspace (not linked to a project).

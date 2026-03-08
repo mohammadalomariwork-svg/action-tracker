@@ -187,7 +187,8 @@ export class ProjectFormComponent implements OnInit {
             .subscribe({
               next: (res) => {
                 this.isLoading = false;
-                this.router.navigate(['/projects', (res as any)?.id ?? (res as any)?.data?.id]);
+                const created = (res as any)?.data ?? res;
+                this.router.navigate(['/projects', created?.id]);
               },
               error: (err) => {
                 this.errorMessage = err?.error?.message ?? 'Failed to create project.';

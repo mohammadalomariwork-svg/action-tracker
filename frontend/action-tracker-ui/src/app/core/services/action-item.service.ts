@@ -8,7 +8,7 @@ import { ApiResponse, PagedResult } from '../models/api-response.model';
 @Injectable({ providedIn: 'root' })
 export class ActionItemService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiBaseUrl}/actionitems`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/action-items`;
 
   getAll(filter: ActionItemFilter): Observable<ApiResponse<PagedResult<ActionItem>>> {
     let params = new HttpParams()
