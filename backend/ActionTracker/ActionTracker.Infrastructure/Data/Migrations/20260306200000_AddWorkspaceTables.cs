@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ActionTracker.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class RecreateWorkspaceTables : Migration
+    public partial class AddWorkspaceTables : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // ── 1. Recreate Workspaces table with GUID primary key ──────────
+            // ── Workspaces table (GUID primary key) ─────────────────────────────
             migrationBuilder.CreateTable(
                 name: "Workspaces",
                 columns: table => new
@@ -33,7 +33,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 table: "Workspaces",
                 column: "OrganizationUnit");
 
-            // ── 2. Recreate WorkspaceAdmins table ───────────────────────────
+            // ── WorkspaceAdmins table ───────────────────────────────────────────
             migrationBuilder.CreateTable(
                 name: "WorkspaceAdmins",
                 columns: table => new
