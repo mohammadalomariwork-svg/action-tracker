@@ -1,31 +1,51 @@
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Page shell ────────────────────────────────────────────────────────────────
 .ol-page {
   padding: 1.5rem;
   min-height: 100%;
 }
 
-// ── Table ─────────────────────────────────────────────────────────────────────
+.ol-header h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+// ── Table wrapper ─────────────────────────────────────────────────────────────
 .ol-table-wrapper {
   border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 
-  table { margin-bottom: 0; }
+  table {
+    margin-bottom: 0;
+  }
 
   thead th {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: #6c757d;
     border-bottom: 2px solid #e9ecef;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
   }
 
-  tbody td {
-    font-size: 0.88rem;
-    vertical-align: middle;
+  tbody tr {
+    transition: background-color 0.12s ease;
+
+    &:hover {
+      background-color: rgba(13, 110, 253, 0.04);
+    }
+
+    td {
+      font-size: 0.9rem;
+      vertical-align: middle;
+      padding-top: 0.65rem;
+      padding-bottom: 0.65rem;
+    }
   }
 }
 
+// ── Code & unit badges ────────────────────────────────────────────────────────
 .ol-code-badge {
   font-size: 0.78rem;
   letter-spacing: 0.04em;
@@ -48,6 +68,28 @@
   font-size: 0.75rem;
   line-height: 1.4;
   border-radius: 4px;
+}
+
+// ── Mobile cards ──────────────────────────────────────────────────────────────
+.ol-card {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e9ecef;
+
+  .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+}
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+.ol-pagination {
+  padding-top: 0.5rem;
+
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 // ── Offcanvas ─────────────────────────────────────────────────────────────────

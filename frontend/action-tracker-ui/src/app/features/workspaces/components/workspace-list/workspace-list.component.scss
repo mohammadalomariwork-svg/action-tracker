@@ -1,41 +1,59 @@
-// Variables are defined as CSS custom properties in:
-// src/assets/styles/_variables.scss → available globally via styles.scss
-
 // ── Page shell ────────────────────────────────────────────────────────────────
 .wl-page {
   padding: 1.5rem;
   min-height: 100%;
 }
 
-// ── Page header ───────────────────────────────────────────────────────────────
-.wl-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-
-  @media (max-width: 575.98px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-.wl-title {
-  font-size: 1.5rem;
+.wl-header h2 {
+  font-size: 1.35rem;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
 }
 
-// ── Table ─────────────────────────────────────────────────────────────────────
-.table {
+// ── Table wrapper ─────────────────────────────────────────────────────────────
+.wl-table-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+
+  table {
+    margin-bottom: 0;
+  }
+
+  thead th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    border-bottom: 2px solid #e9ecef;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+  }
+
   tbody tr {
     transition: background-color 0.12s ease;
 
     &:hover {
-      background-color: rgba(79, 70, 229, 0.04); // --primary at low opacity
-      cursor: default;
+      background-color: rgba(13, 110, 253, 0.04);
     }
+
+    td {
+      font-size: 0.9rem;
+      vertical-align: middle;
+      padding-top: 0.65rem;
+      padding-bottom: 0.65rem;
+    }
+  }
+}
+
+// ── Mobile cards ──────────────────────────────────────────────────────────────
+.wl-card {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e9ecef;
+
+  .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
   }
 }
 
