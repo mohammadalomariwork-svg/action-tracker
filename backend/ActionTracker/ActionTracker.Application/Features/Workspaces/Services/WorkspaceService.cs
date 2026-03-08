@@ -157,7 +157,9 @@ public class WorkspaceService : IWorkspaceService
             _logger.LogInformation("Workspace {WorkspaceId} created with {AdminCount} admin(s)",
                 workspace.Id, workspace.Admins.Count);
 
-            return ToResponseDto(workspace);
+            var responseDto = ToResponseDto(workspace);
+            await EnrichAdminDtosAsync(responseDto.Admins);
+            return responseDto;
         }
         catch (Exception ex)
         {
@@ -210,7 +212,9 @@ public class WorkspaceService : IWorkspaceService
             _logger.LogInformation("Workspace {WorkspaceId} updated with {AdminCount} admin(s)",
                 id, workspace.Admins.Count);
 
-            return ToResponseDto(workspace);
+            var responseDto = ToResponseDto(workspace);
+            await EnrichAdminDtosAsync(responseDto.Admins);
+            return responseDto;
         }
         catch (Exception ex)
         {
@@ -372,10 +376,16 @@ public class WorkspaceService : IWorkspaceService
 
         var userIds = admins.Select(a => a.UserId).ToList();
 
+        _logger.LogDebug("EnrichAdminDtosAsync: looking up {Count} user(s): {UserIds}",
+            userIds.Count, string.Join(", ", userIds));
+
         var users = await _db.Users
             .Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.Email, u.OrgUnitId })
             .ToListAsync();
+
+        _logger.LogDebug("EnrichAdminDtosAsync: found {FoundCount} of {RequestedCount} user(s)",
+            users.Count, userIds.Count);
 
         var orgUnitIds = users
             .Where(u => u.OrgUnitId.HasValue)
@@ -390,10 +400,16 @@ public class WorkspaceService : IWorkspaceService
                 .ToDictionaryAsync(o => o.Id, o => o.Name)
             : new Dictionary<Guid, string>();
 
+        _logger.LogDebug("EnrichAdminDtosAsync: resolved {OrgUnitCount} org unit(s)", orgUnits.Count);
+
         foreach (var admin in admins)
         {
             var user = users.FirstOrDefault(u => u.Id == admin.UserId);
-            if (user is null) continue;
+            if (user is null)
+            {
+                _logger.LogWarning("EnrichAdminDtosAsync: user {UserId} not found in AspNetUsers", admin.UserId);
+                continue;
+            }
 
             admin.Email = user.Email ?? string.Empty;
             admin.OrgUnitName = user.OrgUnitId.HasValue && orgUnits.TryGetValue(user.OrgUnitId.Value, out var name)
