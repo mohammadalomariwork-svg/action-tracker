@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -48,11 +48,13 @@ export class WorkspaceDetailComponent implements OnInit {
   actionLoading = false;
   allUsers: AssignableUser[] = [];
 
-  // Inline add/edit form
+  // Drawer form
   showActionForm = false;
   editingActionId: string | null = null;
   actionSaving = false;
   actionForm: ActionItemFormData = this.emptyActionForm();
+  assigneeDropdownOpen = false;
+  assigneeSearchTerm = '';
 
   // Delete
   deletingActionId: string | null = null;
@@ -277,6 +279,8 @@ export class WorkspaceDetailComponent implements OnInit {
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
     this.showActionForm = true;
   }
 
@@ -293,12 +297,31 @@ export class WorkspaceDetailComponent implements OnInit {
       progress:    item.progress,
       isEscalated: item.isEscalated,
     };
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
     this.showActionForm = true;
   }
 
   cancelActionForm(): void {
     this.showActionForm = false;
     this.editingActionId = null;
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.assigneeDropdownOpen = false;
+  }
+
+  get filteredUsers(): AssignableUser[] {
+    if (!this.assigneeSearchTerm.trim()) return this.allUsers;
+    const term = this.assigneeSearchTerm.toLowerCase();
+    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+  }
+
+  getAssigneeName(userId: string): string {
+    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
   }
 
   toggleAssignee(userId: string): void {
