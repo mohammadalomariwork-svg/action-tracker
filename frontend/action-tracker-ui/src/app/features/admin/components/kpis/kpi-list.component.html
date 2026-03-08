@@ -15,13 +15,13 @@
   }
 
   <!-- ── Header ────────────────────────────────────────────────────────────────  -->
-  <div class="kl-header d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">
-      <i class="bi bi-bar-chart-fill text-primary me-2"></i>KPIs &amp; Targets
-    </h2>
-    <button class="btn btn-primary btn-sm" (click)="openAdd()">
-      <i class="bi bi-plus-lg me-1"></i>Add KPI
-    </button>
+  <div class="kl-header d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">KPIs &amp; Targets</h2>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary btn-sm" (click)="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>Add KPI
+      </button>
+    </div>
   </div>
 
   <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
@@ -227,44 +227,33 @@
     <!-- ── Mobile cards (visible only on xs/sm) ──────────────────────────────── -->
     <div class="d-block d-md-none">
       @for (kpi of filteredKpis(); track kpi.id) {
-        <div class="card kl-card mb-3" [class.border-secondary]="kpi.isDeleted">
+        <div class="card kl-card mb-3">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <span class="badge bg-dark font-monospace kl-code-badge me-2">{{ kpiCode(kpi) }}</span>
+                <h6 class="card-title mb-0">{{ kpi.name }}</h6>
+                <small class="text-muted">{{ kpiCode(kpi) }}</small>
+              </div>
+              <div>
                 @if (kpi.isDeleted) {
                   <span class="badge bg-danger">Deleted</span>
                 } @else {
                   <span class="badge bg-success">Active</span>
                 }
               </div>
-              <div class="text-end">
-                <span class="badge"
-                  [class.bg-primary]="kpi.targetCount > 0"
-                  [class.bg-light]="kpi.targetCount === 0"
-                  [class.text-muted]="kpi.targetCount === 0">
-                  {{ kpi.targetCount }} targets
-                </span>
-              </div>
             </div>
 
-            <h6 class="card-title mb-1">{{ kpi.name }}</h6>
-
             <div class="mb-2">
-              <small class="text-muted d-block">
-                Objective: <span class="badge bg-dark font-monospace kl-obj-code">{{ kpi.objectiveCode }}</span>
-              </small>
-              <small class="text-muted d-block">
-                Period:
-                <span class="badge" [ngClass]="periodBadgeClass(kpi.periodValue)">
-                  {{ PeriodLabels[kpi.periodValue] }}
-                </span>
-              </small>
-              @if (kpi.unit) {
-                <small class="text-muted d-block">Unit: {{ kpi.unit }}</small>
+              <small class="text-muted d-block">Objective: {{ kpi.objectiveCode }}</small>
+              <small class="text-muted d-block">Period: {{ PeriodLabels[kpi.periodValue] }}</small>
+              <small class="text-muted d-block">Unit: {{ kpi.unit || '—' }}</small>
+              <small class="text-muted d-block">Targets: {{ kpi.targetCount }}</small>
+              <small class="text-muted d-block">Created By: {{ kpi.createdByName || '—' }}</small>
+              @if (kpi.updatedByName) {
+                <small class="text-muted d-block">Updated By: {{ kpi.updatedByName }} ({{ kpi.updatedAt | date:'dd MMM y' }})</small>
               }
-              @if (kpi.createdByName) {
-                <small class="text-muted d-block">Created by: {{ kpi.createdByName }}</small>
+              @if (kpi.deletedByName) {
+                <small class="text-muted d-block">Deleted By: {{ kpi.deletedByName }} ({{ kpi.deletedAt | date:'dd MMM y' }})</small>
               }
             </div>
 

@@ -1,14 +1,22 @@
 <div class="wl-page">
 
-  <!-- ── Page header ─────────────────────────────────────────────────────────── -->
-  <div class="wl-header d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">
-      <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Workspaces
-    </h2>
-    <button class="btn btn-primary btn-sm" (click)="onCreateNew()">
-      <i class="bi bi-plus-circle me-1"></i>New Workspace
-    </button>
+  <!-- ── Header ────────────────────────────────────────────────────────────────── -->
+  <div class="wl-header d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Workspaces</h2>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary btn-sm" (click)="onCreateNew()">
+        <i class="bi bi-plus-circle me-1"></i>New Workspace
+      </button>
+    </div>
   </div>
+
+  <!-- ── Error alert ─────────────────────────────────────────────────────────── -->
+  @if (errorMessage) {
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ errorMessage }}
+    </div>
+  }
 
   <!-- ── Loading spinner ─────────────────────────────────────────────────────── -->
   @if (isLoading) {
@@ -19,19 +27,10 @@
     </div>
   }
 
-  <!-- ── Error alert ─────────────────────────────────────────────────────────── -->
-  @if (errorMessage) {
-    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>{{ errorMessage }}</span>
-    </div>
-  }
-
-  <!-- ── Content ─────────────────────────────────────────────────────────────── -->
   @if (!isLoading) {
     @if (workspaces.length > 0) {
 
-      <!-- ── Desktop table (hidden on xs/sm) ─────────────────────────────────── -->
+      <!-- ── Desktop table (hidden on xs/sm) ───────────────────────────────── -->
       <div class="wl-table-wrapper d-none d-md-block">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
@@ -58,27 +57,15 @@
                 </td>
                 <td class="text-end">
                   <div class="d-inline-flex gap-2">
-                    <button
-                      class="btn btn-outline-primary btn-sm"
-                      (click)="onEdit(workspace.id)"
-                      title="Edit workspace"
-                    >
+                    <button class="btn btn-outline-primary btn-sm" (click)="onEdit(workspace.id)" title="Edit workspace">
                       <i class="bi bi-pencil me-1"></i>Edit
                     </button>
                     @if (workspace.isActive) {
-                      <button
-                        class="btn btn-outline-danger btn-sm"
-                        (click)="onDelete(workspace.id)"
-                        title="Deactivate workspace"
-                      >
+                      <button class="btn btn-outline-danger btn-sm" (click)="onDelete(workspace.id)" title="Delete workspace">
                         <i class="bi bi-trash me-1"></i>Delete
                       </button>
                     } @else {
-                      <button
-                        class="btn btn-outline-success btn-sm"
-                        (click)="onRestore(workspace.id)"
-                        title="Restore workspace"
-                      >
+                      <button class="btn btn-outline-success btn-sm" (click)="onRestore(workspace.id)" title="Restore workspace">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
                       </button>
                     }
@@ -90,7 +77,7 @@
         </table>
       </div>
 
-      <!-- ── Mobile cards (visible only on xs/sm) ──────────────────────────────── -->
+      <!-- ── Mobile cards (visible only on xs/sm) ──────────────────────────── -->
       <div class="d-block d-md-none">
         @for (workspace of workspaces; track workspace.id) {
           <div class="card wl-card mb-3">
@@ -109,31 +96,21 @@
                 </div>
               </div>
 
-              <div class="mb-3">
-                <small class="text-muted d-block">
-                  Admins: {{ workspace.adminUserNames || '—' }}
-                </small>
+              <div class="mb-2">
+                <small class="text-muted d-block">Organization Unit: {{ workspace.organizationUnit }}</small>
+                <small class="text-muted d-block">Admins: {{ workspace.adminUserNames || '—' }}</small>
               </div>
 
               <div class="d-flex flex-wrap gap-2">
-                <button
-                  class="btn btn-outline-primary btn-sm"
-                  (click)="onEdit(workspace.id)"
-                >
+                <button class="btn btn-outline-primary btn-sm" (click)="onEdit(workspace.id)">
                   <i class="bi bi-pencil me-1"></i>Edit
                 </button>
                 @if (workspace.isActive) {
-                  <button
-                    class="btn btn-outline-danger btn-sm"
-                    (click)="onDelete(workspace.id)"
-                  >
+                  <button class="btn btn-outline-danger btn-sm" (click)="onDelete(workspace.id)">
                     <i class="bi bi-trash me-1"></i>Delete
                   </button>
                 } @else {
-                  <button
-                    class="btn btn-outline-success btn-sm"
-                    (click)="onRestore(workspace.id)"
-                  >
+                  <button class="btn btn-outline-success btn-sm" (click)="onRestore(workspace.id)">
                     <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
                   </button>
                 }
@@ -144,7 +121,6 @@
       </div>
 
     } @else if (!errorMessage) {
-      <!-- ── Empty state ────────────────────────────────────────────────────── -->
       <div class="wl-empty text-center py-5">
         <i class="bi bi-inbox wl-empty-icon text-muted"></i>
         <p class="text-muted mt-3 mb-3">No workspaces found.</p>

@@ -4,13 +4,13 @@
   <app-admin-breadcrumb [items]="[{ label: 'Strategic Objectives' }]" class="mb-3 d-block" />
 
   <!-- ── Header ────────────────────────────────────────────────────────────────  -->
-  <div class="ol-header d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">
-      <i class="bi bi-bullseye text-success me-2"></i>Strategic Objectives
-    </h2>
-    <button class="btn btn-success btn-sm" (click)="openAdd()">
-      <i class="bi bi-plus-lg me-1"></i>Add Objective
-    </button>
+  <div class="ol-header d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Strategic Objectives</h2>
+    <div class="d-flex gap-2">
+      <button class="btn btn-success btn-sm" (click)="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>Add Objective
+      </button>
+    </div>
   </div>
 
   <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
@@ -214,39 +214,35 @@
     <!-- ── Mobile cards (visible only on xs/sm) ──────────────────────────────── -->
     <div class="d-block d-md-none">
       @for (obj of filteredObjectives(); track obj.id) {
-        <div class="card ol-card mb-3" [class.border-secondary]="obj.isDeleted">
+        <div class="card ol-card mb-3">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <span class="badge bg-dark font-monospace ol-code-badge me-2">{{ obj.objectiveCode }}</span>
+                <h6 class="card-title mb-0">{{ obj.statement }}</h6>
+                <small class="text-muted">{{ obj.objectiveCode }}</small>
+              </div>
+              <div>
                 @if (obj.isDeleted) {
                   <span class="badge bg-danger">Deleted</span>
                 } @else {
                   <span class="badge bg-success">Active</span>
                 }
               </div>
-              <div class="text-end">
-                <span class="badge" [class.bg-success-subtle]="obj.kpiCount > 0"
-                                    [class.text-success-emphasis]="obj.kpiCount > 0"
-                                    [class.bg-light]="obj.kpiCount === 0"
-                                    [class.text-muted]="obj.kpiCount === 0">
-                  {{ obj.kpiCount }} KPIs
-                </span>
-              </div>
             </div>
-
-            <h6 class="card-title mb-1">{{ obj.statement }}</h6>
 
             <div class="mb-2">
               <small class="text-muted d-block">
                 Org Unit: {{ obj.orgUnitName }}
-                @if (obj.orgUnitCode) {
-                  <span class="badge bg-secondary ms-1 ol-unit-code">{{ obj.orgUnitCode }}</span>
-                }
+                @if (obj.orgUnitCode) { [{{ obj.orgUnitCode }}] }
               </small>
+              <small class="text-muted d-block">KPIs: {{ obj.kpiCount }}</small>
               <small class="text-muted d-block">Created: {{ obj.createdAt | date:'dd MMM y' }}</small>
-              @if (obj.createdByName) {
-                <small class="text-muted d-block">By: {{ obj.createdByName }}</small>
+              <small class="text-muted d-block">Created By: {{ obj.createdByName || '—' }}</small>
+              @if (obj.updatedByName) {
+                <small class="text-muted d-block">Updated By: {{ obj.updatedByName }} ({{ obj.updatedAt | date:'dd MMM y' }})</small>
+              }
+              @if (obj.deletedByName) {
+                <small class="text-muted d-block">Deleted By: {{ obj.deletedByName }} ({{ obj.deletedAt | date:'dd MMM y' }})</small>
               }
             </div>
 
