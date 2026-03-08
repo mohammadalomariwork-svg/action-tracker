@@ -14,4 +14,10 @@ public interface IActionItemService
     Task                                     UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct);
     Task<int>                                ProcessOverdueItemsAsync(CancellationToken ct);
     Task<List<AssignableUserDto>>             GetAssignableUsersAsync(CancellationToken ct);
+
+    // Comments
+    Task<List<ActionItemCommentResponseDto>> GetCommentsAsync(Guid actionItemId, CancellationToken ct);
+    Task<ActionItemCommentResponseDto>       AddCommentAsync(Guid actionItemId, CreateCommentDto dto, string userId, CancellationToken ct);
+    Task<ActionItemCommentResponseDto>       UpdateCommentAsync(Guid actionItemId, Guid commentId, UpdateCommentDto dto, string userId, CancellationToken ct);
+    Task                                     DeleteCommentAsync(Guid actionItemId, Guid commentId, string userId, CancellationToken ct);
 }

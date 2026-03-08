@@ -1,0 +1,242 @@
+<div class="detail-page">
+
+  <!-- Page header with navigation buttons -->
+  <app-page-header
+    [title]="item()?.actionId ?? 'Loading...'"
+    [subtitle]="item()?.title ?? ''"
+    icon="📋">
+    <a [routerLink]="['/workspaces', workspaceId()]" class="btn btn-outline">
+      ← Back to Workspace
+    </a>
+    <a [routerLink]="['/actions', item()?.id, 'edit']" class="btn btn-primary">
+      ✏️ Edit Action Item
+    </a>
+  </app-page-header>
+
+  <div class="detail-body">
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="spinner"></span>
+        <p>Loading action item...</p>
+      </div>
+    }
+
+    @if (!loading() && item(); as ai) {
+
+      <!-- ── Main Info Card ─────────────────────────── -->
+      <div class="info-grid">
+
+        <!-- Left: Details -->
+        <div class="card">
+          <h3 class="card__title">Details</h3>
+
+          <div class="detail-row">
+            <span class="detail-label">Title</span>
+            <span class="detail-value">{{ ai.title }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Description</span>
+            <span class="detail-value detail-value--desc">{{ ai.description || '—' }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Workspace</span>
+            <span class="detail-value">
+              <a [routerLink]="['/workspaces', ai.workspaceId]" class="link">{{ ai.workspaceTitle }}</a>
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Assignee(s)</span>
+            <span class="detail-value">
+              @for (a of ai.assignees; track a.userId) {
+                <span class="assignee-chip">
+                  <span class="assignee-avatar">{{ a.fullName.charAt(0) }}</span>
+                  {{ a.fullName }}
+                </span>
+              }
+              @if (ai.assignees.length === 0) { <span>—</span> }
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Priority</span>
+            <span class="detail-value"><app-priority-badge [priority]="ai.priority" /></span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="detail-value"><app-status-badge [status]="ai.status" /></span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Progress</span>
+            <span class="detail-value" style="flex:1;max-width:200px">
+              <app-progress-bar [value]="ai.progress" />
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Start Date</span>
+            <span class="detail-value">{{ ai.startDate ? (ai.startDate | date:'MMM d, y') : '—' }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Due Date</span>
+            <span class="detail-value" [class]="dueDateClass()">
+              {{ ai.dueDate | date:'MMM d, y' }}
+              @if (ai.isOverdue) {
+                <span class="overdue-badge">Overdue</span>
+              }
+            </span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Created</span>
+            <span class="detail-value">{{ ai.createdAt | date:'MMM d, y, h:mm a' }}</span>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Last Updated</span>
+            <span class="detail-value">{{ ai.updatedAt | date:'MMM d, y, h:mm a' }}</span>
+          </div>
+
+          @if (ai.isEscalated) {
+            <div class="detail-row">
+              <span class="detail-label">Escalated</span>
+              <span class="detail-value escalated-flag">🚨 Yes — This item has been escalated</span>
+            </div>
+          }
+        </div>
+
+        <!-- Right column: Escalations + Comments -->
+        <div class="side-col">
+
+          <!-- ── Escalation History ─────────────────── -->
+          <div class="card">
+            <h3 class="card__title">🚨 Escalation History</h3>
+
+            @if (ai.escalations.length === 0) {
+              <p class="empty-text">No escalations recorded.</p>
+            }
+
+            @for (esc of ai.escalations; track esc.id) {
+              <div class="escalation-entry">
+                <div class="escalation-header">
+                  <span class="escalation-by">{{ esc.escalatedByName || 'Unknown' }}</span>
+                  <span class="escalation-date">{{ esc.createdAt | date:'MMM d, y, h:mm a' }}</span>
+                </div>
+                <p class="escalation-text">{{ esc.explanation }}</p>
+              </div>
+            }
+          </div>
+
+          <!-- ── Comments Section ───────────────────── -->
+          <div class="card">
+            <h3 class="card__title">💬 Comments ({{ comments().length }})</h3>
+
+            <!-- Add Comment Form -->
+            <div class="comment-form">
+              <textarea
+                class="comment-input"
+                placeholder="Write a comment..."
+                [ngModel]="newComment()"
+                (ngModelChange)="newComment.set($event)"
+                rows="3"
+                maxlength="2000"
+              ></textarea>
+              <div class="comment-form__footer">
+                <label class="importance-toggle">
+                  <input
+                    type="checkbox"
+                    [ngModel]="newCommentImportant()"
+                    (ngModelChange)="newCommentImportant.set($event)"
+                  />
+                  <span class="importance-label">⚡ High Importance</span>
+                </label>
+                <button
+                  class="btn btn-primary btn-sm"
+                  [disabled]="!newComment().trim() || submittingComment()"
+                  (click)="submitComment()">
+                  @if (submittingComment()) { <span class="spin-sm"></span> }
+                  Post Comment
+                </button>
+              </div>
+            </div>
+
+            <!-- Comments List -->
+            @if (loadingComments()) {
+              <div class="loading-state loading-state--sm">
+                <span class="spinner spinner--sm"></span>
+              </div>
+            }
+
+            @for (c of comments(); track c.id) {
+              <div class="comment-entry" [class.comment-entry--important]="c.isHighImportance">
+                @if (c.isHighImportance) {
+                  <span class="importance-dot" title="High Importance">⚡</span>
+                }
+                <div class="comment-header">
+                  <span class="comment-avatar">{{ c.authorName.charAt(0) }}</span>
+                  <span class="comment-author">{{ c.authorName }}</span>
+                  <span class="comment-date">{{ c.createdAt | date:'MMM d, y, h:mm a' }}</span>
+                  @if (c.updatedAt) {
+                    <span class="comment-edited">(edited)</span>
+                  }
+                </div>
+
+                @if (editingCommentId() === c.id) {
+                  <!-- Edit mode -->
+                  <textarea
+                    class="comment-input comment-input--edit"
+                    [ngModel]="editCommentContent()"
+                    (ngModelChange)="editCommentContent.set($event)"
+                    rows="3"
+                    maxlength="2000"
+                  ></textarea>
+                  <div class="comment-edit-actions">
+                    <label class="importance-toggle">
+                      <input
+                        type="checkbox"
+                        [ngModel]="editCommentImportant()"
+                        (ngModelChange)="editCommentImportant.set($event)"
+                      />
+                      <span class="importance-label">⚡ High Importance</span>
+                    </label>
+                    <div class="comment-edit-btns">
+                      <button class="btn btn-ghost btn-sm" (click)="cancelEditComment()">Cancel</button>
+                      <button class="btn btn-primary btn-sm" (click)="saveEditComment()">Save</button>
+                    </div>
+                  </div>
+                } @else {
+                  <!-- View mode -->
+                  <p class="comment-text">{{ c.content }}</p>
+                  <div class="comment-actions">
+                    <button class="comment-action-btn" (click)="startEditComment(c)" title="Edit">✏️</button>
+                    <button class="comment-action-btn comment-action-btn--delete" (click)="deleteComment(c.id)" title="Delete">🗑️</button>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (!loadingComments() && comments().length === 0) {
+              <p class="empty-text">No comments yet. Be the first to add one!</p>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (!loading() && !item()) {
+      <div class="empty-state">
+        <div class="empty-state__icon">📭</div>
+        <p class="empty-state__title">Action item not found</p>
+        <a routerLink="/actions" class="btn btn-primary" style="margin-top:1rem">← Back to List</a>
+      </div>
+    }
+
+  </div>
+</div>

@@ -78,6 +78,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'actions/:id/view',
+        loadComponent: () =>
+          import('./features/actions/action-detail/action-detail.component').then(
+            m => m.ActionDetailComponent
+          ),
+      },
+      {
         path: 'reports',
         canActivate: [roleGuard],
         data: { roles: ['Admin', 'Manager'] },

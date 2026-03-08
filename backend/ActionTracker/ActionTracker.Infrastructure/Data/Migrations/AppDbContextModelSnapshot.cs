@@ -139,6 +139,46 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ActionItemEscalations", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<Guid>("ActionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsHighImportance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionItemId");
+
+                    b.ToTable("ActionItemComments", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -1067,6 +1107,25 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("EscalatedByUser");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemComment", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
+                        .WithMany("Comments")
+                        .HasForeignKey("ActionItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActionItem");
+
+                    b.Navigation("Author");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.StrategicObjective", "StrategicObjective")
@@ -1186,6 +1245,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItem", b =>
                 {
                     b.Navigation("Assignees");
+
+                    b.Navigation("Comments");
 
                     b.Navigation("Escalations");
                 });

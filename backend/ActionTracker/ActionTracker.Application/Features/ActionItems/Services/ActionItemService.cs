@@ -102,6 +102,7 @@ public class ActionItemService : IActionItemService
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
+            .Include(a => a.Comments).ThenInclude(c => c.Author)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
         return item is null ? null : ActionItemMapper.ToDto(item);
@@ -170,6 +171,7 @@ public class ActionItemService : IActionItemService
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
+            .Include(a => a.Comments).ThenInclude(c => c.Author)
             .FirstAsync(a => a.Id == item.Id, ct);
 
         _logger.LogInformation(
@@ -244,6 +246,7 @@ public class ActionItemService : IActionItemService
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
+            .Include(a => a.Comments).ThenInclude(c => c.Author)
             .FirstAsync(a => a.Id == id, ct);
 
         _logger.LogInformation("ActionItem {Id} updated", id);
@@ -319,5 +322,117 @@ public class ActionItemService : IActionItemService
                 Email    = u.Email ?? string.Empty,
             })
             .ToListAsync(ct);
+    }
+
+    // -------------------------------------------------------------------------
+    // Comments
+    // -------------------------------------------------------------------------
+
+    public async Task<List<ActionItemCommentResponseDto>> GetCommentsAsync(Guid actionItemId, CancellationToken ct)
+    {
+        return await _dbContext.ActionItemComments
+            .Where(c => c.ActionItemId == actionItemId)
+            .Include(c => c.Author)
+            .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new ActionItemCommentResponseDto
+            {
+                Id               = c.Id,
+                ActionItemId     = c.ActionItemId,
+                Content          = c.Content,
+                AuthorUserId     = c.AuthorUserId,
+                AuthorName       = c.Author.FirstName + " " + c.Author.LastName,
+                IsHighImportance = c.IsHighImportance,
+                CreatedAt        = c.CreatedAt,
+                UpdatedAt        = c.UpdatedAt,
+            })
+            .ToListAsync(ct);
+    }
+
+    public async Task<ActionItemCommentResponseDto> AddCommentAsync(
+        Guid actionItemId, CreateCommentDto dto, string userId, CancellationToken ct)
+    {
+        var exists = await _dbContext.ActionItems.AnyAsync(a => a.Id == actionItemId, ct);
+        if (!exists) throw new KeyNotFoundException($"ActionItem {actionItemId} not found.");
+
+        var comment = new ActionItemComment
+        {
+            Id               = Guid.NewGuid(),
+            ActionItemId     = actionItemId,
+            Content          = dto.Content.Trim(),
+            AuthorUserId     = userId,
+            IsHighImportance = dto.IsHighImportance,
+            CreatedAt        = DateTime.UtcNow,
+        };
+
+        _dbContext.ActionItemComments.Add(comment);
+        await _dbContext.SaveChangesAsync(ct);
+
+        // Fetch with author name
+        var saved = await _dbContext.ActionItemComments
+            .Include(c => c.Author)
+            .FirstAsync(c => c.Id == comment.Id, ct);
+
+        _logger.LogInformation("Comment {CommentId} added to ActionItem {ActionItemId}", comment.Id, actionItemId);
+
+        return new ActionItemCommentResponseDto
+        {
+            Id               = saved.Id,
+            ActionItemId     = saved.ActionItemId,
+            Content          = saved.Content,
+            AuthorUserId     = saved.AuthorUserId,
+            AuthorName       = saved.Author?.FullName ?? string.Empty,
+            IsHighImportance = saved.IsHighImportance,
+            CreatedAt        = saved.CreatedAt,
+            UpdatedAt        = saved.UpdatedAt,
+        };
+    }
+
+    public async Task<ActionItemCommentResponseDto> UpdateCommentAsync(
+        Guid actionItemId, Guid commentId, UpdateCommentDto dto, string userId, CancellationToken ct)
+    {
+        var comment = await _dbContext.ActionItemComments
+            .FirstOrDefaultAsync(c => c.Id == commentId && c.ActionItemId == actionItemId, ct)
+            ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
+
+        if (comment.AuthorUserId != userId)
+            throw new UnauthorizedAccessException("You can only edit your own comments.");
+
+        comment.Content          = dto.Content.Trim();
+        comment.IsHighImportance = dto.IsHighImportance;
+        comment.UpdatedAt        = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync(ct);
+
+        var saved = await _dbContext.ActionItemComments
+            .Include(c => c.Author)
+            .FirstAsync(c => c.Id == commentId, ct);
+
+        return new ActionItemCommentResponseDto
+        {
+            Id               = saved.Id,
+            ActionItemId     = saved.ActionItemId,
+            Content          = saved.Content,
+            AuthorUserId     = saved.AuthorUserId,
+            AuthorName       = saved.Author?.FullName ?? string.Empty,
+            IsHighImportance = saved.IsHighImportance,
+            CreatedAt        = saved.CreatedAt,
+            UpdatedAt        = saved.UpdatedAt,
+        };
+    }
+
+    public async Task DeleteCommentAsync(
+        Guid actionItemId, Guid commentId, string userId, CancellationToken ct)
+    {
+        var comment = await _dbContext.ActionItemComments
+            .FirstOrDefaultAsync(c => c.Id == commentId && c.ActionItemId == actionItemId, ct)
+            ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
+
+        if (comment.AuthorUserId != userId)
+            throw new UnauthorizedAccessException("You can only delete your own comments.");
+
+        _dbContext.ActionItemComments.Remove(comment);
+        await _dbContext.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Comment {CommentId} deleted from ActionItem {ActionItemId}", commentId, actionItemId);
     }
 }

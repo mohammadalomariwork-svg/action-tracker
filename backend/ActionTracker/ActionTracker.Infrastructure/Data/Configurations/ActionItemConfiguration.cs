@@ -113,3 +113,44 @@ public class ActionItemAssigneeConfiguration : IEntityTypeConfiguration<ActionIt
             .HasMaxLength(450);
     }
 }
+
+public class ActionItemCommentConfiguration : IEntityTypeConfiguration<ActionItemComment>
+{
+    public void Configure(EntityTypeBuilder<ActionItemComment> builder)
+    {
+        builder.ToTable("ActionItemComments");
+
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Id)
+            .HasColumnType("uniqueidentifier")
+            .HasDefaultValueSql("NEWID()")
+            .ValueGeneratedOnAdd();
+
+        builder.Property(c => c.Content)
+            .IsRequired()
+            .HasMaxLength(2000);
+
+        builder.Property(c => c.AuthorUserId)
+            .IsRequired()
+            .HasMaxLength(450);
+
+        builder.Property(c => c.IsHighImportance)
+            .HasDefaultValue(false);
+
+        builder.Property(c => c.CreatedAt)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+        builder.HasOne(c => c.ActionItem)
+            .WithMany(a => a.Comments)
+            .HasForeignKey(c => c.ActionItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(c => c.Author)
+            .WithMany()
+            .HasForeignKey(c => c.AuthorUserId)
+            .HasPrincipalKey(u => u.Id)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(c => c.ActionItemId);
+    }
+}

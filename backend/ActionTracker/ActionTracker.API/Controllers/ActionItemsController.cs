@@ -188,4 +188,87 @@ public class ActionItemsController : ControllerBase
 
         return Ok(ApiResponse<int>.Ok(count, $"{count} item(s) marked as Overdue."));
     }
+
+    // -------------------------------------------------------------------------
+    // GET api/action-items/{id}/comments
+    // -------------------------------------------------------------------------
+
+    [HttpGet("{id:guid}/comments")]
+    [ProducesResponseType(typeof(ApiResponse<List<ActionItemCommentResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetComments(Guid id, CancellationToken ct)
+    {
+        var comments = await _service.GetCommentsAsync(id, ct);
+        return Ok(ApiResponse<List<ActionItemCommentResponseDto>>.Ok(comments));
+    }
+
+    // -------------------------------------------------------------------------
+    // POST api/action-items/{id}/comments
+    // -------------------------------------------------------------------------
+
+    [HttpPost("{id:guid}/comments")]
+    [ProducesResponseType(typeof(ApiResponse<ActionItemCommentResponseDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> AddComment(
+        Guid id, [FromBody] CreateCommentDto dto, CancellationToken ct)
+    {
+        try
+        {
+            var userId  = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            var comment = await _service.AddCommentAsync(id, dto, userId, ct);
+            return Created(string.Empty, ApiResponse<ActionItemCommentResponseDto>.Ok(comment));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<ActionItemCommentResponseDto>.Fail(ex.Message));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT api/action-items/{actionItemId}/comments/{commentId}
+    // -------------------------------------------------------------------------
+
+    [HttpPut("{actionItemId:guid}/comments/{commentId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ActionItemCommentResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateComment(
+        Guid actionItemId, Guid commentId, [FromBody] UpdateCommentDto dto, CancellationToken ct)
+    {
+        try
+        {
+            var userId  = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            var comment = await _service.UpdateCommentAsync(actionItemId, commentId, dto, userId, ct);
+            return Ok(ApiResponse<ActionItemCommentResponseDto>.Ok(comment));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<ActionItemCommentResponseDto>.Fail(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, ApiResponse<ActionItemCommentResponseDto>.Fail(ex.Message));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE api/action-items/{actionItemId}/comments/{commentId}
+    // -------------------------------------------------------------------------
+
+    [HttpDelete("{actionItemId:guid}/comments/{commentId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteComment(
+        Guid actionItemId, Guid commentId, CancellationToken ct)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            await _service.DeleteCommentAsync(actionItemId, commentId, userId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
+        }
+    }
 }

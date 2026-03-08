@@ -228,6 +228,7 @@
                   <!-- Actions -->
                   <td class="td-actions">
                     <div class="row-actions">
+                      <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view" title="View">👁️</a>
                       <a [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit" title="Edit">✏️</a>
                       <button class="row-btn row-btn--delete" title="Delete" (click)="confirmDelete(item.id)">🗑️</button>
                     </div>
@@ -280,6 +281,7 @@
               </div>
               <app-progress-bar [value]="item.progress" />
               <div class="row-actions" style="margin-top:.75rem">
+                <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view">👁️ View</a>
                 <a [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit">✏️ Edit</a>
                 <button class="row-btn row-btn--delete" (click)="confirmDelete(item.id)">🗑️ Delete</button>
               </div>

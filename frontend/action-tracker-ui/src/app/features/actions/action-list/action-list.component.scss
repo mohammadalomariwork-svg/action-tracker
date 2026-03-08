@@ -221,7 +221,7 @@ th {
 
   &.th-title   { min-width: 220px; }
   &.th-progress{ width: 140px; }
-  &.th-actions { width: 90px; text-align: center; }
+  &.th-actions { width: 120px; text-align: center; }
 }
 
 .sort-indicator { font-size: 0.7rem; opacity: 0.6; margin-left: 2px; }
@@ -407,6 +407,7 @@ td {
   gap: 0.25rem;
   color: var(--text-primary);
 
+  &--view:hover  { border-color: var(--info, #3b82f6); background: rgba(59,130,246,0.06); color: var(--info, #3b82f6); }
   &--edit:hover  { border-color: var(--primary); background: rgba(79,70,229,0.06); }
   &--delete:hover{ border-color: var(--danger);  background: rgba(220,38,38,0.06); color: var(--danger); }
 }

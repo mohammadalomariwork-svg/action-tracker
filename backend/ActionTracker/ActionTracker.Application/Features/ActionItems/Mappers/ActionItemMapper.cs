@@ -36,5 +36,15 @@ public static class ActionItemMapper
             EscalatedByName = e.EscalatedByUser?.FullName ?? string.Empty,
             CreatedAt       = e.CreatedAt,
         }).ToList() ?? new(),
+        Comments       = item.Comments?.OrderByDescending(c => c.CreatedAt).Select(c => new CommentDto
+        {
+            Id               = c.Id,
+            Content          = c.Content,
+            AuthorUserId     = c.AuthorUserId,
+            AuthorName       = c.Author?.FullName ?? string.Empty,
+            IsHighImportance = c.IsHighImportance,
+            CreatedAt        = c.CreatedAt,
+            UpdatedAt        = c.UpdatedAt,
+        }).ToList() ?? new(),
     };
 }

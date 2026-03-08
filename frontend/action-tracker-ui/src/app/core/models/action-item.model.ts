@@ -27,6 +27,16 @@ export interface EscalationInfo {
   createdAt: string;
 }
 
+export interface CommentInfo {
+  id: string;
+  content: string;
+  authorUserId: string;
+  authorName: string;
+  isHighImportance: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export interface ActionItem {
   id: string;
   actionId: string;
@@ -44,6 +54,7 @@ export interface ActionItem {
   progress: number;
   isEscalated: boolean;
   escalations: EscalationInfo[];
+  comments: CommentInfo[];
   createdAt: string;
   updatedAt: string;
   daysUntilDue: number;

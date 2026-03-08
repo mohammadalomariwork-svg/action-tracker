@@ -265,6 +265,11 @@
                     <td class="text-end">
                       <div class="wa-row-actions">
                         @if (!item.isDeleted) {
+                          <a
+                            class="btn btn-outline-info btn-sm wa-action-btn"
+                            [routerLink]="['/actions', item.id, 'view']"
+                            title="View"
+                          ><i class="bi bi-eye"></i></a>
                           <button
                             class="btn btn-outline-primary btn-sm wa-action-btn"
                             (click)="openEditActionForm(item)"
@@ -351,8 +356,13 @@
               </div>
 
               <!-- Actions -->
-              @if (canManage && !item.isDeleted) {
+              @if (!item.isDeleted) {
                 <div class="wa-action-card__actions">
+                  <a
+                    class="btn btn-outline-info btn-sm"
+                    [routerLink]="['/actions', item.id, 'view']"
+                  ><i class="bi bi-eye me-1"></i>View</a>
+                  @if (canManage) {
                   <button
                     class="btn btn-outline-primary btn-sm"
                     (click)="openEditActionForm(item)"
@@ -369,6 +379,7 @@
                       <i class="bi bi-trash me-1"></i>Delete
                     }
                   </button>
+                  }
                 </div>
               }
             </div>
