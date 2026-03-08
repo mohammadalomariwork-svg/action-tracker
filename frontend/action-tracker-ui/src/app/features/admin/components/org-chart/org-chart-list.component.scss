@@ -93,7 +93,7 @@
 
 // ── Collapse toggle ───────────────────────────────────────────────────────────
 .ocl-toggle {
-  color: #6c757d;
+  color: var(--text-secondary);
   min-width: 18px;
   flex-shrink: 0;
 

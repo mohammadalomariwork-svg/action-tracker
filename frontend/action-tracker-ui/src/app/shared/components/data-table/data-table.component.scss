@@ -15,7 +15,7 @@
 // ── Header ─────────────────────────────────────────────
 thead tr {
   border-bottom: 2px solid var(--border-color);
-  background: var(--bg-main);
+  background: var(--bg-inset);
 }
 
 th {
@@ -68,7 +68,7 @@ tbody tr {
   transition: background 0.15s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: rgba(79, 70, 229, 0.03); }
+  &:hover { background: var(--bg-hover); }
 }
 
 td {
@@ -82,7 +82,7 @@ td {
   display: block;
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   width: 80%;

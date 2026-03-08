@@ -24,13 +24,13 @@
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  background: #fff;
+  background: var(--bg-card);
 
   thead th {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #6c757d;
+    color: var(--text-secondary);
     padding: 0.65rem;
     border-bottom: 2px solid #e9ecef;
   }
@@ -104,7 +104,7 @@
 
 // ── Tab navigation ───────────────────────────────────────────────────────────
 .nav-tabs .nav-link {
-  color: #1e293b;
+  color: var(--text-primary);
   font-weight: 500;
   border: none;
   border-bottom: 2px solid transparent;

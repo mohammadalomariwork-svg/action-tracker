@@ -1,12 +1,10 @@
-@use 'sass:color';
-
 $color-map: (
-  'primary':  #4f46e5,
-  'success':  #059669,
-  'warning':  #d97706,
-  'danger':   #dc2626,
-  'info':     #0284c7,
-  'purple':   #7c3aed,
+  'primary':  var(--primary),
+  'success':  var(--success),
+  'warning':  var(--warning),
+  'danger':   var(--danger),
+  'info':     var(--info),
+  'purple':   var(--secondary),
 );
 
 .kpi-card {
@@ -16,7 +14,7 @@ $color-map: (
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: all var(--transition-normal);
 
   &:hover {
     box-shadow: var(--shadow-md);
@@ -29,14 +27,24 @@ $color-map: (
   width: 100%;
 }
 
-@each $name, $color in $color-map {
-  .kpi-card--#{$name} .kpi-card__top-border {
-    background: linear-gradient(90deg, $color, color.adjust($color, $lightness: 18%));
-  }
-  .kpi-card--#{$name} .kpi-card__icon {
-    color: $color;
-  }
-}
+// Color variants using CSS variables
+.kpi-card--primary .kpi-card__top-border { background: var(--gradient-primary); }
+.kpi-card--primary .kpi-card__icon { color: var(--primary); }
+
+.kpi-card--success .kpi-card__top-border { background: var(--success); }
+.kpi-card--success .kpi-card__icon { color: var(--success); }
+
+.kpi-card--warning .kpi-card__top-border { background: var(--warning); }
+.kpi-card--warning .kpi-card__icon { color: var(--warning); }
+
+.kpi-card--danger .kpi-card__top-border { background: var(--danger); }
+.kpi-card--danger .kpi-card__icon { color: var(--danger); }
+
+.kpi-card--info .kpi-card__top-border { background: var(--info); }
+.kpi-card--info .kpi-card__icon { color: var(--info); }
+
+.kpi-card--purple .kpi-card__top-border { background: var(--gradient-gold); }
+.kpi-card--purple .kpi-card__icon { color: var(--secondary); }
 
 .kpi-card__body {
   padding: 1.25rem 1.5rem 1.25rem;
@@ -92,12 +100,12 @@ $color-map: (
   border-radius: 999px;
 
   &--up {
-    color: #059669;
-    background: rgba(5, 150, 105, 0.1);
+    color: var(--success);
+    background: rgba(13, 124, 95, 0.1);
   }
 
   &--down {
-    color: #dc2626;
-    background: rgba(220, 38, 38, 0.1);
+    color: var(--danger);
+    background: rgba(192, 57, 43, 0.1);
   }
 }
