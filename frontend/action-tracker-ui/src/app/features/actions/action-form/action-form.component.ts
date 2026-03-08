@@ -10,15 +10,13 @@ import {
 import { Subject, takeUntil } from 'rxjs';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
-import { UserService }       from '../../../core/services/user.service';
 import { ToastService }      from '../../../core/services/toast.service';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 
 import {
   ActionItem, ActionItemCreate,
-  ActionStatus, ActionPriority,
+  ActionStatus, ActionPriority, AssignableUser,
 } from '../../../core/models/action-item.model';
-import { UserProfile }       from '../../../core/models/user.model';
 import { WorkspaceList }     from '../../workspaces/models/workspace.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
@@ -55,7 +53,6 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   private readonly route         = inject(ActivatedRoute);
   private readonly router        = inject(Router);
   private readonly actionSvc     = inject(ActionItemService);
-  private readonly userSvc       = inject(UserService);
   private readonly toastSvc      = inject(ToastService);
   private readonly workspaceSvc  = inject(WorkspaceService);
   private readonly destroy$      = new Subject<void>();
@@ -63,7 +60,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   // ── State ─────────────────────────────────────────────
   readonly isEditMode   = signal(false);
   readonly editItem     = signal<ActionItem | null>(null);
-  readonly teamMembers  = signal<UserProfile[]>([]);
+  readonly teamMembers  = signal<AssignableUser[]>([]);
   readonly workspaces   = signal<WorkspaceList[]>([]);
   readonly saving       = signal(false);
   readonly loadingItem  = signal(false);
@@ -103,8 +100,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
-    this.userSvc.getAll().subscribe({
-      next: r => this.teamMembers.set((r.data ?? []).filter(u => u.isActive)),
+    this.actionSvc.getAssignableUsers().subscribe({
+      next: r => this.teamMembers.set(r.data ?? []),
       error: () => {},
     });
 

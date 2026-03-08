@@ -156,6 +156,19 @@ public class ActionItemsController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/action-items/assignable-users
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns all active users that can be assigned to an action item.</summary>
+    [HttpGet("assignable-users")]
+    [ProducesResponseType(typeof(ApiResponse<List<ActionItemResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAssignableUsers(CancellationToken ct)
+    {
+        var users = await _service.GetAssignableUsersAsync(ct);
+        return Ok(ApiResponse<List<AssignableUserDto>>.Ok(users));
+    }
+
+    // -------------------------------------------------------------------------
     // POST api/action-items/process-overdue   [Admin only]
     // -------------------------------------------------------------------------
 

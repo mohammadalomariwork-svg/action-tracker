@@ -54,6 +54,12 @@ export interface ActionItemCreate {
   isEscalated: boolean;
 }
 
+export interface AssignableUser {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
 export interface ActionItemFilter {
   status?: ActionStatus;
   priority?: ActionPriority;

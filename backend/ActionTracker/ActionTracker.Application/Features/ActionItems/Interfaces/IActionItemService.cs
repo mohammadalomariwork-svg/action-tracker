@@ -13,4 +13,5 @@ public interface IActionItemService
     Task                                     DeleteAsync(Guid id, CancellationToken ct);
     Task                                     UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct);
     Task<int>                                ProcessOverdueItemsAsync(CancellationToken ct);
+    Task<List<AssignableUserDto>>             GetAssignableUsersAsync(CancellationToken ct);
 }

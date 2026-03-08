@@ -7,14 +7,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
-import { UserService } from '../../../../core/services/user.service';
 import { Workspace, WorkspaceAdmin, UserDropdownItem } from '../../models/workspace.model';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
-  ActionStatus, ActionPriority,
+  ActionStatus, ActionPriority, AssignableUser,
 } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
-import { UserProfile } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -27,7 +25,6 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
   private readonly authService      = inject(AuthService);
   private readonly actionService    = inject(ActionItemService);
-  private readonly userService      = inject(UserService);
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
 
@@ -49,7 +46,7 @@ export class WorkspaceDetailComponent implements OnInit {
   actionPageNumber = 1;
   actionPageSize = 10;
   actionLoading = false;
-  allUsers: UserProfile[] = [];
+  allUsers: AssignableUser[] = [];
 
   // Inline add/edit form
   showActionForm = false;
@@ -141,10 +138,10 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   private loadAllUsers(): void {
-    this.userService.getAll()
+    this.actionService.getAssignableUsers()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => this.allUsers = (res.data ?? []).filter(u => u.isActive),
+        next: (res) => this.allUsers = res.data ?? [],
         error: () => {},
       });
   }

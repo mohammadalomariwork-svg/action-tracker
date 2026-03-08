@@ -261,4 +261,18 @@ public class ActionItemService : IActionItemService
 
         return overdueItems.Count;
     }
+
+    public async Task<List<AssignableUserDto>> GetAssignableUsersAsync(CancellationToken ct)
+    {
+        return await _dbContext.Users
+            .Where(u => u.IsActive)
+            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+            .Select(u => new AssignableUserDto
+            {
+                Id       = u.Id,
+                FullName = u.FirstName + " " + u.LastName,
+                Email    = u.Email ?? string.Empty,
+            })
+            .ToListAsync(ct);
+    }
 }
