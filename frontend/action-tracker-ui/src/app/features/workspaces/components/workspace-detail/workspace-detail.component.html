@@ -40,174 +40,104 @@
 
   @if (!isLoading && workspace) {
 
-    <!-- ── Header card ─────────────────────────────────────────────────────── -->
+    <!-- ── Basic Details Card ─────────────────────────────────────────────── -->
     <div class="card wd-header-card mb-4">
-      <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
-        <div>
-          <h4 class="mb-1">
-            <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>{{ workspace.title }}
-          </h4>
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="badge bg-primary bg-opacity-10 text-primary">
-              <i class="bi bi-building me-1"></i>{{ workspace.organizationUnit }}
+      <div class="card-body">
+        <h4 class="mb-3">
+          <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>{{ workspace.title }}
+        </h4>
+
+        <div class="wd-details-grid">
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Organization Unit</span>
+            <span class="wd-detail-value">
+              <i class="bi bi-building me-1 text-primary"></i>{{ workspace.organizationUnit }}
             </span>
-            @if (workspace.isActive) {
-              <span class="badge bg-success">Active</span>
-            } @else {
-              <span class="badge bg-secondary">Inactive</span>
-            }
+          </div>
+
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Status</span>
+            <span class="wd-detail-value">
+              @if (workspace.isActive) {
+                <span class="badge bg-success">Active</span>
+              } @else {
+                <span class="badge bg-secondary">Inactive</span>
+              }
+            </span>
+          </div>
+
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Created</span>
+            <span class="wd-detail-value">
+              <i class="bi bi-calendar-plus me-1 text-muted"></i>{{ workspace.createdAt | date:'mediumDate' }}
+            </span>
+          </div>
+
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Last Updated</span>
+            <span class="wd-detail-value">
+              <i class="bi bi-clock-history me-1 text-muted"></i>{{ workspace.updatedAt | date:'mediumDate' }}
+            </span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Tab navigation ──────────────────────────────────────────────────── -->
-    <ul class="nav nav-tabs mb-3">
-      <li class="nav-item">
-        <button
-          class="nav-link"
-          [class.active]="activeTab === 'admins'"
-          (click)="setTab('admins')"
-        >
-          <i class="bi bi-people-fill me-1"></i>Admins
-          <span class="badge bg-secondary ms-1">{{ workspace.admins?.length ?? 0 }}</span>
-        </button>
-      </li>
-      <li class="nav-item">
-        <button
-          class="nav-link"
-          [class.active]="activeTab === 'projects'"
-          (click)="setTab('projects')"
-        >
-          <i class="bi bi-kanban me-1"></i>Projects
-          <span class="badge bg-secondary ms-1">{{ projects.length }}</span>
-        </button>
-      </li>
-      <li class="nav-item">
-        <button
-          class="nav-link"
-          [class.active]="activeTab === 'actions'"
-          (click)="setTab('actions')"
-        >
-          <i class="bi bi-check2-square me-1"></i>Standalone Actions
-          <span class="badge bg-secondary ms-1">{{ standaloneActions.length }}</span>
-        </button>
-      </li>
-    </ul>
+    <!-- ── Workspace Admins Section ──────────────────────────────────────── -->
+    <div class="wd-section">
+      <div class="wd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-people-fill me-2 text-primary"></i>Workspace Admins
+          <span class="badge bg-secondary ms-2">{{ workspace.admins?.length ?? 0 }}</span>
+        </h5>
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- ADMINS TAB                                                            -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    @if (activeTab === 'admins') {
-
-      <!-- Add Admin form -->
-      @if (canManage) {
-        <div class="card wd-add-admin-card mb-3">
-          <div class="card-body">
-            <h6 class="mb-3"><i class="bi bi-person-plus me-1"></i>Add Admin</h6>
-            <div class="d-flex gap-2 flex-wrap align-items-end">
-              <div class="flex-grow-1" style="min-width: 200px; max-width: 400px;">
-                <label for="adminSelect" class="form-label small text-muted">Select User</label>
-                <select
-                  id="adminSelect"
-                  class="form-select form-select-sm"
-                  [(ngModel)]="selectedUserId"
-                  [disabled]="isAddingAdmin"
-                >
-                  <option value="">-- Select a user --</option>
-                  @for (user of availableUsers; track user.id) {
-                    <option [value]="user.id">{{ user.displayName }}</option>
-                  }
-                </select>
-              </div>
-              <button
-                class="btn btn-primary btn-sm"
-                (click)="onAddAdmin()"
-                [disabled]="!selectedUserId || isAddingAdmin"
-              >
-                @if (isAddingAdmin) {
-                  <span class="spinner-border spinner-border-sm me-1"></span>
-                }
-                <i class="bi bi-plus-circle me-1"></i>Add
-              </button>
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- Admins list - Desktop table (hidden on xs/sm) -->
-      @if (workspace.admins && workspace.admins.length > 0) {
-        <div class="wd-table-wrapper d-none d-md-block">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>User ID</th>
-                @if (canManage) {
-                  <th class="text-end">Actions</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (admin of workspace.admins; track admin.userId; let i = $index) {
-                <tr>
-                  <td>{{ i + 1 }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="wd-avatar">
-                        {{ admin.userName?.charAt(0)?.toUpperCase() ?? '?' }}
-                      </div>
-                      <span class="fw-medium">{{ admin.userName }}</span>
-                    </div>
-                  </td>
-                  <td><small class="text-muted">{{ admin.userId }}</small></td>
-                  @if (canManage) {
-                    <td class="text-end">
-                      <button
-                        class="btn btn-outline-danger btn-sm"
-                        (click)="onRemoveAdmin(admin)"
-                        title="Remove admin"
-                        [disabled]="workspace.admins.length <= 1"
-                      >
-                        <i class="bi bi-person-dash me-1"></i>Remove
-                      </button>
-                    </td>
-                  }
-                </tr>
+        @if (canManage) {
+          <div class="wd-add-admin">
+            <select
+              class="form-select form-select-sm"
+              [(ngModel)]="selectedUserId"
+              [disabled]="isAddingAdmin"
+            >
+              <option value="">-- Select a user --</option>
+              @for (user of availableUsers; track user.id) {
+                <option [value]="user.id">{{ user.displayName }}</option>
               }
-            </tbody>
-          </table>
-        </div>
+            </select>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="onAddAdmin()"
+              [disabled]="!selectedUserId || isAddingAdmin"
+            >
+              @if (isAddingAdmin) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+              }
+              <i class="bi bi-plus-circle me-1"></i>Add
+            </button>
+          </div>
+        }
+      </div>
 
-        <!-- Admins list - Mobile cards (visible only on xs/sm) -->
-        <div class="d-block d-md-none">
-          @for (admin of workspace.admins; track admin.userId; let i = $index) {
-            <div class="card wd-admin-card mb-3">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                  <div class="d-flex align-items-center gap-2">
-                    <div class="wd-avatar">
-                      {{ admin.userName?.charAt(0)?.toUpperCase() ?? '?' }}
-                    </div>
-                    <div>
-                      <h6 class="card-title mb-0">{{ admin.userName }}</h6>
-                      <small class="text-muted">{{ admin.userId }}</small>
-                    </div>
-                  </div>
-                </div>
-                @if (canManage) {
-                  <div class="d-flex justify-content-end">
-                    <button
-                      class="btn btn-outline-danger btn-sm"
-                      (click)="onRemoveAdmin(admin)"
-                      [disabled]="workspace.admins.length <= 1"
-                    >
-                      <i class="bi bi-person-dash me-1"></i>Remove
-                    </button>
-                  </div>
-                }
+      @if (workspace.admins && workspace.admins.length > 0) {
+        <div class="wd-admins-grid">
+          @for (admin of workspace.admins; track admin.userId) {
+            <div class="wd-admin-card">
+              <div class="wd-admin-avatar">
+                {{ admin.userName?.charAt(0)?.toUpperCase() ?? '?' }}
               </div>
+              <div class="wd-admin-info">
+                <span class="wd-admin-name">{{ admin.userName }}</span>
+                <span class="wd-admin-id">{{ admin.userId }}</span>
+              </div>
+              @if (canManage) {
+                <button
+                  class="wd-admin-remove"
+                  (click)="onRemoveAdmin(admin)"
+                  title="Remove admin"
+                  [disabled]="workspace.admins.length <= 1"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              }
             </div>
           }
         </div>
@@ -217,191 +147,7 @@
           <p class="text-muted mt-3 mb-0">No admins assigned to this workspace.</p>
         </div>
       }
-    }
-
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- PROJECTS TAB                                                          -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    @if (activeTab === 'projects') {
-
-      <!-- Add Project button -->
-      @if (canManage) {
-        <div class="d-flex justify-content-end mb-3">
-          <button class="btn btn-primary" (click)="onAddProject()">
-            <i class="bi bi-plus-circle me-1"></i>Add Project
-          </button>
-        </div>
-      }
-
-      @if (projects.length > 0) {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-          @for (project of projects; track project.id) {
-            <div class="col">
-              <div
-                class="card wd-project-card h-100"
-                (click)="navigateToProject(project.id)"
-              >
-                <div class="card-body d-flex flex-column">
-                  <!-- Title and badges -->
-                  <div class="d-flex align-items-start justify-content-between mb-2">
-                    <h6 class="card-title mb-0 me-2">{{ project.title }}</h6>
-                    @if (project.isBaselined) {
-                      <i class="bi bi-lock-fill text-muted" title="Baselined"></i>
-                    }
-                  </div>
-
-                  <div class="d-flex gap-1 mb-2 flex-wrap">
-                    <span class="badge" [ngClass]="getTypeClass(project.projectType)">
-                      {{ getTypeLabel(project.projectType) }}
-                    </span>
-                    <span class="badge" [ngClass]="getStatusClass(project.status)">
-                      {{ getStatusLabel(project.status) }}
-                    </span>
-                  </div>
-
-                  <!-- PM and dates -->
-                  <div class="wd-project-meta text-muted small mb-2">
-                    <div>
-                      <i class="bi bi-person me-1"></i>{{ project.projectManagerUserName }}
-                    </div>
-                    <div>
-                      <i class="bi bi-calendar-range me-1"></i>
-                      {{ project.plannedStartDate | date:'mediumDate' }} –
-                      {{ project.plannedEndDate | date:'mediumDate' }}
-                    </div>
-                  </div>
-
-                  <!-- Progress bar -->
-                  <div class="mt-auto">
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span class="text-muted">Progress</span>
-                      <span class="fw-medium">{{ project.completionPercentage }}%</span>
-                    </div>
-                    <div class="progress" style="height: 6px;">
-                      <div
-                        class="progress-bar"
-                        [ngClass]="getProgressClass(project.completionPercentage)"
-                        role="progressbar"
-                        [style.width.%]="project.completionPercentage"
-                        [attr.aria-valuenow]="project.completionPercentage"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                      ></div>
-                    </div>
-                  </div>
-
-                  <!-- Delete button (stop propagation so card click doesn't fire) -->
-                  @if (canManage) {
-                    <div class="text-end mt-2">
-                      <button
-                        class="btn btn-outline-danger btn-sm"
-                        (click)="$event.stopPropagation(); onDeleteProject(project.id)"
-                        title="Delete project"
-                      >
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      } @else if (!errorMessage) {
-        <div class="wd-empty text-center py-5">
-          <i class="bi bi-kanban wd-empty-icon text-muted"></i>
-          <p class="text-muted mt-3 mb-3">No projects in this workspace yet.</p>
-          @if (canManage) {
-            <button class="btn btn-primary btn-sm" (click)="onAddProject()">
-              <i class="bi bi-plus-circle me-1"></i>Create First Project
-            </button>
-          }
-        </div>
-      }
-    }
-
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- STANDALONE ACTIONS TAB                                                -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    @if (activeTab === 'actions') {
-
-      <!-- Add Action button -->
-      @if (canManage) {
-        <div class="d-flex justify-content-end mb-3">
-          <button class="btn btn-primary" (click)="onAddAction()">
-            <i class="bi bi-plus-circle me-1"></i>Add Action
-          </button>
-        </div>
-      }
-
-      @if (standaloneActions.length > 0) {
-        <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th scope="col">Title</th>
-                <th scope="col">Priority</th>
-                <th scope="col">Status</th>
-                <th scope="col">Assigned To</th>
-                <th scope="col">Due Date</th>
-                <th scope="col">% Complete</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (action of standaloneActions; track action.id) {
-                <tr>
-                  <td class="fw-medium">{{ action.title }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="getPriorityClass(action.priority)">
-                      {{ getPriorityLabel(action.priority) }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge" [ngClass]="getActionStatusClass(action.status)">
-                      {{ getActionStatusLabel(action.status) }}
-                    </span>
-                  </td>
-                  <td>
-                    @if (action.isExternalAssignee) {
-                      {{ action.assignedToExternalName ?? '—' }}
-                    } @else {
-                      {{ action.assignedToUserName ?? '—' }}
-                    }
-                  </td>
-                  <td>{{ action.dueDate | date:'mediumDate' }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="progress flex-grow-1" style="height: 6px; min-width: 60px;">
-                        <div
-                          class="progress-bar"
-                          [ngClass]="getProgressClass(action.completionPercentage)"
-                          role="progressbar"
-                          [style.width.%]="action.completionPercentage"
-                          [attr.aria-valuenow]="action.completionPercentage"
-                          aria-valuemin="0"
-                          aria-valuemax="100"
-                        ></div>
-                      </div>
-                      <span class="small fw-medium">{{ action.completionPercentage }}%</span>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      } @else if (!errorMessage) {
-        <div class="wd-empty text-center py-5">
-          <i class="bi bi-check2-square wd-empty-icon text-muted"></i>
-          <p class="text-muted mt-3 mb-3">No standalone action items yet.</p>
-          @if (canManage) {
-            <button class="btn btn-primary btn-sm" (click)="onAddAction()">
-              <i class="bi bi-plus-circle me-1"></i>Create First Action
-            </button>
-          }
-        </div>
-      }
-    }
+    </div>
   }
 
 </div>

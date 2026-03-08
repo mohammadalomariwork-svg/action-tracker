@@ -12,125 +12,144 @@
   background-color: #ffffff;
 }
 
-// ── Add-admin card ──────────────────────────────────────────────────────────
-.wd-add-admin-card {
-  border: 1px solid #e9ecef;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+// ── Details grid ─────────────────────────────────────────────────────────────
+.wd-details-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
 }
 
-// ── Admin table wrapper ─────────────────────────────────────────────────────
-.wd-table-wrapper {
+.wd-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.wd-detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+.wd-detail-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+// ── Section ──────────────────────────────────────────────────────────────────
+.wd-section {
+  background: #ffffff;
   border-radius: 0.5rem;
-  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  background: #fff;
+  padding: 1.25rem 1.5rem;
+}
 
-  thead th {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #6c757d;
-    padding: 0.65rem;
-    border-bottom: 2px solid #e9ecef;
-  }
+.wd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
 
-  tbody td {
-    font-size: 0.9rem;
-    padding: 0.65rem;
-    vertical-align: middle;
-  }
+// ── Add admin row ────────────────────────────────────────────────────────────
+.wd-add-admin {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 
-  tbody tr {
-    transition: background-color 0.12s ease;
-
-    &:hover {
-      background-color: rgba(13, 110, 253, 0.04);
-    }
+  select {
+    min-width: 220px;
   }
 }
 
-// ── Avatar circle ───────────────────────────────────────────────────────────
-.wd-avatar {
-  width: 2.2rem;
-  height: 2.2rem;
+// ── Admins grid ──────────────────────────────────────────────────────────────
+.wd-admins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.wd-admin-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+  transition: box-shadow 0.15s, transform 0.1s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+}
+
+.wd-admin-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
-  background-color: #0d6efd;
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
-// ── Admin mobile card ───────────────────────────────────────────────────────
-.wd-admin-card {
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
-  border: 1px solid #e9ecef;
+.wd-admin-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
-// ── Project cards ────────────────────────────────────────────────────────────
-.wd-project-card {
-  cursor: pointer;
-  border-radius: 0.5rem;
-  border: 1px solid #e9ecef;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-  }
-}
-
-.wd-project-meta {
-  line-height: 1.6;
-}
-
-// ── Status / type badges ─────────────────────────────────────────────────────
-.badge {
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
-
-// ── Progress bars ────────────────────────────────────────────────────────────
-.progress {
-  background-color: #e9ecef;
-  border-radius: 999px;
-}
-
-// ── Tab navigation ───────────────────────────────────────────────────────────
-.nav-tabs .nav-link {
+.wd-admin-name {
+  font-size: 0.9rem;
+  font-weight: 600;
   color: #1e293b;
-  font-weight: 500;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 0.6rem 1rem;
-  transition: color 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    color: #0d6efd;
-    border-bottom-color: rgba(13, 110, 253, 0.3);
-  }
-
-  &.active {
-    color: #0d6efd;
-    border-bottom-color: #0d6efd;
-    background: transparent;
-  }
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-// ── Table ────────────────────────────────────────────────────────────────────
-.table {
-  tbody tr {
-    transition: background-color 0.12s ease;
+.wd-admin-id {
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-    &:hover {
-      background-color: rgba(13, 110, 253, 0.04);
-    }
+.wd-admin-remove {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #adb5bd;
+  cursor: pointer;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.8rem;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    color: #dc3545;
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.06);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 }
 
@@ -144,4 +163,41 @@
 .wd-empty-icon {
   font-size: 3rem;
   display: block;
+}
+
+// ── Badge ────────────────────────────────────────────────────────────────────
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+// ── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 992px) {
+  .wd-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .wd-page {
+    padding: 1rem;
+  }
+
+  .wd-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wd-add-admin {
+    flex-direction: column;
+    align-items: stretch;
+
+    select {
+      min-width: unset;
+    }
+  }
+
+  .wd-admins-grid {
+    grid-template-columns: 1fr;
+  }
 }
