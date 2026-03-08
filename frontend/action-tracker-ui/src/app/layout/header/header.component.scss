@@ -12,7 +12,7 @@
 }
 
 // ═══════════════════════════════════════════════════════════
-// TOP BAR — app title left, user info + logout right
+// TOP BAR — user info + logout, right-aligned
 // ═══════════════════════════════════════════════════════════
 .top-bar {
   background: var(--bg-card);
@@ -336,8 +336,8 @@
     display: none;
   }
 
-  // Hide the desktop nav-bar on mobile
-  .nav-bar {
+  // Hide desktop nav links on mobile (nav-bar still visible for brand + hamburger)
+  .nav-links {
     display: none;
   }
 
