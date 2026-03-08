@@ -1,124 +1,120 @@
 <header class="header">
-  <div class="header-inner">
 
-    <!-- Logo + Brand -->
-    <a class="brand" routerLink="/dashboard">
-      <span class="brand-icon">&#9881;</span>
-      <span class="brand-name">Action Tracker</span>
-    </a>
+  <!-- ── Top bar: user info + logout ──────────────────────────────────── -->
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <span class="app-title">Action Tracker</span>
+      <div class="top-bar-right">
+        @if (currentUser$ | async; as user) {
+          <span class="status-dot" title="Connected"></span>
 
-    <!-- Navigation links -->
-    <nav class="nav-links" [class.open]="menuOpen()">
-      @if (currentUser$ | async) {
-        @for (link of visibleLinks(); track link.label) {
+          <div class="nav-user" (click)="$event.stopPropagation()">
+            <button class="avatar-btn" (click)="toggleMenu()" aria-label="User menu">
+              <span class="avatar">
+                {{ (user.displayName.charAt(0) || '?').toUpperCase() }}
+              </span>
+              <span class="user-name">{{ user.displayName }}</span>
+
+              @if (user.loginProvider === 'AzureAD') {
+                <span class="provider-badge provider-badge--azure">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21"
+                       width="10" height="10" aria-hidden="true">
+                    <rect x="1"  y="1"  width="9" height="9" fill="#F25022"/>
+                    <rect x="11" y="1"  width="9" height="9" fill="#7FBA00"/>
+                    <rect x="1"  y="11" width="9" height="9" fill="#00A4EF"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                  </svg>
+                  Microsoft
+                </span>
+              } @else {
+                <span class="provider-badge provider-badge--local">Local</span>
+              }
+
+              <span class="chevron" [class.up]="menuOpen()">&#9660;</span>
+            </button>
+
+            @if (menuOpen()) {
+              <div class="dropdown">
+                <div class="dropdown-header">
+                  <span class="dropdown-name">{{ user.displayName }}</span>
+                  <span class="dropdown-provider">
+                    @if (user.loginProvider === 'AzureAD') {
+                      <span class="provider-badge provider-badge--azure">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21"
+                             width="10" height="10" aria-hidden="true">
+                          <rect x="1"  y="1"  width="9" height="9" fill="#F25022"/>
+                          <rect x="11" y="1"  width="9" height="9" fill="#7FBA00"/>
+                          <rect x="1"  y="11" width="9" height="9" fill="#00A4EF"/>
+                          <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                        </svg>
+                        Microsoft
+                      </span>
+                    } @else {
+                      <span class="provider-badge provider-badge--local">Local</span>
+                    }
+                  </span>
+                </div>
+                <hr class="dropdown-divider" />
+                <button class="dropdown-item logout" (click)="logout()">
+                  Sign out
+                </button>
+              </div>
+            }
+          </div>
+
+          <button class="logout-btn" (click)="logout()" title="Sign out">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span class="logout-label">Sign out</span>
+          </button>
+        } @else {
+          <a routerLink="/login" class="nav-link login-link">Login</a>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Navigation bar: logo left, links right ──────────────────────── -->
+  <div class="nav-bar">
+    <div class="nav-bar-inner">
+      <a class="brand" routerLink="/dashboard">
+        <img src="assets/images/cropped-logo.png" alt="Khalifa University" class="brand-logo" />
+      </a>
+
+      <nav class="nav-links" [class.open]="menuOpen()">
+        @if (currentUser$ | async) {
+          @for (link of visibleLinks(); track link.label) {
+            <a
+              [routerLink]="link.path"
+              (click)="closeMenu()"
+              class="nav-link"
+              [class.active]="isLinkActive(link)"
+            >
+              {{ link.label }}
+            </a>
+          }
+        } @else {
           <a
-            [routerLink]="link.path"
-            (click)="closeMenu()"
+            routerLink="/login"
+            routerLinkActive="active"
             class="nav-link"
-            [class.active]="isLinkActive(link)"
+            (click)="closeMenu()"
           >
-            {{ link.label }}
+            Login
           </a>
         }
-      } @else {
-        <a
-          routerLink="/login"
-          routerLinkActive="active"
-          class="nav-link"
-          (click)="closeMenu()"
-        >
-          Login
-        </a>
-      }
-    </nav>
-
-    <!-- Right section -->
-    <div class="header-right">
-      <!-- Connection indicator -->
-      <span class="status-dot" title="Connected"></span>
-
-      @if (currentUser$ | async; as user) {
-
-        <!-- User dropdown (avatar + name + badge) -->
-        <div class="nav-user" (click)="$event.stopPropagation()">
-          <button class="avatar-btn" (click)="toggleMenu()" aria-label="User menu">
-            <span class="avatar">
-              {{ (user.displayName.charAt(0) || '?').toUpperCase() }}
-            </span>
-            <span class="user-name">{{ user.displayName }}</span>
-
-            <!-- Provider badge (hidden on mobile via CSS) -->
-            @if (user.loginProvider === 'AzureAD') {
-              <span class="provider-badge provider-badge--azure">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21"
-                     width="10" height="10" aria-hidden="true">
-                  <rect x="1"  y="1"  width="9" height="9" fill="#F25022"/>
-                  <rect x="11" y="1"  width="9" height="9" fill="#7FBA00"/>
-                  <rect x="1"  y="11" width="9" height="9" fill="#00A4EF"/>
-                  <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
-                </svg>
-                Microsoft
-              </span>
-            } @else {
-              <span class="provider-badge provider-badge--local">Local</span>
-            }
-
-            <span class="chevron" [class.up]="menuOpen()">&#9660;</span>
-          </button>
-
-          @if (menuOpen()) {
-            <div class="dropdown">
-              <div class="dropdown-header">
-                <span class="dropdown-name">{{ user.displayName }}</span>
-                <span class="dropdown-provider">
-                  @if (user.loginProvider === 'AzureAD') {
-                    <span class="provider-badge provider-badge--azure">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21"
-                           width="10" height="10" aria-hidden="true">
-                        <rect x="1"  y="1"  width="9" height="9" fill="#F25022"/>
-                        <rect x="11" y="1"  width="9" height="9" fill="#7FBA00"/>
-                        <rect x="1"  y="11" width="9" height="9" fill="#00A4EF"/>
-                        <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
-                      </svg>
-                      Microsoft
-                    </span>
-                  } @else {
-                    <span class="provider-badge provider-badge--local">Local</span>
-                  }
-                </span>
-              </div>
-              <hr class="dropdown-divider" />
-              <button class="dropdown-item logout" (click)="logout()">
-                Sign out
-              </button>
-            </div>
-          }
-        </div>
-
-        <!-- Quick sign-out button (desktop) -->
-        <button class="logout-btn" (click)="logout()" title="Sign out">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          <span class="logout-label">Sign out</span>
-        </button>
-
-      } @else {
-
-        <!-- Unauthenticated: Login shortcut in the right rail -->
-        <a routerLink="/login" class="nav-link login-link">Login</a>
-
-      }
+      </nav>
 
       <!-- Hamburger (mobile) -->
       <button class="hamburger" (click)="toggleMenu()" aria-label="Toggle menu">
         <span></span><span></span><span></span>
       </button>
     </div>
-
   </div>
+
 </header>

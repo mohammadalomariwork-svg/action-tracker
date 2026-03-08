@@ -7,80 +7,39 @@
 }
 
 .header {
-  height: var(--header-height);
+  display: flex;
+  flex-direction: column;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOP BAR — user info + logout, right-aligned
+// ═══════════════════════════════════════════════════════════
+.top-bar {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
 }
 
-.header-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  height: 100%;
+.top-bar-inner {
+  width: 100%;
   display: flex;
   align-items: center;
-  padding: 0 1.5rem;
-  gap: 2rem;
+  justify-content: flex-end;
+  padding: 0.35rem 1.5rem;
+  gap: 1rem;
 }
 
-// ── Brand ──────────────────────────────────────────────
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
-.brand-icon {
-  font-size: 1.4rem;
-  color: var(--primary);
-}
-
-.brand-name {
-  font-size: 1.1rem;
+.app-title {
+  margin-right: auto;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-primary);
-  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
-// ── Nav links ──────────────────────────────────────────
-.nav-links {
+.top-bar-right {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  flex: 1;
-  justify-content: center;
-}
-
-.nav-link {
-  padding: 0.4rem 0.85rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: color 0.15s, background 0.15s;
-  white-space: nowrap;
-
-  &:hover {
-    color: var(--primary);
-    background: rgba(79, 70, 229, 0.06);
-  }
-
-  &.active {
-    color: var(--primary);
-    background: rgba(79, 70, 229, 0.1);
-    font-weight: 600;
-  }
-}
-
-// ── Right section ──────────────────────────────────────
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-shrink: 0;
+  gap: 0.75rem;
 }
 
 .status-dot {
@@ -104,7 +63,7 @@
   background: none;
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.2rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 
@@ -115,12 +74,12 @@
 }
 
 .avatar {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--primary);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -129,7 +88,7 @@
 }
 
 .user-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-primary);
   max-width: 120px;
@@ -139,7 +98,7 @@
 }
 
 .chevron {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: var(--text-secondary);
   transition: transform 0.2s;
 
@@ -172,11 +131,6 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.dropdown-role {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
 }
 
 .dropdown-divider {
@@ -217,7 +171,7 @@
   gap: 0.3rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   line-height: 1.4;
@@ -241,12 +195,6 @@
   margin-top: 0.2rem;
 }
 
-// ── Login link (unauthenticated right rail) ─────────────
-.login-link {
-  font-weight: 600;
-  color: var(--primary);
-}
-
 // ── Logout button ──────────────────────────────────────
 .logout-btn {
   display: flex;
@@ -255,9 +203,9 @@
   background: none;
   border: 1px solid var(--danger, #dc2626);
   border-radius: 8px;
-  padding: 0.35rem 0.75rem;
+  padding: 0.25rem 0.6rem;
   color: var(--danger, #dc2626);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -265,6 +213,74 @@
 
   &:hover {
     background: rgba(220, 38, 38, 0.08);
+  }
+}
+
+// ── Login link ─────────────────────────────────────────
+.login-link {
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAV BAR — logo left, links right, full width
+// ═══════════════════════════════════════════════════════════
+.nav-bar {
+  width: 100%;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-bar-inner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  height: 48px;
+}
+
+// ── Brand / logo ──────────────────────────────────────────
+.brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  margin-right: auto;
+}
+
+.brand-logo {
+  height: 36px;
+  width: auto;
+}
+
+// ── Nav links ──────────────────────────────────────────
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--primary);
+    background: rgba(79, 70, 229, 0.06);
+  }
+
+  &.active {
+    color: var(--primary);
+    background: rgba(79, 70, 229, 0.1);
+    font-weight: 600;
   }
 }
 
@@ -288,10 +304,16 @@
   }
 }
 
-// ── Responsive ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// RESPONSIVE
+// ═══════════════════════════════════════════════════════════
 @media (max-width: 768px) {
   .hamburger {
     display: flex;
+  }
+
+  .app-title {
+    font-size: 0.75rem;
   }
 
   .user-name {
@@ -309,7 +331,7 @@
   .nav-links {
     display: none;
     position: fixed;
-    top: var(--header-height);
+    top: calc(var(--header-height));
     left: 0;
     right: 0;
     background: var(--bg-card);
