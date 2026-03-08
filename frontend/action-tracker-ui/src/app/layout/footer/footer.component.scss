@@ -2,8 +2,20 @@
   background: var(--bg-card);
   border-top: 1px solid var(--border-color);
   text-align: center;
-  padding: 0.85rem 1.5rem;
-  font-size: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   flex-shrink: 0;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.footer-logo {
+  height: 36px;
+  width: auto;
 }

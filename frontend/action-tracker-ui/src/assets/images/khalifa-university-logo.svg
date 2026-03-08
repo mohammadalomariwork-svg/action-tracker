@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 80" fill="none">
+  <!-- Khalifa University Logo -->
+  <g transform="translate(0,2)">
+    <!-- Swirl mark -->
+    <path d="M35 8 C20 8, 8 20, 8 35 C8 50, 20 62, 35 62" stroke="#1a5ba8" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M35 16 C24 16, 16 24, 16 35 C16 46, 24 54, 35 54" stroke="#1a5ba8" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M35 24 C28 24, 24 28, 24 35 C24 42, 28 46, 35 46" stroke="#1a5ba8" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M42 8 C57 8, 65 20, 65 35" stroke="#1a5ba8" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M42 16 C53 16, 58 24, 58 35" stroke="#1a5ba8" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M42 24 C49 24, 52 28, 52 35" stroke="#1a5ba8" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  </g>
+  <!-- Arabic text -->
+  <text x="80" y="30" font-family="Arial, sans-serif" font-size="16" fill="#1e293b" font-weight="600" direction="rtl" xml:lang="ar">جامعة خليفة</text>
+  <!-- English text -->
+  <text x="80" y="55" font-family="Arial, sans-serif" font-size="18" fill="#1e293b" font-weight="700" letter-spacing="0.5">Khalifa University</text>
+</svg>
