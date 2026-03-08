@@ -23,6 +23,7 @@ public class ActionItemResponseDto
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
 
     // Multi-assignee info
     public List<AssigneeDto> Assignees { get; set; } = new();

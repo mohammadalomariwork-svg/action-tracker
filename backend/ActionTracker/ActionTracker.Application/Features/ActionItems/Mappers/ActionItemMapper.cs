@@ -21,6 +21,7 @@ public static class ActionItemMapper
         IsEscalated    = item.IsEscalated,
         CreatedAt      = item.CreatedAt,
         UpdatedAt      = item.UpdatedAt,
+        IsDeleted      = item.IsDeleted,
         Assignees      = item.Assignees?.Select(a => new AssigneeDto
         {
             UserId   = a.UserId,

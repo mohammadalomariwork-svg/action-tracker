@@ -21,4 +21,5 @@ public class ActionItemFilterDto
 
     public string SortBy          { get; set; } = "DueDate";
     public bool   SortDescending  { get; set; } = false;
+    public bool   IncludeDeleted  { get; set; } = false;
 }

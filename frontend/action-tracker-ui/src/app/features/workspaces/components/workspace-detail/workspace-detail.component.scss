@@ -290,6 +290,18 @@
   }
 }
 
+// ── Table wrapper ────────────────────────────────────────────────────────────
+.wa-table-wrapper {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+// ── Deleted row ──────────────────────────────────────────────────────────────
+.wa-deleted-row {
+  opacity: 0.55;
+  background-color: #fff5f5 !important;
+}
+
 // ── Table ────────────────────────────────────────────────────────────────────
 .wa-table {
   font-size: 0.85rem;
@@ -433,5 +445,72 @@
 
   .wa-title {
     max-width: 140px;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Mobile action cards ─────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+.wa-action-card {
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &--deleted {
+    opacity: 0.55;
+    background-color: #fff5f5;
+  }
+
+  &__header {
+    margin-bottom: 0.5rem;
+  }
+
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  &__meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  &__meta-label {
+    color: #6c757d;
+    min-width: 100px;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  &__meta-value {
+    color: #1e293b;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
   }
 }

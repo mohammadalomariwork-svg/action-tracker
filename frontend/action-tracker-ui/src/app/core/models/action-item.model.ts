@@ -39,6 +39,7 @@ export interface ActionItem {
   updatedAt: string;
   daysUntilDue: number;
   isOverdue: boolean;
+  isDeleted: boolean;
 }
 
 export interface ActionItemCreate {
@@ -70,4 +71,5 @@ export interface ActionItemFilter {
   pageSize: number;
   sortBy: string;
   sortDescending: boolean;
+  includeDeleted?: boolean;
 }

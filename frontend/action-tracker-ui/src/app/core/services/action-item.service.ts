@@ -22,6 +22,7 @@ export class ActionItemService {
     if (filter.assigneeId) params = params.set('assigneeId', filter.assigneeId);
     if (filter.workspaceId) params = params.set('workspaceId', filter.workspaceId);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
+    if (filter.includeDeleted) params = params.set('includeDeleted', true);
 
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(this.apiUrl, { params });
   }

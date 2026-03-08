@@ -59,6 +59,9 @@ export class WorkspaceDetailComponent implements OnInit {
   // Delete
   deletingActionId: string | null = null;
 
+  // Show deleted toggle
+  showDeleted = false;
+
   // Expose enums to template
   readonly ActionStatus = ActionStatus;
   readonly ActionPriority = ActionPriority;
@@ -249,6 +252,7 @@ export class WorkspaceDetailComponent implements OnInit {
       pageSize:       this.actionPageSize,
       sortBy:         'dueDate',
       sortDescending: false,
+      includeDeleted: this.showDeleted || undefined,
     };
 
     this.actionService.getAll(filter)
@@ -271,6 +275,12 @@ export class WorkspaceDetailComponent implements OnInit {
       this.actionPageNumber--;
       this.loadActionItems();
     }
+  }
+
+  toggleShowDeleted(): void {
+    this.showDeleted = !this.showDeleted;
+    this.actionPageNumber = 1;
+    this.loadActionItems();
   }
 
   actionNextPage(): void {

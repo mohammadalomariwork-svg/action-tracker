@@ -33,6 +33,9 @@ public class ActionItemService : IActionItemService
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .AsQueryable();
 
+        if (filter.IncludeDeleted)
+            query = query.IgnoreQueryFilters();
+
         // Enum filters
         if (filter.Status.HasValue)
             query = query.Where(a => a.Status == filter.Status.Value);

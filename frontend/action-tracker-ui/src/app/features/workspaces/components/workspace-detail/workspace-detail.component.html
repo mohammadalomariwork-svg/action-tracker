@@ -162,11 +162,25 @@
           <span class="badge bg-secondary ms-2">{{ actionTotalCount }}</span>
         </h5>
 
-        @if (canManage) {
-          <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
-            <i class="bi bi-plus-circle me-1"></i>New Action
-          </button>
-        }
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <!-- Show deleted toggle -->
+          <div class="form-check form-switch mb-0">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="showDeletedToggle"
+              [checked]="showDeleted"
+              (change)="toggleShowDeleted()"
+            />
+            <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
+          </div>
+
+          @if (canManage) {
+            <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
+              <i class="bi bi-plus-circle me-1"></i>New Action
+            </button>
+          }
+        </div>
       </div>
 
       <!-- ── Action Items Table ────────────────────────────────────────── -->
@@ -185,7 +199,9 @@
       }
 
       @if (!actionLoading && actionItems.length > 0) {
-        <div class="table-responsive">
+
+        <!-- ── Desktop table ── d-none d-md-block ──────────────────────── -->
+        <div class="wa-table-wrapper d-none d-md-block">
           <table class="table table-hover table-sm wa-table mb-0">
             <thead>
               <tr>
@@ -203,46 +219,30 @@
             </thead>
             <tbody>
               @for (item of actionItems; track item.id) {
-                <tr [class.table-danger]="item.isOverdue">
-                  <!-- ID -->
+                <tr [class.table-danger]="item.isOverdue" [class.wa-deleted-row]="item.isDeleted">
                   <td>
                     <span class="wa-action-id">{{ item.actionId }}</span>
                     @if (item.isEscalated) {
                       <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
                     }
+                    @if (item.isDeleted) {
+                      <span class="badge bg-danger ms-1">Deleted</span>
+                    }
                   </td>
-
-                  <!-- Title -->
                   <td>
                     <span class="wa-title" [title]="item.title">{{ item.title }}</span>
                   </td>
-
-                  <!-- Assignee(s) -->
                   <td>
                     <div class="wa-assignees">
                       <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
                       <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
                     </div>
                   </td>
-
-                  <!-- Priority -->
+                  <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
+                  <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
                   <td>
-                    <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+                    <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                   </td>
-
-                  <!-- Status -->
-                  <td>
-                    <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
-                  </td>
-
-                  <!-- Due Date -->
-                  <td>
-                    <span [class]="dueDateClass(item)">
-                      {{ item.dueDate | date:'MMM d, y' }}
-                    </span>
-                  </td>
-
-                  <!-- Progress -->
                   <td>
                     <div class="wa-progress-cell">
                       <div class="progress wa-progress-bar">
@@ -257,31 +257,29 @@
                       <span class="wa-progress-label">{{ item.progress }}%</span>
                     </div>
                   </td>
-
-                  <!-- Actions -->
                   @if (canManage) {
                     <td class="text-end">
                       <div class="wa-row-actions">
-                        <button
-                          class="btn btn-outline-primary btn-sm wa-action-btn"
-                          (click)="openEditActionForm(item)"
-                          title="Edit"
-                          [disabled]="showActionForm"
-                        >
-                          <i class="bi bi-pencil"></i>
-                        </button>
-                        <button
-                          class="btn btn-outline-danger btn-sm wa-action-btn"
-                          (click)="deleteAction(item)"
-                          title="Delete"
-                          [disabled]="deletingActionId === item.id"
-                        >
-                          @if (deletingActionId === item.id) {
-                            <span class="spinner-border spinner-border-sm"></span>
-                          } @else {
-                            <i class="bi bi-trash"></i>
-                          }
-                        </button>
+                        @if (!item.isDeleted) {
+                          <button
+                            class="btn btn-outline-primary btn-sm wa-action-btn"
+                            (click)="openEditActionForm(item)"
+                            title="Edit"
+                            [disabled]="showActionForm"
+                          ><i class="bi bi-pencil"></i></button>
+                          <button
+                            class="btn btn-outline-danger btn-sm wa-action-btn"
+                            (click)="deleteAction(item)"
+                            title="Delete"
+                            [disabled]="deletingActionId === item.id"
+                          >
+                            @if (deletingActionId === item.id) {
+                              <span class="spinner-border spinner-border-sm"></span>
+                            } @else {
+                              <i class="bi bi-trash"></i>
+                            }
+                          </button>
+                        }
                       </div>
                     </td>
                   }
@@ -289,6 +287,88 @@
               }
             </tbody>
           </table>
+        </div>
+
+        <!-- ── Mobile cards ── d-block d-md-none ───────────────────────── -->
+        <div class="d-block d-md-none">
+          @for (item of actionItems; track item.id) {
+            <div class="wa-action-card" [class.wa-action-card--deleted]="item.isDeleted">
+              <!-- Card header -->
+              <div class="wa-action-card__header">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span class="wa-action-id">{{ item.actionId }}</span>
+                  @if (item.isEscalated) {
+                    <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
+                  }
+                  @if (item.isDeleted) {
+                    <span class="badge bg-danger">Deleted</span>
+                  }
+                  <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+                  <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+                </div>
+              </div>
+
+              <!-- Title -->
+              <div class="wa-action-card__title">{{ item.title }}</div>
+
+              <!-- Meta rows -->
+              <div class="wa-action-card__meta">
+                <div class="wa-action-card__meta-row">
+                  <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
+                  <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
+                </div>
+                <div class="wa-action-card__meta-row">
+                  <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+                  <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                </div>
+                @if (item.startDate) {
+                  <div class="wa-action-card__meta-row">
+                    <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
+                    <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
+                  </div>
+                }
+                <div class="wa-action-card__meta-row">
+                  <span class="wa-action-card__meta-label"><i class="bi bi-bar-chart me-1"></i>Progress</span>
+                  <span class="wa-action-card__meta-value">
+                    <div class="wa-progress-cell">
+                      <div class="progress wa-progress-bar" style="width:80px">
+                        <div
+                          class="progress-bar"
+                          [class.bg-success]="item.progress >= 75"
+                          [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                          [class.bg-danger]="item.progress < 40"
+                          [style.width.%]="item.progress"
+                        ></div>
+                      </div>
+                      <span class="wa-progress-label">{{ item.progress }}%</span>
+                    </div>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              @if (canManage && !item.isDeleted) {
+                <div class="wa-action-card__actions">
+                  <button
+                    class="btn btn-outline-primary btn-sm"
+                    (click)="openEditActionForm(item)"
+                    [disabled]="showActionForm"
+                  ><i class="bi bi-pencil me-1"></i>Edit</button>
+                  <button
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="deleteAction(item)"
+                    [disabled]="deletingActionId === item.id"
+                  >
+                    @if (deletingActionId === item.id) {
+                      <span class="spinner-border spinner-border-sm"></span>
+                    } @else {
+                      <i class="bi bi-trash me-1"></i>Delete
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Pagination -->
@@ -303,12 +383,12 @@
                 class="btn btn-outline-secondary btn-sm"
                 (click)="actionPrevPage()"
                 [disabled]="actionPageNumber <= 1"
-              >‹ Prev</button>
+              >&#8249; Prev</button>
               <button
                 class="btn btn-outline-secondary btn-sm"
                 (click)="actionNextPage()"
                 [disabled]="actionPageNumber >= actionTotalPages"
-              >Next ›</button>
+              >Next &#8250;</button>
             </div>
           </div>
         }
