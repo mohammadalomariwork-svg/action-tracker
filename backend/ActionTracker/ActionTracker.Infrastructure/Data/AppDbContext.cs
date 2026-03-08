@@ -20,6 +20,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<ActionItemAssignee>   ActionItemAssignees   => Set<ActionItemAssignee>();
     public DbSet<ActionItemEscalation> ActionItemEscalations => Set<ActionItemEscalation>();
     public DbSet<ActionItemComment>    ActionItemComments    => Set<ActionItemComment>();
+    public DbSet<Document>             Documents             => Set<Document>();
     public DbSet<RefreshToken>        RefreshTokens        => Set<RefreshToken>();
     public DbSet<KuEmployeeInfo>      KuEmployeeInfo       => Set<KuEmployeeInfo>();
     public DbSet<OrgUnit>             OrgUnits             => Set<OrgUnit>();

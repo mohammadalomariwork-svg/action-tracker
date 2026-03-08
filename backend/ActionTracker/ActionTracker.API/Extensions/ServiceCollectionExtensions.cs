@@ -6,6 +6,8 @@ using ActionTracker.Application.Features.Auth.Interfaces;
 using ActionTracker.Application.Features.Auth.Services;
 using ActionTracker.Application.Features.Dashboard.Interfaces;
 using ActionTracker.Application.Features.Dashboard.Services;
+using ActionTracker.Application.Features.Documents.Interfaces;
+using ActionTracker.Application.Features.Documents.Services;
 using ActionTracker.Application.Features.Reports.Interfaces;
 using ActionTracker.Application.Features.Reports.Services;
 using ActionTracker.Application.Helpers;
@@ -88,6 +90,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IActionItemService, ActionItemService>();
         services.AddScoped<IDashboardService,  DashboardService>();
         services.AddScoped<IReportService,     ReportService>();
+        services.AddScoped<IDocumentService,    DocumentService>();
 
         // New auth contract (Application.Features.Auth.IAuthService)
         services.AddScoped<INewAuthService, NewAuthService>();

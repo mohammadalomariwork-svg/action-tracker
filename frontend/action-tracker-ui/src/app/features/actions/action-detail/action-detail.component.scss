@@ -393,6 +393,110 @@
   gap: 0.35rem;
 }
 
+// ── Documents ──────────────────────────────────────
+.doc-upload-form {
+  margin-bottom: 1rem;
+}
+
+.doc-upload-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.doc-name-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background: var(--bg-main);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: var(--primary); }
+  &::placeholder { color: var(--text-secondary); }
+}
+
+.doc-file-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px dashed var(--border-color);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s;
+
+  &:hover { border-color: var(--primary); color: var(--primary); }
+}
+
+.doc-file-input {
+  display: none;
+}
+
+.doc-upload-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.doc-hint {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.doc-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child { border-bottom: none; }
+}
+
+.doc-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.doc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.doc-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-meta {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
 // ── Empty state ─────────────────────────────────────
 .empty-text {
   font-size: 0.85rem;

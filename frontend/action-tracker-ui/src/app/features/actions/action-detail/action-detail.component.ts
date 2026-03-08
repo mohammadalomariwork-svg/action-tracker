@@ -7,11 +7,13 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
 import { ActionItemService }     from '../../../core/services/action-item.service';
+import { DocumentService }       from '../../../core/services/document.service';
 import { ToastService }          from '../../../core/services/toast.service';
 
 import {
   ActionItem, ActionStatus, ActionPriority, CommentInfo,
 } from '../../../core/models/action-item.model';
+import { DocumentInfo }          from '../../../core/models/document.model';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
@@ -34,12 +36,15 @@ export class ActionDetailComponent implements OnInit {
   private readonly route      = inject(ActivatedRoute);
   private readonly router     = inject(Router);
   private readonly actionSvc  = inject(ActionItemService);
+  private readonly docSvc     = inject(DocumentService);
   private readonly toastSvc   = inject(ToastService);
 
   readonly item       = signal<ActionItem | null>(null);
   readonly loading    = signal(true);
   readonly comments   = signal<CommentInfo[]>([]);
   readonly loadingComments = signal(false);
+  readonly documents  = signal<DocumentInfo[]>([]);
+  readonly loadingDocs = signal(false);
 
   // Comment form
   readonly newComment        = signal('');
@@ -51,6 +56,11 @@ export class ActionDetailComponent implements OnInit {
   readonly editCommentContent    = signal('');
   readonly editCommentImportant  = signal(false);
 
+  // Document upload
+  readonly docName          = signal('');
+  readonly docFile          = signal<File | null>(null);
+  readonly uploadingDoc     = signal(false);
+
   readonly ActionStatus   = ActionStatus;
   readonly ActionPriority = ActionPriority;
 
@@ -60,6 +70,7 @@ export class ActionDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.loadItem(id);
     this.loadComments(id);
+    this.loadDocuments(id);
   }
 
   // ── Data loading ───────────────────────────────────────
@@ -162,6 +173,78 @@ export class ActionDetailComponent implements OnInit {
         this.toastSvc.error(msg);
       },
     });
+  }
+
+  // ── Document actions ──────────────────────────────────
+  private loadDocuments(actionItemId: string): void {
+    this.loadingDocs.set(true);
+    this.docSvc.getByEntity('ActionItem', actionItemId).subscribe({
+      next: r => {
+        this.documents.set(r.data ?? []);
+        this.loadingDocs.set(false);
+      },
+      error: () => this.loadingDocs.set(false),
+    });
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.docFile.set(input.files[0]);
+    }
+  }
+
+  uploadDocument(): void {
+    const itemId = this.item()?.id;
+    const file = this.docFile();
+    const name = this.docName().trim();
+    if (!itemId || !file || !name) return;
+
+    this.uploadingDoc.set(true);
+    this.docSvc.upload('ActionItem', itemId, name, file).subscribe({
+      next: r => {
+        this.documents.update(list => [r.data, ...list]);
+        this.docName.set('');
+        this.docFile.set(null);
+        this.uploadingDoc.set(false);
+        this.toastSvc.success('Document uploaded.');
+      },
+      error: (err) => {
+        this.uploadingDoc.set(false);
+        const msg = err?.error?.message || 'Failed to upload document.';
+        this.toastSvc.error(msg);
+      },
+    });
+  }
+
+  downloadDocument(doc: DocumentInfo): void {
+    this.docSvc.download(doc.id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.toastSvc.error('Failed to download document.'),
+    });
+  }
+
+  deleteDocument(docId: string): void {
+    this.docSvc.delete(docId).subscribe({
+      next: () => {
+        this.documents.update(list => list.filter(d => d.id !== docId));
+        this.toastSvc.success('Document deleted.');
+      },
+      error: () => this.toastSvc.error('Failed to delete document.'),
+    });
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
   // ── Helpers ────────────────────────────────────────────
