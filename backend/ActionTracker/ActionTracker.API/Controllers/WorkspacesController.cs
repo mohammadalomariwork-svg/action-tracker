@@ -1,3 +1,4 @@
+using System;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
@@ -49,11 +50,11 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Returns the full details of a single workspace.</summary>
     /// <param name="id">Primary key of the workspace.</param>
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:guid}")]
     [Authorize(Policy = "AdminOrManager")]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         _logger.LogInformation("GET /api/workspaces/{Id}", id);
 
@@ -114,12 +115,12 @@ public class WorkspacesController : ControllerBase
     /// <summary>Updates an existing workspace.</summary>
     /// <param name="id">Primary key of the workspace to update.</param>
     /// <param name="dto">Update payload. The <c>Id</c> field must match the route.</param>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateWorkspaceDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWorkspaceDto dto)
     {
         _logger.LogInformation("PUT /api/workspaces/{Id}", id);
 
@@ -174,11 +175,11 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Soft-deletes a workspace by setting it inactive.</summary>
     /// <param name="id">Primary key of the workspace to delete.</param>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         _logger.LogInformation("DELETE /api/workspaces/{Id}", id);
 
@@ -195,11 +196,11 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Restores a soft-deleted workspace by setting it active again.</summary>
     /// <param name="id">Primary key of the workspace to restore.</param>
-    [HttpPatch("{id:int}/restore")]
+    [HttpPatch("{id:guid}/restore")]
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Restore(int id)
+    public async Task<IActionResult> Restore(Guid id)
     {
         _logger.LogInformation("PATCH /api/workspaces/{Id}/restore", id);
 

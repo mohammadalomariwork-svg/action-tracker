@@ -47,12 +47,12 @@ export class WorkspaceListComponent implements OnInit {
   }
 
   /** Navigates to the edit form for the given workspace. */
-  onEdit(id: number): void {
+  onEdit(id: string): void {
     this.router.navigate(['/workspaces/edit', id]);
   }
 
   /** Soft-deletes a workspace after user confirmation, then reloads the list. */
-  onDelete(id: number): void {
+  onDelete(id: string): void {
     if (!confirm('Are you sure you want to delete this workspace?')) return;
 
     this.workspaceService
@@ -67,7 +67,7 @@ export class WorkspaceListComponent implements OnInit {
   }
 
   /** Restores a soft-deleted workspace after user confirmation, then reloads the list. */
-  onRestore(id: number): void {
+  onRestore(id: string): void {
     if (!confirm('Restore this workspace?')) return;
 
     this.workspaceService

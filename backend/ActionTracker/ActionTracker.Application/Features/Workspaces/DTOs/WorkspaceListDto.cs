@@ -1,3 +1,5 @@
+using System;
+
 namespace ActionTracker.Application.Features.Workspaces.DTOs;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace ActionTracker.Application.Features.Workspaces.DTOs;
 public class WorkspaceListDto
 {
     /// <summary>Primary key of the workspace.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Human-readable title of the workspace.</summary>
     public string Title { get; set; } = string.Empty;

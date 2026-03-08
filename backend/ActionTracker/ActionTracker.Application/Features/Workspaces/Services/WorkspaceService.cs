@@ -59,7 +59,7 @@ public class WorkspaceService : IWorkspaceService
     /// Returns the full details of a single workspace, or <c>null</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the workspace.</param>
-    public async Task<WorkspaceResponseDto?> GetWorkspaceByIdAsync(int id)
+    public async Task<WorkspaceResponseDto?> GetWorkspaceByIdAsync(Guid id)
     {
         try
         {
@@ -103,7 +103,7 @@ public class WorkspaceService : IWorkspaceService
     /// Returns <c>true</c> if an active workspace with the given id exists.
     /// </summary>
     /// <param name="id">Primary key to check.</param>
-    public async Task<bool> WorkspaceExistsAsync(int id)
+    public async Task<bool> WorkspaceExistsAsync(Guid id)
     {
         try
         {
@@ -131,6 +131,7 @@ public class WorkspaceService : IWorkspaceService
         {
             var workspace = new Workspace
             {
+                Id               = Guid.NewGuid(),
                 Title            = dto.Title,
                 OrganizationUnit = dto.OrganizationUnit,
                 CreatedAt        = DateTime.UtcNow,
@@ -167,7 +168,7 @@ public class WorkspaceService : IWorkspaceService
     /// </summary>
     /// <param name="id">Primary key of the workspace to update.</param>
     /// <param name="dto">Update payload.</param>
-    public async Task<WorkspaceResponseDto?> UpdateWorkspaceAsync(int id, UpdateWorkspaceDto dto)
+    public async Task<WorkspaceResponseDto?> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto)
     {
         try
         {
@@ -219,7 +220,7 @@ public class WorkspaceService : IWorkspaceService
     /// Returns <c>false</c> if the workspace does not exist.
     /// </summary>
     /// <param name="id">Primary key of the workspace to delete.</param>
-    public async Task<bool> DeleteWorkspaceAsync(int id)
+    public async Task<bool> DeleteWorkspaceAsync(Guid id)
     {
         try
         {
@@ -253,7 +254,7 @@ public class WorkspaceService : IWorkspaceService
     /// Returns <c>false</c> if the workspace does not exist.
     /// </summary>
     /// <param name="id">Primary key of the workspace to restore.</param>
-    public async Task<bool> RestoreWorkspaceAsync(int id)
+    public async Task<bool> RestoreWorkspaceAsync(Guid id)
     {
         try
         {

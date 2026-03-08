@@ -37,7 +37,7 @@ public class ProjectService : IProjectService
     /// <see cref="ProjectListDto.CompletionPercentage"/> without fetching full
     /// entity graphs.
     /// </remarks>
-    public async Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(int workspaceId)
+    public async Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(Guid workspaceId)
     {
         try
         {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -15,7 +16,7 @@ public interface IActionItemService
     /// workspace but are not associated with any project.
     /// </summary>
     /// <param name="workspaceId">Primary key of the workspace.</param>
-    Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(int workspaceId);
+    Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(Guid workspaceId);
 
     /// <summary>
     /// Returns all action items that belong to the specified project, including

@@ -25,7 +25,7 @@ public class ActionItem
     /// Every action item — regardless of context — is scoped to a workspace.
     /// </summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>
     /// Foreign key of the project this action item belongs to,

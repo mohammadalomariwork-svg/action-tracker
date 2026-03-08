@@ -1,3 +1,4 @@
+using System;
 using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -40,9 +41,9 @@ public class ProjectActionItemsController : ControllerBase
     /// Returns standalone action items in a workspace — those with no project or
     /// milestone association.
     /// </summary>
-    [HttpGet("workspace/{workspaceId:int}/standalone")]
+    [HttpGet("workspace/{workspaceId:guid}/standalone")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ActionItemListDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStandaloneByWorkspace(int workspaceId)
+    public async Task<IActionResult> GetStandaloneByWorkspace(Guid workspaceId)
     {
         _logger.LogInformation(
             "GET api/project-action-items/workspace/{WorkspaceId}/standalone", workspaceId);

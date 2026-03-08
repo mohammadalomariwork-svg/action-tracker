@@ -20,7 +20,7 @@ public class Project
     /// Foreign key of the workspace this project belongs to.
     /// </summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>
     /// Human-readable title of the project.

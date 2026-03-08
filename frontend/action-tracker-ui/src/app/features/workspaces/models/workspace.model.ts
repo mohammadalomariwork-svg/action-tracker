@@ -13,7 +13,7 @@ export interface WorkspaceAdmin {
  */
 export interface Workspace {
   /** Primary key of the workspace. */
-  id: number;
+  id: string;
   /** Human-readable title of the workspace. */
   title: string;
   /** Name of the organisational unit this workspace belongs to. */
@@ -33,7 +33,7 @@ export interface Workspace {
  */
 export interface WorkspaceList {
   /** Primary key of the workspace. */
-  id: number;
+  id: string;
   /** Human-readable title of the workspace. */
   title: string;
   /** Name of the organisational unit this workspace belongs to. */
@@ -61,7 +61,7 @@ export interface CreateWorkspace {
  */
 export interface UpdateWorkspace {
   /** Primary key of the workspace to update — must match the route id. */
-  id: number;
+  id: string;
   /** Updated title of the workspace. */
   title: string;
   /** Updated organisational unit name. */

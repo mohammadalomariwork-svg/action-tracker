@@ -1,3 +1,4 @@
+using System;
 using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -42,9 +43,9 @@ public class ProjectsController : ControllerBase
     // ── GET api/projects/workspace/{workspaceId} ──────────────────────────────
 
     /// <summary>Returns a lightweight list of all active projects in the given workspace.</summary>
-    [HttpGet("workspace/{workspaceId:int}")]
+    [HttpGet("workspace/{workspaceId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ProjectListDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByWorkspace(int workspaceId)
+    public async Task<IActionResult> GetByWorkspace(Guid workspaceId)
     {
         _logger.LogInformation("GET api/projects/workspace/{WorkspaceId}", workspaceId);
         var result = await _service.GetByWorkspaceAsync(workspaceId);

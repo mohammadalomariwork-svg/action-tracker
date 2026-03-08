@@ -1,3 +1,4 @@
+using System;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 
 namespace ActionTracker.Application.Features.Workspaces.Interfaces;
@@ -16,7 +17,7 @@ public interface IWorkspaceService
     /// Returns the full details of a single workspace, or <c>null</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the workspace.</param>
-    Task<WorkspaceResponseDto?> GetWorkspaceByIdAsync(int id);
+    Task<WorkspaceResponseDto?> GetWorkspaceByIdAsync(Guid id);
 
     /// <summary>
     /// Returns all workspaces where the given user is the designated admin.
@@ -36,27 +37,27 @@ public interface IWorkspaceService
     /// </summary>
     /// <param name="id">Primary key of the workspace to update.</param>
     /// <param name="dto">Update payload.</param>
-    Task<WorkspaceResponseDto?> UpdateWorkspaceAsync(int id, UpdateWorkspaceDto dto);
+    Task<WorkspaceResponseDto?> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto);
 
     /// <summary>
     /// Soft-deletes a workspace (sets IsActive = false).
     /// Returns <c>true</c> if deleted, <c>false</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the workspace to delete.</param>
-    Task<bool> DeleteWorkspaceAsync(int id);
+    Task<bool> DeleteWorkspaceAsync(Guid id);
 
     /// <summary>
     /// Restores a soft-deleted workspace (sets IsActive = true).
     /// Returns <c>true</c> if restored, <c>false</c> if not found.
     /// </summary>
     /// <param name="id">Primary key of the workspace to restore.</param>
-    Task<bool> RestoreWorkspaceAsync(int id);
+    Task<bool> RestoreWorkspaceAsync(Guid id);
 
     /// <summary>
     /// Returns <c>true</c> if a workspace with the given primary key exists.
     /// </summary>
     /// <param name="id">Primary key to check.</param>
-    Task<bool> WorkspaceExistsAsync(int id);
+    Task<bool> WorkspaceExistsAsync(Guid id);
 
     /// <summary>
     /// Returns a flat list of non-deleted org units for use in dropdown menus,

@@ -15,7 +15,7 @@ public class ProjectListDto
     public int Id { get; set; }
 
     /// <summary>Workspace this project belongs to.</summary>
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Human-readable title of the project.</summary>
     public string Title { get; set; } = string.Empty;
@@ -108,7 +108,7 @@ public class CreateProjectDto
 {
     /// <summary>Workspace the project will belong to (required).</summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Human-readable project title (required, max 300 chars).</summary>
     [Required]

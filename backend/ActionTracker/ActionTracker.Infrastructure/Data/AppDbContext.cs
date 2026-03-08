@@ -63,7 +63,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id)
-                  .UseIdentityColumn();
+                  .HasColumnType("uniqueidentifier")
+                  .HasDefaultValueSql("NEWID()")
+                  .ValueGeneratedOnAdd();
 
             entity.Property(e => e.Title)
                   .IsRequired()

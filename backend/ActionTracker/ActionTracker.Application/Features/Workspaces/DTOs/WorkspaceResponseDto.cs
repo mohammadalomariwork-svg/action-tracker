@@ -9,7 +9,7 @@ namespace ActionTracker.Application.Features.Workspaces.DTOs;
 public class WorkspaceResponseDto
 {
     /// <summary>Primary key of the workspace.</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Human-readable title of the workspace.</summary>
     public string Title { get; set; } = string.Empty;

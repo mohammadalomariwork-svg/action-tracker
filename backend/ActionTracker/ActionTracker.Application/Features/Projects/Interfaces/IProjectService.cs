@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -16,7 +17,7 @@ public interface IProjectService
     /// workspace, suitable for dashboard and list views.
     /// </summary>
     /// <param name="workspaceId">Primary key of the workspace.</param>
-    Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(int workspaceId);
+    Task<IEnumerable<ProjectListDto>> GetByWorkspaceAsync(Guid workspaceId);
 
     /// <summary>
     /// Returns the project with the given primary key, or <c>null</c> if not

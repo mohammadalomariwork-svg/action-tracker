@@ -10,7 +10,7 @@ public class WorkspaceAdmin
     public int Id { get; set; }
 
     /// <summary>Foreign key to the owning workspace.</summary>
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>
     /// The <c>Id</c> of the AspNetUsers record.

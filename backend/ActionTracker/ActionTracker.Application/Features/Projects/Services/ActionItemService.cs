@@ -36,7 +36,7 @@ public class ActionItemService : IActionItemService
     /// Returns only standalone actions — those where <c>ProjectId IS NULL</c>.
     /// Project-scoped and milestone-scoped actions are excluded.
     /// </remarks>
-    public async Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(int workspaceId)
+    public async Task<IEnumerable<ActionItemListDto>> GetByWorkspaceAsync(Guid workspaceId)
     {
         try
         {

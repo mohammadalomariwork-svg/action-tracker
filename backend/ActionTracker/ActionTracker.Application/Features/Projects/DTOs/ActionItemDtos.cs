@@ -15,7 +15,7 @@ public class ActionItemListDto
     public int Id { get; set; }
 
     /// <summary>Workspace this action item belongs to.</summary>
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Project this action item belongs to, or <c>null</c> for standalone actions.</summary>
     public int? ProjectId { get; set; }
@@ -104,7 +104,7 @@ public class CreateActionItemDto
 {
     /// <summary>Workspace the action item belongs to (required).</summary>
     [Required]
-    public int WorkspaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
 
     /// <summary>Project the action item belongs to (nullable).</summary>
     public int? ProjectId { get; set; }
