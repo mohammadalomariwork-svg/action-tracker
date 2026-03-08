@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -15,6 +15,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 name: "FK_ActionItemEscalations_AspNetUsers_EscalatedByUserId",
                 table: "ActionItemEscalations");
 
+            // Fix EscalatedByUserId: remove erroneous GETUTCDATE() default that was
+            // mistakenly placed on this string column in the previous snapshot.
             migrationBuilder.AlterColumn<string>(
                 name: "EscalatedByUserId",
                 table: "ActionItemEscalations",
@@ -22,10 +24,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 maxLength: 450,
                 nullable: false,
                 oldClrType: typeof(string),
-                oldType: "nvarchar(450)",
-                oldMaxLength: 450,
-                oldDefaultValueSql: "GETUTCDATE()");
+                oldType: "nvarchar(450)");
 
+            // Add GETUTCDATE() default to CreatedAt
             migrationBuilder.AlterColumn<DateTime>(
                 name: "CreatedAt",
                 table: "ActionItemEscalations",
@@ -34,6 +35,26 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 defaultValueSql: "GETUTCDATE()",
                 oldClrType: typeof(DateTime),
                 oldType: "datetime2");
+
+            // Add NEWID() default to Id (was missing from the initial migration)
+            migrationBuilder.AlterColumn<Guid>(
+                name: "Id",
+                table: "ActionItemEscalations",
+                type: "uniqueidentifier",
+                nullable: false,
+                defaultValueSql: "NEWID()",
+                oldClrType: typeof(Guid),
+                oldType: "uniqueidentifier");
+
+            // Change Explanation from nvarchar(max) to nvarchar(2000) to match configuration
+            migrationBuilder.AlterColumn<string>(
+                name: "Explanation",
+                table: "ActionItemEscalations",
+                type: "nvarchar(2000)",
+                maxLength: 2000,
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(max)");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ActionItemEscalations_AspNetUsers_EscalatedByUserId",
@@ -51,17 +72,27 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 name: "FK_ActionItemEscalations_AspNetUsers_EscalatedByUserId",
                 table: "ActionItemEscalations");
 
+            // Revert Explanation back to nvarchar(max)
             migrationBuilder.AlterColumn<string>(
-                name: "EscalatedByUserId",
+                name: "Explanation",
                 table: "ActionItemEscalations",
-                type: "nvarchar(450)",
-                maxLength: 450,
+                type: "nvarchar(max)",
                 nullable: false,
-                defaultValueSql: "GETUTCDATE()",
                 oldClrType: typeof(string),
-                oldType: "nvarchar(450)",
-                oldMaxLength: 450);
+                oldType: "nvarchar(2000)",
+                oldMaxLength: 2000);
 
+            // Revert Id: remove NEWID() default
+            migrationBuilder.AlterColumn<Guid>(
+                name: "Id",
+                table: "ActionItemEscalations",
+                type: "uniqueidentifier",
+                nullable: false,
+                oldClrType: typeof(Guid),
+                oldType: "uniqueidentifier",
+                oldDefaultValueSql: "NEWID()");
+
+            // Revert CreatedAt: remove GETUTCDATE() default
             migrationBuilder.AlterColumn<DateTime>(
                 name: "CreatedAt",
                 table: "ActionItemEscalations",
@@ -70,6 +101,15 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 oldClrType: typeof(DateTime),
                 oldType: "datetime2",
                 oldDefaultValueSql: "GETUTCDATE()");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "EscalatedByUserId",
+                table: "ActionItemEscalations",
+                type: "nvarchar(450)",
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(450)",
+                oldMaxLength: 450);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ActionItemEscalations_AspNetUsers_EscalatedByUserId",
