@@ -514,3 +514,34 @@
     border-top: 1px solid #e9ecef;
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Escalation history ──────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+.wa-escalation-history {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+  background: #f8f9fa;
+}
+
+.wa-escalation-entry {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
+  &__body {
+    color: #495057;
+  }
+}

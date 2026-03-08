@@ -28,6 +28,9 @@ public class ActionItemResponseDto
     // Multi-assignee info
     public List<AssigneeDto> Assignees { get; set; } = new();
 
+    // Escalation history
+    public List<EscalationDto> Escalations { get; set; } = new();
+
     // Human-readable enum labels sourced from [Description] attributes
     public string StatusLabel   => Status.GetDescription();
     public string PriorityLabel => Priority.GetDescription();
@@ -35,6 +38,15 @@ public class ActionItemResponseDto
     // Deadline helpers
     public int DaysUntilDue => (int)(DueDate.Date - DateTime.UtcNow.Date).TotalDays;
     public bool IsOverdue   => DaysUntilDue < 0 && Status != ActionStatus.Done;
+}
+
+public class EscalationDto
+{
+    public Guid Id { get; set; }
+    public string Explanation { get; set; } = string.Empty;
+    public string EscalatedByUserId { get; set; } = string.Empty;
+    public string EscalatedByName { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
 
 public class AssigneeDto

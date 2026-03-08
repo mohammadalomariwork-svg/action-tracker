@@ -12,8 +12,9 @@ namespace ActionTracker.Application.Common.Interfaces;
 public interface IAppDbContext
 {
     // ── Legacy / shared domain sets ───────────────────────────────────────────
-    DbSet<ActionItem>          ActionItems         { get; }
-    DbSet<ActionItemAssignee>  ActionItemAssignees { get; }
+    DbSet<ActionItem>           ActionItems          { get; }
+    DbSet<ActionItemAssignee>   ActionItemAssignees  { get; }
+    DbSet<ActionItemEscalation> ActionItemEscalations { get; }
     DbSet<RefreshToken>        RefreshTokens       { get; }
     DbSet<ApplicationUser>     Users               { get; }
     DbSet<KuEmployeeInfo>      KuEmployeeInfo { get; }

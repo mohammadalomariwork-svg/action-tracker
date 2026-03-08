@@ -31,6 +31,7 @@ public class ActionItemService : IActionItemService
         var query = _dbContext.ActionItems
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
+            .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .AsQueryable();
 
         if (filter.IncludeDeleted)
@@ -100,6 +101,7 @@ public class ActionItemService : IActionItemService
         var item = await _dbContext.ActionItems
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
+            .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
         return item is null ? null : ActionItemMapper.ToDto(item);
@@ -133,6 +135,10 @@ public class ActionItemService : IActionItemService
             CreatedAt   = DateTime.UtcNow,
         };
 
+        // Auto-set progress to 100 when status is Done
+        if (dto.Status == ActionStatus.Done)
+            item.Progress = 100;
+
         // Add assignees
         foreach (var userId in dto.AssigneeIds.Distinct())
         {
@@ -143,6 +149,19 @@ public class ActionItemService : IActionItemService
             });
         }
 
+        // Add escalation entry when escalated
+        if (dto.IsEscalated && !string.IsNullOrWhiteSpace(dto.EscalationExplanation))
+        {
+            item.Escalations.Add(new ActionItemEscalation
+            {
+                Id              = Guid.NewGuid(),
+                ActionItemId    = item.Id,
+                Explanation     = dto.EscalationExplanation.Trim(),
+                EscalatedByUserId = createdByUserId,
+                CreatedAt       = DateTime.UtcNow,
+            });
+        }
+
         _dbContext.ActionItems.Add(item);
         await _dbContext.SaveChangesAsync(ct);
 
@@ -150,6 +169,7 @@ public class ActionItemService : IActionItemService
         var created = await _dbContext.ActionItems
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
+            .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .FirstAsync(a => a.Id == item.Id, ct);
 
         _logger.LogInformation(
@@ -159,11 +179,12 @@ public class ActionItemService : IActionItemService
     }
 
     public async Task<ActionItemResponseDto> UpdateAsync(
-        Guid id, ActionItemUpdateDto dto, CancellationToken ct)
+        Guid id, ActionItemUpdateDto dto, string updatedByUserId, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
+            .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
 
@@ -177,6 +198,23 @@ public class ActionItemService : IActionItemService
         if (dto.DueDate     is not null) item.DueDate     = dto.DueDate.Value;
         if (dto.Progress    is not null) item.Progress    = dto.Progress.Value;
         if (dto.IsEscalated is not null) item.IsEscalated = dto.IsEscalated.Value;
+
+        // Auto-set progress to 100 when status is Done
+        if (dto.Status == ActionStatus.Done)
+            item.Progress = 100;
+
+        // Add escalation entry when escalated with explanation
+        if (dto.IsEscalated == true && !string.IsNullOrWhiteSpace(dto.EscalationExplanation))
+        {
+            item.Escalations.Add(new ActionItemEscalation
+            {
+                Id                = Guid.NewGuid(),
+                ActionItemId      = item.Id,
+                Explanation       = dto.EscalationExplanation.Trim(),
+                EscalatedByUserId = updatedByUserId,
+                CreatedAt         = DateTime.UtcNow,
+            });
+        }
 
         // Replace assignees when a new list is supplied
         if (dto.AssigneeIds is not null)
@@ -202,6 +240,7 @@ public class ActionItemService : IActionItemService
         var updated = await _dbContext.ActionItems
             .Include(a => a.Workspace)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
+            .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .FirstAsync(a => a.Id == id, ct);
 
         _logger.LogInformation("ActionItem {Id} updated", id);

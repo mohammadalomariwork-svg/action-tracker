@@ -19,6 +19,14 @@ export interface AssigneeInfo {
   email: string;
 }
 
+export interface EscalationInfo {
+  id: string;
+  explanation: string;
+  escalatedByUserId: string;
+  escalatedByName: string;
+  createdAt: string;
+}
+
 export interface ActionItem {
   id: string;
   actionId: string;
@@ -35,6 +43,7 @@ export interface ActionItem {
   dueDate: string;
   progress: number;
   isEscalated: boolean;
+  escalations: EscalationInfo[];
   createdAt: string;
   updatedAt: string;
   daysUntilDue: number;
@@ -53,6 +62,7 @@ export interface ActionItemCreate {
   dueDate: string;
   progress: number;
   isEscalated: boolean;
+  escalationExplanation?: string;
 }
 
 export interface AssignableUser {

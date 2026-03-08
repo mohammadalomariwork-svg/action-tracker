@@ -28,5 +28,13 @@ public static class ActionItemMapper
             FullName = a.User?.FullName ?? string.Empty,
             Email    = a.User?.Email    ?? string.Empty,
         }).ToList() ?? new(),
+        Escalations    = item.Escalations?.OrderByDescending(e => e.CreatedAt).Select(e => new EscalationDto
+        {
+            Id              = e.Id,
+            Explanation     = e.Explanation,
+            EscalatedByUserId = e.EscalatedByUserId,
+            EscalatedByName = e.EscalatedByUser?.FullName ?? string.Empty,
+            CreatedAt       = e.CreatedAt,
+        }).ToList() ?? new(),
     };
 }

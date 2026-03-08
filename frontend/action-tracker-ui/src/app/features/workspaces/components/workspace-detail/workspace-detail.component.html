@@ -510,7 +510,7 @@
         </div>
         <div class="col-6">
           <label class="form-label">Status</label>
-          <select class="form-select" [(ngModel)]="actionForm.status">
+          <select class="form-select" [(ngModel)]="actionForm.status" (ngModelChange)="onStatusChange()">
             @for (opt of STATUS_OPTIONS; track opt.value) {
               <option [ngValue]="opt.value">{{ opt.label }}</option>
             }
@@ -545,7 +545,7 @@
       </div>
 
       <!-- Escalated -->
-      <div class="mb-4">
+      <div class="mb-3">
         <div class="form-check">
           <input
             class="form-check-input"
@@ -556,6 +556,41 @@
           <label class="form-check-label" for="actionEscalated">Escalated</label>
         </div>
       </div>
+
+      <!-- Escalation Explanation (shown when escalated is checked) -->
+      @if (actionForm.isEscalated) {
+        <div class="mb-3">
+          <label class="form-label">Escalation Explanation <span class="text-danger">*</span></label>
+          <textarea
+            class="form-control"
+            [(ngModel)]="actionForm.escalationExplanation"
+            placeholder="Provide the reason for escalation…"
+            rows="3"
+            maxlength="2000"
+          ></textarea>
+          @if (!actionForm.escalationExplanation?.trim()) {
+            <small class="text-danger">Escalation explanation is required.</small>
+          }
+        </div>
+      }
+
+      <!-- Escalation History (shown when editing and item has escalations) -->
+      @if (editingActionId && editingEscalations.length > 0) {
+        <div class="mb-4">
+          <label class="form-label text-muted"><i class="bi bi-clock-history me-1"></i>Escalation History</label>
+          <div class="wa-escalation-history">
+            @for (esc of editingEscalations; track esc.id) {
+              <div class="wa-escalation-entry">
+                <div class="wa-escalation-entry__header">
+                  <span class="fw-semibold small">{{ esc.escalatedByName || 'Unknown' }}</span>
+                  <span class="text-muted small">{{ esc.createdAt | date:'MMM d, y h:mm a' }}</span>
+                </div>
+                <div class="wa-escalation-entry__body small">{{ esc.explanation }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
 
       <!-- Actions -->
       <div class="d-flex gap-2 justify-content-end border-top pt-3">
@@ -569,7 +604,7 @@
           type="button"
           class="btn btn-primary d-inline-flex align-items-center gap-2"
           (click)="saveAction()"
-          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate)"
+          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) || (actionForm.isEscalated && !actionForm.escalationExplanation?.trim())"
         >
           @if (actionSaving) {
             <span class="spinner-border spinner-border-sm" role="status"></span>

@@ -42,4 +42,5 @@ public class ActionItem
     // Navigation properties
     public Workspace Workspace { get; set; } = null!;
     public ICollection<ActionItemAssignee> Assignees { get; set; } = new List<ActionItemAssignee>();
+    public ICollection<ActionItemEscalation> Escalations { get; set; } = new List<ActionItemEscalation>();
 }

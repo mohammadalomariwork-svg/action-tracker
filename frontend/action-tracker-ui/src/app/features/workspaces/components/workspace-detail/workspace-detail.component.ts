@@ -10,7 +10,7 @@ import { ActionItemService } from '../../../../core/services/action-item.service
 import { Workspace, WorkspaceAdmin, UserDropdownItem } from '../../models/workspace.model';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
-  ActionStatus, ActionPriority, AssignableUser,
+  ActionStatus, ActionPriority, AssignableUser, EscalationInfo,
 } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
 
@@ -55,6 +55,7 @@ export class WorkspaceDetailComponent implements OnInit {
   actionForm: ActionItemFormData = this.emptyActionForm();
   assigneeDropdownOpen = false;
   assigneeSearchTerm = '';
+  editingEscalations: EscalationInfo[] = [];
 
   // Delete
   deletingActionId: string | null = null;
@@ -302,12 +303,20 @@ export class WorkspaceDetailComponent implements OnInit {
       dueDate: '',
       progress: 0,
       isEscalated: false,
+      escalationExplanation: '',
     };
+  }
+
+  onStatusChange(): void {
+    if (+this.actionForm.status === ActionStatus.Done) {
+      this.actionForm.progress = 100;
+    }
   }
 
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
+    this.editingEscalations = [];
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
@@ -324,8 +333,10 @@ export class WorkspaceDetailComponent implements OnInit {
       startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
       dueDate:     item.dueDate.slice(0, 10),
       progress:    item.progress,
-      isEscalated: item.isEscalated,
+      isEscalated: false,
+      escalationExplanation: '',
     };
+    this.editingEscalations = item.escalations ?? [];
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
@@ -370,6 +381,9 @@ export class WorkspaceDetailComponent implements OnInit {
     if (!this.actionForm.title.trim() || this.actionForm.assigneeIds.length === 0 || !this.actionForm.dueDate) {
       return;
     }
+    if (this.actionForm.isEscalated && !this.actionForm.escalationExplanation?.trim()) {
+      return;
+    }
 
     this.actionSaving = true;
     const payload: ActionItemCreate = {
@@ -383,6 +397,7 @@ export class WorkspaceDetailComponent implements OnInit {
       dueDate:     this.actionForm.dueDate,
       progress:    +this.actionForm.progress,
       isEscalated: !!this.actionForm.isEscalated,
+      escalationExplanation: this.actionForm.isEscalated ? this.actionForm.escalationExplanation?.trim() : undefined,
     };
 
     const obs$ = this.editingActionId
@@ -470,4 +485,5 @@ interface ActionItemFormData {
   dueDate: string;
   progress: number;
   isEscalated: boolean;
+  escalationExplanation: string;
 }

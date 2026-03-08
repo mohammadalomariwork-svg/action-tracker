@@ -17,8 +17,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     }
 
     // ── Legacy / shared domain sets ───────────────────────────────────────────
-    public DbSet<ActionItem>          ActionItems          => Set<ActionItem>();
-    public DbSet<ActionItemAssignee>  ActionItemAssignees  => Set<ActionItemAssignee>();
+    public DbSet<ActionItem>           ActionItems           => Set<ActionItem>();
+    public DbSet<ActionItemAssignee>   ActionItemAssignees   => Set<ActionItemAssignee>();
+    public DbSet<ActionItemEscalation> ActionItemEscalations => Set<ActionItemEscalation>();
     public DbSet<RefreshToken>        RefreshTokens        => Set<RefreshToken>();
     public DbSet<KuEmployeeInfo>      KuEmployeeInfo       => Set<KuEmployeeInfo>();
     public DbSet<OrgUnit>             OrgUnits             => Set<OrgUnit>();

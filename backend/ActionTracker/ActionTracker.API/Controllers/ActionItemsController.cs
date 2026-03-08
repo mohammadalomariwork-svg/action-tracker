@@ -96,7 +96,8 @@ public class ActionItemsController : ControllerBase
     {
         try
         {
-            var updated = await _service.UpdateAsync(id, dto, ct);
+            var userId  = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            var updated = await _service.UpdateAsync(id, dto, userId, ct);
             return Ok(ApiResponse<ActionItemResponseDto>.Ok(updated));
         }
         catch (KeyNotFoundException ex)

@@ -34,4 +34,8 @@ public class ActionItemCreateDto
     public int Progress { get; set; } = 0;
 
     public bool IsEscalated { get; set; } = false;
+
+    /// <summary>Required when IsEscalated is true.</summary>
+    [MaxLength(2000)]
+    public string? EscalationExplanation { get; set; }
 }
