@@ -24,7 +24,7 @@ export class ProjectService {
    * @param workspaceId The workspace to fetch projects for.
    * @returns Observable of project list items.
    */
-  getByWorkspace(workspaceId: number): Observable<ProjectList[]> {
+  getByWorkspace(workspaceId: string): Observable<ProjectList[]> {
     return this.http.get<ProjectList[]>(`${this.apiUrl}/workspace/${workspaceId}`);
   }
 

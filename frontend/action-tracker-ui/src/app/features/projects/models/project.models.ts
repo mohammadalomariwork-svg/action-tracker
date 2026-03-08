@@ -54,7 +54,7 @@ export interface StrategicObjective {
 /** Summary representation of a project used in list views. */
 export interface ProjectList {
   id: number;
-  workspaceId: number;
+  workspaceId: string;
   title: string;
   projectType: ProjectType;
   status: ProjectStatus;
@@ -86,7 +86,7 @@ export interface ProjectDetail extends ProjectList {
 
 /** Payload for creating a new project. */
 export interface CreateProject {
-  workspaceId: number;
+  workspaceId: string;
   title: string;
   description?: string;
   projectType: ProjectType;
@@ -168,7 +168,7 @@ export interface UpdateMilestone {
 /** Summary representation of an action item used in list views. */
 export interface ActionItemList {
   id: number;
-  workspaceId: number;
+  workspaceId: string;
   projectId?: number;
   milestoneId?: number;
   title: string;
@@ -197,7 +197,7 @@ export interface ActionItemDetail extends ActionItemList {
 
 /** Payload for creating a new action item. */
 export interface CreateActionItem {
-  workspaceId: number;
+  workspaceId: string;
   projectId?: number;
   milestoneId?: number;
   title: string;

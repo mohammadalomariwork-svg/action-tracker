@@ -56,7 +56,7 @@ export class ProjectFormComponent implements OnInit {
 
   isEditMode = false;
   projectId: number | null = null;
-  workspaceId!: number;
+  workspaceId!: string;
   workspaceOrgUnit = '';
   isBaselined = false;
 
@@ -81,7 +81,7 @@ export class ProjectFormComponent implements OnInit {
 
     const wsId = this.route.snapshot.queryParamMap.get('workspaceId');
     if (wsId) {
-      this.workspaceId = +wsId;
+      this.workspaceId = wsId;
     }
 
     this.buildForm();
@@ -291,7 +291,7 @@ export class ProjectFormComponent implements OnInit {
   }
 
   /** Loads workspace org unit for filtering strategic objectives and users. */
-  private loadWorkspaceOrgUnit(workspaceId: number): void {
+  private loadWorkspaceOrgUnit(workspaceId: string): void {
     this.workspaceService
       .getWorkspaceById(workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))

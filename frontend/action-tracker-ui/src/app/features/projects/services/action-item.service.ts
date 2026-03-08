@@ -22,7 +22,7 @@ export class ProjectActionItemService {
    * @param workspaceId The workspace to fetch action items for.
    * @returns Observable of action item list items.
    */
-  getStandaloneByWorkspace(workspaceId: number): Observable<ActionItemList[]> {
+  getStandaloneByWorkspace(workspaceId: string): Observable<ActionItemList[]> {
     return this.http.get<ActionItemList[]>(
       `${this.apiUrl}/workspace/${workspaceId}/standalone`
     );

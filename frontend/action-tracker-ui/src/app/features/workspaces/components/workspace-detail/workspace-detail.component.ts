@@ -34,7 +34,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
 
-  workspaceId!: number;
+  workspaceId!: string;
   workspace: WorkspaceList | null = null;
   projects: ProjectList[] = [];
   standaloneActions: ActionItemList[] = [];
@@ -50,7 +50,7 @@ export class WorkspaceDetailComponent implements OnInit {
   readonly ActionItemPriority = ActionItemPriority;
 
   ngOnInit(): void {
-    this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
+    this.workspaceId = this.route.snapshot.paramMap.get('id')!;
     this.loadData();
   }
 

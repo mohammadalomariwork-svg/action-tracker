@@ -23,7 +23,7 @@ import { UserProfile } from '../../../../../core/models/user.model';
   styleUrl: './action-item-list.component.scss',
 })
 export class ActionItemListComponent implements OnInit {
-  @Input() workspaceId?: number;
+  @Input() workspaceId?: string;
   @Input() projectId?: number;
   @Input() milestoneId?: number;
   @Input() canEdit = false;
@@ -166,7 +166,7 @@ export class ActionItemListComponent implements OnInit {
         .subscribe(user => {
           this.actionItemService
             .create({
-              workspaceId: this.workspaceId ?? 0,
+              workspaceId: this.workspaceId ?? '',
               projectId: this.projectId,
               milestoneId: this.milestoneId,
               title: v.title,
