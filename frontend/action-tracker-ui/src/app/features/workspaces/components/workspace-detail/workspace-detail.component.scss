@@ -72,7 +72,7 @@
 // ── Admins grid ──────────────────────────────────────────────────────────────
 .wd-admins-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
 }
 
@@ -80,7 +80,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.85rem 1rem;
+  padding: 1rem 1.15rem;
   border-radius: 0.5rem;
   border: 1px solid #e9ecef;
   background: #f8f9fa;
@@ -122,35 +122,24 @@
   text-overflow: ellipsis;
 }
 
-.wd-admin-id {
-  font-size: 0.75rem;
+.wd-admin-detail {
+  font-size: 0.78rem;
   color: #6c757d;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+
+  i {
+    font-size: 0.7rem;
+    color: #9ca3af;
+  }
 }
 
-.wd-admin-remove {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: #adb5bd;
-  cursor: pointer;
-  padding: 0.3rem 0.45rem;
-  font-size: 0.8rem;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+.wd-admin-remove-btn {
   flex-shrink: 0;
-
-  &:hover:not(:disabled) {
-    color: #dc3545;
-    border-color: #dc3545;
-    background: rgba(220, 53, 69, 0.06);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
+  align-self: center;
 }
 
 // ── Empty state ──────────────────────────────────────────────────────────────

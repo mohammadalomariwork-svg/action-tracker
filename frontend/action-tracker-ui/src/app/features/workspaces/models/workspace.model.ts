@@ -6,6 +6,10 @@ export interface WorkspaceAdmin {
   userId: string;
   /** Display name of the admin user. */
   userName: string;
+  /** Email address of the admin user. */
+  email: string;
+  /** Name of the organisation unit the admin belongs to. */
+  orgUnitName: string;
 }
 
 /**

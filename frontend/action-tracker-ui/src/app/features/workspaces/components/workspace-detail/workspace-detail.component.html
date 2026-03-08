@@ -126,16 +126,21 @@
               </div>
               <div class="wd-admin-info">
                 <span class="wd-admin-name">{{ admin.userName }}</span>
-                <span class="wd-admin-id">{{ admin.userId }}</span>
+                <span class="wd-admin-detail">
+                  <i class="bi bi-envelope me-1"></i>{{ admin.email || '—' }}
+                </span>
+                <span class="wd-admin-detail">
+                  <i class="bi bi-building me-1"></i>{{ admin.orgUnitName || '—' }}
+                </span>
               </div>
               @if (canManage) {
                 <button
-                  class="wd-admin-remove"
+                  class="btn btn-outline-danger btn-sm wd-admin-remove-btn"
                   (click)="onRemoveAdmin(admin)"
                   title="Remove admin"
                   [disabled]="workspace.admins.length <= 1"
                 >
-                  <i class="bi bi-x-lg"></i>
+                  <i class="bi bi-person-dash me-1"></i>Remove
                 </button>
               }
             </div>

@@ -67,7 +67,11 @@ public class WorkspaceService : IWorkspaceService
                 .Include(w => w.Admins)
                 .FirstOrDefaultAsync(w => w.Id == id);
 
-            return workspace is null ? null : ToResponseDto(workspace);
+            if (workspace is null) return null;
+
+            var dto = ToResponseDto(workspace);
+            await EnrichAdminDtosAsync(dto.Admins);
+            return dto;
         }
         catch (Exception ex)
         {
@@ -350,6 +354,51 @@ public class WorkspaceService : IWorkspaceService
         {
             _logger.LogError(ex, "Error retrieving active users for dropdown");
             throw;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Populates <see cref="WorkspaceAdminDto.Email"/> and
+    /// <see cref="WorkspaceAdminDto.OrgUnitName"/> by joining with the Users
+    /// and OrgUnits tables.
+    /// </summary>
+    private async Task EnrichAdminDtosAsync(List<WorkspaceAdminDto> admins)
+    {
+        if (admins.Count == 0) return;
+
+        var userIds = admins.Select(a => a.UserId).ToList();
+
+        var users = await _db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email, u.OrgUnitId })
+            .ToListAsync();
+
+        var orgUnitIds = users
+            .Where(u => u.OrgUnitId.HasValue)
+            .Select(u => u.OrgUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        var orgUnits = orgUnitIds.Count > 0
+            ? await _db.OrgUnits
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .Select(o => new { o.Id, o.Name })
+                .ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<Guid, string>();
+
+        foreach (var admin in admins)
+        {
+            var user = users.FirstOrDefault(u => u.Id == admin.UserId);
+            if (user is null) continue;
+
+            admin.Email = user.Email ?? string.Empty;
+            admin.OrgUnitName = user.OrgUnitId.HasValue && orgUnits.TryGetValue(user.OrgUnitId.Value, out var name)
+                ? name
+                : string.Empty;
         }
     }
 
