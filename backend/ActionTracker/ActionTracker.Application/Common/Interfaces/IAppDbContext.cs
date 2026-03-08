@@ -1,4 +1,3 @@
-using ActionTracker.Application.Features.Workspaces.Models;
 using ActionTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 

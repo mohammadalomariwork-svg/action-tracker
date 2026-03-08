@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
-using ActionTracker.Application.Features.Workspaces.Models;
+using ActionTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

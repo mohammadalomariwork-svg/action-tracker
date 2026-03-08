@@ -1,5 +1,4 @@
 using ActionTracker.Application.Common.Interfaces;
-using ActionTracker.Application.Features.Workspaces.Models;
 using ActionTracker.Domain.Common;
 using ActionTracker.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;

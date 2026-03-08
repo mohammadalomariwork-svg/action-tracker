@@ -734,7 +734,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("WorkspaceStrategicObjectives", (string)null);
                 });
 
-            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.Workspace", b =>
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Workspace", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -772,7 +772,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("Workspaces", (string)null);
                 });
 
-            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.WorkspaceAdmin", b =>
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceAdmin", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1710,7 +1710,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("ActionTracker.Application.Features.Workspaces.Models.Workspace", "Workspace")
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
                         .WithMany()
                         .HasForeignKey("WorkspaceId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1787,7 +1787,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasForeignKey("StrategicObjectiveId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ActionTracker.Application.Features.Workspaces.Models.Workspace", "Workspace")
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
                         .WithMany()
                         .HasForeignKey("WorkspaceId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1831,9 +1831,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.WorkspaceAdmin", b =>
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceAdmin", b =>
                 {
-                    b.HasOne("ActionTracker.Application.Features.Workspaces.Models.Workspace", "Workspace")
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
                         .WithMany("Admins")
                         .HasForeignKey("WorkspaceId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1996,7 +1996,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Projects");
                 });
 
-            modelBuilder.Entity("ActionTracker.Application.Features.Workspaces.Models.Workspace", b =>
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Workspace", b =>
                 {
                     b.Navigation("Admins");
                 });

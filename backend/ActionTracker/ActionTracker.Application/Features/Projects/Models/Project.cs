@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using ActionTracker.Application.Features.Workspaces.Models;
+using ActionTracker.Domain.Entities;
 
 namespace ActionTracker.Application.Features.Projects.Models;
 
