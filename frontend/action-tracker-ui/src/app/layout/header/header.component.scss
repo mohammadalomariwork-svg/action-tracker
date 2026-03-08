@@ -12,11 +12,10 @@
 }
 
 // ═══════════════════════════════════════════════════════════
-// TOP BAR — user info + logout, right-aligned
+// TOP BAR — app title left, user info + logout right
 // ═══════════════════════════════════════════════════════════
 .top-bar {
   background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
 }
 
 .top-bar-inner {
@@ -28,9 +27,25 @@
   gap: 1rem;
 }
 
-.app-title {
+// ── Brand / logo ──────────────────────────────────────────
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  flex-shrink: 0;
   margin-right: auto;
-  font-size: 0.85rem;
+}
+
+.brand-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.app-title {
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.02em;
@@ -224,7 +239,7 @@
 }
 
 // ═══════════════════════════════════════════════════════════
-// NAV BAR — logo left, links right, full width
+// NAV BAR — links, full width
 // ═══════════════════════════════════════════════════════════
 .nav-bar {
   width: 100%;
@@ -241,25 +256,12 @@
   height: 48px;
 }
 
-// ── Brand / logo ──────────────────────────────────────────
-.brand {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  flex-shrink: 0;
-  margin-right: auto;
-}
-
-.brand-logo {
-  height: 36px;
-  width: auto;
-}
-
 // ── Nav links ──────────────────────────────────────────
 .nav-links {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .nav-link {
@@ -293,6 +295,7 @@
   border: none;
   cursor: pointer;
   padding: 4px;
+  margin-left: auto;
 
   span {
     display: block;
@@ -304,6 +307,11 @@
   }
 }
 
+// ── Mobile nav dropdown ────────────────────────────────
+.mobile-nav-links {
+  display: none;
+}
+
 // ═══════════════════════════════════════════════════════════
 // RESPONSIVE
 // ═══════════════════════════════════════════════════════════
@@ -313,7 +321,7 @@
   }
 
   .app-title {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
   }
 
   .user-name {
@@ -328,12 +336,14 @@
     display: none;
   }
 
-  .nav-links {
+  // Hide the desktop nav-bar on mobile
+  .nav-bar {
     display: none;
-    position: fixed;
-    top: calc(var(--header-height));
-    left: 0;
-    right: 0;
+  }
+
+  // Mobile nav dropdown - only navigation links, separate from user details
+  .mobile-nav-links {
+    display: none;
     background: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
     flex-direction: column;

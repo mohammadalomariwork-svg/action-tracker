@@ -50,6 +50,7 @@ export class HeaderComponent {
   );
 
   readonly menuOpen = signal(false);
+  readonly navOpen = signal(false);
 
   /** Nav links visible to the current user based on their roles. */
   readonly visibleLinks = computed(() => {
@@ -72,8 +73,14 @@ export class HeaderComponent {
     this.menuOpen.update(v => !v);
   }
 
+  toggleNav(): void {
+    this.navOpen.update(v => !v);
+    this.menuOpen.set(false); // close user dropdown when toggling nav
+  }
+
   closeMenu(): void {
     this.menuOpen.set(false);
+    this.navOpen.set(false);
   }
 
   logout(): void {
@@ -85,6 +92,7 @@ export class HeaderComponent {
     const el = target as HTMLElement | null;
     if (!el?.closest?.('.nav-user') && !el?.closest?.('.hamburger')) {
       this.menuOpen.set(false);
+      this.navOpen.set(false);
     }
   }
 }

@@ -1,9 +1,22 @@
 <header class="header">
 
-  <!-- ── Top bar: user info + logout ──────────────────────────────────── -->
+  <!-- ── Top bar: app title left, user info + logout right ─── -->
   <div class="top-bar">
     <div class="top-bar-inner">
-      <span class="app-title">Action Tracker</span>
+      <a class="brand" routerLink="/dashboard">
+        <svg class="brand-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span class="app-title">Action Tracker</span>
+      </a>
+      <!-- Hamburger (mobile) -->
+      <button class="hamburger" (click)="toggleNav()" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+
       <div class="top-bar-right">
         @if (currentUser$ | async; as user) {
           <span class="status-dot" title="Connected"></span>
@@ -79,13 +92,9 @@
     </div>
   </div>
 
-  <!-- ── Navigation bar: logo left, links right ──────────────────────── -->
+  <!-- ── Navigation bar: links ─────────────────────────────── -->
   <div class="nav-bar">
     <div class="nav-bar-inner">
-      <a class="brand" routerLink="/dashboard">
-        <img src="assets/images/cropped-logo.png" alt="Khalifa University" class="brand-logo" />
-      </a>
-
       <nav class="nav-links" [class.open]="menuOpen()">
         @if (currentUser$ | async) {
           @for (link of visibleLinks(); track link.label) {
@@ -110,11 +119,23 @@
         }
       </nav>
 
-      <!-- Hamburger (mobile) -->
-      <button class="hamburger" (click)="toggleMenu()" aria-label="Toggle menu">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </div>
+
+  <!-- Mobile nav dropdown (rendered outside nav-bar so it's visible when nav-bar is hidden) -->
+  <nav class="mobile-nav-links" [class.open]="navOpen()">
+    @if (currentUser$ | async) {
+      @for (link of visibleLinks(); track link.label) {
+        <a
+          [routerLink]="link.path"
+          (click)="closeMenu()"
+          class="nav-link"
+          [class.active]="isLinkActive(link)"
+        >
+          {{ link.label }}
+        </a>
+      }
+    }
+  </nav>
 
 </header>
