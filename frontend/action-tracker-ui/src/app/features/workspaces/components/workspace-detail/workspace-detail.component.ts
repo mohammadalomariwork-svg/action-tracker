@@ -78,6 +78,25 @@ export class WorkspaceDetailComponent implements OnInit {
     { value: ActionPriority.Critical, label: 'Critical' },
   ];
 
+  private readonly STATUS_MAP: Record<string, ActionStatus> = {
+    toDo: ActionStatus.ToDo, inProgress: ActionStatus.InProgress,
+    inReview: ActionStatus.InReview, done: ActionStatus.Done, overdue: ActionStatus.Overdue,
+  };
+  private readonly PRIORITY_MAP: Record<string, ActionPriority> = {
+    low: ActionPriority.Low, medium: ActionPriority.Medium,
+    high: ActionPriority.High, critical: ActionPriority.Critical,
+  };
+
+  private resolveStatus(val: unknown): ActionStatus {
+    if (typeof val === 'number') return val;
+    return this.STATUS_MAP[String(val)] ?? ActionStatus.ToDo;
+  }
+
+  private resolvePriority(val: unknown): ActionPriority {
+    if (typeof val === 'number') return val;
+    return this.PRIORITY_MAP[String(val)] ?? ActionPriority.Medium;
+  }
+
   get actionTotalPages(): number {
     return Math.ceil(this.actionTotalCount / this.actionPageSize) || 1;
   }
@@ -290,8 +309,8 @@ export class WorkspaceDetailComponent implements OnInit {
       title:       item.title,
       description: item.description,
       assigneeIds: item.assignees.map(a => a.userId),
-      priority:    +item.priority as ActionPriority,
-      status:      +item.status as ActionStatus,
+      priority:    this.resolvePriority(item.priority),
+      status:      this.resolveStatus(item.status),
       startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
       dueDate:     item.dueDate.slice(0, 10),
       progress:    item.progress,
