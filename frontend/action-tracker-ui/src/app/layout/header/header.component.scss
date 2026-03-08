@@ -12,6 +12,21 @@
 }
 
 // ═══════════════════════════════════════════════════════════
+// UNIVERSITY BANNER — centered copyright line
+// ═══════════════════════════════════════════════════════════
+.university-banner {
+  width: 100%;
+  text-align: center;
+  padding: 0.35rem 1rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+// ═══════════════════════════════════════════════════════════
 // TOP BAR — user info + logout, right-aligned
 // ═══════════════════════════════════════════════════════════
 .top-bar {
