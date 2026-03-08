@@ -6,13 +6,13 @@
 
 // ── Header ────────────────────────────────────────────────────────────────────
 .ap-header {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
 }
 
 .ap-header-icon {
   font-size: 3rem;
-  color: var(--text-secondary);
+  color: #6c757d;
   line-height: 1;
 }
 
@@ -34,7 +34,7 @@
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   }
 }
 

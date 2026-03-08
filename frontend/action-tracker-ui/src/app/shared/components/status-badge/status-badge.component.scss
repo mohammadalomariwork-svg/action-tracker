@@ -8,9 +8,9 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
 
-  &--gray   { background: var(--badge-muted-bg); color: var(--badge-muted-text); border: 1px solid var(--border-color); }
-  &--blue   { background: rgba(26, 111, 181, 0.12); color: var(--info); border: 1px solid rgba(26, 111, 181, 0.25); }
-  &--purple { background: rgba(197, 160, 71, 0.12); color: var(--secondary); border: 1px solid rgba(197, 160, 71, 0.25); }
-  &--green  { background: rgba(13, 124, 95, 0.12); color: var(--success); border: 1px solid rgba(13, 124, 95, 0.25); }
-  &--red    { background: rgba(192, 57, 43, 0.12); color: var(--danger); border: 1px solid rgba(192, 57, 43, 0.25); }
+  &--gray   { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  &--blue   { background: rgba(2,   132, 199, 0.1); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.25); }
+  &--purple { background: rgba(124,  58, 237, 0.1); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.25); }
+  &--green  { background: rgba(5,   150, 105, 0.1); color: #059669; border: 1px solid rgba(5, 150, 105, 0.25); }
+  &--red    { background: rgba(220,  38,  38, 0.1); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.25); }
 }
