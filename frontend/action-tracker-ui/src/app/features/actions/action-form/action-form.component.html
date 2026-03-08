@@ -76,39 +76,24 @@
 
           <div class="form-grid">
 
-            <!-- Assignee -->
+            <!-- Workspace -->
             <div class="field">
-              <label class="field__label" for="assigneeId">Assignee</label>
-              <select
-                id="assigneeId"
-                class="field__select"
-                formControlName="assigneeId"
-              >
-                <option value="">— Select assignee —</option>
-                @for (m of teamMembers(); track m.id) {
-                  <option [value]="m.id">{{ m.fullName }}</option>
-                }
-              </select>
-            </div>
-
-            <!-- Category -->
-            <div class="field">
-              <label class="field__label" for="category">
-                Category <span class="req">*</span>
+              <label class="field__label" for="workspaceId">
+                Workspace <span class="req">*</span>
               </label>
               <select
-                id="category"
+                id="workspaceId"
                 class="field__select"
-                [class.field__input--error]="isInvalid('category')"
-                formControlName="category"
+                [class.field__input--error]="isInvalid('workspaceId')"
+                formControlName="workspaceId"
               >
-                <option value="">— Select category —</option>
-                @for (opt of CATEGORY_OPTIONS; track opt.value) {
-                  <option [value]="opt.value">{{ opt.label }}</option>
+                <option value="">— Select workspace —</option>
+                @for (ws of workspaces(); track ws.id) {
+                  <option [value]="ws.id">{{ ws.title }}</option>
                 }
               </select>
-              @if (isInvalid('category')) {
-                <span class="field__error">Category is required.</span>
+              @if (isInvalid('workspaceId')) {
+                <span class="field__error">Workspace is required.</span>
               }
             </div>
 
@@ -149,6 +134,17 @@
               </select>
             </div>
 
+            <!-- Start Date -->
+            <div class="field">
+              <label class="field__label" for="startDate">Start Date</label>
+              <input
+                id="startDate"
+                type="date"
+                class="field__input"
+                formControlName="startDate"
+              />
+            </div>
+
             <!-- Due Date -->
             <div class="field">
               <label class="field__label" for="dueDate">
@@ -187,9 +183,35 @@
           </div><!-- /form-grid -->
         </section>
 
+        <!-- ── Section: Assignees ──────────────────────── -->
+        <section class="form-section">
+          <h2 class="section-title">
+            Assignee(s) <span class="req">*</span>
+          </h2>
+          <p class="section-subtitle">Select one or more users to assign this action item to.</p>
+
+          <div class="assignee-list">
+            @for (m of teamMembers(); track m.id) {
+              <label class="assignee-chip" [class.assignee-chip--selected]="isAssigneeSelected(m.id)">
+                <input
+                  type="checkbox"
+                  class="assignee-chip__input"
+                  [checked]="isAssigneeSelected(m.id)"
+                  (change)="toggleAssignee(m.id)"
+                />
+                <span class="assignee-chip__avatar">{{ m.fullName.charAt(0).toUpperCase() }}</span>
+                <span class="assignee-chip__name">{{ m.fullName }}</span>
+              </label>
+            }
+          </div>
+          @if (isInvalid('assigneeIds')) {
+            <span class="field__error">At least one assignee is required.</span>
+          }
+        </section>
+
         <!-- ── Section: Progress ──────────────────────── -->
         <section class="form-section">
-          <h2 class="section-title">Progress &amp; Notes</h2>
+          <h2 class="section-title">Progress</h2>
 
           <div class="form-grid">
 
@@ -219,28 +241,6 @@
                   [style.width.%]="progressVal()"
                 ></div>
               </div>
-            </div>
-
-            <!-- Notes -->
-            <div class="field field--full">
-              <label class="field__label" for="notes">Notes</label>
-              <div class="textarea-wrap">
-                <textarea
-                  id="notes"
-                  class="field__textarea"
-                  [class.field__input--error]="isInvalid('notes')"
-                  formControlName="notes"
-                  placeholder="Additional context, blockers, or next steps…"
-                  rows="3"
-                  [maxlength]="NOTES_MAX"
-                ></textarea>
-                <span class="char-counter" [class.char-counter--warn]="notesLength() > NOTES_MAX - 100">
-                  {{ notesLength() }} / {{ NOTES_MAX }}
-                </span>
-              </div>
-              @if (isInvalid('notes')) {
-                <span class="field__error">Notes cannot exceed {{ NOTES_MAX }} characters.</span>
-              }
             </div>
 
           </div>

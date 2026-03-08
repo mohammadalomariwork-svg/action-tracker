@@ -4,11 +4,11 @@ namespace ActionTracker.Application.Features.ActionItems.DTOs;
 
 public class ActionItemFilterDto
 {
-    public ActionStatus?   Status     { get; set; }
-    public ActionPriority? Priority   { get; set; }
-    public string          AssigneeId { get; set; } = string.Empty;
-    public ActionCategory? Category   { get; set; }
-    public string          SearchTerm { get; set; } = string.Empty;
+    public ActionStatus?   Status      { get; set; }
+    public ActionPriority? Priority    { get; set; }
+    public string          AssigneeId  { get; set; } = string.Empty;
+    public Guid?           WorkspaceId { get; set; }
+    public string          SearchTerm  { get; set; } = string.Empty;
 
     public int PageNumber { get; set; } = 1;
 

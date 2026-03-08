@@ -13,34 +13,28 @@ export enum ActionPriority {
   Critical = 4
 }
 
-export enum ActionCategory {
-  Operations = 1,
-  Strategic = 2,
-  HR = 3,
-  Finance = 4,
-  IT = 5,
-  Compliance = 6,
-  Communication = 7
+export interface AssigneeInfo {
+  userId: string;
+  fullName: string;
+  email: string;
 }
 
 export interface ActionItem {
-  id: number;
+  id: string;
   actionId: string;
   title: string;
   description: string;
-  assigneeId: string;
-  assigneeName: string;
-  assigneeEmail: string;
-  category: ActionCategory;
-  categoryLabel: string;
+  workspaceId: string;
+  workspaceTitle: string;
+  assignees: AssigneeInfo[];
   priority: ActionPriority;
   priorityLabel: string;
   status: ActionStatus;
   statusLabel: string;
+  startDate: string | null;
   dueDate: string;
   progress: number;
   isEscalated: boolean;
-  notes: string;
   createdAt: string;
   updatedAt: string;
   daysUntilDue: number;
@@ -50,21 +44,21 @@ export interface ActionItem {
 export interface ActionItemCreate {
   title: string;
   description: string;
-  assigneeId: string;
-  category: ActionCategory;
+  workspaceId: string;
+  assigneeIds: string[];
   priority: ActionPriority;
   status: ActionStatus;
+  startDate: string | null;
   dueDate: string;
   progress: number;
   isEscalated: boolean;
-  notes: string;
 }
 
 export interface ActionItemFilter {
   status?: ActionStatus;
   priority?: ActionPriority;
   assigneeId?: string;
-  category?: ActionCategory;
+  workspaceId?: string;
   searchTerm?: string;
   pageNumber: number;
   pageSize: number;

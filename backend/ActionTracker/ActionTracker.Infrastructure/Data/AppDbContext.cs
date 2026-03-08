@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
     // ── Legacy / shared domain sets ───────────────────────────────────────────
     public DbSet<ActionItem>          ActionItems          => Set<ActionItem>();
+    public DbSet<ActionItemAssignee>  ActionItemAssignees  => Set<ActionItemAssignee>();
     public DbSet<RefreshToken>        RefreshTokens        => Set<RefreshToken>();
     public DbSet<KuEmployeeInfo>      KuEmployeeInfo       => Set<KuEmployeeInfo>();
     public DbSet<OrgUnit>             OrgUnits             => Set<OrgUnit>();
@@ -621,6 +622,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         var utcNow = DateTime.UtcNow;
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = utcNow;
+            }
+        }
+
+        // ActionItem no longer inherits BaseEntity — handle UpdatedAt separately
+        foreach (var entry in ChangeTracker.Entries<ActionItem>())
         {
             if (entry.State == EntityState.Modified)
             {

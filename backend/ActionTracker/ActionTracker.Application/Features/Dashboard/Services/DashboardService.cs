@@ -101,25 +101,26 @@ public class DashboardService : IDashboardService
     }
 
     // -------------------------------------------------------------------------
-    // Team workload  — two queries, joined in memory
+    // Team workload  — via ActionItemAssignees junction table
     // -------------------------------------------------------------------------
 
     public async Task<List<TeamWorkloadDto>> GetTeamWorkloadAsync(CancellationToken ct)
     {
-        // Query 1: aggregate per assignee
-        var stats = await _dbContext.ActionItems
-            .GroupBy(a => a.AssigneeId)
+        // Query 1: aggregate per assignee via junction table
+        var stats = await _dbContext.ActionItemAssignees
+            .Include(aa => aa.ActionItem)
+            .GroupBy(aa => aa.UserId)
             .Select(g => new
             {
-                AssigneeId     = g.Key,
+                UserId         = g.Key,
                 AssignedCount  = g.Count(),
-                CompletedCount = g.Count(a => a.Status == ActionStatus.Done),
-                OverdueCount   = g.Count(a => a.Status == ActionStatus.Overdue),
+                CompletedCount = g.Count(aa => aa.ActionItem.Status == ActionStatus.Done),
+                OverdueCount   = g.Count(aa => aa.ActionItem.Status == ActionStatus.Overdue),
             })
             .ToListAsync(ct);
 
         // Query 2: user names for the assignee IDs found above
-        var userIds = stats.Select(s => s.AssigneeId).ToList();
+        var userIds = stats.Select(s => s.UserId).ToList();
         var users = await _dbContext.Users
             .Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.FirstName, u.LastName })
@@ -131,8 +132,8 @@ public class DashboardService : IDashboardService
             .OrderByDescending(s => s.AssignedCount)
             .Select(s => new TeamWorkloadDto
             {
-                UserId               = s.AssigneeId,
-                UserName             = userMap.GetValueOrDefault(s.AssigneeId, "Unknown"),
+                UserId               = s.UserId,
+                UserName             = userMap.GetValueOrDefault(s.UserId, "Unknown"),
                 AssignedCount        = s.AssignedCount,
                 CompletedCount       = s.CompletedCount,
                 OverdueCount         = s.OverdueCount,
@@ -161,7 +162,7 @@ public class DashboardService : IDashboardService
 
         // At-risk: Overdue or due within 3 days, ordered by urgency, max 5
         var atRiskEntities = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Where(a =>
                 a.Status != ActionStatus.Done &&
                 (a.Status == ActionStatus.Overdue || a.DueDate <= now.AddDays(3)))
@@ -186,7 +187,7 @@ public class DashboardService : IDashboardService
                 Id           = a.Id,
                 ActionId     = a.ActionId,
                 Title        = a.Title,
-                AssigneeName = a.Assignee?.FullName ?? string.Empty,
+                AssigneeName = string.Join(", ", a.Assignees.Select(aa => aa.User?.FullName ?? "Unknown")),
                 Priority     = a.Priority.ToString(),
                 Status       = a.Status.ToString(),
                 DueDate      = a.DueDate,
@@ -198,7 +199,7 @@ public class DashboardService : IDashboardService
 
         // Recent activity: last 5 created items
         var recentEntities = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .OrderByDescending(a => a.CreatedAt)
             .Take(5)
             .ToListAsync(ct);
@@ -208,14 +209,15 @@ public class DashboardService : IDashboardService
             Id           = a.Id,
             ActionId     = a.ActionId,
             Title        = a.Title,
-            AssigneeName = a.Assignee?.FullName ?? string.Empty,
+            AssigneeName = string.Join(", ", a.Assignees.Select(aa => aa.User?.FullName ?? "Unknown")),
             CreatedAt    = a.CreatedAt,
             Status       = a.Status.ToString(),
         }).ToList();
 
         // Critical actions: Critical or High priority, not Done
         var criticalEntities = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Where(a =>
                 (a.Priority == ActionPriority.Critical || a.Priority == ActionPriority.High)
                 && a.Status != ActionStatus.Done)

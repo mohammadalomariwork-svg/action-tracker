@@ -12,25 +12,17 @@ import { Subject, takeUntil } from 'rxjs';
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { UserService }       from '../../../core/services/user.service';
 import { ToastService }      from '../../../core/services/toast.service';
+import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 
 import {
   ActionItem, ActionItemCreate,
-  ActionStatus, ActionPriority, ActionCategory,
+  ActionStatus, ActionPriority,
 } from '../../../core/models/action-item.model';
 import { UserProfile }       from '../../../core/models/user.model';
+import { WorkspaceList }     from '../../workspaces/models/workspace.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
-
-export const CATEGORY_OPTIONS: { value: ActionCategory; label: string }[] = [
-  { value: ActionCategory.Operations,    label: 'Operations'    },
-  { value: ActionCategory.Strategic,     label: 'Strategic'     },
-  { value: ActionCategory.HR,            label: 'HR'            },
-  { value: ActionCategory.Finance,       label: 'Finance'       },
-  { value: ActionCategory.IT,            label: 'IT'            },
-  { value: ActionCategory.Compliance,    label: 'Compliance'    },
-  { value: ActionCategory.Communication, label: 'Communication' },
-];
 
 export const PRIORITY_OPTIONS: { value: ActionPriority; label: string; color: string; dot: string }[] = [
   { value: ActionPriority.Critical, label: 'Critical', color: '#dc2626', dot: '🔴' },
@@ -48,7 +40,6 @@ export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
 ];
 
 const DESC_MAX = 5000;
-const NOTES_MAX = 2000;
 const TODAY = new Date().toISOString().slice(0, 10);
 
 @Component({
@@ -60,18 +51,20 @@ const TODAY = new Date().toISOString().slice(0, 10);
   styleUrl:    './action-form.component.scss',
 })
 export class ActionFormComponent implements OnInit, OnDestroy {
-  private readonly fb         = inject(FormBuilder);
-  private readonly route      = inject(ActivatedRoute);
-  private readonly router     = inject(Router);
-  private readonly actionSvc  = inject(ActionItemService);
-  private readonly userSvc    = inject(UserService);
-  private readonly toastSvc   = inject(ToastService);
-  private readonly destroy$   = new Subject<void>();
+  private readonly fb            = inject(FormBuilder);
+  private readonly route         = inject(ActivatedRoute);
+  private readonly router        = inject(Router);
+  private readonly actionSvc     = inject(ActionItemService);
+  private readonly userSvc       = inject(UserService);
+  private readonly toastSvc      = inject(ToastService);
+  private readonly workspaceSvc  = inject(WorkspaceService);
+  private readonly destroy$      = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────
   readonly isEditMode   = signal(false);
   readonly editItem     = signal<ActionItem | null>(null);
   readonly teamMembers  = signal<UserProfile[]>([]);
+  readonly workspaces   = signal<WorkspaceList[]>([]);
   readonly saving       = signal(false);
   readonly loadingItem  = signal(false);
 
@@ -85,30 +78,27 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   readonly pageIcon = computed(() => this.isEditMode() ? '✏️' : '➕');
 
   readonly descLength  = computed(() => (this.form?.get('description')?.value ?? '').length);
-  readonly notesLength = computed(() => (this.form?.get('notes')?.value ?? '').length);
   readonly progressVal = computed(() => +(this.form?.get('progress')?.value ?? 0));
 
   // ── Constants exposed to template ─────────────────────
-  readonly CATEGORY_OPTIONS = CATEGORY_OPTIONS;
   readonly PRIORITY_OPTIONS = PRIORITY_OPTIONS;
   readonly STATUS_OPTIONS   = STATUS_OPTIONS;
   readonly ActionStatus     = ActionStatus;
   readonly DESC_MAX  = DESC_MAX;
-  readonly NOTES_MAX = NOTES_MAX;
   readonly TODAY     = TODAY;
 
   // ── Form ──────────────────────────────────────────────
   readonly form: FormGroup = this.fb.group({
     title:       ['', [Validators.required, Validators.maxLength(200)]],
     description: ['', [Validators.maxLength(DESC_MAX)]],
-    assigneeId:  [''],
-    category:    ['', Validators.required],
+    workspaceId: ['', Validators.required],
+    assigneeIds: [[] as string[], Validators.required],
     priority:    ['', Validators.required],
     status:      [ActionStatus.ToDo, Validators.required],
+    startDate:   [''],
     dueDate:     ['', Validators.required],
     progress:    [0,  [Validators.min(0), Validators.max(100)]],
     isEscalated: [false],
-    notes:       ['', [Validators.maxLength(NOTES_MAX)]],
   });
 
   // ── Lifecycle ─────────────────────────────────────────
@@ -118,10 +108,15 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       error: () => {},
     });
 
+    this.workspaceSvc.getWorkspaces().subscribe({
+      next: r => this.workspaces.set((r.data ?? []).filter(w => w.isActive)),
+      error: () => {},
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode.set(true);
-      this.loadForEdit(+id);
+      this.loadForEdit(id);
     }
 
     this.wireValueChanges();
@@ -133,7 +128,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   }
 
   // ── Load for edit ─────────────────────────────────────
-  private loadForEdit(id: number): void {
+  private loadForEdit(id: string): void {
     this.loadingItem.set(true);
     this.actionSvc.getById(id).subscribe({
       next: r => {
@@ -142,14 +137,14 @@ export class ActionFormComponent implements OnInit, OnDestroy {
         this.form.patchValue({
           title:       item.title,
           description: item.description,
-          assigneeId:  item.assigneeId,
-          category:    item.category,
+          workspaceId: item.workspaceId,
+          assigneeIds: item.assignees.map(a => a.userId),
           priority:    item.priority,
           status:      item.status,
+          startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
           dueDate:     item.dueDate.slice(0, 10),
           progress:    item.progress,
           isEscalated: item.isEscalated,
-          notes:       item.notes,
         });
         this.loadingItem.set(false);
       },
@@ -184,6 +179,27 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       });
   }
 
+  // ── Assignee multi-select helpers ─────────────────────
+  get selectedAssigneeIds(): string[] {
+    return this.form.get('assigneeIds')!.value ?? [];
+  }
+
+  toggleAssignee(userId: string): void {
+    const current = [...this.selectedAssigneeIds];
+    const idx = current.indexOf(userId);
+    if (idx >= 0) {
+      current.splice(idx, 1);
+    } else {
+      current.push(userId);
+    }
+    this.form.get('assigneeIds')!.setValue(current);
+    this.form.get('assigneeIds')!.markAsTouched();
+  }
+
+  isAssigneeSelected(userId: string): boolean {
+    return this.selectedAssigneeIds.includes(userId);
+  }
+
   // ── Accessors ─────────────────────────────────────────
   ctrl(name: string): AbstractControl { return this.form.get(name)!; }
 
@@ -205,14 +221,14 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     const payload: ActionItemCreate = {
       title:       raw.title.trim(),
       description: raw.description?.trim() ?? '',
-      assigneeId:  raw.assigneeId,
-      category:    +raw.category,
+      workspaceId: raw.workspaceId,
+      assigneeIds: raw.assigneeIds,
       priority:    +raw.priority,
       status:      +raw.status,
+      startDate:   raw.startDate || null,
       dueDate:     raw.dueDate,
       progress:    +raw.progress,
       isEscalated: !!raw.isEscalated,
-      notes:       raw.notes?.trim() ?? '',
     };
 
     const item = this.editItem();

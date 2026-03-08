@@ -32,7 +32,8 @@ public class ReportService : IReportService
     public async Task<byte[]> ExportToCsvAsync(ExportRequestDto filter, CancellationToken ct)
     {
         var query = _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .AsQueryable();
 
         if (filter.Status.HasValue)
@@ -42,7 +43,7 @@ public class ReportService : IReportService
             query = query.Where(a => a.Priority == filter.Priority.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.AssigneeId))
-            query = query.Where(a => a.AssigneeId == filter.AssigneeId);
+            query = query.Where(a => a.Assignees.Any(aa => aa.UserId == filter.AssigneeId));
 
         if (filter.DateFrom.HasValue)
             query = query.Where(a => a.DueDate >= filter.DateFrom.Value);

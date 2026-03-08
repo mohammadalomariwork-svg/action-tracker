@@ -19,6 +19,8 @@ public class ActionItemServiceTests : IDisposable
     private const string UserId1 = "user-001";
     private const string UserId2 = "user-002";
 
+    private static readonly Guid WorkspaceId = Guid.NewGuid();
+
     public ActionItemServiceTests()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -49,9 +51,17 @@ public class ActionItemServiceTests : IDisposable
             CreatedAt = DateTime.UtcNow,
         };
 
+    private static Workspace MakeWorkspace() => new()
+    {
+        Id               = WorkspaceId,
+        Title            = "Test Workspace",
+        OrganizationUnit = "Test Org",
+        IsActive         = true,
+        CreatedAt        = DateTime.UtcNow,
+    };
+
     /// <summary>
-    /// Creates an ActionItem without setting Id — EF InMemory assigns it on
-    /// SaveChanges, preventing key conflicts with auto-increment.
+    /// Creates an ActionItem with Guid PK and assigns it to the given user via junction table.
     /// </summary>
     private static ActionItem MakeItem(
         string         actionId,
@@ -60,14 +70,15 @@ public class ActionItemServiceTests : IDisposable
         ActionStatus   status    = ActionStatus.ToDo,
         ActionPriority priority  = ActionPriority.Medium,
         DateTime?      dueDate   = null,
-        bool           isDeleted = false) =>
-        new()
+        bool           isDeleted = false)
+    {
+        var item = new ActionItem
         {
+            Id          = Guid.NewGuid(),
             ActionId    = actionId,
             Title       = title,
             Description = "Test description",
-            AssigneeId  = assigneeId,
-            Category    = ActionCategory.IT,
+            WorkspaceId = WorkspaceId,
             Priority    = priority,
             Status      = status,
             DueDate     = dueDate ?? DateTime.UtcNow.AddDays(7),
@@ -76,11 +87,21 @@ public class ActionItemServiceTests : IDisposable
             CreatedAt   = DateTime.UtcNow,
         };
 
-    private async Task SeedUsersAsync()
+        item.Assignees.Add(new ActionItemAssignee
+        {
+            ActionItemId = item.Id,
+            UserId       = assigneeId,
+        });
+
+        return item;
+    }
+
+    private async Task SeedUsersAndWorkspaceAsync()
     {
         _dbContext.Users.AddRange(
             MakeUser(UserId1, "Alice", "Smith", "alice@test.com"),
             MakeUser(UserId2, "Bob",   "Jones", "bob@test.com"));
+        _dbContext.Workspaces.Add(MakeWorkspace());
         await _dbContext.SaveChangesAsync();
     }
 
@@ -92,7 +113,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task GetAllAsync_WithNoFilters_ReturnsAllActiveItems()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         _dbContext.ActionItems.AddRange(
             MakeItem("ACT-001", "Fix Bug",      UserId1),
             MakeItem("ACT-002", "Write Docs",   UserId2),
@@ -118,7 +139,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task GetAllAsync_WithStatusFilter_ReturnsFilteredItems()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         _dbContext.ActionItems.AddRange(
             MakeItem("ACT-001", "Todo Task",        UserId1, ActionStatus.ToDo),
             MakeItem("ACT-002", "In-Progress Task", UserId1, ActionStatus.InProgress),
@@ -143,7 +164,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task GetAllAsync_WithSearchTerm_ReturnsMatchingItems()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         _dbContext.ActionItems.AddRange(
             MakeItem("ACT-001", "Deploy to Production", UserId1),
             MakeItem("ACT-002", "Update Unit Tests",    UserId1),
@@ -168,7 +189,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task GetByIdAsync_WithValidId_ReturnsItem()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         var entity = MakeItem("ACT-001", "Fix Login Bug", UserId1);
         _dbContext.ActionItems.Add(entity);
         await _dbContext.SaveChangesAsync();
@@ -180,7 +201,7 @@ public class ActionItemServiceTests : IDisposable
         result.Should().NotBeNull();
         result!.Title.Should().Be("Fix Login Bug");
         result.ActionId.Should().Be("ACT-001");
-        result.AssigneeName.Should().Be("Alice Smith");
+        result.Assignees.Should().ContainSingle(a => a.FullName == "Alice Smith");
     }
 
     // -------------------------------------------------------------------------
@@ -193,21 +214,21 @@ public class ActionItemServiceTests : IDisposable
         // Arrange — empty database
 
         // Act
-        var result = await _service.GetByIdAsync(999, CancellationToken.None);
+        var result = await _service.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
 
         // Assert
         result.Should().BeNull();
     }
 
     // -------------------------------------------------------------------------
-    // 6. CreateAsync — ActionId format increments from existing max Id
+    // 6. CreateAsync — ActionId format increments from existing count
     // -------------------------------------------------------------------------
 
     [Fact]
     public async Task CreateAsync_WithValidData_CreatesItemWithAutoId()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         var existing1 = MakeItem("ACT-001", "Existing Item 1", UserId1);
         var existing2 = MakeItem("ACT-002", "Existing Item 2", UserId2);
         _dbContext.ActionItems.AddRange(existing1, existing2);
@@ -215,24 +236,22 @@ public class ActionItemServiceTests : IDisposable
 
         var dto = new ActionItemCreateDto
         {
-            Title      = "New Action Item",
-            AssigneeId = UserId1,
-            Category   = ActionCategory.IT,
-            Priority   = ActionPriority.High,
-            Status     = ActionStatus.ToDo,
-            DueDate    = DateTime.UtcNow.AddDays(14),
+            Title       = "New Action Item",
+            WorkspaceId = WorkspaceId,
+            AssigneeIds = new List<string> { UserId1 },
+            Priority    = ActionPriority.High,
+            Status      = ActionStatus.ToDo,
+            DueDate     = DateTime.UtcNow.AddDays(14),
         };
 
         // Act
         var result = await _service.CreateAsync(dto, UserId1, CancellationToken.None);
 
         // Assert
-        var expectedNextId = Math.Max(existing1.Id, existing2.Id) + 1;
-
         result.Should().NotBeNull();
         result.Title.Should().Be("New Action Item");
-        result.ActionId.Should().Be($"ACT-{expectedNextId:000}");
-        result.AssigneeName.Should().Be("Alice Smith");
+        result.ActionId.Should().Be("ACT-003");
+        result.Assignees.Should().ContainSingle(a => a.FullName == "Alice Smith");
     }
 
     // -------------------------------------------------------------------------
@@ -243,15 +262,15 @@ public class ActionItemServiceTests : IDisposable
     public async Task CreateAsync_FirstItem_GeneratesACT001Id()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         var dto = new ActionItemCreateDto
         {
-            Title      = "First Action",
-            AssigneeId = UserId1,
-            Category   = ActionCategory.Operations,
-            Priority   = ActionPriority.Low,
-            Status     = ActionStatus.ToDo,
-            DueDate    = DateTime.UtcNow.AddDays(7),
+            Title       = "First Action",
+            WorkspaceId = WorkspaceId,
+            AssigneeIds = new List<string> { UserId1 },
+            Priority    = ActionPriority.Low,
+            Status      = ActionStatus.ToDo,
+            DueDate     = DateTime.UtcNow.AddDays(7),
         };
 
         // Act
@@ -270,7 +289,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task UpdateStatusAsync_SetToDone_SetsProgressTo100()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         var entity = MakeItem("ACT-001", "Almost Done", UserId1);
         _dbContext.ActionItems.Add(entity);
         await _dbContext.SaveChangesAsync();
@@ -292,7 +311,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task DeleteAsync_SoftDeletesItem()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         var entity = MakeItem("ACT-001", "Task To Delete", UserId1);
         _dbContext.ActionItems.Add(entity);
         await _dbContext.SaveChangesAsync();
@@ -324,7 +343,7 @@ public class ActionItemServiceTests : IDisposable
     public async Task ProcessOverdueItemsAsync_UpdatesOverdueItems()
     {
         // Arrange
-        await SeedUsersAsync();
+        await SeedUsersAndWorkspaceAsync();
         var overdueA = MakeItem("ACT-001", "Overdue Task 1", UserId1, ActionStatus.ToDo,
             dueDate: DateTime.UtcNow.AddDays(-5));
         var overdueB = MakeItem("ACT-002", "Overdue Task 2", UserId2, ActionStatus.InProgress,

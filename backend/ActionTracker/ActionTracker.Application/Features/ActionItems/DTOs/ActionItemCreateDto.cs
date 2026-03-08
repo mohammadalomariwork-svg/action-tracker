@@ -13,15 +13,19 @@ public class ActionItemCreateDto
     public string Description { get; set; } = string.Empty;
 
     [Required]
-    public string AssigneeId { get; set; } = string.Empty;
+    public Guid WorkspaceId { get; set; }
 
+    /// <summary>At least one assignee is required.</summary>
     [Required]
-    public ActionCategory Category { get; set; }
+    [MinLength(1, ErrorMessage = "At least one assignee is required.")]
+    public List<string> AssigneeIds { get; set; } = new();
 
     [Required]
     public ActionPriority Priority { get; set; }
 
     public ActionStatus Status { get; set; } = ActionStatus.ToDo;
+
+    public DateTime? StartDate { get; set; }
 
     [Required]
     public DateTime DueDate { get; set; }
@@ -30,6 +34,4 @@ public class ActionItemCreateDto
     public int Progress { get; set; } = 0;
 
     public bool IsEscalated { get; set; } = false;
-
-    public string Notes { get; set; } = string.Empty;
 }

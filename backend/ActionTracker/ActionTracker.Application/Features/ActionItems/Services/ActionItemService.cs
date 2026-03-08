@@ -29,7 +29,8 @@ public class ActionItemService : IActionItemService
         ActionItemFilterDto filter, CancellationToken ct)
     {
         var query = _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .AsQueryable();
 
         // Enum filters
@@ -39,11 +40,11 @@ public class ActionItemService : IActionItemService
         if (filter.Priority.HasValue)
             query = query.Where(a => a.Priority == filter.Priority.Value);
 
-        if (filter.Category.HasValue)
-            query = query.Where(a => a.Category == filter.Category.Value);
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.AssigneeId))
-            query = query.Where(a => a.AssigneeId == filter.AssigneeId);
+            query = query.Where(a => a.Assignees.Any(aa => aa.UserId == filter.AssigneeId));
 
         // Full-text search across title, description, and assignee identity
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
@@ -52,9 +53,10 @@ public class ActionItemService : IActionItemService
             query = query.Where(a =>
                 a.Title.ToLower().Contains(term) ||
                 a.Description.ToLower().Contains(term) ||
-                a.Assignee.FirstName.ToLower().Contains(term) ||
-                a.Assignee.LastName.ToLower().Contains(term) ||
-                a.Assignee.Email!.ToLower().Contains(term));
+                a.Assignees.Any(aa =>
+                    aa.User.FirstName.ToLower().Contains(term) ||
+                    aa.User.LastName.ToLower().Contains(term) ||
+                    aa.User.Email!.ToLower().Contains(term)));
         }
 
         // Dynamic sorting
@@ -66,8 +68,6 @@ public class ActionItemService : IActionItemService
             ("priority",  true)  => query.OrderByDescending(a => a.Priority),
             ("status",    false) => query.OrderBy(a => a.Status),
             ("status",    true)  => query.OrderByDescending(a => a.Status),
-            ("category",  false) => query.OrderBy(a => a.Category),
-            ("category",  true)  => query.OrderByDescending(a => a.Category),
             ("createdat", false) => query.OrderBy(a => a.CreatedAt),
             ("createdat", true)  => query.OrderByDescending(a => a.CreatedAt),
             ("progress",  false) => query.OrderBy(a => a.Progress),
@@ -85,20 +85,21 @@ public class ActionItemService : IActionItemService
 
         return new PagedResult<ActionItemResponseDto>
         {
-            Items      = paged.Items.Select(MapToDto).ToList(),
+            Items      = paged.Items.Select(ActionItemMapper.ToDto).ToList(),
             TotalCount = paged.TotalCount,
             PageNumber = paged.PageNumber,
             PageSize   = paged.PageSize,
         };
     }
 
-    public async Task<ActionItemResponseDto?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<ActionItemResponseDto?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
-        return item is null ? null : MapToDto(item);
+        return item is null ? null : ActionItemMapper.ToDto(item);
     }
 
     // -------------------------------------------------------------------------
@@ -109,73 +110,103 @@ public class ActionItemService : IActionItemService
         ActionItemCreateDto dto, string createdByUserId, CancellationToken ct)
     {
         // Determine next ActionId sequence across all rows including soft-deleted ones
-        var maxId = await _dbContext.ActionItems
+        var maxSeq = await _dbContext.ActionItems
             .IgnoreQueryFilters()
-            .MaxAsync(a => (int?)a.Id, ct) ?? 0;
+            .CountAsync(ct);
 
         var item = new ActionItem
         {
-            ActionId    = $"ACT-{maxId + 1:000}",
+            Id          = Guid.NewGuid(),
+            ActionId    = $"ACT-{maxSeq + 1:000}",
             Title       = dto.Title,
             Description = dto.Description,
-            AssigneeId  = dto.AssigneeId,
-            Category    = dto.Category,
+            WorkspaceId = dto.WorkspaceId,
             Priority    = dto.Priority,
             Status      = dto.Status,
+            StartDate   = dto.StartDate,
             DueDate     = dto.DueDate,
             Progress    = dto.Progress,
             IsEscalated = dto.IsEscalated,
-            Notes       = dto.Notes,
             CreatedAt   = DateTime.UtcNow,
         };
+
+        // Add assignees
+        foreach (var userId in dto.AssigneeIds.Distinct())
+        {
+            item.Assignees.Add(new ActionItemAssignee
+            {
+                ActionItemId = item.Id,
+                UserId       = userId,
+            });
+        }
 
         _dbContext.ActionItems.Add(item);
         await _dbContext.SaveChangesAsync(ct);
 
-        // Re-fetch with navigation populated
+        // Re-fetch with navigations populated
         var created = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .FirstAsync(a => a.Id == item.Id, ct);
 
         _logger.LogInformation(
             "ActionItem {ActionId} created by user {UserId}", created.ActionId, createdByUserId);
 
-        return MapToDto(created);
+        return ActionItemMapper.ToDto(created);
     }
 
     public async Task<ActionItemResponseDto> UpdateAsync(
-        int id, ActionItemUpdateDto dto, CancellationToken ct)
+        Guid id, ActionItemUpdateDto dto, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
 
         // Patch only the fields that were supplied
         if (dto.Title       is not null) item.Title       = dto.Title;
         if (dto.Description is not null) item.Description = dto.Description;
-        if (dto.AssigneeId  is not null) item.AssigneeId  = dto.AssigneeId;
-        if (dto.Category    is not null) item.Category    = dto.Category.Value;
+        if (dto.WorkspaceId is not null) item.WorkspaceId = dto.WorkspaceId.Value;
         if (dto.Priority    is not null) item.Priority    = dto.Priority.Value;
         if (dto.Status      is not null) item.Status      = dto.Status.Value;
+        if (dto.StartDate   is not null) item.StartDate   = dto.StartDate.Value;
         if (dto.DueDate     is not null) item.DueDate     = dto.DueDate.Value;
         if (dto.Progress    is not null) item.Progress    = dto.Progress.Value;
         if (dto.IsEscalated is not null) item.IsEscalated = dto.IsEscalated.Value;
-        if (dto.Notes       is not null) item.Notes       = dto.Notes;
+
+        // Replace assignees when a new list is supplied
+        if (dto.AssigneeIds is not null)
+        {
+            // Remove existing
+            _dbContext.ActionItemAssignees.RemoveRange(item.Assignees);
+
+            // Add new
+            item.Assignees.Clear();
+            foreach (var userId in dto.AssigneeIds.Distinct())
+            {
+                item.Assignees.Add(new ActionItemAssignee
+                {
+                    ActionItemId = item.Id,
+                    UserId       = userId,
+                });
+            }
+        }
 
         await _dbContext.SaveChangesAsync(ct);
 
-        // Re-fetch so Assignee reflects any AssigneeId change
+        // Re-fetch so navigations reflect changes
         var updated = await _dbContext.ActionItems
-            .Include(a => a.Assignee)
+            .Include(a => a.Workspace)
+            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .FirstAsync(a => a.Id == id, ct);
 
         _logger.LogInformation("ActionItem {Id} updated", id);
 
-        return MapToDto(updated);
+        return ActionItemMapper.ToDto(updated);
     }
 
-    public async Task DeleteAsync(int id, CancellationToken ct)
+    public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .FirstOrDefaultAsync(a => a.Id == id, ct)
@@ -187,7 +218,7 @@ public class ActionItemService : IActionItemService
         _logger.LogInformation("ActionItem {Id} soft-deleted", id);
     }
 
-    public async Task UpdateStatusAsync(int id, ActionStatus newStatus, CancellationToken ct)
+    public async Task UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
             .FirstOrDefaultAsync(a => a.Id == id, ct)
@@ -230,7 +261,4 @@ public class ActionItemService : IActionItemService
 
         return overdueItems.Count;
     }
-
-    private static ActionItemResponseDto MapToDto(ActionItem item) =>
-        ActionItemMapper.ToDto(item);
 }

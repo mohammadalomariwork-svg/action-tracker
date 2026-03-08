@@ -11,6 +11,10 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
         builder.ToTable("ActionItems");
 
         builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id)
+            .HasColumnType("uniqueidentifier")
+            .HasDefaultValueSql("NEWID()")
+            .ValueGeneratedOnAdd();
 
         builder.Property(a => a.ActionId)
             .IsRequired()
@@ -37,13 +41,37 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
         builder.Property(a => a.Priority)
             .HasConversion<int>();
 
-        builder.Property(a => a.Category)
-            .HasConversion<int>();
+        // FK to Workspace
+        builder.HasOne(a => a.Workspace)
+            .WithMany()
+            .HasForeignKey(a => a.WorkspaceId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(a => a.Assignee)
-            .WithMany(u => u.AssignedActions)
-            .HasForeignKey(a => a.AssigneeId)
+        builder.HasIndex(a => a.WorkspaceId);
+    }
+}
+
+public class ActionItemAssigneeConfiguration : IEntityTypeConfiguration<ActionItemAssignee>
+{
+    public void Configure(EntityTypeBuilder<ActionItemAssignee> builder)
+    {
+        builder.ToTable("ActionItemAssignees");
+
+        builder.HasKey(aa => new { aa.ActionItemId, aa.UserId });
+
+        builder.HasOne(aa => aa.ActionItem)
+            .WithMany(a => a.Assignees)
+            .HasForeignKey(aa => aa.ActionItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(aa => aa.User)
+            .WithMany(u => u.ActionItemAssignments)
+            .HasForeignKey(aa => aa.UserId)
             .HasPrincipalKey(u => u.Id)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(aa => aa.UserId)
+            .IsRequired()
+            .HasMaxLength(450);
     }
 }

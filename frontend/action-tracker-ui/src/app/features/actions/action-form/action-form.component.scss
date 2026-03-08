@@ -224,6 +224,57 @@
   color: var(--text-primary);
 }
 
+// ── Assignee chip selector ────────────────────────────
+.section-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.assignee-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 999px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+
+  &:hover { border-color: var(--primary); }
+
+  &--selected {
+    background: rgba(79, 70, 229, 0.08);
+    border-color: var(--primary);
+  }
+
+  &__input { display: none; }
+
+  &__avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 0.825rem;
+    color: var(--text-primary);
+  }
+}
+
 // ── Progress slider ───────────────────────────────────
 .slider-wrap {
   display: flex;

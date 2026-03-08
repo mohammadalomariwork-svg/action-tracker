@@ -117,8 +117,7 @@
               <th class="sortable th-title" (click)="onSortChange('title')">
                 Title <span class="sort-indicator">{{ sortBy() === 'title' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
               </th>
-              <th>Assignee</th>
-              <th>Category</th>
+              <th>Assignee(s)</th>
               <th class="sortable" (click)="onSortChange('priority')">
                 Priority <span class="sort-indicator">{{ sortBy() === 'priority' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
               </th>
@@ -136,7 +135,7 @@
             @if (loading()) {
               @for (r of skeletonRows; track $index) {
                 <tr class="sk-row">
-                  @for (c of [1,2,3,4,5,6,7,8,9]; track c) {
+                  @for (c of [1,2,3,4,5,6,7,8]; track c) {
                     <td><span class="sk-cell"></span></td>
                   }
                 </tr>
@@ -147,7 +146,7 @@
             @if (!loading()) {
               @if (items().length === 0) {
                 <tr>
-                  <td colspan="9" class="empty-cell">
+                  <td colspan="8" class="empty-cell">
                     <div class="empty-state">
                       <div class="empty-state__icon">📭</div>
                       <p class="empty-state__title">No action items found</p>
@@ -180,17 +179,12 @@
                     <span class="title-text" [title]="item.title">{{ item.title }}</span>
                   </td>
 
-                  <!-- Assignee -->
+                  <!-- Assignee(s) -->
                   <td class="td-assignee">
                     <div class="assignee">
-                      <span class="assignee-avatar">{{ item.assigneeName.charAt(0).toUpperCase() }}</span>
-                      <span class="assignee-name">{{ item.assigneeName }}</span>
+                      <span class="assignee-avatar">{{ assigneeInitial(item) }}</span>
+                      <span class="assignee-name">{{ assigneeNames(item) }}</span>
                     </div>
-                  </td>
-
-                  <!-- Category -->
-                  <td class="td-cat">
-                    <span class="cat-tag">{{ CATEGORY_LABELS[item.category] }}</span>
                   </td>
 
                   <!-- Priority -->
@@ -274,10 +268,9 @@
               <p class="action-card__title">{{ item.title }}</p>
               <div class="action-card__meta">
                 <span class="assignee">
-                  <span class="assignee-avatar">{{ item.assigneeName.charAt(0).toUpperCase() }}</span>
-                  {{ item.assigneeName }}
+                  <span class="assignee-avatar">{{ assigneeInitial(item) }}</span>
+                  {{ assigneeNames(item) }}
                 </span>
-                <span class="cat-tag">{{ CATEGORY_LABELS[item.category] }}</span>
               </div>
               <div class="action-card__footer">
                 <app-status-badge [status]="item.status" />

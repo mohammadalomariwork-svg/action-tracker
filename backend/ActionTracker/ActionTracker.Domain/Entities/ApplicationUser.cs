@@ -53,5 +53,5 @@ public class ApplicationUser : IdentityUser
 
     public string FullName => $"{FirstName} {LastName}";
 
-    public ICollection<ActionItem> AssignedActions { get; set; } = new List<ActionItem>();
+    public ICollection<ActionItemAssignee> ActionItemAssignments { get; set; } = new List<ActionItemAssignee>();
 }

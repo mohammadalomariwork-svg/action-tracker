@@ -1,19 +1,25 @@
-using ActionTracker.Domain.Common;
 using ActionTracker.Domain.Enums;
 
 namespace ActionTracker.Domain.Entities;
 
-public class ActionItem : BaseEntity
+public class ActionItem
 {
+    public Guid Id { get; set; }
+
     /// <summary>Human-readable identifier in format ACT-001.</summary>
     public string ActionId { get; set; } = string.Empty;
 
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string AssigneeId { get; set; } = string.Empty;
-    public ActionCategory Category { get; set; }
+
+    /// <summary>The workspace this action item belongs to.</summary>
+    public Guid WorkspaceId { get; set; }
+
     public ActionPriority Priority { get; set; }
-    public ActionStatus Status { get; set; }
+    public ActionStatus Status { get; set; } = ActionStatus.ToDo;
+
+    /// <summary>Optional start date.</summary>
+    public DateTime? StartDate { get; set; }
 
     /// <summary>Required. Must be a valid date.</summary>
     public DateTime DueDate { get; set; }
@@ -28,7 +34,12 @@ public class ActionItem : BaseEntity
     }
 
     public bool IsEscalated { get; set; }
-    public string Notes { get; set; } = string.Empty;
 
-    public ApplicationUser Assignee { get; set; } = null!;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    // Navigation properties
+    public Workspace Workspace { get; set; } = null!;
+    public ICollection<ActionItemAssignee> Assignees { get; set; } = new List<ActionItemAssignee>();
 }

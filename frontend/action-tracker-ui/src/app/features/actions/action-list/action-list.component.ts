@@ -14,7 +14,7 @@ import { ReportService }     from '../../../core/services/report.service';
 
 import {
   ActionItem, ActionItemFilter,
-  ActionStatus, ActionPriority, ActionCategory,
+  ActionStatus, ActionPriority,
 } from '../../../core/models/action-item.model';
 import { TeamMember }        from '../../../core/models/user.model';
 import { PagedResult }       from '../../../core/models/api-response.model';
@@ -24,16 +24,6 @@ import { PriorityBadgeComponent } from '../../../shared/components/priority-badg
 import { ProgressBarComponent }   from '../../../shared/components/progress-bar/progress-bar.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
-
-export const CATEGORY_LABELS: Record<ActionCategory, string> = {
-  [ActionCategory.Operations]:    'Operations',
-  [ActionCategory.Strategic]:     'Strategic',
-  [ActionCategory.HR]:            'HR',
-  [ActionCategory.Finance]:       'Finance',
-  [ActionCategory.IT]:            'IT',
-  [ActionCategory.Compliance]:    'Compliance',
-  [ActionCategory.Communication]: 'Communication',
-};
 
 export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -79,8 +69,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly teamMembers  = signal<TeamMember[]>([]);
   readonly cardView     = signal(false);
   readonly exportingCsv = signal(false);
-  readonly openStatusRowId  = signal<number | null>(null);
-  readonly pendingDeleteId  = signal<number | null>(null);
+  readonly openStatusRowId  = signal<string | null>(null);
+  readonly pendingDeleteId  = signal<string | null>(null);
 
   // ── Filters ───────────────────────────────────────────
   readonly searchCtrl     = new FormControl<string>('');
@@ -121,7 +111,6 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly ActionPriority   = ActionPriority;
   readonly STATUS_OPTIONS   = STATUS_OPTIONS;
   readonly PRIORITY_OPTIONS = PRIORITY_OPTIONS;
-  readonly CATEGORY_LABELS  = CATEGORY_LABELS;
   readonly PAGE_SIZE_OPTIONS = [10, 20, 50];
 
   // ── Lifecycle ─────────────────────────────────────────
@@ -217,7 +206,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   }
 
   // ── Inline status ─────────────────────────────────────
-  toggleStatusMenu(id: number, event: Event): void {
+  toggleStatusMenu(id: string, event: Event): void {
     event.stopPropagation();
     this.openStatusRowId.update(cur => cur === id ? null : id);
   }
@@ -239,7 +228,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   closeStatusMenu(): void { this.openStatusRowId.set(null); }
 
   // ── Delete ────────────────────────────────────────────
-  confirmDelete(id: number): void {
+  confirmDelete(id: string): void {
     this.pendingDeleteId.set(id);
     this.deleteDialog.open();
   }
@@ -304,5 +293,15 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
   toggleCardView(): void { this.cardView.update(v => !v); }
 
-  trackById(_: number, item: ActionItem): number { return item.id; }
+  /** Helper to get a comma-separated assignee names string */
+  assigneeNames(item: ActionItem): string {
+    return item.assignees?.map(a => a.fullName).join(', ') || '—';
+  }
+
+  /** First letter of first assignee for avatar */
+  assigneeInitial(item: ActionItem): string {
+    return item.assignees?.[0]?.fullName?.charAt(0)?.toUpperCase() || '?';
+  }
+
+  trackById(_: number, item: ActionItem): string { return item.id; }
 }

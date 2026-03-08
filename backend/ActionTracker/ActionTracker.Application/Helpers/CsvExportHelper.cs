@@ -18,18 +18,19 @@ public class CsvExportHelper
     {
         var records = items.Select(i => new ActionItemCsvRecord
         {
-            Id          = i.Id,
-            ActionId    = i.ActionId,
-            Title       = i.Title,
-            Description = i.Description,
-            AssigneeName = i.AssigneeName,
-            Category    = i.CategoryLabel,
-            Priority    = i.PriorityLabel,
-            Status      = i.StatusLabel,
-            DueDate     = i.DueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            Progress    = i.Progress,
-            IsEscalated = i.IsEscalated,
-            CreatedAt   = i.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            Id             = i.Id.ToString(),
+            ActionId       = i.ActionId,
+            Title          = i.Title,
+            Description    = i.Description,
+            Workspace      = i.WorkspaceTitle,
+            Assignees      = string.Join("; ", i.Assignees.Select(a => a.FullName)),
+            Priority       = i.PriorityLabel,
+            Status         = i.StatusLabel,
+            StartDate      = i.StartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+            DueDate        = i.DueDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            Progress       = i.Progress,
+            IsEscalated    = i.IsEscalated,
+            CreatedAt      = i.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
         }).ToList();
 
         using var memoryStream = new MemoryStream();
@@ -55,7 +56,7 @@ public class CsvExportHelper
     private sealed class ActionItemCsvRecord
     {
         [Name("ID")]
-        public int Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         [Name("Action ID")]
         public string ActionId { get; set; } = string.Empty;
@@ -66,17 +67,20 @@ public class CsvExportHelper
         [Name("Description")]
         public string Description { get; set; } = string.Empty;
 
-        [Name("Assignee")]
-        public string AssigneeName { get; set; } = string.Empty;
+        [Name("Workspace")]
+        public string Workspace { get; set; } = string.Empty;
 
-        [Name("Category")]
-        public string Category { get; set; } = string.Empty;
+        [Name("Assignees")]
+        public string Assignees { get; set; } = string.Empty;
 
         [Name("Priority")]
         public string Priority { get; set; } = string.Empty;
 
         [Name("Status")]
         public string Status { get; set; } = string.Empty;
+
+        [Name("Start Date")]
+        public string StartDate { get; set; } = string.Empty;
 
         [Name("Due Date")]
         public string DueDate { get; set; } = string.Empty;

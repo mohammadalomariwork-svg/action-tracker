@@ -7,21 +7,25 @@ public static class ActionItemMapper
 {
     public static ActionItemResponseDto ToDto(ActionItem item) => new()
     {
-        Id            = item.Id,
-        ActionId      = item.ActionId,
-        Title         = item.Title,
-        Description   = item.Description,
-        AssigneeId    = item.AssigneeId,
-        Category      = item.Category,
-        Priority      = item.Priority,
-        Status        = item.Status,
-        DueDate       = item.DueDate,
-        Progress      = item.Progress,
-        IsEscalated   = item.IsEscalated,
-        Notes         = item.Notes,
-        CreatedAt     = item.CreatedAt,
-        UpdatedAt     = item.UpdatedAt,
-        AssigneeName  = item.Assignee?.FullName ?? string.Empty,
-        AssigneeEmail = item.Assignee?.Email    ?? string.Empty,
+        Id             = item.Id,
+        ActionId       = item.ActionId,
+        Title          = item.Title,
+        Description    = item.Description,
+        WorkspaceId    = item.WorkspaceId,
+        WorkspaceTitle = item.Workspace?.Title ?? string.Empty,
+        Priority       = item.Priority,
+        Status         = item.Status,
+        StartDate      = item.StartDate,
+        DueDate        = item.DueDate,
+        Progress       = item.Progress,
+        IsEscalated    = item.IsEscalated,
+        CreatedAt      = item.CreatedAt,
+        UpdatedAt      = item.UpdatedAt,
+        Assignees      = item.Assignees?.Select(a => new AssigneeDto
+        {
+            UserId   = a.UserId,
+            FullName = a.User?.FullName ?? string.Empty,
+            Email    = a.User?.Email    ?? string.Empty,
+        }).ToList() ?? new(),
     };
 }

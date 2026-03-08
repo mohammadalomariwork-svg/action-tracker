@@ -6,7 +6,7 @@ namespace ActionTracker.Application.Features.ActionItems.DTOs;
 public class ActionItemUpdateDto
 {
     [Required]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     [MaxLength(255)]
     public string? Title { get; set; }
@@ -14,13 +14,16 @@ public class ActionItemUpdateDto
     [MaxLength(5000)]
     public string? Description { get; set; }
 
-    public string? AssigneeId { get; set; }
+    public Guid? WorkspaceId { get; set; }
 
-    public ActionCategory? Category { get; set; }
+    /// <summary>When supplied, replaces the full assignee list.</summary>
+    public List<string>? AssigneeIds { get; set; }
 
     public ActionPriority? Priority { get; set; }
 
     public ActionStatus? Status { get; set; }
+
+    public DateTime? StartDate { get; set; }
 
     public DateTime? DueDate { get; set; }
 
@@ -28,6 +31,4 @@ public class ActionItemUpdateDto
     public int? Progress { get; set; }
 
     public bool? IsEscalated { get; set; }
-
-    public string? Notes { get; set; }
 }
