@@ -161,9 +161,232 @@
   letter-spacing: 0.02em;
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Action Items (wa-* prefix) ───────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Inline form card ─────────────────────────────────────────────────────────
+.wa-form-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.wa-form-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.wa-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.wa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.wa-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6c757d;
+}
+
+.wa-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+// ── Assignee chips ───────────────────────────────────────────────────────────
+.wa-assignee-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.wa-assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 2rem;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.15s;
+  user-select: none;
+
+  &:hover {
+    border-color: #0d6efd;
+    background: #f0f4ff;
+  }
+
+  &--selected {
+    border-color: #0d6efd;
+    background: #e7f0ff;
+    color: #0d6efd;
+    font-weight: 500;
+  }
+
+  &__input {
+    display: none;
+  }
+
+  &__avatar {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd, #6610f2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    white-space: nowrap;
+  }
+}
+
+// ── Table ────────────────────────────────────────────────────────────────────
+.wa-table {
+  font-size: 0.85rem;
+
+  th {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    white-space: nowrap;
+    border-bottom-width: 2px;
+  }
+
+  td {
+    vertical-align: middle;
+  }
+}
+
+.wa-action-id {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+.wa-title {
+  display: inline-block;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.wa-assignees {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wa-avatar-sm {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wa-assignee-text {
+  font-size: 0.82rem;
+  color: #495057;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Progress cell ────────────────────────────────────────────────────────────
+.wa-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wa-progress-bar {
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.wa-progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c757d;
+  min-width: 32px;
+}
+
+// ── Row actions ──────────────────────────────────────────────────────────────
+.wa-row-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.wa-action-btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+// ── Pagination ───────────────────────────────────────────────────────────────
+.wa-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.5rem 0;
+  margin-top: 0.75rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.wa-pagination-btns {
+  display: flex;
+  gap: 0.35rem;
+}
+
 // ── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: 992px) {
   .wd-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .wa-form-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -188,5 +411,13 @@
 
   .wd-admins-grid {
     grid-template-columns: 1fr;
+  }
+
+  .wa-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wa-title {
+    max-width: 140px;
   }
 }

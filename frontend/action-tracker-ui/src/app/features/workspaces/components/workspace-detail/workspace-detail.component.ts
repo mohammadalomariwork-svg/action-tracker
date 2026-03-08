@@ -1,23 +1,33 @@
 import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ActionItemService } from '../../../../core/services/action-item.service';
+import { UserService } from '../../../../core/services/user.service';
 import { Workspace, WorkspaceAdmin, UserDropdownItem } from '../../models/workspace.model';
+import {
+  ActionItem, ActionItemCreate, ActionItemFilter,
+  ActionStatus, ActionPriority,
+} from '../../../../core/models/action-item.model';
+import { PagedResult } from '../../../../core/models/api-response.model';
+import { UserProfile } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
 })
 export class WorkspaceDetailComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
   private readonly authService      = inject(AuthService);
+  private readonly actionService    = inject(ActionItemService);
+  private readonly userService      = inject(UserService);
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
 
@@ -33,11 +43,52 @@ export class WorkspaceDetailComponent implements OnInit {
   selectedUserId = '';
   isAddingAdmin = false;
 
+  // ── Action Items ─────────────────────────────────────────
+  actionItems: ActionItem[] = [];
+  actionTotalCount = 0;
+  actionPageNumber = 1;
+  actionPageSize = 10;
+  actionLoading = false;
+  allUsers: UserProfile[] = [];
+
+  // Inline add/edit form
+  showActionForm = false;
+  editingActionId: string | null = null;
+  actionSaving = false;
+  actionForm: ActionItemFormData = this.emptyActionForm();
+
+  // Delete
+  deletingActionId: string | null = null;
+
+  // Expose enums to template
+  readonly ActionStatus = ActionStatus;
+  readonly ActionPriority = ActionPriority;
+
+  readonly STATUS_OPTIONS = [
+    { value: ActionStatus.ToDo,       label: 'To Do'       },
+    { value: ActionStatus.InProgress, label: 'In Progress' },
+    { value: ActionStatus.InReview,   label: 'In Review'   },
+    { value: ActionStatus.Done,       label: 'Done'        },
+    { value: ActionStatus.Overdue,    label: 'Overdue'     },
+  ];
+
+  readonly PRIORITY_OPTIONS = [
+    { value: ActionPriority.Low,      label: 'Low'      },
+    { value: ActionPriority.Medium,   label: 'Medium'   },
+    { value: ActionPriority.High,     label: 'High'     },
+    { value: ActionPriority.Critical, label: 'Critical' },
+  ];
+
+  get actionTotalPages(): number {
+    return Math.ceil(this.actionTotalCount / this.actionPageSize) || 1;
+  }
+
   ngOnInit(): void {
     this.workspaceId = this.route.snapshot.paramMap.get('id')!;
     this.loadData();
   }
 
+  // ── Workspace Data ──────────────────────────────────────
   private loadData(): void {
     this.isLoading = true;
     this.errorMessage = null;
@@ -52,6 +103,8 @@ export class WorkspaceDetailComponent implements OnInit {
           if (this.canManage) {
             this.loadAvailableUsers();
           }
+          this.loadActionItems();
+          this.loadAllUsers();
         },
         error: (err) => {
           this.errorMessage = err?.error?.message ?? 'Failed to load workspace details.';
@@ -83,10 +136,20 @@ export class WorkspaceDetailComponent implements OnInit {
           const existingIds = new Set(this.workspace?.admins?.map(a => a.userId) ?? []);
           this.availableUsers = allUsers.filter(u => !existingIds.has(u.id));
         },
-        error: () => { /* silently fail */ },
+        error: () => {},
       });
   }
 
+  private loadAllUsers(): void {
+    this.userService.getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => this.allUsers = (res.data ?? []).filter(u => u.isActive),
+        error: () => {},
+      });
+  }
+
+  // ── Admin CRUD ──────────────────────────────────────────
   onAddAdmin(): void {
     if (!this.selectedUserId || !this.workspace) return;
 
@@ -158,4 +221,204 @@ export class WorkspaceDetailComponent implements OnInit {
         },
       });
   }
+
+  // ── Action Items ────────────────────────────────────────
+  loadActionItems(): void {
+    this.actionLoading = true;
+    const filter: ActionItemFilter = {
+      workspaceId:    this.workspaceId,
+      pageNumber:     this.actionPageNumber,
+      pageSize:       this.actionPageSize,
+      sortBy:         'dueDate',
+      sortDescending: false,
+    };
+
+    this.actionService.getAll(filter)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const paged: PagedResult<ActionItem> = res.data;
+          this.actionItems = paged.items;
+          this.actionTotalCount = paged.totalCount;
+          this.actionLoading = false;
+        },
+        error: () => {
+          this.actionLoading = false;
+        },
+      });
+  }
+
+  actionPrevPage(): void {
+    if (this.actionPageNumber > 1) {
+      this.actionPageNumber--;
+      this.loadActionItems();
+    }
+  }
+
+  actionNextPage(): void {
+    if (this.actionPageNumber < this.actionTotalPages) {
+      this.actionPageNumber++;
+      this.loadActionItems();
+    }
+  }
+
+  // ── Action Item Form ────────────────────────────────────
+  private emptyActionForm(): ActionItemFormData {
+    return {
+      title: '',
+      description: '',
+      assigneeIds: [],
+      priority: ActionPriority.Medium,
+      status: ActionStatus.ToDo,
+      startDate: '',
+      dueDate: '',
+      progress: 0,
+      isEscalated: false,
+    };
+  }
+
+  openNewActionForm(): void {
+    this.editingActionId = null;
+    this.actionForm = this.emptyActionForm();
+    this.showActionForm = true;
+  }
+
+  openEditActionForm(item: ActionItem): void {
+    this.editingActionId = item.id;
+    this.actionForm = {
+      title:       item.title,
+      description: item.description,
+      assigneeIds: item.assignees.map(a => a.userId),
+      priority:    item.priority,
+      status:      item.status,
+      startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
+      dueDate:     item.dueDate.slice(0, 10),
+      progress:    item.progress,
+      isEscalated: item.isEscalated,
+    };
+    this.showActionForm = true;
+  }
+
+  cancelActionForm(): void {
+    this.showActionForm = false;
+    this.editingActionId = null;
+  }
+
+  toggleAssignee(userId: string): void {
+    const idx = this.actionForm.assigneeIds.indexOf(userId);
+    if (idx >= 0) {
+      this.actionForm.assigneeIds.splice(idx, 1);
+    } else {
+      this.actionForm.assigneeIds.push(userId);
+    }
+  }
+
+  isAssigneeSelected(userId: string): boolean {
+    return this.actionForm.assigneeIds.includes(userId);
+  }
+
+  saveAction(): void {
+    if (!this.actionForm.title.trim() || this.actionForm.assigneeIds.length === 0 || !this.actionForm.dueDate) {
+      return;
+    }
+
+    this.actionSaving = true;
+    const payload: ActionItemCreate = {
+      title:       this.actionForm.title.trim(),
+      description: this.actionForm.description?.trim() ?? '',
+      workspaceId: this.workspaceId,
+      assigneeIds: this.actionForm.assigneeIds,
+      priority:    +this.actionForm.priority as ActionPriority,
+      status:      +this.actionForm.status as ActionStatus,
+      startDate:   this.actionForm.startDate || null,
+      dueDate:     this.actionForm.dueDate,
+      progress:    +this.actionForm.progress,
+      isEscalated: !!this.actionForm.isEscalated,
+    };
+
+    const obs$ = this.editingActionId
+      ? this.actionService.update(this.editingActionId, payload)
+      : this.actionService.create(payload);
+
+    obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.actionSaving = false;
+        this.showActionForm = false;
+        this.editingActionId = null;
+        this.successMessage = this.editingActionId ? 'Action item updated.' : 'Action item created.';
+        this.loadActionItems();
+      },
+      error: (err) => {
+        this.actionSaving = false;
+        this.errorMessage = err?.error?.message ?? 'Failed to save action item.';
+      },
+    });
+  }
+
+  deleteAction(item: ActionItem): void {
+    if (!confirm(`Delete action "${item.title}"?`)) return;
+    this.deletingActionId = item.id;
+
+    this.actionService.delete(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deletingActionId = null;
+          this.successMessage = `Action "${item.actionId}" deleted.`;
+          this.loadActionItems();
+        },
+        error: (err) => {
+          this.deletingActionId = null;
+          this.errorMessage = err?.error?.message ?? 'Failed to delete action item.';
+        },
+      });
+  }
+
+  // ── Helpers ─────────────────────────────────────────────
+  assigneeNames(item: ActionItem): string {
+    return item.assignees?.map(a => a.fullName).join(', ') || '—';
+  }
+
+  assigneeInitial(item: ActionItem): string {
+    return item.assignees?.[0]?.fullName?.charAt(0)?.toUpperCase() || '?';
+  }
+
+  priorityClass(p: ActionPriority): string {
+    switch (+p) {
+      case ActionPriority.Critical: return 'badge bg-danger';
+      case ActionPriority.High:     return 'badge bg-warning text-dark';
+      case ActionPriority.Medium:   return 'badge bg-info text-dark';
+      case ActionPriority.Low:      return 'badge bg-secondary';
+      default:                      return 'badge bg-light text-dark';
+    }
+  }
+
+  statusClass(s: ActionStatus): string {
+    switch (+s) {
+      case ActionStatus.ToDo:       return 'badge bg-secondary';
+      case ActionStatus.InProgress: return 'badge bg-primary';
+      case ActionStatus.InReview:   return 'badge bg-warning text-dark';
+      case ActionStatus.Done:       return 'badge bg-success';
+      case ActionStatus.Overdue:    return 'badge bg-danger';
+      default:                      return 'badge bg-light text-dark';
+    }
+  }
+
+  dueDateClass(item: ActionItem): string {
+    if (item.isOverdue || item.status === ActionStatus.Overdue) return 'text-danger fw-semibold';
+    if (item.daysUntilDue <= 3) return 'text-warning fw-semibold';
+    return '';
+  }
+}
+
+interface ActionItemFormData {
+  title: string;
+  description: string;
+  assigneeIds: string[];
+  priority: ActionPriority;
+  status: ActionStatus;
+  startDate: string;
+  dueDate: string;
+  progress: number;
+  isEscalated: boolean;
 }
