@@ -126,6 +126,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             }
         }
 
+        // Prevent inadvertently modified ApplicationUser entities from being included
+        // in the batch. IdentityUser.ConcurrencyStamp is an optimistic concurrency
+        // token — any unintended UPDATE to AspNetUsers will fail with
+        // DbUpdateConcurrencyException if the stamp was changed by another operation.
+        foreach (var entry in ChangeTracker.Entries<ApplicationUser>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.State = EntityState.Unchanged;
+            }
+        }
+
         return await base.SaveChangesAsync(cancellationToken);
     }
 }

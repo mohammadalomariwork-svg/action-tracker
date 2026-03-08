@@ -181,10 +181,13 @@ public class ActionItemService : IActionItemService
     public async Task<ActionItemResponseDto> UpdateAsync(
         Guid id, ActionItemUpdateDto dto, string updatedByUserId, CancellationToken ct)
     {
+        // Load without User navigations to avoid tracking ApplicationUser entities
+        // (IdentityUser.ConcurrencyStamp is an IsConcurrencyToken column — tracking
+        //  users here can cause DbUpdateConcurrencyException during SaveChanges).
         var item = await _dbContext.ActionItems
             .Include(a => a.Workspace)
-            .Include(a => a.Assignees).ThenInclude(aa => aa.User)
-            .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
+            .Include(a => a.Assignees)
+            .Include(a => a.Escalations)
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
 
@@ -206,7 +209,7 @@ public class ActionItemService : IActionItemService
         // Add escalation entry when escalated with explanation
         if (dto.IsEscalated == true && !string.IsNullOrWhiteSpace(dto.EscalationExplanation))
         {
-            item.Escalations.Add(new ActionItemEscalation
+            _dbContext.ActionItemEscalations.Add(new ActionItemEscalation
             {
                 Id                = Guid.NewGuid(),
                 ActionItemId      = item.Id,
