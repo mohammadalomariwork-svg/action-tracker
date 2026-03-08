@@ -4,12 +4,12 @@ import { AsyncPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 interface NavLink {
   label: string;
   path: string;
-  roles: string[] | null; // null = visible to all authenticated users
-  /** Additional path prefixes that should highlight this nav link. */
+  roles: string[] | null;
   alsoActivePrefixes?: string[];
 }
 
@@ -32,14 +32,11 @@ const NAV_LINKS: NavLink[] = [
 export class HeaderComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly themeService = inject(ThemeService);
 
-  /** Used by the template via the async pipe for reactive user display. */
   readonly currentUser$ = this.authService.currentUser$;
-
-  /** Signal mirror — used by computed() for role-based link filtering. */
   private readonly currentUser = toSignal(this.authService.currentUser$, { initialValue: null });
 
-  /** Current URL path — updated on every navigation. */
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -52,7 +49,8 @@ export class HeaderComponent {
   readonly menuOpen = signal(false);
   readonly navOpen = signal(false);
 
-  /** Nav links visible to the current user based on their roles. */
+  readonly isDark = computed(() => this.themeService.theme() === 'dark');
+
   readonly visibleLinks = computed(() => {
     const user = this.currentUser();
     if (!user) return [];
@@ -61,7 +59,6 @@ export class HeaderComponent {
     );
   });
 
-  /** Check if a nav link should be highlighted based on current URL. */
   isLinkActive(link: NavLink): boolean {
     const url = this.currentUrl();
     if (link.path === '/dashboard') return url === '/dashboard';
@@ -75,12 +72,16 @@ export class HeaderComponent {
 
   toggleNav(): void {
     this.navOpen.update(v => !v);
-    this.menuOpen.set(false); // close user dropdown when toggling nav
+    this.menuOpen.set(false);
   }
 
   closeMenu(): void {
     this.menuOpen.set(false);
     this.navOpen.set(false);
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggle();
   }
 
   logout(): void {

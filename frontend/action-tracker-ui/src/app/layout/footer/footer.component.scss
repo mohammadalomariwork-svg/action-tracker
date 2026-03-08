@@ -1,10 +1,10 @@
 .footer {
-  background: var(--bg-card);
-  border-top: 1px solid var(--border-color);
+  background: var(--footer-bg);
+  border-top: 1px solid var(--footer-border);
   text-align: center;
   padding: 1.25rem 1.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--footer-text);
   flex-shrink: 0;
 }
 
@@ -18,4 +18,5 @@
 .footer-logo {
   height: 36px;
   width: auto;
+  opacity: 0.85;
 }
