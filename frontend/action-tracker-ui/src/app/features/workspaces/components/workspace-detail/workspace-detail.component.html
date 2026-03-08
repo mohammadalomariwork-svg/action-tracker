@@ -25,6 +25,16 @@
     <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
       <i class="bi bi-exclamation-triangle-fill"></i>
       <span>{{ errorMessage }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="errorMessage = null"></button>
+    </div>
+  }
+
+  <!-- ── Success alert ───────────────────────────────────────────────────────── -->
+  @if (successMessage) {
+    <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMessage }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="successMessage = null"></button>
     </div>
   }
 
@@ -41,9 +51,11 @@
             <span class="badge bg-primary bg-opacity-10 text-primary">
               <i class="bi bi-building me-1"></i>{{ workspace.organizationUnit }}
             </span>
-            <span class="text-muted">
-              <i class="bi bi-person-fill me-1"></i>{{ workspace.adminUserNames }}
-            </span>
+            @if (workspace.isActive) {
+              <span class="badge bg-success">Active</span>
+            } @else {
+              <span class="badge bg-secondary">Inactive</span>
+            }
           </div>
         </div>
       </div>
@@ -51,6 +63,16 @@
 
     <!-- ── Tab navigation ──────────────────────────────────────────────────── -->
     <ul class="nav nav-tabs mb-3">
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          [class.active]="activeTab === 'admins'"
+          (click)="setTab('admins')"
+        >
+          <i class="bi bi-people-fill me-1"></i>Admins
+          <span class="badge bg-secondary ms-1">{{ workspace.admins?.length ?? 0 }}</span>
+        </button>
+      </li>
       <li class="nav-item">
         <button
           class="nav-link"
@@ -72,6 +94,130 @@
         </button>
       </li>
     </ul>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- ADMINS TAB                                                            -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    @if (activeTab === 'admins') {
+
+      <!-- Add Admin form -->
+      @if (canManage) {
+        <div class="card wd-add-admin-card mb-3">
+          <div class="card-body">
+            <h6 class="mb-3"><i class="bi bi-person-plus me-1"></i>Add Admin</h6>
+            <div class="d-flex gap-2 flex-wrap align-items-end">
+              <div class="flex-grow-1" style="min-width: 200px; max-width: 400px;">
+                <label for="adminSelect" class="form-label small text-muted">Select User</label>
+                <select
+                  id="adminSelect"
+                  class="form-select form-select-sm"
+                  [(ngModel)]="selectedUserId"
+                  [disabled]="isAddingAdmin"
+                >
+                  <option value="">-- Select a user --</option>
+                  @for (user of availableUsers; track user.id) {
+                    <option [value]="user.id">{{ user.displayName }}</option>
+                  }
+                </select>
+              </div>
+              <button
+                class="btn btn-primary btn-sm"
+                (click)="onAddAdmin()"
+                [disabled]="!selectedUserId || isAddingAdmin"
+              >
+                @if (isAddingAdmin) {
+                  <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                <i class="bi bi-plus-circle me-1"></i>Add
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Admins list - Desktop table (hidden on xs/sm) -->
+      @if (workspace.admins && workspace.admins.length > 0) {
+        <div class="wd-table-wrapper d-none d-md-block">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>User ID</th>
+                @if (canManage) {
+                  <th class="text-end">Actions</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (admin of workspace.admins; track admin.userId; let i = $index) {
+                <tr>
+                  <td>{{ i + 1 }}</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="wd-avatar">
+                        {{ admin.userName?.charAt(0)?.toUpperCase() ?? '?' }}
+                      </div>
+                      <span class="fw-medium">{{ admin.userName }}</span>
+                    </div>
+                  </td>
+                  <td><small class="text-muted">{{ admin.userId }}</small></td>
+                  @if (canManage) {
+                    <td class="text-end">
+                      <button
+                        class="btn btn-outline-danger btn-sm"
+                        (click)="onRemoveAdmin(admin)"
+                        title="Remove admin"
+                        [disabled]="workspace.admins.length <= 1"
+                      >
+                        <i class="bi bi-person-dash me-1"></i>Remove
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Admins list - Mobile cards (visible only on xs/sm) -->
+        <div class="d-block d-md-none">
+          @for (admin of workspace.admins; track admin.userId; let i = $index) {
+            <div class="card wd-admin-card mb-3">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="wd-avatar">
+                      {{ admin.userName?.charAt(0)?.toUpperCase() ?? '?' }}
+                    </div>
+                    <div>
+                      <h6 class="card-title mb-0">{{ admin.userName }}</h6>
+                      <small class="text-muted">{{ admin.userId }}</small>
+                    </div>
+                  </div>
+                </div>
+                @if (canManage) {
+                  <div class="d-flex justify-content-end">
+                    <button
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="onRemoveAdmin(admin)"
+                      [disabled]="workspace.admins.length <= 1"
+                    >
+                      <i class="bi bi-person-dash me-1"></i>Remove
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="wd-empty text-center py-5">
+          <i class="bi bi-people wd-empty-icon text-muted"></i>
+          <p class="text-muted mt-3 mb-0">No admins assigned to this workspace.</p>
+        </div>
+      }
+    }
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
     <!-- PROJECTS TAB                                                          -->
