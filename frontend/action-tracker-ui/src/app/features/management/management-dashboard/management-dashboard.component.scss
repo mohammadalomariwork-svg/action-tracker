@@ -21,7 +21,7 @@
 .sk {
   display: block;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
   animation: sk-anim 1.4s ease-in-out infinite;
   height: 100%;
@@ -117,7 +117,7 @@
   font-weight: 600;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: rgba(30, 58, 95, 0.1);
+  background: rgba(79, 70, 229, 0.1);
   color: var(--primary);
 }
 
@@ -247,9 +247,9 @@
     transform: translateX(2px);
   }
 
-  &.risk--critical { border-left-color: var(--danger); }
-  &.risk--high     { border-left-color: var(--warning); }
-  &.risk--medium   { border-left-color: var(--info); }
+  &.risk--critical { border-left-color: #dc2626; }
+  &.risk--high     { border-left-color: #d97706; }
+  &.risk--medium   { border-left-color: #0284c7; }
 }
 
 .risk-item__top {
@@ -270,7 +270,7 @@
   font-size: 0.68rem;
   font-weight: 700;
   background: rgba(220, 38, 38, 0.1);
-  color: var(--danger);
+  color: #dc2626;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
   border: 1px solid rgba(220, 38, 38, 0.25);
@@ -305,7 +305,7 @@
 .risk-overdue {
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--danger);
+  color: #dc2626;
   background: rgba(220, 38, 38, 0.08);
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
@@ -408,7 +408,7 @@
   justify-content: space-between;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-inset);
+  background: var(--bg-main);
 }
 
 .crit-table-wrap { overflow-x: auto; }
@@ -441,7 +441,7 @@ th {
   transition: background 0.12s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: var(--bg-hover); }
+  &:hover { background: rgba(79, 70, 229, 0.03); }
 
   &--overdue { background: rgba(220, 38, 38, 0.04); }
   &--overdue:hover { background: rgba(220, 38, 38, 0.07); }
@@ -499,7 +499,7 @@ td {
   font-size: 0.68rem;
   font-weight: 700;
   background: rgba(220, 38, 38, 0.1);
-  color: var(--danger);
+  color: #dc2626;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
   margin-left: 4px;
@@ -509,7 +509,7 @@ td {
   font-size: 0.72rem;
   font-weight: 700;
   background: rgba(220, 38, 38, 0.1);
-  color: var(--danger);
+  color: #dc2626;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
   white-space: nowrap;

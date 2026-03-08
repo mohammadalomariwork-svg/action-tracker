@@ -14,20 +14,6 @@ body {
   font-family: $font-family-base;
   background-color: var(--bg-main);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-// Smooth theme transitions on key elements
-body,
-.card,
-.panel,
-.stat-card,
-.form-section,
-.table-wrap,
-.action-card {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 a {
@@ -47,37 +33,12 @@ a {
 }
 
 .btn-primary {
-  background: var(--gradient-primary);
-  border-color: transparent;
-  color: var(--text-inverse);
+  background-color: var(--primary);
+  border-color: var(--primary);
 
   &:hover,
   &:focus {
-    opacity: 0.9;
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
   }
-}
-
-// Custom scrollbar for executive feel
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-inset);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 4px;
-
-  &:hover {
-    background: var(--text-muted);
-  }
-}
-
-// Selection color
-::selection {
-  background: rgba(197, 160, 71, 0.25);
-  color: var(--text-primary);
 }

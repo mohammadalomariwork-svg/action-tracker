@@ -71,8 +71,8 @@
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 
   &.btn-primary {
-    background: var(--gradient-primary);
-    color: var(--text-inverse);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
     &:hover:not(:disabled) { opacity: 0.88; }
   }
 
@@ -112,7 +112,7 @@
 .filter-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #374151;
   letter-spacing: 0.01em;
 }
 
@@ -123,13 +123,13 @@
   border-radius: 8px;
   font-size: 0.875rem;
   color: var(--text-primary);
-  background: var(--input-bg);
+  background: #fff;
   outline: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  transition: border-color 0.15s;
   font-family: inherit;
 
-  &:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--input-focus-ring); }
+  &:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
 }
 
 .export-actions {
@@ -145,7 +145,7 @@
 .sk {
   display: block;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-to) 50%, var(--skeleton-from) 75%);
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
   animation: sk-anim 1.4s ease-in-out infinite;
   height: 36px; width: 100%;
@@ -195,13 +195,13 @@
     border-radius: inherit;
   }
 
-  &--primary { background: rgba(30, 58, 95, 0.08); border-color: rgba(30, 58, 95, 0.2); }
-  &--success { background: rgba(13, 124, 95, 0.08); border-color: rgba(13, 124, 95, 0.2); }
-  &--info    { background: rgba(26, 111, 181, 0.08); border-color: rgba(26, 111, 181, 0.2); }
-  &--warning { background: rgba(212, 136, 15, 0.08); border-color: rgba(212, 136, 15, 0.2); }
-  &--danger  { background: rgba(192, 57, 43, 0.08); border-color: rgba(192, 57, 43, 0.2); }
-  &--blue    { background: rgba(26, 111, 181, 0.08); border-color: rgba(26, 111, 181, 0.2); }
-  &--purple  { background: rgba(197, 160, 71, 0.08); border-color: rgba(197, 160, 71, 0.2); }
+  &--primary { background: rgba(79, 70, 229, 0.08); border-color: rgba(79, 70, 229, 0.2); }
+  &--success { background: rgba(5, 150, 105, 0.08); border-color: rgba(5, 150, 105, 0.2); }
+  &--info    { background: rgba(2, 132, 199, 0.08); border-color: rgba(2, 132, 199, 0.2); }
+  &--warning { background: rgba(217, 119, 6, 0.08); border-color: rgba(217, 119, 6, 0.2); }
+  &--danger  { background: rgba(220, 38, 38, 0.08); border-color: rgba(220, 38, 38, 0.2); }
+  &--blue    { background: rgba(2, 132, 199, 0.08); border-color: rgba(2, 132, 199, 0.2); }
+  &--purple  { background: rgba(124, 58, 237, 0.08); border-color: rgba(124, 58, 237, 0.2); }
 }
 
 .metric-icon { font-size: 1.25rem; line-height: 1; }
@@ -331,10 +331,10 @@
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
 
-  &--critical { background: rgba(192, 57, 43, 0.1); color: var(--danger); }
-  &--high     { background: rgba(212, 136, 15, 0.1); color: var(--warning); }
-  &--medium   { background: rgba(212, 136, 15, 0.08); color: var(--warning); }
-  &--low      { background: rgba(13, 124, 95, 0.1); color: var(--success); }
+  &--critical { background: rgba(220, 38, 38,  0.1); color: #dc2626; }
+  &--high     { background: rgba(234, 88,  12,  0.1); color: #ea580c; }
+  &--medium   { background: rgba(217, 119, 6,   0.1); color: #d97706; }
+  &--low      { background: rgba(5,   150, 105, 0.1); color: #059669; }
 }
 
 // ── Responsive ────────────────────────────────────────

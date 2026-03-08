@@ -20,15 +20,15 @@
   animation: shimmer 2s ease-in-out infinite;
 
   &.progress--green {
-    background: linear-gradient(90deg, var(--success), #34d399, var(--success));
+    background: linear-gradient(90deg, #059669, #34d399, #059669);
   }
 
   &.progress--blue {
-    background: linear-gradient(90deg, var(--info), #38bdf8, var(--info));
+    background: linear-gradient(90deg, #0284c7, #38bdf8, #0284c7);
   }
 
   &.progress--red {
-    background: linear-gradient(90deg, var(--danger), #f87171, var(--danger));
+    background: linear-gradient(90deg, #dc2626, #f87171, #dc2626);
   }
 }
 
