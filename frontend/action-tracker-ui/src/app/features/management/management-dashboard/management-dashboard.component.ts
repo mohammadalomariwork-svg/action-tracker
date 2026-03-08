@@ -244,5 +244,5 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
     return name?.charAt(0).toUpperCase() ?? '?';
   }
 
-  trackById(_: number, item: { id: number }): number { return item.id; }
+  trackById(_: number, item: { id: string }): string { return item.id; }
 }

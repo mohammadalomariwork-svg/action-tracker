@@ -252,8 +252,12 @@
                     </td>
                     <td>
                       <div class="assignee-cell">
-                        <span class="avatar-xs">{{ item.assigneeName.charAt(0).toUpperCase() }}</span>
-                        {{ item.assigneeName }}
+                        @if (item.assignees?.length) {
+                          <span class="avatar-xs">{{ item.assignees[0].fullName.charAt(0).toUpperCase() }}</span>
+                          {{ item.assignees[0].fullName }}{{ item.assignees.length > 1 ? ' +' + (item.assignees.length - 1) : '' }}
+                        } @else {
+                          <span class="text-muted">Unassigned</span>
+                        }
                       </div>
                     </td>
                     <td><app-priority-badge [priority]="item.priority" /></td>
