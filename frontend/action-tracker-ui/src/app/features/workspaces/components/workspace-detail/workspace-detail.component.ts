@@ -99,7 +99,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
     const updatedAdmins: WorkspaceAdmin[] = [
       ...(this.workspace.admins ?? []),
-      { userId: user.id, userName: user.displayName },
+      { userId: user.id, userName: user.displayName, email: '', orgUnitName: '' },
     ];
 
     this.workspaceService.updateWorkspace(this.workspaceId, {

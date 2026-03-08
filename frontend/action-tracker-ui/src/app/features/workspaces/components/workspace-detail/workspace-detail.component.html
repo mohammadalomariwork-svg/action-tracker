@@ -133,16 +133,14 @@
                   <i class="bi bi-building me-1"></i>{{ admin.orgUnitName || '—' }}
                 </span>
               </div>
-              @if (canManage) {
-                <button
-                  class="btn btn-outline-danger btn-sm wd-admin-remove-btn"
-                  (click)="onRemoveAdmin(admin)"
-                  title="Remove admin"
-                  [disabled]="workspace.admins.length <= 1"
-                >
-                  <i class="bi bi-person-dash me-1"></i>Remove
-                </button>
-              }
+              <button
+                class="btn btn-outline-danger btn-sm wd-admin-remove-btn"
+                (click)="onRemoveAdmin(admin)"
+                title="Remove admin"
+                [disabled]="workspace.admins.length <= 1"
+              >
+                <i class="bi bi-person-dash me-1"></i>Remove
+              </button>
             </div>
           }
         </div>

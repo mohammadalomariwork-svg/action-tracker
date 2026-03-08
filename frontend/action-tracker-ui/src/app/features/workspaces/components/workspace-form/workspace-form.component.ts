@@ -65,7 +65,7 @@ export class WorkspaceFormComponent implements OnInit {
     if (!this.selectedUserId) return;
     const user = this.adminUsers.find(u => u.id === this.selectedUserId);
     if (!user) return;
-    this.selectedAdmins = [...this.selectedAdmins, { userId: user.id, userName: user.displayName }];
+    this.selectedAdmins = [...this.selectedAdmins, { userId: user.id, userName: user.displayName, email: '', orgUnitName: '' }];
     this.selectedUserId = '';
   }
 
@@ -144,8 +144,10 @@ export class WorkspaceFormComponent implements OnInit {
             isActive:         w.isActive,
           });
           this.selectedAdmins = (w.admins ?? []).map(a => ({
-            userId:   a.userId,
-            userName: a.userName,
+            userId:     a.userId,
+            userName:   a.userName,
+            email:      a.email ?? '',
+            orgUnitName: a.orgUnitName ?? '',
           }));
           this.isLoading = false;
         },
