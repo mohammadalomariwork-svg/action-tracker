@@ -1,0 +1,156 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.pd-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Header card ──────────────────────────────────────────────────────────────
+.pd-header-card {
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+}
+
+.pd-code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+// ── Details grid ─────────────────────────────────────────────────────────────
+.pd-details-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.pd-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pd-detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+.pd-detail-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+// ── Section ──────────────────────────────────────────────────────────────────
+.pd-section {
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 1.25rem 1.5rem;
+}
+
+.pd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+// ── Team cards ───────────────────────────────────────────────────────────────
+.pd-team-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+
+  &--compact {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+.pd-team-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+
+  &--sm {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.8rem;
+  }
+}
+
+.pd-team-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pd-team-role {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+.pd-team-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pd-team-email {
+  font-size: 0.78rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Badge ────────────────────────────────────────────────────────────────────
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+// ── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 992px) {
+  .pd-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .pd-page {
+    padding: 1rem;
+  }
+
+  .pd-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

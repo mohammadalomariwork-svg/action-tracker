@@ -17,6 +17,12 @@ const projectRoutes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin', 'Manager'] },
   },
+  {
+    path: ':id',
+    loadComponent: () =>
+      import('./components/project-detail/project-detail.component').then(m => m.ProjectDetailComponent),
+    canActivate: [authGuard],
+  },
 ];
 
 export default projectRoutes;

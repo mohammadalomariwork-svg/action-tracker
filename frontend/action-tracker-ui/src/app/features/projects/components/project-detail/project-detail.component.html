@@ -1,0 +1,259 @@
+<div class="pd-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-3">
+      <li class="breadcrumb-item"><a routerLink="/dashboard">Home</a></li>
+      <li class="breadcrumb-item"><a routerLink="/workspaces">Workspaces</a></li>
+      @if (project) {
+        <li class="breadcrumb-item">
+          <a [routerLink]="['/workspaces', project.workspaceId]">{{ project.workspaceTitle }}</a>
+        </li>
+      }
+      <li class="breadcrumb-item active" aria-current="page">
+        {{ project?.projectCode ?? 'Loading…' }}
+      </li>
+    </ol>
+  </nav>
+
+  <!-- ── Back button ─────────────────────────────────────────────────────────── -->
+  @if (project) {
+    <a class="btn btn-link text-decoration-none mb-3 p-0"
+       [routerLink]="['/workspaces', project.workspaceId]">
+      <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+    </a>
+  }
+
+  <!-- ── Loading spinner ─────────────────────────────────────────────────────── -->
+  @if (isLoading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  <!-- ── Error alert ─────────────────────────────────────────────────────────── -->
+  @if (errorMessage) {
+    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  @if (!isLoading && project) {
+
+    <!-- ── Header Card ───────────────────────────────────────────────────── -->
+    <div class="card pd-header-card mb-4">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+          <div>
+            <span class="pd-code">{{ project.projectCode }}</span>
+            <h4 class="mb-0 mt-1">
+              <i class="bi bi-kanban-fill text-primary me-2"></i>{{ project.name }}
+            </h4>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
+            <span [class]="priorityClass(project.priority)">{{ project.priorityLabel }}</span>
+            <span [class]="statusClass(project.status)">{{ project.statusLabel }}</span>
+          </div>
+        </div>
+
+        @if (project.description) {
+          <p class="text-muted mb-3">{{ project.description }}</p>
+        }
+
+        <div class="pd-details-grid">
+          <div class="pd-detail-item">
+            <span class="pd-detail-label">Workspace</span>
+            <span class="pd-detail-value">
+              <i class="bi bi-grid-3x3-gap me-1 text-primary"></i>{{ project.workspaceTitle }}
+            </span>
+          </div>
+
+          <div class="pd-detail-item">
+            <span class="pd-detail-label">Status</span>
+            <span class="pd-detail-value">
+              <span [class]="statusClass(project.status)">{{ project.statusLabel }}</span>
+            </span>
+          </div>
+
+          <div class="pd-detail-item">
+            <span class="pd-detail-label">Priority</span>
+            <span class="pd-detail-value">
+              <span [class]="priorityClass(project.priority)">{{ project.priorityLabel }}</span>
+            </span>
+          </div>
+
+          <div class="pd-detail-item">
+            <span class="pd-detail-label">Type</span>
+            <span class="pd-detail-value">
+              <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Strategic Objective (if Strategic) ──────────────────────────── -->
+    @if (project.projectType === ProjectType.Strategic && project.strategicObjectiveStatement) {
+      <div class="pd-section mb-4">
+        <div class="pd-section-header">
+          <h5 class="mb-0">
+            <i class="bi bi-bullseye me-2 text-primary"></i>Strategic Objective
+          </h5>
+        </div>
+        <p class="mb-0">{{ project.strategicObjectiveStatement }}</p>
+      </div>
+    }
+
+    <!-- ── Team Section ───────────────────────────────────────────────── -->
+    <div class="pd-section mb-4">
+      <div class="pd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-people-fill me-2 text-primary"></i>Team
+        </h5>
+      </div>
+
+      <div class="row">
+        <!-- Project Manager -->
+        <div class="col-md-6 mb-3 mb-md-0">
+          <div class="pd-team-card">
+            <div class="pd-team-avatar">
+              {{ project.projectManagerName?.charAt(0)?.toUpperCase() ?? '?' }}
+            </div>
+            <div class="pd-team-info">
+              <span class="pd-team-role">Project Manager</span>
+              <span class="pd-team-name">{{ project.projectManagerName }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sponsors -->
+        <div class="col-md-6">
+          <span class="pd-detail-label d-block mb-2">Sponsors</span>
+          @if (project.sponsors && project.sponsors.length > 0) {
+            <div class="d-flex flex-wrap gap-2">
+              @for (sponsor of project.sponsors; track sponsor.userId) {
+                <div class="pd-team-card pd-team-card--compact">
+                  <div class="pd-team-avatar pd-team-avatar--sm">
+                    {{ sponsor.fullName?.charAt(0)?.toUpperCase() ?? '?' }}
+                  </div>
+                  <div class="pd-team-info">
+                    <span class="pd-team-name">{{ sponsor.fullName }}</span>
+                    @if (sponsor.email) {
+                      <span class="pd-team-email">{{ sponsor.email }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <span class="text-muted">No sponsors assigned.</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Schedule & Budget Section ──────────────────────────────────── -->
+    <div class="pd-section mb-4">
+      <div class="pd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-calendar-range me-2 text-primary"></i>Schedule & Budget
+        </h5>
+      </div>
+
+      <div class="pd-details-grid">
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Planned Start</span>
+          <span class="pd-detail-value">
+            <i class="bi bi-calendar-plus me-1 text-muted"></i>{{ project.plannedStartDate | date:'mediumDate' }}
+          </span>
+        </div>
+
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Planned End</span>
+          <span class="pd-detail-value">
+            <i class="bi bi-calendar-check me-1 text-muted"></i>{{ project.plannedEndDate | date:'mediumDate' }}
+          </span>
+        </div>
+
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Actual Start</span>
+          <span class="pd-detail-value">
+            @if (project.actualStartDate) {
+              <i class="bi bi-calendar-event me-1 text-muted"></i>{{ project.actualStartDate | date:'mediumDate' }}
+            } @else {
+              <span class="text-muted">—</span>
+            }
+          </span>
+        </div>
+
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Approved Budget</span>
+          <span class="pd-detail-value">
+            @if (project.approvedBudget != null) {
+              <i class="bi bi-cash-stack me-1 text-muted"></i>{{ project.approvedBudget | number:'1.2-2' }} {{ project.currency }}
+            } @else {
+              <span class="text-muted">—</span>
+            }
+          </span>
+        </div>
+      </div>
+
+      @if (project.isBaselined) {
+        <div class="alert alert-info d-flex align-items-center gap-2 py-2 mt-3 mb-0">
+          <i class="bi bi-lock-fill"></i>
+          <span>This project is baselined. Planned dates are locked.</span>
+        </div>
+      }
+    </div>
+
+    <!-- ── Meta Section ───────────────────────────────────────────────── -->
+    <div class="pd-section">
+      <div class="pd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-info-circle me-2 text-primary"></i>Details
+        </h5>
+      </div>
+
+      <div class="pd-details-grid">
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Created</span>
+          <span class="pd-detail-value">
+            <i class="bi bi-clock me-1 text-muted"></i>{{ project.createdAt | date:'medium' }}
+          </span>
+        </div>
+
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Last Updated</span>
+          <span class="pd-detail-value">
+            @if (project.updatedAt) {
+              <i class="bi bi-clock-history me-1 text-muted"></i>{{ project.updatedAt | date:'medium' }}
+            } @else {
+              <span class="text-muted">—</span>
+            }
+          </span>
+        </div>
+
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Currency</span>
+          <span class="pd-detail-value">{{ project.currency }}</span>
+        </div>
+
+        <div class="pd-detail-item">
+          <span class="pd-detail-label">Baselined</span>
+          <span class="pd-detail-value">
+            @if (project.isBaselined) {
+              <span class="badge bg-success"><i class="bi bi-lock-fill me-1"></i>Yes</span>
+            } @else {
+              <span class="badge bg-secondary">No</span>
+            }
+          </span>
+        </div>
+      </div>
+    </div>
+
+  }
+</div>

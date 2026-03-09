@@ -207,7 +207,7 @@
                   @for (prj of projects; track prj.id) {
                     <tr>
                       <td><span class="wa-action-id">{{ prj.projectCode }}</span></td>
-                      <td><span class="wa-title" [title]="prj.name">{{ prj.name }}</span></td>
+                      <td><a class="wa-title text-decoration-none" [routerLink]="['/projects', prj.id]" [title]="prj.name">{{ prj.name }}</a></td>
                       <td><span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span></td>
                       <td><span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span></td>
                       <td><span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span></td>
@@ -252,7 +252,7 @@
                       <span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span>
                     </div>
                   </div>
-                  <div class="wa-action-card__title">{{ prj.name }}</div>
+                  <a class="wa-action-card__title text-decoration-none" [routerLink]="['/projects', prj.id]">{{ prj.name }}</a>
                   <div class="wa-action-card__meta">
                     <div class="wa-action-card__meta-row">
                       <span class="wa-action-card__meta-label"><i class="bi bi-person me-1"></i>PM</span>
