@@ -1,29 +1,89 @@
+// ─────────────────────────────────────────────────────────────
+// Milestone Section — Refined Design System
+// Matches the clean, professional look of the sample UI
+// ─────────────────────────────────────────────────────────────
+
+// ── Design tokens (local) ───────────────────────────
+$accent:       #0f6cbd;
+$accent-light: #eff6ff;
+$accent-mid:   #dbeafe;
+$accent-dark:  #0c5a9e;
+$green:        #059669;
+$green-bg:     #ecfdf5;
+$green-border: #a7f3d0;
+$amber:        #d97706;
+$amber-bg:     #fffbeb;
+$amber-border: #fde68a;
+$red:          #dc2626;
+$red-bg:       #fef2f2;
+$red-border:   #fecaca;
+$surface:      #ffffff;
+$surface2:     #f9fafb;
+$bg:           #f5f6f8;
+$border:       #e5e7eb;
+$border2:      #d1d5db;
+$text:         #111827;
+$text-sub:     #374151;
+$text-muted:   #6b7280;
+$text-dim:     #9ca3af;
+$radius-sm:    6px;
+$radius:       10px;
+$radius-lg:    14px;
+$shadow-xs:    0 1px 2px rgba(0,0,0,0.05);
+$shadow-sm:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+$shadow:       0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
+$shadow-focus: 0 0 0 3px rgba(15,108,189,0.18);
+$ease:         cubic-bezier(0.4, 0, 0.2, 1);
+
+// ── Section container ───────────────────────────────
 .milestones-section {
-  margin-top: 1.25rem;
+  margin-top: 22px;
+  animation: msUp .4s $ease both;
 }
 
+@keyframes msUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Section header ──────────────────────────────────
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 .section-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: $text;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
-// ── Card ────────────────────────────────────────────
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  padding: 1rem 1.25rem;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 0.75rem;
+.section-icon {
+  width: 32px;
+  height: 32px;
+  background: $accent-light;
+  border: 1px solid $accent-mid;
+  border-radius: $radius-sm;
+  display: grid;
+  place-items: center;
+  color: $accent;
+  flex-shrink: 0;
+}
+
+// ── Panel wrapper ───────────────────────────────────
+.milestones-panel {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
 }
 
 // ── Loading ─────────────────────────────────────────
@@ -31,15 +91,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 2rem 1rem;
-  color: var(--text-secondary);
+  gap: 8px;
+  padding: 40px 16px;
+  color: $text-muted;
+  font-size: 13.5px;
+
+  p { margin: 0; }
 }
 
 .spinner {
-  width: 28px; height: 28px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--primary);
+  width: 28px;
+  height: 28px;
+  border: 3px solid $border;
+  border-top-color: $accent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -48,35 +112,48 @@
 
 .empty-state {
   text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  padding: 40px 16px;
+  color: $text-muted;
+  font-size: 13.5px;
 }
 
-// ── Form ────────────────────────────────────────────
+// ── Form panel ──────────────────────────────────────
 .milestone-form {
-  margin-bottom: 1rem;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.form-header {
+  padding: 14px 20px;
+  background: $surface2;
+  border-bottom: 1px solid $border;
 }
 
 .form-title {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
+  margin: 0;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
+  color: $text;
+}
+
+.form-body {
+  padding: 18px 20px;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 14px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 5px;
 
   &.full-width {
     grid-column: 1 / -1;
@@ -84,104 +161,144 @@
 }
 
 .form-label {
-  font-size: 0.78rem;
+  font-size: 11.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: $text-dim;
 }
 
 .form-control {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: var(--bg-main);
-  color: var(--text-primary);
-  transition: border-color 0.15s;
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: $text;
+  background: $surface;
+  outline: none;
+  box-shadow: $shadow-xs;
+  transition: border-color 0.18s $ease, box-shadow 0.18s $ease;
+
+  &::placeholder { color: $text-dim; }
 
   &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(79,70,229,0.12);
+    border-color: $accent;
+    box-shadow: $shadow-focus;
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
+    background: $surface2;
   }
 }
 
 textarea.form-control {
   resize: vertical;
-  min-height: 48px;
+  min-height: 56px;
+}
+
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
 }
 
 .checkbox-group {
-  justify-content: flex-end;
   flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
+  padding-top: 18px;
 }
 
 .checkbox-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.875rem;
+  gap: 7px;
+  font-size: 13.5px;
+  color: $text-sub;
   cursor: pointer;
-  color: var(--text-primary);
+  font-weight: 500;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: $accent;
+    cursor: pointer;
+  }
 }
 
-.form-actions {
+.form-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-color);
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid $border;
+  background: $surface2;
 }
 
 // ── Milestone card ──────────────────────────────────
 .milestone-card {
-  padding: 0;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius;
+  box-shadow: $shadow-xs;
   overflow: hidden;
+  margin-bottom: 10px;
+  transition: box-shadow 0.2s $ease, border-color 0.2s $ease;
+
+  &:hover {
+    box-shadow: $shadow;
+    border-color: $border2;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .milestone-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 14px 18px;
   cursor: pointer;
-  transition: background 0.12s;
-  gap: 1rem;
+  gap: 16px;
+  transition: background 0.15s $ease;
 
   &:hover {
-    background: rgba(79,70,229,0.03);
+    background: #f8fafc;
   }
 }
 
 .milestone-left {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 12px;
   flex: 1;
   min-width: 0;
 }
 
 .milestone-seq {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-sm;
+  background: $accent-light;
+  border: 1px solid $accent-mid;
+  color: $accent;
+  font-size: 11.5px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 2px;
+  letter-spacing: 0.02em;
+  margin-top: 1px;
 }
 
 .milestone-info {
@@ -192,48 +309,51 @@ textarea.form-control {
 .milestone-title-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .milestone-code {
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
-  background: rgba(0,0,0,0.04);
-  padding: 0.1rem 0.4rem;
+  color: $text-muted;
+  background: $surface2;
+  border: 1px solid $border;
+  padding: 2px 8px;
   border-radius: 4px;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .milestone-name {
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: $text;
 }
 
 .milestone-meta {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 0.3rem;
+  margin-top: 5px;
 }
 
 .meta-sep {
-  color: var(--border-color);
-  font-size: 0.75rem;
+  color: $border;
+  font-size: 11px;
 }
 
 .meta-item {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
+  font-size: 12.5px;
+  color: $text-muted;
+  font-weight: 500;
 }
 
 .milestone-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -241,169 +361,253 @@ textarea.form-control {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.15rem;
+  gap: 2px;
 }
 
 .date-range {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
+  font-size: 12.5px;
+  color: $text-muted;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .date-actual {
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  font-style: italic;
+  font-size: 11.5px;
+  color: $green;
+  font-weight: 500;
 }
 
 .milestone-actions {
   display: flex;
-  gap: 0.25rem;
+  gap: 4px;
 }
 
 .btn-icon {
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: $radius-sm;
+  background: $surface;
+  border: 1px solid $border;
   cursor: pointer;
-  font-size: 1rem;
-  padding: 0.25rem 0.35rem;
-  border-radius: 4px;
-  transition: background 0.12s;
-  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: $text-muted;
+  box-shadow: $shadow-xs;
+  transition: all 0.16s $ease;
+  white-space: nowrap;
 
   &:hover {
-    background: rgba(0,0,0,0.06);
-    color: var(--text-primary);
+    border-color: $accent;
+    color: $accent;
+    background: $accent-light;
   }
 
   &--danger:hover {
-    background: rgba(220,53,69,0.08);
-    color: #dc3545;
+    border-color: $red;
+    color: $red;
+    background: $red-bg;
   }
 }
 
 // ── Progress bar ────────────────────────────────────
 .progress-bar-container {
   height: 3px;
-  background: var(--border-color);
+  background: $border;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--secondary, #06b6d4));
-  transition: width 0.3s ease;
-  border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, $accent, #2563eb);
+  transition: width 0.35s $ease;
 }
 
 // ── Expanded sections ───────────────────────────────
 .milestone-description,
 .milestone-approver,
 .milestone-baseline {
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  border-top: 1px solid var(--border-color);
+  padding: 12px 18px;
+  font-size: 13.5px;
+  color: $text-sub;
+  border-top: 1px solid $border;
+  background: $surface2;
 }
 
 .milestone-description p {
   margin: 0;
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .milestone-approver,
 .milestone-baseline {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .detail-label {
-  font-size: 0.78rem;
+  font-size: 11.5px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  color: $text-dim;
 }
 
 .assignee-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.5rem 0.15rem 0.2rem;
-  background: rgba(79,70,229,0.06);
+  gap: 6px;
+  padding: 3px 10px 3px 4px;
+  background: $accent-light;
+  border: 1px solid $accent-mid;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: $text-sub;
 }
 
 .assignee-avatar {
-  width: 20px; height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: var(--primary);
+  background: linear-gradient(135deg, $accent, #2563eb);
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 9px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: 0.02em;
 }
 
 .milestone-attachments {
-  padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border-color);
+  padding: 14px 18px;
+  border-top: 1px solid $border;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 14px;
+  background: $surface2;
 }
 
 // ── Badges ──────────────────────────────────────────
 .badge {
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 0.15rem 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   white-space: nowrap;
+
+  &.bg-secondary {
+    background: $surface2;
+    color: $text-muted;
+    border: 1px solid $border;
+  }
+
+  &.bg-primary {
+    background: $accent-light;
+    color: $accent;
+    border: 1px solid $accent-mid;
+  }
+
+  &.bg-success {
+    background: $green-bg;
+    color: $green;
+    border: 1px solid $green-border;
+  }
+
+  &.bg-warning {
+    background: $amber-bg;
+    color: $amber;
+    border: 1px solid $amber-border;
+  }
+
+  &.bg-danger {
+    background: $red-bg;
+    color: $red;
+    border: 1px solid $red-border;
+  }
+
+  &.bg-danger-subtle {
+    background: $red-bg;
+    color: $red;
+    border: 1px solid $red-border;
+  }
 }
 
-.text-danger { color: #dc3545 !important; }
-.text-success { color: #198754 !important; }
+.bd {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.text-dark { color: $text !important; }
+.text-danger { color: $red !important; font-weight: 600; }
+.text-success { color: $green !important; font-weight: 600; }
 
 // ── Buttons ─────────────────────────────────────────
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem 0.85rem;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  font-weight: 500;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: $radius-sm;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
-  border: none;
-  transition: opacity 0.15s;
+  white-space: nowrap;
+  transition: all 0.18s $ease;
   text-decoration: none;
+  border: 1px solid transparent;
 
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 
   &.btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary, #06b6d4));
+    background: $accent;
+    border-color: $accent-dark;
     color: #fff;
-    &:hover:not(:disabled) { opacity: 0.88; }
+    box-shadow: 0 1px 2px rgba(15,108,189,0.3), 0 0 0 1px rgba(255,255,255,0.08) inset;
+
+    &:hover:not(:disabled) {
+      background: $accent-dark;
+      box-shadow: $shadow;
+      transform: translateY(-1px);
+    }
+    &:active:not(:disabled) { transform: translateY(0); }
   }
 
   &.btn-outline {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    &:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    background: $surface;
+    border-color: $border;
+    color: $text-muted;
+    box-shadow: $shadow-xs;
+
+    &:hover:not(:disabled) {
+      border-color: $border2;
+      color: $text-sub;
+      background: $bg;
+    }
   }
 
   &.btn-sm {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.8rem;
+    padding: 6px 13px;
+    font-size: 13px;
   }
 }
 
 // ── Responsive ──────────────────────────────────────
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .form-grid {
     grid-template-columns: 1fr;
   }
