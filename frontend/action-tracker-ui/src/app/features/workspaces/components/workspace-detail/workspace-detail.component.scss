@@ -39,6 +39,13 @@
   color: #1e293b;
 }
 
+// ── Content row (Projects & Action Items side by side) ──────────────────────
+.wd-content-row {
+  .wa-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
 // ── Section ──────────────────────────────────────────────────────────────────
 .wd-section {
   background: #ffffff;

@@ -153,411 +153,418 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- ── Action Items Section ──────────────────────────────────────────── -->
+    <!-- ── Projects & Action Items Row ─────────────────────────────────── -->
     <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <div class="wd-section">
-      <div class="wd-section-header">
-        <h5 class="mb-0">
-          <i class="bi bi-list-check me-2 text-primary"></i>Action Items
-          <span class="badge bg-secondary ms-2">{{ actionTotalCount }}</span>
-        </h5>
+    <div class="row wd-content-row">
 
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          <!-- Show deleted toggle -->
-          <div class="form-check form-switch mb-0">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="showDeletedToggle"
-              [checked]="showDeleted"
-              (change)="toggleShowDeleted()"
-            />
-            <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
+      <!-- ── Projects Section (Left) ─────────────────────────────────── -->
+      <div class="col-12 col-xl-6 mb-4 mb-xl-0">
+        <div class="wd-section h-100">
+          <div class="wd-section-header">
+            <h5 class="mb-0">
+              <i class="bi bi-kanban me-2 text-primary"></i>Projects
+              <span class="badge bg-secondary ms-2">{{ projectTotalCount }}</span>
+            </h5>
+            @if (canManage) {
+              <a class="btn btn-primary btn-sm"
+                 [routerLink]="['/projects', 'new']"
+                 [queryParams]="{ workspaceId: workspaceId }">
+                <i class="bi bi-plus-circle me-1"></i>New Project
+              </a>
+            }
           </div>
 
-          @if (canManage) {
-            <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
-              <i class="bi bi-plus-circle me-1"></i>New Action
-            </button>
-          }
-        </div>
-      </div>
-
-      <!-- ── Action Items Table ────────────────────────────────────────── -->
-      @if (actionLoading) {
-        <div class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-          <span class="ms-2 text-muted">Loading action items…</span>
-        </div>
-      }
-
-      @if (!actionLoading && actionItems.length === 0) {
-        <div class="wd-empty text-center py-4">
-          <i class="bi bi-clipboard-check wd-empty-icon text-muted"></i>
-          <p class="text-muted mt-2 mb-0">No action items in this workspace yet.</p>
-        </div>
-      }
-
-      @if (!actionLoading && actionItems.length > 0) {
-
-        <!-- ── Desktop table ── d-none d-md-block ──────────────────────── -->
-        <div class="wa-table-wrapper d-none d-md-block">
-          <table class="table table-hover table-sm wa-table mb-0">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Assignee(s)</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Start Date</th>
-                <th>Due Date</th>
-                <th>Progress</th>
-                @if (canManage) {
-                  <th class="text-end">Actions</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of actionItems; track item.id) {
-                <tr [class.table-danger]="item.isOverdue" [class.wa-deleted-row]="item.isDeleted">
-                  <td>
-                    <span class="wa-action-id">{{ item.actionId }}</span>
-                    @if (item.isEscalated) {
-                      <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
-                    }
-                    @if (item.isDeleted) {
-                      <span class="badge bg-danger ms-1">Deleted</span>
-                    }
-                  </td>
-                  <td>
-                    <span class="wa-title" [title]="item.title">{{ item.title }}</span>
-                  </td>
-                  <td>
-                    <div class="wa-assignees">
-                      <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
-                      <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
-                    </div>
-                  </td>
-                  <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
-                  <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
-                  <td>
-                    <span class="text-muted">{{ item.startDate ? (item.startDate | date:'MMM d, y') : '—' }}</span>
-                  </td>
-                  <td>
-                    <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
-                  </td>
-                  <td>
-                    <div class="wa-progress-cell">
-                      <div class="progress wa-progress-bar">
-                        <div
-                          class="progress-bar"
-                          [class.bg-success]="item.progress >= 75"
-                          [class.bg-info]="item.progress >= 40 && item.progress < 75"
-                          [class.bg-danger]="item.progress < 40"
-                          [style.width.%]="item.progress"
-                        ></div>
-                      </div>
-                      <span class="wa-progress-label">{{ item.progress }}%</span>
-                    </div>
-                  </td>
-                  @if (canManage) {
-                    <td class="text-end">
-                      <div class="wa-row-actions">
-                        @if (!item.isDeleted) {
-                          <a
-                            class="btn btn-outline-info btn-sm wa-action-btn"
-                            [routerLink]="['/actions', item.id, 'view']"
-                            title="View"
-                          ><i class="bi bi-eye"></i></a>
-                          <button
-                            class="btn btn-outline-primary btn-sm wa-action-btn"
-                            (click)="openEditActionForm(item)"
-                            title="Edit"
-                            [disabled]="showActionForm"
-                          ><i class="bi bi-pencil"></i></button>
-                          <button
-                            class="btn btn-outline-danger btn-sm wa-action-btn"
-                            (click)="deleteAction(item)"
-                            title="Delete"
-                            [disabled]="deletingActionId === item.id"
-                          >
-                            @if (deletingActionId === item.id) {
-                              <span class="spinner-border spinner-border-sm"></span>
-                            } @else {
-                              <i class="bi bi-trash"></i>
-                            }
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  }
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <!-- ── Mobile cards ── d-block d-md-none ───────────────────────── -->
-        <div class="d-block d-md-none">
-          @for (item of actionItems; track item.id) {
-            <div class="wa-action-card" [class.wa-action-card--deleted]="item.isDeleted">
-              <!-- Card header -->
-              <div class="wa-action-card__header">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                  <span class="wa-action-id">{{ item.actionId }}</span>
-                  @if (item.isEscalated) {
-                    <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
-                  }
-                  @if (item.isDeleted) {
-                    <span class="badge bg-danger">Deleted</span>
-                  }
-                  <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
-                  <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
-                </div>
-              </div>
-
-              <!-- Title -->
-              <div class="wa-action-card__title">{{ item.title }}</div>
-
-              <!-- Meta rows -->
-              <div class="wa-action-card__meta">
-                <div class="wa-action-card__meta-row">
-                  <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
-                  <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
-                </div>
-                <div class="wa-action-card__meta-row">
-                  <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
-                  <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
-                </div>
-                @if (item.startDate) {
-                  <div class="wa-action-card__meta-row">
-                    <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
-                    <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
-                  </div>
-                }
-                <div class="wa-action-card__meta-row">
-                  <span class="wa-action-card__meta-label"><i class="bi bi-bar-chart me-1"></i>Progress</span>
-                  <span class="wa-action-card__meta-value">
-                    <div class="wa-progress-cell">
-                      <div class="progress wa-progress-bar" style="width:80px">
-                        <div
-                          class="progress-bar"
-                          [class.bg-success]="item.progress >= 75"
-                          [class.bg-info]="item.progress >= 40 && item.progress < 75"
-                          [class.bg-danger]="item.progress < 40"
-                          [style.width.%]="item.progress"
-                        ></div>
-                      </div>
-                      <span class="wa-progress-label">{{ item.progress }}%</span>
-                    </div>
-                  </span>
-                </div>
-              </div>
-
-              <!-- Actions -->
-              @if (!item.isDeleted) {
-                <div class="wa-action-card__actions">
-                  <a
-                    class="btn btn-outline-info btn-sm"
-                    [routerLink]="['/actions', item.id, 'view']"
-                  ><i class="bi bi-eye me-1"></i>View</a>
-                  @if (canManage) {
-                  <button
-                    class="btn btn-outline-primary btn-sm"
-                    (click)="openEditActionForm(item)"
-                    [disabled]="showActionForm"
-                  ><i class="bi bi-pencil me-1"></i>Edit</button>
-                  <button
-                    class="btn btn-outline-danger btn-sm"
-                    (click)="deleteAction(item)"
-                    [disabled]="deletingActionId === item.id"
-                  >
-                    @if (deletingActionId === item.id) {
-                      <span class="spinner-border spinner-border-sm"></span>
-                    } @else {
-                      <i class="bi bi-trash me-1"></i>Delete
-                    }
-                  </button>
-                  }
-                </div>
-              }
+          @if (projectLoading) {
+            <div class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+              <span class="ms-2 text-muted">Loading projects...</span>
             </div>
           }
-        </div>
 
-        <!-- Pagination -->
-        @if (actionTotalCount > actionPageSize) {
-          <div class="wa-pagination">
-            <span class="text-muted small">
-              Page {{ actionPageNumber }} of {{ actionTotalPages }}
-              ({{ actionTotalCount }} items)
-            </span>
-            <div class="wa-pagination-btns">
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                (click)="actionPrevPage()"
-                [disabled]="actionPageNumber <= 1"
-              >&#8249; Prev</button>
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                (click)="actionNextPage()"
-                [disabled]="actionPageNumber >= actionTotalPages"
-              >Next &#8250;</button>
+          @if (!projectLoading && projects.length === 0) {
+            <div class="wd-empty text-center py-4">
+              <i class="bi bi-kanban wd-empty-icon text-muted"></i>
+              <p class="text-muted mt-2 mb-0">No projects in this workspace yet.</p>
             </div>
-          </div>
-        }
-      }
-    </div>
+          }
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- ── Projects Section ───────────────────────────────────────────── -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <div class="wd-section mt-4">
-      <div class="wd-section-header">
-        <h5 class="mb-0">
-          <i class="bi bi-kanban me-2 text-primary"></i>Projects
-          <span class="badge bg-secondary ms-2">{{ projectTotalCount }}</span>
-        </h5>
-        @if (canManage) {
-          <a class="btn btn-primary btn-sm"
-             [routerLink]="['/projects', 'new']"
-             [queryParams]="{ workspaceId: workspaceId }">
-            <i class="bi bi-plus-circle me-1"></i>New Project
-          </a>
-        }
-      </div>
+          @if (!projectLoading && projects.length > 0) {
+            <!-- Desktop table -->
+            <div class="wa-table-wrapper d-none d-md-block">
+              <table class="table table-hover table-sm wa-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>PM</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    @if (canManage) { <th class="text-end">Actions</th> }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (prj of projects; track prj.id) {
+                    <tr>
+                      <td><span class="wa-action-id">{{ prj.projectCode }}</span></td>
+                      <td><span class="wa-title" [title]="prj.name">{{ prj.name }}</span></td>
+                      <td><span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span></td>
+                      <td><span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span></td>
+                      <td><span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span></td>
+                      <td>{{ prj.projectManagerName }}</td>
+                      <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
+                      <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
+                      @if (canManage) {
+                        <td class="text-end">
+                          <div class="wa-row-actions">
+                            <a class="btn btn-outline-primary btn-sm wa-action-btn"
+                               [routerLink]="['/projects', 'edit', prj.id]"
+                               [queryParams]="{ workspaceId: workspaceId }"
+                               title="Edit"><i class="bi bi-pencil"></i></a>
+                            <button class="btn btn-outline-danger btn-sm wa-action-btn"
+                                    (click)="deleteProject(prj)"
+                                    title="Delete"
+                                    [disabled]="deletingProjectId === prj.id">
+                              @if (deletingProjectId === prj.id) {
+                                <span class="spinner-border spinner-border-sm"></span>
+                              } @else {
+                                <i class="bi bi-trash"></i>
+                              }
+                            </button>
+                          </div>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
 
-      @if (projectLoading) {
-        <div class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-          <span class="ms-2 text-muted">Loading projects...</span>
-        </div>
-      }
-
-      @if (!projectLoading && projects.length === 0) {
-        <div class="wd-empty text-center py-4">
-          <i class="bi bi-kanban wd-empty-icon text-muted"></i>
-          <p class="text-muted mt-2 mb-0">No projects in this workspace yet.</p>
-        </div>
-      }
-
-      @if (!projectLoading && projects.length > 0) {
-        <!-- Desktop table -->
-        <div class="wa-table-wrapper d-none d-md-block">
-          <table class="table table-hover table-sm wa-table mb-0">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>PM</th>
-                <th>Start</th>
-                <th>End</th>
-                @if (canManage) { <th class="text-end">Actions</th> }
-              </tr>
-            </thead>
-            <tbody>
+            <!-- Mobile cards -->
+            <div class="d-block d-md-none">
               @for (prj of projects; track prj.id) {
-                <tr>
-                  <td><span class="wa-action-id">{{ prj.projectCode }}</span></td>
-                  <td><span class="wa-title" [title]="prj.name">{{ prj.name }}</span></td>
-                  <td><span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span></td>
-                  <td><span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span></td>
-                  <td><span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span></td>
-                  <td>{{ prj.projectManagerName }}</td>
-                  <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
-                  <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
+                <div class="wa-action-card">
+                  <div class="wa-action-card__header">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <span class="wa-action-id">{{ prj.projectCode }}</span>
+                      <span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span>
+                      <span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span>
+                      <span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span>
+                    </div>
+                  </div>
+                  <div class="wa-action-card__title">{{ prj.name }}</div>
+                  <div class="wa-action-card__meta">
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-person me-1"></i>PM</span>
+                      <span class="wa-action-card__meta-value">{{ prj.projectManagerName }}</span>
+                    </div>
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Period</span>
+                      <span class="wa-action-card__meta-value">
+                        {{ prj.plannedStartDate | date:'MMM d, y' }} — {{ prj.plannedEndDate | date:'MMM d, y' }}
+                      </span>
+                    </div>
+                  </div>
                   @if (canManage) {
-                    <td class="text-end">
-                      <div class="wa-row-actions">
-                        <a class="btn btn-outline-primary btn-sm wa-action-btn"
-                           [routerLink]="['/projects', 'edit', prj.id]"
-                           [queryParams]="{ workspaceId: workspaceId }"
-                           title="Edit"><i class="bi bi-pencil"></i></a>
-                        <button class="btn btn-outline-danger btn-sm wa-action-btn"
-                                (click)="deleteProject(prj)"
-                                title="Delete"
-                                [disabled]="deletingProjectId === prj.id">
-                          @if (deletingProjectId === prj.id) {
-                            <span class="spinner-border spinner-border-sm"></span>
-                          } @else {
-                            <i class="bi bi-trash"></i>
-                          }
-                        </button>
-                      </div>
-                    </td>
+                    <div class="wa-action-card__actions">
+                      <a class="btn btn-outline-primary btn-sm"
+                         [routerLink]="['/projects', 'edit', prj.id]"
+                         [queryParams]="{ workspaceId: workspaceId }">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                      </a>
+                      <button class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
+                              [disabled]="deletingProjectId === prj.id">
+                        @if (deletingProjectId === prj.id) {
+                          <span class="spinner-border spinner-border-sm"></span>
+                        } @else {
+                          <i class="bi bi-trash me-1"></i>Delete
+                        }
+                      </button>
+                    </div>
                   }
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Mobile cards -->
-        <div class="d-block d-md-none">
-          @for (prj of projects; track prj.id) {
-            <div class="wa-action-card">
-              <div class="wa-action-card__header">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                  <span class="wa-action-id">{{ prj.projectCode }}</span>
-                  <span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span>
-                  <span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span>
-                  <span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span>
-                </div>
-              </div>
-              <div class="wa-action-card__title">{{ prj.name }}</div>
-              <div class="wa-action-card__meta">
-                <div class="wa-action-card__meta-row">
-                  <span class="wa-action-card__meta-label"><i class="bi bi-person me-1"></i>PM</span>
-                  <span class="wa-action-card__meta-value">{{ prj.projectManagerName }}</span>
-                </div>
-                <div class="wa-action-card__meta-row">
-                  <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Period</span>
-                  <span class="wa-action-card__meta-value">
-                    {{ prj.plannedStartDate | date:'MMM d, y' }} — {{ prj.plannedEndDate | date:'MMM d, y' }}
-                  </span>
-                </div>
-              </div>
-              @if (canManage) {
-                <div class="wa-action-card__actions">
-                  <a class="btn btn-outline-primary btn-sm"
-                     [routerLink]="['/projects', 'edit', prj.id]"
-                     [queryParams]="{ workspaceId: workspaceId }">
-                    <i class="bi bi-pencil me-1"></i>Edit
-                  </a>
-                  <button class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
-                          [disabled]="deletingProjectId === prj.id">
-                    @if (deletingProjectId === prj.id) {
-                      <span class="spinner-border spinner-border-sm"></span>
-                    } @else {
-                      <i class="bi bi-trash me-1"></i>Delete
-                    }
-                  </button>
                 </div>
               }
             </div>
+
+            <!-- Pagination -->
+            @if (projectTotalCount > projectPageSize) {
+              <div class="wa-pagination">
+                <span class="text-muted small">
+                  Page {{ projectPageNumber }} of {{ projectTotalPages }}
+                  ({{ projectTotalCount }} projects)
+                </span>
+                <div class="wa-pagination-btns">
+                  <button class="btn btn-outline-secondary btn-sm"
+                          (click)="projectPrevPage()" [disabled]="projectPageNumber <= 1">&#8249; Prev</button>
+                  <button class="btn btn-outline-secondary btn-sm"
+                          (click)="projectNextPage()" [disabled]="projectPageNumber >= projectTotalPages">Next &#8250;</button>
+                </div>
+              </div>
+            }
           }
         </div>
+      </div>
 
-        <!-- Pagination -->
-        @if (projectTotalCount > projectPageSize) {
-          <div class="wa-pagination">
-            <span class="text-muted small">
-              Page {{ projectPageNumber }} of {{ projectTotalPages }}
-              ({{ projectTotalCount }} projects)
-            </span>
-            <div class="wa-pagination-btns">
-              <button class="btn btn-outline-secondary btn-sm"
-                      (click)="projectPrevPage()" [disabled]="projectPageNumber <= 1">&#8249; Prev</button>
-              <button class="btn btn-outline-secondary btn-sm"
-                      (click)="projectNextPage()" [disabled]="projectPageNumber >= projectTotalPages">Next &#8250;</button>
+      <!-- ── Action Items Section (Right) ────────────────────────────── -->
+      <div class="col-12 col-xl-6">
+        <div class="wd-section h-100">
+          <div class="wd-section-header">
+            <h5 class="mb-0">
+              <i class="bi bi-list-check me-2 text-primary"></i>Action Items
+              <span class="badge bg-secondary ms-2">{{ actionTotalCount }}</span>
+            </h5>
+
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <!-- Show deleted toggle -->
+              <div class="form-check form-switch mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="showDeletedToggle"
+                  [checked]="showDeleted"
+                  (change)="toggleShowDeleted()"
+                />
+                <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
+              </div>
+
+              @if (canManage) {
+                <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
+                  <i class="bi bi-plus-circle me-1"></i>New Action
+                </button>
+              }
             </div>
           </div>
-        }
-      }
+
+          <!-- ── Action Items Table ────────────────────────────────────────── -->
+          @if (actionLoading) {
+            <div class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+              <span class="ms-2 text-muted">Loading action items…</span>
+            </div>
+          }
+
+          @if (!actionLoading && actionItems.length === 0) {
+            <div class="wd-empty text-center py-4">
+              <i class="bi bi-clipboard-check wd-empty-icon text-muted"></i>
+              <p class="text-muted mt-2 mb-0">No action items in this workspace yet.</p>
+            </div>
+          }
+
+          @if (!actionLoading && actionItems.length > 0) {
+
+            <!-- ── Desktop table ── d-none d-md-block ──────────────────────── -->
+            <div class="wa-table-wrapper d-none d-md-block">
+              <table class="table table-hover table-sm wa-table mb-0">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Assignee(s)</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Start Date</th>
+                    <th>Due Date</th>
+                    <th>Progress</th>
+                    @if (canManage) {
+                      <th class="text-end">Actions</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of actionItems; track item.id) {
+                    <tr [class.table-danger]="item.isOverdue" [class.wa-deleted-row]="item.isDeleted">
+                      <td>
+                        <span class="wa-action-id">{{ item.actionId }}</span>
+                        @if (item.isEscalated) {
+                          <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
+                        }
+                        @if (item.isDeleted) {
+                          <span class="badge bg-danger ms-1">Deleted</span>
+                        }
+                      </td>
+                      <td>
+                        <span class="wa-title" [title]="item.title">{{ item.title }}</span>
+                      </td>
+                      <td>
+                        <div class="wa-assignees">
+                          <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
+                          <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
+                        </div>
+                      </td>
+                      <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
+                      <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
+                      <td>
+                        <span class="text-muted">{{ item.startDate ? (item.startDate | date:'MMM d, y') : '—' }}</span>
+                      </td>
+                      <td>
+                        <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                      </td>
+                      <td>
+                        <div class="wa-progress-cell">
+                          <div class="progress wa-progress-bar">
+                            <div
+                              class="progress-bar"
+                              [class.bg-success]="item.progress >= 75"
+                              [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                              [class.bg-danger]="item.progress < 40"
+                              [style.width.%]="item.progress"
+                            ></div>
+                          </div>
+                          <span class="wa-progress-label">{{ item.progress }}%</span>
+                        </div>
+                      </td>
+                      @if (canManage) {
+                        <td class="text-end">
+                          <div class="wa-row-actions">
+                            @if (!item.isDeleted) {
+                              <a
+                                class="btn btn-outline-info btn-sm wa-action-btn"
+                                [routerLink]="['/actions', item.id, 'view']"
+                                title="View"
+                              ><i class="bi bi-eye"></i></a>
+                              <button
+                                class="btn btn-outline-primary btn-sm wa-action-btn"
+                                (click)="openEditActionForm(item)"
+                                title="Edit"
+                                [disabled]="showActionForm"
+                              ><i class="bi bi-pencil"></i></button>
+                              <button
+                                class="btn btn-outline-danger btn-sm wa-action-btn"
+                                (click)="deleteAction(item)"
+                                title="Delete"
+                                [disabled]="deletingActionId === item.id"
+                              >
+                                @if (deletingActionId === item.id) {
+                                  <span class="spinner-border spinner-border-sm"></span>
+                                } @else {
+                                  <i class="bi bi-trash"></i>
+                                }
+                              </button>
+                            }
+                          </div>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- ── Mobile cards ── d-block d-md-none ───────────────────────── -->
+            <div class="d-block d-md-none">
+              @for (item of actionItems; track item.id) {
+                <div class="wa-action-card" [class.wa-action-card--deleted]="item.isDeleted">
+                  <!-- Card header -->
+                  <div class="wa-action-card__header">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <span class="wa-action-id">{{ item.actionId }}</span>
+                      @if (item.isEscalated) {
+                        <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
+                      }
+                      @if (item.isDeleted) {
+                        <span class="badge bg-danger">Deleted</span>
+                      }
+                      <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+                      <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Title -->
+                  <div class="wa-action-card__title">{{ item.title }}</div>
+
+                  <!-- Meta rows -->
+                  <div class="wa-action-card__meta">
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
+                      <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
+                    </div>
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+                      <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                    </div>
+                    @if (item.startDate) {
+                      <div class="wa-action-card__meta-row">
+                        <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
+                        <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
+                      </div>
+                    }
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-bar-chart me-1"></i>Progress</span>
+                      <span class="wa-action-card__meta-value">
+                        <div class="wa-progress-cell">
+                          <div class="progress wa-progress-bar" style="width:80px">
+                            <div
+                              class="progress-bar"
+                              [class.bg-success]="item.progress >= 75"
+                              [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                              [class.bg-danger]="item.progress < 40"
+                              [style.width.%]="item.progress"
+                            ></div>
+                          </div>
+                          <span class="wa-progress-label">{{ item.progress }}%</span>
+                        </div>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  @if (!item.isDeleted) {
+                    <div class="wa-action-card__actions">
+                      <a
+                        class="btn btn-outline-info btn-sm"
+                        [routerLink]="['/actions', item.id, 'view']"
+                      ><i class="bi bi-eye me-1"></i>View</a>
+                      @if (canManage) {
+                      <button
+                        class="btn btn-outline-primary btn-sm"
+                        (click)="openEditActionForm(item)"
+                        [disabled]="showActionForm"
+                      ><i class="bi bi-pencil me-1"></i>Edit</button>
+                      <button
+                        class="btn btn-outline-danger btn-sm"
+                        (click)="deleteAction(item)"
+                        [disabled]="deletingActionId === item.id"
+                      >
+                        @if (deletingActionId === item.id) {
+                          <span class="spinner-border spinner-border-sm"></span>
+                        } @else {
+                          <i class="bi bi-trash me-1"></i>Delete
+                        }
+                      </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Pagination -->
+            @if (actionTotalCount > actionPageSize) {
+              <div class="wa-pagination">
+                <span class="text-muted small">
+                  Page {{ actionPageNumber }} of {{ actionTotalPages }}
+                  ({{ actionTotalCount }} items)
+                </span>
+                <div class="wa-pagination-btns">
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="actionPrevPage()"
+                    [disabled]="actionPageNumber <= 1"
+                  >&#8249; Prev</button>
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="actionNextPage()"
+                    [disabled]="actionPageNumber >= actionTotalPages"
+                  >Next &#8250;</button>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
     </div>
   }
 
