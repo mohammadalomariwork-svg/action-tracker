@@ -18,6 +18,7 @@ import { ProgressBarComponent }   from '../../../shared/components/progress-bar/
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { CommentsSectionComponent }  from '../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../shared/components/documents-section/documents-section.component';
+import { BreadcrumbComponent }       from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-action-detail',
@@ -28,6 +29,7 @@ import { DocumentsSectionComponent } from '../../../shared/components/documents-
     StatusBadgeComponent, PriorityBadgeComponent,
     ProgressBarComponent, PageHeaderComponent,
     CommentsSectionComponent, DocumentsSectionComponent,
+    BreadcrumbComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',

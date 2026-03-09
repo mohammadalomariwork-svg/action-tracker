@@ -11,6 +11,7 @@ import {
   ProjectPriority,
 } from '../../models/project.models';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 import { MilestoneSectionComponent } from '../milestone-section/milestone-section.component';
@@ -18,7 +19,7 @@ import { MilestoneSectionComponent } from '../milestone-section/milestone-sectio
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeaderComponent, CommentsSectionComponent, DocumentsSectionComponent, MilestoneSectionComponent],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, CommentsSectionComponent, DocumentsSectionComponent, MilestoneSectionComponent, BreadcrumbComponent],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',
 })

@@ -1,15 +1,6 @@
-<div class="wd-page">
+<app-breadcrumb [items]="[{ label: 'Workspaces', route: '/workspaces' }, { label: workspace?.title ?? 'Loading…' }]" />
 
-  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb mb-3">
-      <li class="breadcrumb-item"><a routerLink="/dashboard">Home</a></li>
-      <li class="breadcrumb-item"><a routerLink="/workspaces">Workspaces</a></li>
-      <li class="breadcrumb-item active" aria-current="page">
-        {{ workspace?.title ?? 'Loading…' }}
-      </li>
-    </ol>
-  </nav>
+<div class="wd-page">
 
   <!-- ── Loading spinner ─────────────────────────────────────────────────────── -->
   @if (isLoading) {

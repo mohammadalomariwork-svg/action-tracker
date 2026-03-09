@@ -19,6 +19,7 @@ import {
 } from '../../../core/models/action-item.model';
 import { WorkspaceList }     from '../../workspaces/models/workspace.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
   selector: 'app-action-form',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, PageHeaderComponent],
+  imports: [ReactiveFormsModule, RouterLink, PageHeaderComponent, BreadcrumbComponent],
   templateUrl: './action-form.component.html',
   styleUrl:    './action-form.component.scss',
 })

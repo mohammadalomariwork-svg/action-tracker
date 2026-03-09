@@ -1,0 +1,39 @@
+.breadcrumb-bar {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 28px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bc {
+  font-size: 12.5px;
+  color: #6b7280;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    color: #0f6cbd;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.bc-sep {
+  color: #9ca3af;
+  font-size: 13px;
+  user-select: none;
+}
+
+.bc.cur {
+  color: #374151;
+  font-weight: 500;
+  pointer-events: none;
+}

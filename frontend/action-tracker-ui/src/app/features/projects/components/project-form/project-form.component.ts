@@ -21,6 +21,7 @@ import {
   StrategicObjectiveOption,
 } from '../../models/project.models';
 import { AssignableUser } from '../../../../core/models/action-item.model';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 
 function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value;
@@ -32,7 +33,7 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-project-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BreadcrumbComponent],
   templateUrl: './project-form.component.html',
   styleUrl: './project-form.component.scss',
 })

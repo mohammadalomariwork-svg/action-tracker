@@ -17,6 +17,7 @@ import { TeamMember }       from '../../core/models/user.model';
 import { ActionStatus, ActionPriority } from '../../core/models/action-item.model';
 
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
 
 // ── Static data for chart labels (not server-driven) ──────────────────────────
 
@@ -47,7 +48,7 @@ const PRIORITY_OPTIONS: { value: string; label: string }[] = [
   selector: 'app-reports',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, DecimalPipe, BaseChartDirective, PageHeaderComponent],
+  imports: [FormsModule, DecimalPipe, BaseChartDirective, PageHeaderComponent, BreadcrumbComponent],
   templateUrl: './reports.component.html',
   styleUrl:    './reports.component.scss',
 })

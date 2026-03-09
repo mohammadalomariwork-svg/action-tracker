@@ -16,6 +16,7 @@ import { KpiCardComponent }       from '../../../shared/components/kpi-card/kpi-
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
+import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -35,7 +36,7 @@ const STATUS_COLORS: Record<string, string> = {
   imports: [
     RouterLink, DatePipe,
     BaseChartDirective,
-    KpiCardComponent, StatusBadgeComponent, PriorityBadgeComponent, PageHeaderComponent,
+    KpiCardComponent, StatusBadgeComponent, PriorityBadgeComponent, PageHeaderComponent, BreadcrumbComponent,
   ],
   templateUrl: './management-dashboard.component.html',
   styleUrl:    './management-dashboard.component.scss',

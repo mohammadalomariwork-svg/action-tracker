@@ -5,11 +5,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { WorkspaceService } from '../../services/workspace.service';
 import { WorkspaceList } from '../../models/workspace.model';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-workspace-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: './workspace-list.component.html',
   styleUrl: './workspace-list.component.scss',
 })
