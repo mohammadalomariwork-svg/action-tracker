@@ -15,6 +15,7 @@ import {
 } from '../../../../core/models/action-item.model';
 import {
   ProjectResponse, ProjectStatus, ProjectPriority, ProjectFilter,
+  ProjectType, StrategicObjectiveOption,
 } from '../../../projects/models/project.models';
 import { PagedResult } from '../../../../core/models/api-response.model';
 
@@ -76,11 +77,22 @@ export class WorkspaceDetailComponent implements OnInit {
   projectLoading = false;
   deletingProjectId: string | null = null;
 
+  // Project drawer form
+  showProjectForm = false;
+  editingProjectId: string | null = null;
+  projectSaving = false;
+  projectForm: ProjectFormData = this.emptyProjectForm();
+  strategicObjectives: StrategicObjectiveOption[] = [];
+  strategicObjectivesLoaded = false;
+  sponsorDropdownOpen = false;
+  sponsorSearchTerm = '';
+
   // Expose enums to template
   readonly ActionStatus = ActionStatus;
   readonly ActionPriority = ActionPriority;
   readonly ProjectStatus = ProjectStatus;
   readonly ProjectPriority = ProjectPriority;
+  readonly ProjectType = ProjectType;
 
   readonly STATUS_OPTIONS = [
     { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -95,6 +107,21 @@ export class WorkspaceDetailComponent implements OnInit {
     { value: ActionPriority.Medium,   label: 'Medium'   },
     { value: ActionPriority.High,     label: 'High'     },
     { value: ActionPriority.Critical, label: 'Critical' },
+  ];
+
+  readonly PROJECT_PRIORITY_OPTIONS = [
+    { value: ProjectPriority.Low,      label: 'Low'      },
+    { value: ProjectPriority.Medium,   label: 'Medium'   },
+    { value: ProjectPriority.High,     label: 'High'     },
+    { value: ProjectPriority.Critical, label: 'Critical' },
+  ];
+
+  readonly PROJECT_STATUS_OPTIONS = [
+    { value: ProjectStatus.Draft,     label: 'Draft'     },
+    { value: ProjectStatus.Active,    label: 'Active'    },
+    { value: ProjectStatus.OnHold,    label: 'On Hold'   },
+    { value: ProjectStatus.Completed, label: 'Completed' },
+    { value: ProjectStatus.Cancelled, label: 'Cancelled' },
   ];
 
   private readonly STATUS_MAP: Record<string, ActionStatus> = {
@@ -372,6 +399,7 @@ export class WorkspaceDetailComponent implements OnInit {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.assigneeDropdownOpen = false;
+    this.sponsorDropdownOpen = false;
   }
 
   get filteredUsers(): AssignableUser[] {
@@ -515,6 +543,193 @@ export class WorkspaceDetailComponent implements OnInit {
       });
   }
 
+  // ── Project Form ──────────────────────────────────────
+  private emptyProjectForm(): ProjectFormData {
+    return {
+      name: '',
+      description: '',
+      projectType: ProjectType.Operational,
+      strategicObjectiveId: null,
+      priority: ProjectPriority.Medium,
+      projectManagerUserId: '',
+      sponsorUserIds: [],
+      plannedStartDate: '',
+      plannedEndDate: '',
+      approvedBudget: null,
+      status: ProjectStatus.Draft,
+      actualStartDate: '',
+    };
+  }
+
+  openNewProjectForm(): void {
+    this.editingProjectId = null;
+    this.projectForm = this.emptyProjectForm();
+    this.sponsorDropdownOpen = false;
+    this.sponsorSearchTerm = '';
+    this.strategicObjectives = [];
+    this.strategicObjectivesLoaded = false;
+    this.showProjectForm = true;
+  }
+
+  openEditProjectForm(prj: ProjectResponse): void {
+    this.editingProjectId = prj.id;
+    this.projectForm = {
+      name: prj.name,
+      description: prj.description ?? '',
+      projectType: prj.projectType,
+      strategicObjectiveId: prj.strategicObjectiveId ?? null,
+      priority: prj.priority,
+      projectManagerUserId: prj.projectManagerUserId,
+      sponsorUserIds: prj.sponsors.map(s => s.userId),
+      plannedStartDate: prj.plannedStartDate ? new Date(prj.plannedStartDate).toISOString().substring(0, 10) : '',
+      plannedEndDate: prj.plannedEndDate ? new Date(prj.plannedEndDate).toISOString().substring(0, 10) : '',
+      approvedBudget: prj.approvedBudget ?? null,
+      status: prj.status,
+      actualStartDate: prj.actualStartDate ? new Date(prj.actualStartDate).toISOString().substring(0, 10) : '',
+    };
+    this.sponsorDropdownOpen = false;
+    this.sponsorSearchTerm = '';
+
+    if (prj.projectType === ProjectType.Strategic) {
+      this.loadStrategicObjectives();
+    } else {
+      this.strategicObjectives = [];
+      this.strategicObjectivesLoaded = false;
+    }
+
+    this.showProjectForm = true;
+  }
+
+  cancelProjectForm(): void {
+    this.showProjectForm = false;
+    this.editingProjectId = null;
+    this.sponsorDropdownOpen = false;
+    this.sponsorSearchTerm = '';
+  }
+
+  onProjectTypeChange(): void {
+    if (+this.projectForm.projectType === ProjectType.Strategic) {
+      this.loadStrategicObjectives();
+    } else {
+      this.projectForm.strategicObjectiveId = null;
+      this.strategicObjectives = [];
+      this.strategicObjectivesLoaded = false;
+    }
+  }
+
+  private loadStrategicObjectives(): void {
+    this.projectService.getStrategicObjectivesForWorkspace(this.workspaceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.strategicObjectives = res.data ?? [];
+          this.strategicObjectivesLoaded = true;
+        },
+        error: () => {
+          this.strategicObjectives = [];
+          this.strategicObjectivesLoaded = true;
+        },
+      });
+  }
+
+  get isProjectStrategic(): boolean {
+    return +this.projectForm.projectType === ProjectType.Strategic;
+  }
+
+  get filteredSponsorUsers(): AssignableUser[] {
+    if (!this.sponsorSearchTerm.trim()) return this.allUsers;
+    const term = this.sponsorSearchTerm.toLowerCase();
+    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+  }
+
+  toggleSponsor(userId: string): void {
+    const idx = this.projectForm.sponsorUserIds.indexOf(userId);
+    if (idx >= 0) this.projectForm.sponsorUserIds.splice(idx, 1);
+    else this.projectForm.sponsorUserIds.push(userId);
+  }
+
+  isSponsorSelected(userId: string): boolean {
+    return this.projectForm.sponsorUserIds.includes(userId);
+  }
+
+  getSponsorName(userId: string): string {
+    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  get hasProjectDateRangeError(): boolean {
+    return !!(this.projectForm.plannedStartDate && this.projectForm.plannedEndDate
+      && this.projectForm.plannedEndDate <= this.projectForm.plannedStartDate);
+  }
+
+  saveProject(): void {
+    if (!this.projectForm.name.trim() || !this.projectForm.projectManagerUserId
+      || this.projectForm.sponsorUserIds.length === 0
+      || !this.projectForm.plannedStartDate || !this.projectForm.plannedEndDate
+      || this.hasProjectDateRangeError) {
+      return;
+    }
+    if (this.isProjectStrategic && !this.projectForm.strategicObjectiveId) {
+      return;
+    }
+
+    this.projectSaving = true;
+
+    if (this.editingProjectId) {
+      this.projectService.update(this.editingProjectId, {
+        name: this.projectForm.name.trim(),
+        description: this.projectForm.description?.trim() || undefined,
+        projectType: +this.projectForm.projectType,
+        status: +this.projectForm.status,
+        strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
+        priority: +this.projectForm.priority,
+        projectManagerUserId: this.projectForm.projectManagerUserId,
+        sponsorUserIds: this.projectForm.sponsorUserIds,
+        plannedStartDate: this.projectForm.plannedStartDate,
+        plannedEndDate: this.projectForm.plannedEndDate,
+        actualStartDate: this.projectForm.actualStartDate || undefined,
+        approvedBudget: this.projectForm.approvedBudget ? +this.projectForm.approvedBudget : undefined,
+      }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => {
+          this.projectSaving = false;
+          this.showProjectForm = false;
+          this.editingProjectId = null;
+          this.successMessage = 'Project updated.';
+          this.loadProjects();
+        },
+        error: (err) => {
+          this.projectSaving = false;
+          this.errorMessage = err?.error?.message ?? 'Failed to update project.';
+        },
+      });
+    } else {
+      this.projectService.create({
+        name: this.projectForm.name.trim(),
+        description: this.projectForm.description?.trim() || undefined,
+        workspaceId: this.workspaceId,
+        projectType: +this.projectForm.projectType,
+        strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
+        priority: +this.projectForm.priority,
+        projectManagerUserId: this.projectForm.projectManagerUserId,
+        sponsorUserIds: this.projectForm.sponsorUserIds,
+        plannedStartDate: this.projectForm.plannedStartDate,
+        plannedEndDate: this.projectForm.plannedEndDate,
+        approvedBudget: this.projectForm.approvedBudget ? +this.projectForm.approvedBudget : undefined,
+      }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => {
+          this.projectSaving = false;
+          this.showProjectForm = false;
+          this.editingProjectId = null;
+          this.successMessage = 'Project created.';
+          this.loadProjects();
+        },
+        error: (err) => {
+          this.projectSaving = false;
+          this.errorMessage = err?.error?.message ?? 'Failed to create project.';
+        },
+      });
+    }
+  }
+
   projectPriorityClass(p: ProjectPriority): string {
     switch (+p) {
       case ProjectPriority.Critical: return 'badge bg-danger';
@@ -584,4 +799,19 @@ interface ActionItemFormData {
   progress: number;
   isEscalated: boolean;
   escalationExplanation: string;
+}
+
+interface ProjectFormData {
+  name: string;
+  description: string;
+  projectType: ProjectType;
+  strategicObjectiveId: string | null;
+  priority: ProjectPriority;
+  projectManagerUserId: string;
+  sponsorUserIds: string[];
+  plannedStartDate: string;
+  plannedEndDate: string;
+  approvedBudget: number | null;
+  status: ProjectStatus;
+  actualStartDate: string;
 }

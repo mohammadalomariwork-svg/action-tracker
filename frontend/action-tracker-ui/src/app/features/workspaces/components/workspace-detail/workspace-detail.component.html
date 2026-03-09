@@ -166,11 +166,9 @@
               <span class="badge bg-secondary ms-2">{{ projectTotalCount }}</span>
             </h5>
             @if (canManage) {
-              <a class="btn btn-primary btn-sm"
-                 [routerLink]="['/projects', 'new']"
-                 [queryParams]="{ workspaceId: workspaceId }">
+              <button class="btn btn-primary btn-sm" (click)="openNewProjectForm()" [disabled]="showProjectForm">
                 <i class="bi bi-plus-circle me-1"></i>New Project
-              </a>
+              </button>
             }
           </div>
 
@@ -219,10 +217,10 @@
                       @if (canManage) {
                         <td class="text-end">
                           <div class="wa-row-actions">
-                            <a class="btn btn-outline-primary btn-sm wa-action-btn"
-                               [routerLink]="['/projects', 'edit', prj.id]"
-                               [queryParams]="{ workspaceId: workspaceId }"
-                               title="Edit"><i class="bi bi-pencil"></i></a>
+                            <button class="btn btn-outline-primary btn-sm wa-action-btn"
+                                    (click)="openEditProjectForm(prj)"
+                                    title="Edit"
+                                    [disabled]="showProjectForm"><i class="bi bi-pencil"></i></button>
                             <button class="btn btn-outline-danger btn-sm wa-action-btn"
                                     (click)="deleteProject(prj)"
                                     title="Delete"
@@ -269,11 +267,11 @@
                   </div>
                   @if (canManage) {
                     <div class="wa-action-card__actions">
-                      <a class="btn btn-outline-primary btn-sm"
-                         [routerLink]="['/projects', 'edit', prj.id]"
-                         [queryParams]="{ workspaceId: workspaceId }">
+                      <button class="btn btn-outline-primary btn-sm"
+                              (click)="openEditProjectForm(prj)"
+                              [disabled]="showProjectForm">
                         <i class="bi bi-pencil me-1"></i>Edit
-                      </a>
+                      </button>
                       <button class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
                               [disabled]="deletingProjectId === prj.id">
                         @if (deletingProjectId === prj.id) {
@@ -787,7 +785,222 @@
   </div>
 </div>
 
-<!-- Backdrop -->
+<!-- Backdrop — Action Item -->
 @if (showActionForm) {
   <div class="offcanvas-backdrop fade show" (click)="cancelActionForm()"></div>
+}
+
+<!-- ════════════════════════════════════════════════════════════
+     Offcanvas drawer — Add / Edit Project
+     ════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end wa-offcanvas"
+     [class.show]="showProjectForm"
+     [style.visibility]="showProjectForm ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title">
+      @if (editingProjectId) {
+        <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Project
+      } @else {
+        <i class="bi bi-plus-circle-fill text-success me-2"></i>New Project
+      }
+    </h5>
+    <button type="button" class="btn-close" (click)="cancelProjectForm()"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (showProjectForm) {
+
+      <!-- Project Name -->
+      <div class="mb-3">
+        <label class="form-label">Project Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="projectForm.name"
+               placeholder="e.g. IT Infrastructure Upgrade" maxlength="255" />
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" [(ngModel)]="projectForm.description"
+                  placeholder="Optional project description" rows="3"></textarea>
+      </div>
+
+      <!-- Project Type toggle -->
+      <div class="mb-3">
+        <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
+        <div class="btn-group" role="group">
+          <input type="radio" class="btn-check" id="prjTypeOp" name="prjType"
+                 [value]="ProjectType.Operational"
+                 [(ngModel)]="projectForm.projectType"
+                 (ngModelChange)="onProjectTypeChange()" />
+          <label class="btn btn-outline-primary" for="prjTypeOp"><i class="bi bi-gear me-1"></i>Operational</label>
+
+          <input type="radio" class="btn-check" id="prjTypeSt" name="prjType"
+                 [value]="ProjectType.Strategic"
+                 [(ngModel)]="projectForm.projectType"
+                 (ngModelChange)="onProjectTypeChange()" />
+          <label class="btn btn-outline-primary" for="prjTypeSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
+        </div>
+      </div>
+
+      <!-- Strategic Objective (shown right after type when Strategic) -->
+      @if (isProjectStrategic) {
+        <div class="mb-3">
+          @if (strategicObjectives.length > 0) {
+            <label class="form-label">Strategic Objective <span class="text-danger">*</span></label>
+            <select class="form-select" [(ngModel)]="projectForm.strategicObjectiveId">
+              <option [ngValue]="null">-- Select --</option>
+              @for (so of strategicObjectives; track so.id) {
+                <option [ngValue]="so.id">{{ so.objectiveCode }} — {{ so.statement }}</option>
+              }
+            </select>
+            @if (!projectForm.strategicObjectiveId) {
+              <small class="text-danger">Required for strategic projects.</small>
+            }
+          } @else if (strategicObjectivesLoaded) {
+            <div class="alert alert-info py-2 mb-0">
+              <i class="bi bi-info-circle-fill me-1"></i>No strategic objectives found for this workspace's org unit.
+            </div>
+          } @else {
+            <div class="text-muted small">
+              <span class="spinner-border spinner-border-sm me-1"></span>Loading objectives...
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Priority -->
+      <div class="mb-3">
+        <label class="form-label">Priority <span class="text-danger">*</span></label>
+        <select class="form-select" [(ngModel)]="projectForm.priority">
+          @for (opt of PROJECT_PRIORITY_OPTIONS; track opt.value) {
+            <option [ngValue]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Project Manager -->
+      <div class="mb-3">
+        <label class="form-label">Project Manager <span class="text-danger">*</span></label>
+        <select class="form-select" [(ngModel)]="projectForm.projectManagerUserId">
+          <option value="">-- Select --</option>
+          @for (user of allUsers; track user.id) {
+            <option [value]="user.id">{{ user.fullName }}</option>
+          }
+        </select>
+        @if (!projectForm.projectManagerUserId) {
+          <small class="text-danger">Project manager is required.</small>
+        }
+      </div>
+
+      <!-- Sponsors multi-select -->
+      <div class="mb-3">
+        <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
+        <div class="wa-multi-select" (click)="sponsorDropdownOpen = !sponsorDropdownOpen; $event.stopPropagation()">
+          <div class="wa-multi-select__control form-select">
+            @if (projectForm.sponsorUserIds.length === 0) {
+              <span class="text-muted">Select sponsors...</span>
+            } @else {
+              <div class="wa-multi-select__tags">
+                @for (id of projectForm.sponsorUserIds; track id) {
+                  <span class="wa-multi-select__tag">
+                    {{ getSponsorName(id) }}
+                    <button type="button" class="wa-multi-select__tag-remove"
+                            (click)="toggleSponsor(id); $event.stopPropagation()">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+          @if (sponsorDropdownOpen) {
+            <div class="wa-multi-select__dropdown">
+              <input type="text" class="form-control form-control-sm wa-multi-select__search"
+                     placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
+                     (click)="$event.stopPropagation()" />
+              <div class="wa-multi-select__options">
+                @for (u of filteredSponsorUsers; track u.id) {
+                  <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
+                    <input type="checkbox" [checked]="isSponsorSelected(u.id)"
+                           (change)="toggleSponsor(u.id)" />
+                    <span class="wa-multi-select__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
+                    <span>{{ u.fullName }}</span>
+                  </label>
+                }
+                @if (filteredSponsorUsers.length === 0) {
+                  <div class="text-muted small px-3 py-2">No users found.</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        @if (projectForm.sponsorUserIds.length === 0) {
+          <small class="text-danger">At least one sponsor is required.</small>
+        }
+      </div>
+
+      <!-- Planned Start & End Date -->
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label">Planned Start <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="projectForm.plannedStartDate" />
+        </div>
+        <div class="col-6">
+          <label class="form-label">Planned End <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="projectForm.plannedEndDate"
+                 [min]="projectForm.plannedStartDate || ''" />
+          @if (hasProjectDateRangeError) {
+            <small class="text-danger">End must be after start.</small>
+          }
+        </div>
+      </div>
+
+      <!-- Budget -->
+      <div class="mb-3">
+        <label class="form-label">Approved Budget (AED)</label>
+        <input type="number" class="form-control" [(ngModel)]="projectForm.approvedBudget"
+               placeholder="Optional" min="0" step="0.01" />
+      </div>
+
+      <!-- Status & Actual Start (edit mode only) -->
+      @if (editingProjectId) {
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label">Status</label>
+            <select class="form-select" [(ngModel)]="projectForm.status">
+              @for (opt of PROJECT_STATUS_OPTIONS; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Actual Start</label>
+            <input type="date" class="form-control" [(ngModel)]="projectForm.actualStartDate" />
+          </div>
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 justify-content-end border-top pt-3">
+        <button type="button" class="btn btn-outline-secondary"
+                (click)="cancelProjectForm()" [disabled]="projectSaving">Cancel</button>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                (click)="saveProject()"
+                [disabled]="projectSaving || !projectForm.name.trim() || !projectForm.projectManagerUserId || projectForm.sponsorUserIds.length === 0 || !projectForm.plannedStartDate || !projectForm.plannedEndDate || hasProjectDateRangeError || (isProjectStrategic && !projectForm.strategicObjectiveId)">
+          @if (projectSaving) {
+            <span class="spinner-border spinner-border-sm" role="status"></span> Saving...
+          } @else {
+            @if (!editingProjectId) { <i class="bi bi-plus-circle"></i> Create }
+            @else { <i class="bi bi-check-lg"></i> Update }
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Backdrop — Project -->
+@if (showProjectForm) {
+  <div class="offcanvas-backdrop fade show" (click)="cancelProjectForm()"></div>
 }
