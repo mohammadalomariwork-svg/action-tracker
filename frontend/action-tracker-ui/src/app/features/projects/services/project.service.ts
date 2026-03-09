@@ -8,7 +8,6 @@ import {
   ProjectUpdate,
   ProjectFilter,
   StrategicObjectiveOption,
-  OrgUnitOption,
 } from '../models/project.models';
 import { ApiResponse, PagedResult } from '../../../core/models/api-response.model';
 import { AssignableUser } from '../../../core/models/action-item.model';
@@ -50,15 +49,9 @@ export class ProjectService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  getStrategicObjectives(): Observable<ApiResponse<StrategicObjectiveOption[]>> {
+  getStrategicObjectivesForWorkspace(workspaceId: string): Observable<ApiResponse<StrategicObjectiveOption[]>> {
     return this.http.get<ApiResponse<StrategicObjectiveOption[]>>(
-      `${environment.apiUrl}/strategic-objectives`
-    );
-  }
-
-  getOrgUnits(): Observable<ApiResponse<OrgUnitOption[]>> {
-    return this.http.get<ApiResponse<OrgUnitOption[]>>(
-      `${environment.apiUrl}/org-units`
+      `${this.apiUrl}/strategic-objectives-for-workspace/${workspaceId}`
     );
   }
 

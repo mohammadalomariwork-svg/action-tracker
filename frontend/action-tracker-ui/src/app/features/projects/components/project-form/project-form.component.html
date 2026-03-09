@@ -107,32 +107,18 @@
         <div class="pf-section">
           <h6 class="pf-section-title"><i class="bi bi-people me-1"></i>Team</h6>
 
-          <div class="row">
-            <!-- Project Manager -->
-            <div class="col-md-6 mb-3">
-              <label for="pfPM" class="form-label">Project Manager <span class="text-danger">*</span></label>
-              <select id="pfPM" class="form-select" formControlName="projectManagerUserId"
-                      [class.is-invalid]="isInvalid('projectManagerUserId')">
-                <option value="">-- Select --</option>
-                @for (user of availableUsers; track user.id) {
-                  <option [value]="user.id">{{ user.fullName }}</option>
-                }
-              </select>
-              @if (hasError('projectManagerUserId', 'required')) {
-                <div class="invalid-feedback">Project manager is required.</div>
+          <div class="mb-3">
+            <label for="pfPM" class="form-label">Project Manager <span class="text-danger">*</span></label>
+            <select id="pfPM" class="form-select" formControlName="projectManagerUserId"
+                    [class.is-invalid]="isInvalid('projectManagerUserId')">
+              <option value="">-- Select --</option>
+              @for (user of availableUsers; track user.id) {
+                <option [value]="user.id">{{ user.fullName }}</option>
               }
-            </div>
-
-            <!-- Owner Org Unit -->
-            <div class="col-md-6 mb-3">
-              <label for="pfOU" class="form-label">Owner Department / Org Unit</label>
-              <select id="pfOU" class="form-select" formControlName="ownerOrgUnitId">
-                <option [ngValue]="null">-- None --</option>
-                @for (ou of orgUnits; track ou.id) {
-                  <option [ngValue]="ou.id">{{ ou.name }}</option>
-                }
-              </select>
-            </div>
+            </select>
+            @if (hasError('projectManagerUserId', 'required')) {
+              <div class="invalid-feedback">Project manager is required.</div>
+            }
           </div>
 
           <!-- Sponsors multi-select -->

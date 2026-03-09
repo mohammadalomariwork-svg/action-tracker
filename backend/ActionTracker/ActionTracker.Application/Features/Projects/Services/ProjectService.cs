@@ -202,6 +202,54 @@ public class ProjectService : IProjectService
         _logger.LogInformation("Project {ProjectCode} soft-deleted", project.ProjectCode);
     }
 
+    public async Task<List<StrategicObjectiveOptionDto>> GetStrategicObjectivesForWorkspaceAsync(
+        Guid workspaceId, CancellationToken ct)
+    {
+        var workspace = await _db.Workspaces.FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+            ?? throw new KeyNotFoundException($"Workspace {workspaceId} not found.");
+
+        // Find the OrgUnit matching the workspace's OrganizationUnit name
+        var orgUnit = await _db.OrgUnits
+            .FirstOrDefaultAsync(o => o.Name == workspace.OrganizationUnit, ct);
+
+        if (orgUnit is null)
+            return new List<StrategicObjectiveOptionDto>();
+
+        // Walk up the org unit hierarchy until we find strategic objectives
+        var currentOrgUnitId = orgUnit.Id;
+        Guid? currentParentId = orgUnit.ParentId;
+
+        while (true)
+        {
+            var objectives = await _db.StrategicObjectives
+                .Where(so => so.OrgUnitId == currentOrgUnitId)
+                .OrderBy(so => so.ObjectiveCode)
+                .Select(so => new StrategicObjectiveOptionDto
+                {
+                    Id            = so.Id,
+                    ObjectiveCode = so.ObjectiveCode,
+                    Statement     = so.Statement,
+                })
+                .ToListAsync(ct);
+
+            if (objectives.Count > 0)
+                return objectives;
+
+            // No objectives found — try parent
+            if (!currentParentId.HasValue)
+                return new List<StrategicObjectiveOptionDto>();
+
+            var parent = await _db.OrgUnits
+                .FirstOrDefaultAsync(o => o.Id == currentParentId.Value, ct);
+
+            if (parent is null)
+                return new List<StrategicObjectiveOptionDto>();
+
+            currentOrgUnitId = parent.Id;
+            currentParentId = parent.ParentId;
+        }
+    }
+
     // ── Mapping helpers ─────────────────────────────────────
     private static ProjectResponseDto MapToDto(Project p)
     {

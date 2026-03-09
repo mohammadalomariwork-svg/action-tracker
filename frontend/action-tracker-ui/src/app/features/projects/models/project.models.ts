@@ -64,7 +64,6 @@ export interface ProjectCreate {
   priority: ProjectPriority;
   projectManagerUserId: string;
   sponsorUserIds: string[];
-  ownerOrgUnitId?: string;
   plannedStartDate: string;
   plannedEndDate: string;
   approvedBudget?: number;
@@ -79,7 +78,6 @@ export interface ProjectUpdate {
   priority: ProjectPriority;
   projectManagerUserId: string;
   sponsorUserIds: string[];
-  ownerOrgUnitId?: string;
   plannedStartDate: string;
   plannedEndDate: string;
   actualStartDate?: string;

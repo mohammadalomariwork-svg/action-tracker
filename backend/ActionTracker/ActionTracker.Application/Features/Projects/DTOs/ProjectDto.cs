@@ -86,6 +86,13 @@ public class ProjectUpdateDto
     public decimal? ApprovedBudget { get; set; }
 }
 
+public class StrategicObjectiveOptionDto
+{
+    public Guid Id { get; set; }
+    public string ObjectiveCode { get; set; } = string.Empty;
+    public string Statement { get; set; } = string.Empty;
+}
+
 public class ProjectFilterDto
 {
     public Guid? WorkspaceId { get; set; }

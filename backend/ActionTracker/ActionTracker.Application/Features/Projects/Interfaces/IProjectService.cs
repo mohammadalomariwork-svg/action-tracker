@@ -10,4 +10,5 @@ public interface IProjectService
     Task<ProjectResponseDto> CreateAsync(ProjectCreateDto dto, string userId, CancellationToken ct);
     Task<ProjectResponseDto> UpdateAsync(Guid id, ProjectUpdateDto dto, CancellationToken ct);
     Task DeleteAsync(Guid id, CancellationToken ct);
+    Task<List<StrategicObjectiveOptionDto>> GetStrategicObjectivesForWorkspaceAsync(Guid workspaceId, CancellationToken ct);
 }

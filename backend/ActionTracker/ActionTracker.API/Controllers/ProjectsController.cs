@@ -92,6 +92,24 @@ public class ProjectsController : ControllerBase
         }
     }
 
+    /// <summary>Returns strategic objectives scoped to the workspace's org unit (with parent fallback).</summary>
+    [HttpGet("strategic-objectives-for-workspace/{workspaceId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<List<StrategicObjectiveOptionDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<StrategicObjectiveOptionDto>>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<List<StrategicObjectiveOptionDto>>>> GetStrategicObjectivesForWorkspace(
+        Guid workspaceId, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _service.GetStrategicObjectivesForWorkspaceAsync(workspaceId, ct);
+            return Ok(ApiResponse<List<StrategicObjectiveOptionDto>>.Ok(result));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<List<StrategicObjectiveOptionDto>>.Fail(ex.Message));
+        }
+    }
+
     /// <summary>Soft-deletes a project.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]

@@ -19,7 +19,6 @@ import {
   ProjectPriority,
   ProjectResponse,
   StrategicObjectiveOption,
-  OrgUnitOption,
 } from '../../models/project.models';
 import { AssignableUser } from '../../../../core/models/action-item.model';
 
@@ -50,7 +49,6 @@ export class ProjectFormComponent implements OnInit {
   isBaselined = false;
 
   strategicObjectives: StrategicObjectiveOption[] = [];
-  orgUnits: OrgUnitOption[] = [];
   availableUsers: AssignableUser[] = [];
 
   // Sponsor multi-select
@@ -86,7 +84,6 @@ export class ProjectFormComponent implements OnInit {
 
     this.buildForm();
     this.loadUsers();
-    this.loadOrgUnits();
 
     if (this.isEditMode && this.projectId) {
       this.loadProject(this.projectId);
@@ -161,7 +158,6 @@ export class ProjectFormComponent implements OnInit {
         priority: v.priority,
         projectManagerUserId: v.projectManagerUserId,
         sponsorUserIds: this.selectedSponsorIds,
-        ownerOrgUnitId: v.ownerOrgUnitId || undefined,
         plannedStartDate: v.plannedStartDate,
         plannedEndDate: v.plannedEndDate,
         actualStartDate: v.actualStartDate || undefined,
@@ -186,7 +182,6 @@ export class ProjectFormComponent implements OnInit {
         priority: v.priority,
         projectManagerUserId: v.projectManagerUserId,
         sponsorUserIds: this.selectedSponsorIds,
-        ownerOrgUnitId: v.ownerOrgUnitId || undefined,
         plannedStartDate: v.plannedStartDate,
         plannedEndDate: v.plannedEndDate,
         approvedBudget: v.approvedBudget ? +v.approvedBudget : undefined,
@@ -217,7 +212,6 @@ export class ProjectFormComponent implements OnInit {
         strategicObjectiveId: [null as string | null],
         priority: [ProjectPriority.Medium, [Validators.required]],
         projectManagerUserId: ['', [Validators.required]],
-        ownerOrgUnitId: [null as string | null],
         plannedStartDate: ['', [Validators.required]],
         plannedEndDate: ['', [Validators.required]],
         approvedBudget: [null as number | null],
@@ -254,17 +248,9 @@ export class ProjectFormComponent implements OnInit {
       });
   }
 
-  private loadOrgUnits(): void {
-    this.projectSvc.getOrgUnits()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => this.orgUnits = (res.data ?? []) as OrgUnitOption[],
-        error: () => {},
-      });
-  }
-
   private loadStrategicObjectives(): void {
-    this.projectSvc.getStrategicObjectives()
+    if (!this.workspaceId) return;
+    this.projectSvc.getStrategicObjectivesForWorkspace(this.workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.strategicObjectives = (res.data ?? []) as StrategicObjectiveOption[],
@@ -290,7 +276,6 @@ export class ProjectFormComponent implements OnInit {
             strategicObjectiveId: p.strategicObjectiveId ?? null,
             priority: p.priority,
             projectManagerUserId: p.projectManagerUserId,
-            ownerOrgUnitId: p.ownerOrgUnitId ?? null,
             plannedStartDate: p.plannedStartDate ? new Date(p.plannedStartDate).toISOString().substring(0, 10) : '',
             plannedEndDate: p.plannedEndDate ? new Date(p.plannedEndDate).toISOString().substring(0, 10) : '',
             approvedBudget: p.approvedBudget ?? null,
