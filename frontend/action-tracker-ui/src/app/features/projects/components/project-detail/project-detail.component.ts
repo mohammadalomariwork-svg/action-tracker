@@ -11,11 +11,13 @@ import {
   ProjectPriority,
 } from '../../models/project.models';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
+import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeaderComponent],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, CommentsSectionComponent, DocumentsSectionComponent],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',
 })

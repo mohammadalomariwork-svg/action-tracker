@@ -15,6 +15,7 @@ public interface IAppDbContext
     DbSet<ActionItemAssignee>   ActionItemAssignees  { get; }
     DbSet<ActionItemEscalation> ActionItemEscalations { get; }
     DbSet<ActionItemComment>    ActionItemComments    { get; }
+    DbSet<Comment>              Comments              { get; }
     DbSet<Document>             Documents             { get; }
     DbSet<RefreshToken>        RefreshTokens       { get; }
     DbSet<ApplicationUser>     Users               { get; }

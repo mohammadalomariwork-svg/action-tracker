@@ -192,6 +192,19 @@
         </div>
       </div>
 
+      <!-- ── Comments & Documents ────────────────────── -->
+      <div class="comments-docs-grid">
+        <app-comments-section
+          entityType="Project"
+          [entityId]="project.id"
+        />
+
+        <app-documents-section
+          entityType="Project"
+          [entityId]="project.id"
+        />
+      </div>
+
     }
   </div>
 </div>

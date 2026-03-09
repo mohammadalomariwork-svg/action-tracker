@@ -1,0 +1,61 @@
+<div class="card">
+  <h3 class="card__title">📎 Documents ({{ documents().length }})</h3>
+
+  <!-- Upload Form -->
+  <div class="doc-upload-form">
+    <div class="doc-upload-row">
+      <input
+        type="text"
+        class="doc-name-input"
+        placeholder="Document name"
+        [ngModel]="docName()"
+        (ngModelChange)="docName.set($event)"
+        maxlength="255"
+      />
+      <label class="doc-file-label">
+        <input
+          type="file"
+          class="doc-file-input"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          (change)="onFileSelected($event)"
+        />
+        {{ docFile()?.name || 'Choose file...' }}
+      </label>
+    </div>
+    <div class="doc-upload-footer">
+      <span class="doc-hint">PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX — max 10 MB</span>
+      <button
+        class="btn btn-primary btn-sm"
+        [disabled]="!docName().trim() || !docFile() || uploading()"
+        (click)="uploadDocument()">
+        @if (uploading()) { <span class="spin-sm"></span> }
+        Upload
+      </button>
+    </div>
+  </div>
+
+  <!-- Documents List -->
+  @if (loading()) {
+    <div class="loading-state loading-state--sm">
+      <span class="spinner spinner--sm"></span>
+    </div>
+  }
+
+  @for (doc of documents(); track doc.id) {
+    <div class="doc-entry">
+      <div class="doc-icon">📄</div>
+      <div class="doc-info">
+        <span class="doc-name">{{ doc.name }}</span>
+        <span class="doc-meta">{{ doc.fileName }} · {{ formatFileSize(doc.fileSize) }} · {{ doc.createdAt | date:'MMM d, y' }}</span>
+      </div>
+      <div class="doc-actions">
+        <button class="btn btn-outline btn-sm" (click)="downloadDocument(doc)" title="Download">Download</button>
+        <button class="doc-action-btn doc-action-btn--delete" (click)="deleteDocument(doc.id)" title="Delete">🗑️</button>
+      </div>
+    </div>
+  }
+
+  @if (!loading() && documents().length === 0) {
+    <p class="empty-text">No documents attached yet.</p>
+  }
+</div>

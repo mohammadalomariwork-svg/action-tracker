@@ -3,31 +3,31 @@ import {
   inject, signal, computed,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
 import { ActionItemService }     from '../../../core/services/action-item.service';
-import { DocumentService }       from '../../../core/services/document.service';
 import { ToastService }          from '../../../core/services/toast.service';
 
 import {
-  ActionItem, ActionStatus, ActionPriority, CommentInfo,
+  ActionItem, ActionStatus, ActionPriority,
 } from '../../../core/models/action-item.model';
-import { DocumentInfo }          from '../../../core/models/document.model';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { ProgressBarComponent }   from '../../../shared/components/progress-bar/progress-bar.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
+import { CommentsSectionComponent }  from '../../../shared/components/comments-section/comments-section.component';
+import { DocumentsSectionComponent } from '../../../shared/components/documents-section/documents-section.component';
 
 @Component({
   selector: 'app-action-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule, RouterLink, DatePipe,
+    RouterLink, DatePipe,
     StatusBadgeComponent, PriorityBadgeComponent,
     ProgressBarComponent, PageHeaderComponent,
+    CommentsSectionComponent, DocumentsSectionComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',
@@ -36,30 +36,10 @@ export class ActionDetailComponent implements OnInit {
   private readonly route      = inject(ActivatedRoute);
   private readonly router     = inject(Router);
   private readonly actionSvc  = inject(ActionItemService);
-  private readonly docSvc     = inject(DocumentService);
   private readonly toastSvc   = inject(ToastService);
 
   readonly item       = signal<ActionItem | null>(null);
   readonly loading    = signal(true);
-  readonly comments   = signal<CommentInfo[]>([]);
-  readonly loadingComments = signal(false);
-  readonly documents  = signal<DocumentInfo[]>([]);
-  readonly loadingDocs = signal(false);
-
-  // Comment form
-  readonly newComment        = signal('');
-  readonly newCommentImportant = signal(false);
-  readonly submittingComment = signal(false);
-
-  // Edit comment
-  readonly editingCommentId      = signal<string | null>(null);
-  readonly editCommentContent    = signal('');
-  readonly editCommentImportant  = signal(false);
-
-  // Document upload
-  readonly docName          = signal('');
-  readonly docFile          = signal<File | null>(null);
-  readonly uploadingDoc     = signal(false);
 
   readonly ActionStatus   = ActionStatus;
   readonly ActionPriority = ActionPriority;
@@ -69,8 +49,6 @@ export class ActionDetailComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.loadItem(id);
-    this.loadComments(id);
-    this.loadDocuments(id);
   }
 
   // ── Data loading ───────────────────────────────────────
@@ -86,165 +64,6 @@ export class ActionDetailComponent implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  private loadComments(id: string): void {
-    this.loadingComments.set(true);
-    this.actionSvc.getComments(id).subscribe({
-      next: r => {
-        this.comments.set(r.data ?? []);
-        this.loadingComments.set(false);
-      },
-      error: () => {
-        this.loadingComments.set(false);
-      },
-    });
-  }
-
-  // ── Comment actions ────────────────────────────────────
-  submitComment(): void {
-    const itemId = this.item()?.id;
-    const content = this.newComment().trim();
-    if (!itemId || !content) return;
-
-    this.submittingComment.set(true);
-    this.actionSvc.addComment(itemId, {
-      content,
-      isHighImportance: this.newCommentImportant(),
-    }).subscribe({
-      next: r => {
-        this.comments.update(list => [r.data, ...list]);
-        this.newComment.set('');
-        this.newCommentImportant.set(false);
-        this.submittingComment.set(false);
-        this.toastSvc.success('Comment added.');
-      },
-      error: () => {
-        this.submittingComment.set(false);
-        this.toastSvc.error('Failed to add comment.');
-      },
-    });
-  }
-
-  startEditComment(c: CommentInfo): void {
-    this.editingCommentId.set(c.id);
-    this.editCommentContent.set(c.content);
-    this.editCommentImportant.set(c.isHighImportance);
-  }
-
-  cancelEditComment(): void {
-    this.editingCommentId.set(null);
-  }
-
-  saveEditComment(): void {
-    const commentId = this.editingCommentId();
-    const itemId = this.item()?.id;
-    if (!commentId || !itemId) return;
-
-    this.actionSvc.updateComment(itemId, commentId, {
-      content: this.editCommentContent().trim(),
-      isHighImportance: this.editCommentImportant(),
-    }).subscribe({
-      next: r => {
-        this.comments.update(list =>
-          list.map(c => c.id === commentId ? r.data : c)
-        );
-        this.editingCommentId.set(null);
-        this.toastSvc.success('Comment updated.');
-      },
-      error: (err) => {
-        const msg = err?.status === 403 ? 'You can only edit your own comments.' : 'Failed to update comment.';
-        this.toastSvc.error(msg);
-      },
-    });
-  }
-
-  deleteComment(commentId: string): void {
-    const itemId = this.item()?.id;
-    if (!itemId) return;
-
-    this.actionSvc.deleteComment(itemId, commentId).subscribe({
-      next: () => {
-        this.comments.update(list => list.filter(c => c.id !== commentId));
-        this.toastSvc.success('Comment deleted.');
-      },
-      error: (err) => {
-        const msg = err?.status === 403 ? 'You can only delete your own comments.' : 'Failed to delete comment.';
-        this.toastSvc.error(msg);
-      },
-    });
-  }
-
-  // ── Document actions ──────────────────────────────────
-  private loadDocuments(actionItemId: string): void {
-    this.loadingDocs.set(true);
-    this.docSvc.getByEntity('ActionItem', actionItemId).subscribe({
-      next: r => {
-        this.documents.set(r.data ?? []);
-        this.loadingDocs.set(false);
-      },
-      error: () => this.loadingDocs.set(false),
-    });
-  }
-
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.docFile.set(input.files[0]);
-    }
-  }
-
-  uploadDocument(): void {
-    const itemId = this.item()?.id;
-    const file = this.docFile();
-    const name = this.docName().trim();
-    if (!itemId || !file || !name) return;
-
-    this.uploadingDoc.set(true);
-    this.docSvc.upload('ActionItem', itemId, name, file).subscribe({
-      next: r => {
-        this.documents.update(list => [r.data, ...list]);
-        this.docName.set('');
-        this.docFile.set(null);
-        this.uploadingDoc.set(false);
-        this.toastSvc.success('Document uploaded.');
-      },
-      error: (err) => {
-        this.uploadingDoc.set(false);
-        const msg = err?.error?.message || 'Failed to upload document.';
-        this.toastSvc.error(msg);
-      },
-    });
-  }
-
-  downloadDocument(doc: DocumentInfo): void {
-    this.docSvc.download(doc.id).subscribe({
-      next: blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = doc.fileName;
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => this.toastSvc.error('Failed to download document.'),
-    });
-  }
-
-  deleteDocument(docId: string): void {
-    this.docSvc.delete(docId).subscribe({
-      next: () => {
-        this.documents.update(list => list.filter(d => d.id !== docId));
-        this.toastSvc.success('Document deleted.');
-      },
-      error: () => this.toastSvc.error('Failed to delete document.'),
-    });
-  }
-
-  formatFileSize(bytes: number): string {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
   // ── Helpers ────────────────────────────────────────────

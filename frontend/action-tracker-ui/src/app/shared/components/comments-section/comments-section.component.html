@@ -1,0 +1,91 @@
+<div class="card">
+  <h3 class="card__title">💬 Comments ({{ comments().length }})</h3>
+
+  <!-- Add Comment Form -->
+  <div class="comment-form">
+    <textarea
+      class="comment-input"
+      placeholder="Write a comment..."
+      [ngModel]="newComment()"
+      (ngModelChange)="newComment.set($event)"
+      rows="3"
+      maxlength="2000"
+    ></textarea>
+    <div class="comment-form__footer">
+      <label class="importance-toggle">
+        <input
+          type="checkbox"
+          [ngModel]="newCommentImportant()"
+          (ngModelChange)="newCommentImportant.set($event)"
+        />
+        <span class="importance-label">⚡ High Importance</span>
+      </label>
+      <button
+        class="btn btn-primary btn-sm"
+        [disabled]="!newComment().trim() || submitting()"
+        (click)="submitComment()">
+        @if (submitting()) { <span class="spin-sm"></span> }
+        Post Comment
+      </button>
+    </div>
+  </div>
+
+  <!-- Comments List -->
+  @if (loading()) {
+    <div class="loading-state loading-state--sm">
+      <span class="spinner spinner--sm"></span>
+    </div>
+  }
+
+  @for (c of comments(); track c.id) {
+    <div class="comment-entry" [class.comment-entry--important]="c.isHighImportance">
+      @if (c.isHighImportance) {
+        <span class="importance-dot" title="High Importance">⚡</span>
+      }
+      <div class="comment-header">
+        <span class="comment-avatar">{{ c.authorName.charAt(0) }}</span>
+        <span class="comment-author">{{ c.authorName }}</span>
+        <span class="comment-date">{{ c.createdAt | date:'MMM d, y, h:mm a' }}</span>
+        @if (c.updatedAt) {
+          <span class="comment-edited">(edited)</span>
+        }
+      </div>
+
+      @if (editingCommentId() === c.id) {
+        <!-- Edit mode -->
+        <textarea
+          class="comment-input comment-input--edit"
+          [ngModel]="editCommentContent()"
+          (ngModelChange)="editCommentContent.set($event)"
+          rows="3"
+          maxlength="2000"
+        ></textarea>
+        <div class="comment-edit-actions">
+          <label class="importance-toggle">
+            <input
+              type="checkbox"
+              [ngModel]="editCommentImportant()"
+              (ngModelChange)="editCommentImportant.set($event)"
+            />
+            <span class="importance-label">⚡ High Importance</span>
+          </label>
+          <div class="comment-edit-btns">
+            <button class="btn btn-ghost btn-sm" (click)="cancelEditComment()">Cancel</button>
+            <button class="btn btn-primary btn-sm" (click)="saveEditComment()">Save</button>
+          </div>
+        </div>
+      } @else {
+        <!-- View mode -->
+        <p class="comment-text">{{ c.content }}</p>
+        <div class="comment-actions">
+          <button class="comment-action-btn" (click)="startEditComment(c)" title="Edit">✏️</button>
+          <button class="comment-action-btn comment-action-btn--delete" (click)="deleteComment(c.id)" title="Delete">🗑️</button>
+        </div>
+      }
+    </div>
+  }
+
+  @if (!loading() && comments().length === 0) {
+    <p class="empty-text">No comments yet. Be the first to add one!</p>
+  }
+</div>

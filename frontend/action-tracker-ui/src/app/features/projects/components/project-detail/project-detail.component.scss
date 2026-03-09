@@ -165,9 +165,19 @@
   letter-spacing: 0.02em;
 }
 
+// ── Comments & Documents grid ────────────────────────
+.comments-docs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  align-items: start;
+}
+
 // ── Responsive ──────────────────────────────────────
 @media (max-width: 900px) {
-  .info-grid {
+  .info-grid,
+  .comments-docs-grid {
     grid-template-columns: 1fr;
   }
   .detail-body { padding: 0 1rem 1.5rem; }
