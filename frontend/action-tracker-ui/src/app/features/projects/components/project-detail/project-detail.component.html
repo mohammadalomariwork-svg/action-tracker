@@ -1,259 +1,197 @@
-<div class="pd-page">
+<div class="detail-page">
 
-  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb mb-3">
-      <li class="breadcrumb-item"><a routerLink="/dashboard">Home</a></li>
-      <li class="breadcrumb-item"><a routerLink="/workspaces">Workspaces</a></li>
-      @if (project) {
-        <li class="breadcrumb-item">
-          <a [routerLink]="['/workspaces', project.workspaceId]">{{ project.workspaceTitle }}</a>
-        </li>
-      }
-      <li class="breadcrumb-item active" aria-current="page">
-        {{ project?.projectCode ?? 'Loading…' }}
-      </li>
-    </ol>
-  </nav>
+  <!-- Page header with navigation buttons -->
+  <app-page-header
+    [title]="project?.projectCode ?? 'Loading…'"
+    [subtitle]="project?.name ?? ''"
+    icon="📋">
+    @if (project) {
+      <a [routerLink]="['/workspaces', project.workspaceId]" class="btn btn-outline">
+        ← Back to Workspace
+      </a>
+      <a [routerLink]="['/projects', 'edit', project.id]"
+         [queryParams]="{ workspaceId: project.workspaceId }"
+         class="btn btn-primary">
+        ✏️ Edit Project
+      </a>
+    }
+  </app-page-header>
 
-  <!-- ── Back button ─────────────────────────────────────────────────────────── -->
-  @if (project) {
-    <a class="btn btn-link text-decoration-none mb-3 p-0"
-       [routerLink]="['/workspaces', project.workspaceId]">
-      <i class="bi bi-arrow-left me-1"></i>Back to Workspace
-    </a>
-  }
+  <div class="detail-body">
 
-  <!-- ── Loading spinner ─────────────────────────────────────────────────────── -->
-  @if (isLoading) {
-    <div class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading…</span>
-      </div>
-    </div>
-  }
-
-  <!-- ── Error alert ─────────────────────────────────────────────────────────── -->
-  @if (errorMessage) {
-    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>{{ errorMessage }}</span>
-    </div>
-  }
-
-  @if (!isLoading && project) {
-
-    <!-- ── Header Card ───────────────────────────────────────────────────── -->
-    <div class="card pd-header-card mb-4">
-      <div class="card-body">
-        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
-          <div>
-            <span class="pd-code">{{ project.projectCode }}</span>
-            <h4 class="mb-0 mt-1">
-              <i class="bi bi-kanban-fill text-primary me-2"></i>{{ project.name }}
-            </h4>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
-            <span [class]="priorityClass(project.priority)">{{ project.priorityLabel }}</span>
-            <span [class]="statusClass(project.status)">{{ project.statusLabel }}</span>
-          </div>
-        </div>
-
-        @if (project.description) {
-          <p class="text-muted mb-3">{{ project.description }}</p>
-        }
-
-        <div class="pd-details-grid">
-          <div class="pd-detail-item">
-            <span class="pd-detail-label">Workspace</span>
-            <span class="pd-detail-value">
-              <i class="bi bi-grid-3x3-gap me-1 text-primary"></i>{{ project.workspaceTitle }}
-            </span>
-          </div>
-
-          <div class="pd-detail-item">
-            <span class="pd-detail-label">Status</span>
-            <span class="pd-detail-value">
-              <span [class]="statusClass(project.status)">{{ project.statusLabel }}</span>
-            </span>
-          </div>
-
-          <div class="pd-detail-item">
-            <span class="pd-detail-label">Priority</span>
-            <span class="pd-detail-value">
-              <span [class]="priorityClass(project.priority)">{{ project.priorityLabel }}</span>
-            </span>
-          </div>
-
-          <div class="pd-detail-item">
-            <span class="pd-detail-label">Type</span>
-            <span class="pd-detail-value">
-              <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Strategic Objective (if Strategic) ──────────────────────────── -->
-    @if (project.projectType === ProjectType.Strategic && project.strategicObjectiveStatement) {
-      <div class="pd-section mb-4">
-        <div class="pd-section-header">
-          <h5 class="mb-0">
-            <i class="bi bi-bullseye me-2 text-primary"></i>Strategic Objective
-          </h5>
-        </div>
-        <p class="mb-0">{{ project.strategicObjectiveStatement }}</p>
+    <!-- Loading -->
+    @if (isLoading) {
+      <div class="loading-state">
+        <span class="spinner"></span>
+        <p>Loading project…</p>
       </div>
     }
 
-    <!-- ── Team Section ───────────────────────────────────────────────── -->
-    <div class="pd-section mb-4">
-      <div class="pd-section-header">
-        <h5 class="mb-0">
-          <i class="bi bi-people-fill me-2 text-primary"></i>Team
-        </h5>
+    <!-- Error -->
+    @if (errorMessage) {
+      <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ errorMessage }}</span>
       </div>
+    }
 
-      <div class="row">
-        <!-- Project Manager -->
-        <div class="col-md-6 mb-3 mb-md-0">
-          <div class="pd-team-card">
-            <div class="pd-team-avatar">
-              {{ project.projectManagerName?.charAt(0)?.toUpperCase() ?? '?' }}
+    @if (!isLoading && project) {
+
+      <!-- ── Main Info Card ─────────────────────────── -->
+      <div class="info-grid">
+        <div class="side-col">
+
+          <!-- General Details -->
+          <div class="card">
+            <h3 class="card__title">General Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Project Code</span>
+              <span class="detail-value">{{ project.projectCode }}</span>
             </div>
-            <div class="pd-team-info">
-              <span class="pd-team-role">Project Manager</span>
-              <span class="pd-team-name">{{ project.projectManagerName }}</span>
+            <div class="detail-row">
+              <span class="detail-label">Name</span>
+              <span class="detail-value">{{ project.name }}</span>
+            </div>
+            @if (project.description) {
+              <div class="detail-row">
+                <span class="detail-label">Description</span>
+                <span class="detail-value detail-value--desc">{{ project.description }}</span>
+              </div>
+            }
+            <div class="detail-row">
+              <span class="detail-label">Workspace</span>
+              <span class="detail-value">
+                <a class="link" [routerLink]="['/workspaces', project.workspaceId]">{{ project.workspaceTitle }}</a>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Type</span>
+              <span class="detail-value">
+                <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Priority</span>
+              <span class="detail-value">
+                <span [class]="priorityClass(project.priority)">{{ project.priorityLabel }}</span>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Status</span>
+              <span class="detail-value">
+                <span [class]="statusClass(project.status)">{{ project.statusLabel }}</span>
+              </span>
             </div>
           </div>
-        </div>
 
-        <!-- Sponsors -->
-        <div class="col-md-6">
-          <span class="pd-detail-label d-block mb-2">Sponsors</span>
-          @if (project.sponsors && project.sponsors.length > 0) {
-            <div class="d-flex flex-wrap gap-2">
-              @for (sponsor of project.sponsors; track sponsor.userId) {
-                <div class="pd-team-card pd-team-card--compact">
-                  <div class="pd-team-avatar pd-team-avatar--sm">
-                    {{ sponsor.fullName?.charAt(0)?.toUpperCase() ?? '?' }}
-                  </div>
-                  <div class="pd-team-info">
-                    <span class="pd-team-name">{{ sponsor.fullName }}</span>
-                    @if (sponsor.email) {
-                      <span class="pd-team-email">{{ sponsor.email }}</span>
-                    }
-                  </div>
-                </div>
-              }
+          <!-- Strategic Objective (if Strategic) -->
+          @if (project.projectType === ProjectType.Strategic && project.strategicObjectiveStatement) {
+            <div class="card">
+              <h3 class="card__title">🎯 Strategic Objective</h3>
+              <p class="detail-value detail-value--desc" style="margin:0">{{ project.strategicObjectiveStatement }}</p>
             </div>
-          } @else {
-            <span class="text-muted">No sponsors assigned.</span>
           }
-        </div>
-      </div>
-    </div>
 
-    <!-- ── Schedule & Budget Section ──────────────────────────────────── -->
-    <div class="pd-section mb-4">
-      <div class="pd-section-header">
-        <h5 class="mb-0">
-          <i class="bi bi-calendar-range me-2 text-primary"></i>Schedule & Budget
-        </h5>
-      </div>
-
-      <div class="pd-details-grid">
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Planned Start</span>
-          <span class="pd-detail-value">
-            <i class="bi bi-calendar-plus me-1 text-muted"></i>{{ project.plannedStartDate | date:'mediumDate' }}
-          </span>
         </div>
 
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Planned End</span>
-          <span class="pd-detail-value">
-            <i class="bi bi-calendar-check me-1 text-muted"></i>{{ project.plannedEndDate | date:'mediumDate' }}
-          </span>
-        </div>
+        <div class="side-col">
 
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Actual Start</span>
-          <span class="pd-detail-value">
-            @if (project.actualStartDate) {
-              <i class="bi bi-calendar-event me-1 text-muted"></i>{{ project.actualStartDate | date:'mediumDate' }}
-            } @else {
-              <span class="text-muted">—</span>
-            }
-          </span>
-        </div>
+          <!-- Team -->
+          <div class="card">
+            <h3 class="card__title">Team</h3>
+            <div class="detail-row">
+              <span class="detail-label">Project Manager</span>
+              <span class="detail-value">
+                <span class="assignee-chip">
+                  <span class="assignee-avatar">{{ project.projectManagerName?.charAt(0)?.toUpperCase() ?? '?' }}</span>
+                  {{ project.projectManagerName }}
+                </span>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Sponsors</span>
+              <span class="detail-value">
+                @if (project.sponsors && project.sponsors.length > 0) {
+                  @for (sponsor of project.sponsors; track sponsor.userId) {
+                    <span class="assignee-chip">
+                      <span class="assignee-avatar">{{ sponsor.fullName?.charAt(0)?.toUpperCase() ?? '?' }}</span>
+                      {{ sponsor.fullName }}
+                    </span>
+                  }
+                } @else {
+                  <span class="text-muted">No sponsors assigned.</span>
+                }
+              </span>
+            </div>
+          </div>
 
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Approved Budget</span>
-          <span class="pd-detail-value">
-            @if (project.approvedBudget != null) {
-              <i class="bi bi-cash-stack me-1 text-muted"></i>{{ project.approvedBudget | number:'1.2-2' }} {{ project.currency }}
-            } @else {
-              <span class="text-muted">—</span>
-            }
-          </span>
-        </div>
-      </div>
-
-      @if (project.isBaselined) {
-        <div class="alert alert-info d-flex align-items-center gap-2 py-2 mt-3 mb-0">
-          <i class="bi bi-lock-fill"></i>
-          <span>This project is baselined. Planned dates are locked.</span>
-        </div>
-      }
-    </div>
-
-    <!-- ── Meta Section ───────────────────────────────────────────────── -->
-    <div class="pd-section">
-      <div class="pd-section-header">
-        <h5 class="mb-0">
-          <i class="bi bi-info-circle me-2 text-primary"></i>Details
-        </h5>
-      </div>
-
-      <div class="pd-details-grid">
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Created</span>
-          <span class="pd-detail-value">
-            <i class="bi bi-clock me-1 text-muted"></i>{{ project.createdAt | date:'medium' }}
-          </span>
-        </div>
-
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Last Updated</span>
-          <span class="pd-detail-value">
-            @if (project.updatedAt) {
-              <i class="bi bi-clock-history me-1 text-muted"></i>{{ project.updatedAt | date:'medium' }}
-            } @else {
-              <span class="text-muted">—</span>
-            }
-          </span>
-        </div>
-
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Currency</span>
-          <span class="pd-detail-value">{{ project.currency }}</span>
-        </div>
-
-        <div class="pd-detail-item">
-          <span class="pd-detail-label">Baselined</span>
-          <span class="pd-detail-value">
+          <!-- Schedule & Budget -->
+          <div class="card">
+            <h3 class="card__title">Schedule & Budget</h3>
+            <div class="detail-row">
+              <span class="detail-label">Planned Start</span>
+              <span class="detail-value">{{ project.plannedStartDate | date:'mediumDate' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Planned End</span>
+              <span class="detail-value">{{ project.plannedEndDate | date:'mediumDate' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Actual Start</span>
+              <span class="detail-value">
+                @if (project.actualStartDate) {
+                  {{ project.actualStartDate | date:'mediumDate' }}
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Budget</span>
+              <span class="detail-value">
+                @if (project.approvedBudget != null) {
+                  {{ project.approvedBudget | number:'1.2-2' }} {{ project.currency }}
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </span>
+            </div>
             @if (project.isBaselined) {
-              <span class="badge bg-success"><i class="bi bi-lock-fill me-1"></i>Yes</span>
-            } @else {
-              <span class="badge bg-secondary">No</span>
+              <div class="detail-row">
+                <span class="detail-label">Baselined</span>
+                <span class="detail-value">
+                  <span class="badge bg-success">🔒 Yes — Dates locked</span>
+                </span>
+              </div>
             }
-          </span>
+          </div>
+
+          <!-- Meta -->
+          <div class="card">
+            <h3 class="card__title">Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Created</span>
+              <span class="detail-value">{{ project.createdAt | date:'medium' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Last Updated</span>
+              <span class="detail-value">
+                @if (project.updatedAt) {
+                  {{ project.updatedAt | date:'medium' }}
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Currency</span>
+              <span class="detail-value">{{ project.currency }}</span>
+            </div>
+          </div>
+
         </div>
       </div>
-    </div>
 
-  }
+    }
+  </div>
 </div>

@@ -200,7 +200,7 @@
                     <th>PM</th>
                     <th>Start</th>
                     <th>End</th>
-                    @if (canManage) { <th class="text-end">Actions</th> }
+                    <th class="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -214,9 +214,12 @@
                       <td>{{ prj.projectManagerName }}</td>
                       <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
                       <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
-                      @if (canManage) {
-                        <td class="text-end">
-                          <div class="wa-row-actions">
+                      <td class="text-end">
+                        <div class="wa-row-actions">
+                          <a class="btn btn-outline-info btn-sm wa-action-btn"
+                             [routerLink]="['/projects', prj.id]"
+                             title="View"><i class="bi bi-eye"></i></a>
+                          @if (canManage) {
                             <button class="btn btn-outline-primary btn-sm wa-action-btn"
                                     (click)="openEditProjectForm(prj)"
                                     title="Edit"
@@ -231,9 +234,9 @@
                                 <i class="bi bi-trash"></i>
                               }
                             </button>
-                          </div>
-                        </td>
-                      }
+                          }
+                        </div>
+                      </td>
                     </tr>
                   }
                 </tbody>
@@ -265,8 +268,12 @@
                       </span>
                     </div>
                   </div>
-                  @if (canManage) {
-                    <div class="wa-action-card__actions">
+                  <div class="wa-action-card__actions">
+                    <a class="btn btn-outline-info btn-sm"
+                       [routerLink]="['/projects', prj.id]">
+                      <i class="bi bi-eye me-1"></i>View
+                    </a>
+                    @if (canManage) {
                       <button class="btn btn-outline-primary btn-sm"
                               (click)="openEditProjectForm(prj)"
                               [disabled]="showProjectForm">
@@ -280,8 +287,8 @@
                           <i class="bi bi-trash me-1"></i>Delete
                         }
                       </button>
-                    </div>
-                  }
+                    }
+                  </div>
                 </div>
               }
             </div>
