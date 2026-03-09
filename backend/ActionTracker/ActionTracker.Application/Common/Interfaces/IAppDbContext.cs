@@ -24,12 +24,10 @@ public interface IAppDbContext
     DbSet<WorkspaceAdmin>      WorkspaceAdmins { get; }
 
     // ── Projects feature sets ─────────────────────────────────────────────────
-    /// <summary>
-    /// Workspace-scoped strategic objectives (int PK).
-    /// Distinct from the admin-panel <c>StrategicObjective</c> (Guid PK).
-    /// Stored in table "WorkspaceStrategicObjectives".
-    /// </summary>
-   
+    DbSet<Project>          Projects        { get; }
+    DbSet<ProjectSponsor>   ProjectSponsors { get; }
+
+    DbSet<StrategicObjective> StrategicObjectives { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

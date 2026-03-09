@@ -7,11 +7,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
+import { ProjectService } from '../../../projects/services/project.service';
 import { Workspace, WorkspaceAdmin, UserDropdownItem } from '../../models/workspace.model';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
   ActionStatus, ActionPriority, AssignableUser, EscalationInfo,
 } from '../../../../core/models/action-item.model';
+import {
+  ProjectResponse, ProjectStatus, ProjectPriority, ProjectFilter,
+} from '../../../projects/models/project.models';
 import { PagedResult } from '../../../../core/models/api-response.model';
 
 @Component({
@@ -25,6 +29,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
   private readonly authService      = inject(AuthService);
   private readonly actionService    = inject(ActionItemService);
+  private readonly projectService   = inject(ProjectService);
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
 
@@ -63,9 +68,19 @@ export class WorkspaceDetailComponent implements OnInit {
   // Show deleted toggle
   showDeleted = false;
 
+  // ── Projects ───────────────────────────────────────────
+  projects: ProjectResponse[] = [];
+  projectTotalCount = 0;
+  projectPageNumber = 1;
+  projectPageSize = 10;
+  projectLoading = false;
+  deletingProjectId: string | null = null;
+
   // Expose enums to template
   readonly ActionStatus = ActionStatus;
   readonly ActionPriority = ActionPriority;
+  readonly ProjectStatus = ProjectStatus;
+  readonly ProjectPriority = ProjectPriority;
 
   readonly STATUS_OPTIONS = [
     { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -105,6 +120,10 @@ export class WorkspaceDetailComponent implements OnInit {
     return Math.ceil(this.actionTotalCount / this.actionPageSize) || 1;
   }
 
+  get projectTotalPages(): number {
+    return Math.ceil(this.projectTotalCount / this.projectPageSize) || 1;
+  }
+
   ngOnInit(): void {
     this.workspaceId = this.route.snapshot.paramMap.get('id')!;
     this.loadData();
@@ -126,6 +145,7 @@ export class WorkspaceDetailComponent implements OnInit {
             this.loadAvailableUsers();
           }
           this.loadActionItems();
+          this.loadProjects();
           this.loadAllUsers();
         },
         error: (err) => {
@@ -436,6 +456,84 @@ export class WorkspaceDetailComponent implements OnInit {
           this.errorMessage = err?.error?.message ?? 'Failed to delete action item.';
         },
       });
+  }
+
+  // ── Projects ───────────────────────────────────────────
+  loadProjects(): void {
+    this.projectLoading = true;
+    const filter: ProjectFilter = {
+      workspaceId:    this.workspaceId,
+      pageNumber:     this.projectPageNumber,
+      pageSize:       this.projectPageSize,
+      sortBy:         'createdAt',
+      sortDescending: true,
+    };
+
+    this.projectService.getAll(filter)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const paged: PagedResult<ProjectResponse> = res.data;
+          this.projects = paged.items;
+          this.projectTotalCount = paged.totalCount;
+          this.projectLoading = false;
+        },
+        error: () => this.projectLoading = false,
+      });
+  }
+
+  projectPrevPage(): void {
+    if (this.projectPageNumber > 1) {
+      this.projectPageNumber--;
+      this.loadProjects();
+    }
+  }
+
+  projectNextPage(): void {
+    if (this.projectPageNumber < this.projectTotalPages) {
+      this.projectPageNumber++;
+      this.loadProjects();
+    }
+  }
+
+  deleteProject(prj: ProjectResponse): void {
+    if (!confirm(`Delete project "${prj.name}"?`)) return;
+    this.deletingProjectId = prj.id;
+
+    this.projectService.delete(prj.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deletingProjectId = null;
+          this.successMessage = `Project "${prj.projectCode}" deleted.`;
+          this.loadProjects();
+        },
+        error: (err) => {
+          this.deletingProjectId = null;
+          this.errorMessage = err?.error?.message ?? 'Failed to delete project.';
+        },
+      });
+  }
+
+  projectPriorityClass(p: ProjectPriority): string {
+    switch (+p) {
+      case ProjectPriority.Critical: return 'badge bg-danger';
+      case ProjectPriority.High:     return 'badge bg-warning text-dark';
+      case ProjectPriority.Medium:   return 'badge bg-info text-dark';
+      case ProjectPriority.Low:      return 'badge bg-secondary';
+      default:                       return 'badge bg-light text-dark';
+    }
+  }
+
+  projectStatusClass(s: ProjectStatus): string {
+    switch (+s) {
+      case ProjectStatus.Draft:     return 'badge bg-secondary';
+      case ProjectStatus.Active:    return 'badge bg-primary';
+      case ProjectStatus.OnHold:    return 'badge bg-warning text-dark';
+      case ProjectStatus.Completed: return 'badge bg-success';
+      case ProjectStatus.Cancelled: return 'badge bg-danger';
+      default:                      return 'badge bg-light text-dark';
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────

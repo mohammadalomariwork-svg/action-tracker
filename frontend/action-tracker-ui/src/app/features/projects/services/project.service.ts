@@ -1,93 +1,70 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
-  ProjectList,
-  ProjectDetail,
-  CreateProject,
-  UpdateProject,
-  ProjectBaseline,
+  ProjectResponse,
+  ProjectCreate,
+  ProjectUpdate,
+  ProjectFilter,
+  StrategicObjectiveOption,
+  OrgUnitOption,
 } from '../models/project.models';
+import { ApiResponse, PagedResult } from '../../../core/models/api-response.model';
+import { AssignableUser } from '../../../core/models/action-item.model';
 
-/**
- * Service for managing projects.
- * Provided at root level — auth headers are added automatically by the HTTP interceptor.
- */
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/projects`;
 
-  /**
-   * Fetches all projects belonging to a workspace.
-   * @param workspaceId The workspace to fetch projects for.
-   * @returns Observable of project list items.
-   */
-  getByWorkspace(workspaceId: string): Observable<ProjectList[]> {
-    return this.http.get<ProjectList[]>(`${this.apiUrl}/workspace/${workspaceId}`);
+  getAll(filter: ProjectFilter): Observable<ApiResponse<PagedResult<ProjectResponse>>> {
+    let params = new HttpParams()
+      .set('pageNumber', filter.pageNumber)
+      .set('pageSize', filter.pageSize)
+      .set('sortBy', filter.sortBy)
+      .set('sortDescending', filter.sortDescending);
+
+    if (filter.workspaceId) params = params.set('workspaceId', filter.workspaceId);
+    if (filter.status) params = params.set('status', filter.status);
+    if (filter.projectType) params = params.set('projectType', filter.projectType);
+    if (filter.priority) params = params.set('priority', filter.priority);
+    if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
+
+    return this.http.get<ApiResponse<PagedResult<ProjectResponse>>>(this.apiUrl, { params });
   }
 
-  /**
-   * Fetches a single project by its ID.
-   * @param id Primary key of the project.
-   * @returns Observable of the project detail.
-   */
-  getById(id: number): Observable<ProjectDetail> {
-    return this.http.get<ProjectDetail>(`${this.apiUrl}/${id}`);
+  getById(id: string): Observable<ApiResponse<ProjectResponse>> {
+    return this.http.get<ApiResponse<ProjectResponse>>(`${this.apiUrl}/${id}`);
   }
 
-  /**
-   * Fetches the full detail of a project including all nested entities.
-   * @param id Primary key of the project.
-   * @returns Observable of the full project detail.
-   */
-  getFullDetail(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}/full`);
+  create(data: ProjectCreate): Observable<ApiResponse<ProjectResponse>> {
+    return this.http.post<ApiResponse<ProjectResponse>>(this.apiUrl, data);
   }
 
-  /**
-   * Creates a new project.
-   * @param data Creation payload.
-   * @returns Observable of the created project detail.
-   */
-  create(data: CreateProject): Observable<ProjectDetail> {
-    return this.http.post<ProjectDetail>(this.apiUrl, data);
+  update(id: string, data: ProjectUpdate): Observable<ApiResponse<ProjectResponse>> {
+    return this.http.put<ApiResponse<ProjectResponse>>(`${this.apiUrl}/${id}`, data);
   }
 
-  /**
-   * Updates an existing project.
-   * @param id Primary key of the project to update.
-   * @param data Update payload.
-   * @returns Observable of the updated project detail.
-   */
-  update(id: number, data: UpdateProject): Observable<ProjectDetail> {
-    return this.http.put<ProjectDetail>(`${this.apiUrl}/${id}`, data);
-  }
-
-  /**
-   * Deletes a project.
-   * @param id Primary key of the project to delete.
-   */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  /**
-   * Creates a baseline snapshot for a project.
-   * @param id Primary key of the project to baseline.
-   * @returns Observable of the created baseline.
-   */
-  baselineProject(id: number): Observable<ProjectBaseline> {
-    return this.http.post<ProjectBaseline>(`${this.apiUrl}/${id}/baseline`, {});
+  getStrategicObjectives(): Observable<ApiResponse<StrategicObjectiveOption[]>> {
+    return this.http.get<ApiResponse<StrategicObjectiveOption[]>>(
+      `${environment.apiUrl}/strategic-objectives`
+    );
   }
 
-  /**
-   * Fetches the baseline for a project.
-   * @param id Primary key of the project.
-   * @returns Observable of the project baseline.
-   */
-  getBaseline(id: number): Observable<ProjectBaseline> {
-    return this.http.get<ProjectBaseline>(`${this.apiUrl}/${id}/baseline`);
+  getOrgUnits(): Observable<ApiResponse<OrgUnitOption[]>> {
+    return this.http.get<ApiResponse<OrgUnitOption[]>>(
+      `${environment.apiUrl}/org-units`
+    );
+  }
+
+  getAssignableUsers(): Observable<ApiResponse<AssignableUser[]>> {
+    return this.http.get<ApiResponse<AssignableUser[]>>(
+      `${environment.apiUrl}/action-items/assignable-users`
+    );
   }
 }

@@ -34,7 +34,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     // NOTE: PM.StrategicObjective (workspace-scoped, int PK) is a different
     //       entity from the domain StrategicObjective (admin panel, Guid PK).
     //       It maps to "WorkspaceStrategicObjectives" to avoid a table clash.
-    
+    public DbSet<Project>           Projects             => Set<Project>();
+    public DbSet<ProjectSponsor>    ProjectSponsors      => Set<ProjectSponsor>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -45,6 +47,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
+        modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
 
         modelBuilder.Entity<Workspace>(entity =>
         {
@@ -121,6 +124,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
         // ActionItem no longer inherits BaseEntity — handle UpdatedAt separately
         foreach (var entry in ChangeTracker.Entries<ActionItem>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = utcNow;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<Project>())
         {
             if (entry.State == EntityState.Modified)
             {

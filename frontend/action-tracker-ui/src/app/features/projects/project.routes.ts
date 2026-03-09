@@ -2,29 +2,18 @@ import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
 import { roleGuard } from '../../core/guards/role.guard';
 
-import { ProjectFormComponent } from './components/project-form/project-form.component';
-import { ProjectDetailComponent } from './components/project-detail/project-detail.component';
-
 const projectRoutes: Routes = [
   {
-    path: '',
-    redirectTo: 'workspaces',
-    pathMatch: 'full',
-  },
-  {
-    path: ':id',
-    component: ProjectDetailComponent,
-    canActivate: [authGuard],
-  },
-  {
     path: 'new',
-    component: ProjectFormComponent,
+    loadComponent: () =>
+      import('./components/project-form/project-form.component').then(m => m.ProjectFormComponent),
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin', 'Manager'] },
   },
   {
     path: 'edit/:id',
-    component: ProjectFormComponent,
+    loadComponent: () =>
+      import('./components/project-form/project-form.component').then(m => m.ProjectFormComponent),
     canActivate: [authGuard, roleGuard],
     data: { roles: ['Admin', 'Manager'] },
   },

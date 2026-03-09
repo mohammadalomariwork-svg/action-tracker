@@ -409,6 +409,156 @@
         }
       }
     </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- ── Projects Section ───────────────────────────────────────────── -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <div class="wd-section mt-4">
+      <div class="wd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-kanban me-2 text-primary"></i>Projects
+          <span class="badge bg-secondary ms-2">{{ projectTotalCount }}</span>
+        </h5>
+        @if (canManage) {
+          <a class="btn btn-primary btn-sm"
+             [routerLink]="['/projects', 'new']"
+             [queryParams]="{ workspaceId: workspaceId }">
+            <i class="bi bi-plus-circle me-1"></i>New Project
+          </a>
+        }
+      </div>
+
+      @if (projectLoading) {
+        <div class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+          <span class="ms-2 text-muted">Loading projects...</span>
+        </div>
+      }
+
+      @if (!projectLoading && projects.length === 0) {
+        <div class="wd-empty text-center py-4">
+          <i class="bi bi-kanban wd-empty-icon text-muted"></i>
+          <p class="text-muted mt-2 mb-0">No projects in this workspace yet.</p>
+        </div>
+      }
+
+      @if (!projectLoading && projects.length > 0) {
+        <!-- Desktop table -->
+        <div class="wa-table-wrapper d-none d-md-block">
+          <table class="table table-hover table-sm wa-table mb-0">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>PM</th>
+                <th>Start</th>
+                <th>End</th>
+                @if (canManage) { <th class="text-end">Actions</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (prj of projects; track prj.id) {
+                <tr>
+                  <td><span class="wa-action-id">{{ prj.projectCode }}</span></td>
+                  <td><span class="wa-title" [title]="prj.name">{{ prj.name }}</span></td>
+                  <td><span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span></td>
+                  <td><span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span></td>
+                  <td><span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span></td>
+                  <td>{{ prj.projectManagerName }}</td>
+                  <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
+                  <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
+                  @if (canManage) {
+                    <td class="text-end">
+                      <div class="wa-row-actions">
+                        <a class="btn btn-outline-primary btn-sm wa-action-btn"
+                           [routerLink]="['/projects', 'edit', prj.id]"
+                           [queryParams]="{ workspaceId: workspaceId }"
+                           title="Edit"><i class="bi bi-pencil"></i></a>
+                        <button class="btn btn-outline-danger btn-sm wa-action-btn"
+                                (click)="deleteProject(prj)"
+                                title="Delete"
+                                [disabled]="deletingProjectId === prj.id">
+                          @if (deletingProjectId === prj.id) {
+                            <span class="spinner-border spinner-border-sm"></span>
+                          } @else {
+                            <i class="bi bi-trash"></i>
+                          }
+                        </button>
+                      </div>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile cards -->
+        <div class="d-block d-md-none">
+          @for (prj of projects; track prj.id) {
+            <div class="wa-action-card">
+              <div class="wa-action-card__header">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span class="wa-action-id">{{ prj.projectCode }}</span>
+                  <span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span>
+                  <span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span>
+                  <span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span>
+                </div>
+              </div>
+              <div class="wa-action-card__title">{{ prj.name }}</div>
+              <div class="wa-action-card__meta">
+                <div class="wa-action-card__meta-row">
+                  <span class="wa-action-card__meta-label"><i class="bi bi-person me-1"></i>PM</span>
+                  <span class="wa-action-card__meta-value">{{ prj.projectManagerName }}</span>
+                </div>
+                <div class="wa-action-card__meta-row">
+                  <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Period</span>
+                  <span class="wa-action-card__meta-value">
+                    {{ prj.plannedStartDate | date:'MMM d, y' }} — {{ prj.plannedEndDate | date:'MMM d, y' }}
+                  </span>
+                </div>
+              </div>
+              @if (canManage) {
+                <div class="wa-action-card__actions">
+                  <a class="btn btn-outline-primary btn-sm"
+                     [routerLink]="['/projects', 'edit', prj.id]"
+                     [queryParams]="{ workspaceId: workspaceId }">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                  </a>
+                  <button class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
+                          [disabled]="deletingProjectId === prj.id">
+                    @if (deletingProjectId === prj.id) {
+                      <span class="spinner-border spinner-border-sm"></span>
+                    } @else {
+                      <i class="bi bi-trash me-1"></i>Delete
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Pagination -->
+        @if (projectTotalCount > projectPageSize) {
+          <div class="wa-pagination">
+            <span class="text-muted small">
+              Page {{ projectPageNumber }} of {{ projectTotalPages }}
+              ({{ projectTotalCount }} projects)
+            </span>
+            <div class="wa-pagination-btns">
+              <button class="btn btn-outline-secondary btn-sm"
+                      (click)="projectPrevPage()" [disabled]="projectPageNumber <= 1">&#8249; Prev</button>
+              <button class="btn btn-outline-secondary btn-sm"
+                      (click)="projectNextPage()" [disabled]="projectPageNumber >= projectTotalPages">Next &#8250;</button>
+            </div>
+          </div>
+        }
+      }
+    </div>
   }
 
 </div>
