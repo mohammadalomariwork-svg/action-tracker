@@ -1,0 +1,209 @@
+<div class="milestones-section">
+  <div class="section-header">
+    <h3 class="section-title">Milestones</h3>
+    <button class="btn btn-primary btn-sm" (click)="openCreateForm()" [disabled]="showForm()">
+      + Add Milestone
+    </button>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner"></span>
+      <p>Loading milestones...</p>
+    </div>
+  }
+
+  <!-- Create / Edit Form -->
+  @if (showForm()) {
+    <div class="milestone-form card">
+      <h4 class="form-title">{{ editingId() ? 'Edit Milestone' : 'New Milestone' }}</h4>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="form-label">Name *</label>
+          <input type="text" class="form-control"
+                 [ngModel]="formName()" (ngModelChange)="formName.set($event)"
+                 placeholder="Milestone name" maxlength="255">
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="2"
+                    [ngModel]="formDescription()" (ngModelChange)="formDescription.set($event)"
+                    placeholder="What does completing this milestone mean?"
+                    maxlength="5000"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sequence Order</label>
+          <input type="number" class="form-control" min="1"
+                 [ngModel]="formSequenceOrder()" (ngModelChange)="formSequenceOrder.set($event)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Weight (%)</label>
+          <input type="number" class="form-control" min="0" max="100" step="0.01"
+                 [ngModel]="formWeight()" (ngModelChange)="formWeight.set($event)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Planned Start Date *</label>
+          <input type="date" class="form-control"
+                 [ngModel]="formPlannedStartDate()" (ngModelChange)="formPlannedStartDate.set($event)"
+                 [disabled]="isBaselined() && !!editingId()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Planned Due Date *</label>
+          <input type="date" class="form-control"
+                 [ngModel]="formPlannedDueDate()" (ngModelChange)="formPlannedDueDate.set($event)"
+                 [disabled]="isBaselined() && !!editingId()">
+        </div>
+
+        @if (editingId()) {
+          <div class="form-group">
+            <label class="form-label">Actual Completion Date</label>
+            <input type="date" class="form-control"
+                   [ngModel]="formActualCompletionDate()" (ngModelChange)="formActualCompletionDate.set($event)">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control"
+                    [ngModel]="formStatus()" (ngModelChange)="formStatus.set(+$event)">
+              @for (s of statusOptions; track s) {
+                <option [value]="s">{{ MilestoneStatusLabels[s] }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        <div class="form-group">
+          <label class="form-label">Completion %</label>
+          <input type="number" class="form-control" min="0" max="100" step="1"
+                 [ngModel]="formCompletionPercentage()" (ngModelChange)="formCompletionPercentage.set($event)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Approver</label>
+          <select class="form-control"
+                  [ngModel]="formApproverUserId()" (ngModelChange)="formApproverUserId.set($event)">
+            <option value="">-- None --</option>
+            @for (u of users(); track u.id) {
+              <option [value]="u.id">{{ u.fullName }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox"
+                   [ngModel]="formIsDeadlineFixed()" (ngModelChange)="formIsDeadlineFixed.set($event)">
+            Fixed Deadline
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-outline btn-sm" (click)="cancelForm()" [disabled]="submitting()">Cancel</button>
+        <button class="btn btn-primary btn-sm" (click)="submitForm()" [disabled]="submitting()">
+          {{ submitting() ? 'Saving...' : (editingId() ? 'Update' : 'Create') }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Milestones list -->
+  @if (!loading() && milestones().length === 0 && !showForm()) {
+    <p class="empty-state">No milestones yet. Click "Add Milestone" to get started.</p>
+  }
+
+  @for (m of milestones(); track m.id) {
+    <div class="milestone-card card">
+      <div class="milestone-header" (click)="toggleExpand(m.id)">
+        <div class="milestone-left">
+          <span class="milestone-seq">#{{ m.sequenceOrder }}</span>
+          <div class="milestone-info">
+            <div class="milestone-title-row">
+              <span class="milestone-code">{{ m.milestoneCode }}</span>
+              <span class="milestone-name">{{ m.name }}</span>
+            </div>
+            <div class="milestone-meta">
+              <span [class]="milestoneStatusClass(m.status)">{{ m.statusLabel }}</span>
+              <span class="meta-sep">|</span>
+              <span class="meta-item">{{ m.completionPercentage }}%</span>
+              <span class="meta-sep">|</span>
+              <span class="meta-item">Weight: {{ m.weight }}%</span>
+              @if (m.isDeadlineFixed) {
+                <span class="meta-sep">|</span>
+                <span class="badge bg-danger-subtle text-danger">Fixed Deadline</span>
+              }
+              @if (m.scheduleVarianceDays != null) {
+                <span class="meta-sep">|</span>
+                <span [class]="'meta-item ' + varianceClass(m.scheduleVarianceDays)">
+                  {{ varianceLabel(m.scheduleVarianceDays) }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="milestone-right">
+          <div class="milestone-dates">
+            <span class="date-range">{{ m.plannedStartDate | date:'mediumDate' }} - {{ m.plannedDueDate | date:'mediumDate' }}</span>
+            @if (m.actualCompletionDate) {
+              <span class="date-actual">Completed: {{ m.actualCompletionDate | date:'mediumDate' }}</span>
+            }
+          </div>
+          <div class="milestone-actions" (click)="$event.stopPropagation()">
+            <button class="btn-icon" title="Edit" (click)="openEditForm(m)">&#9998;</button>
+            <button class="btn-icon btn-icon--danger" title="Delete" (click)="deleteMilestone(m)">&#128465;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" [style.width.%]="m.completionPercentage"></div>
+      </div>
+
+      @if (m.description && expandedId() === m.id) {
+        <div class="milestone-description">
+          <p>{{ m.description }}</p>
+        </div>
+      }
+
+      @if (m.approverName && expandedId() === m.id) {
+        <div class="milestone-approver">
+          <span class="detail-label">Approver:</span>
+          <span class="assignee-chip">
+            <span class="assignee-avatar">{{ m.approverName.charAt(0).toUpperCase() }}</span>
+            {{ m.approverName }}
+          </span>
+        </div>
+      }
+
+      @if (expandedId() === m.id && m.baselinePlannedDueDate) {
+        <div class="milestone-baseline">
+          <span class="detail-label">Baseline:</span>
+          <span>{{ m.baselinePlannedStartDate | date:'mediumDate' }} - {{ m.baselinePlannedDueDate | date:'mediumDate' }}</span>
+        </div>
+      }
+
+      <!-- Comments & Documents for this milestone -->
+      @if (expandedId() === m.id) {
+        <div class="milestone-attachments">
+          <app-comments-section
+            entityType="Milestone"
+            [entityId]="m.id"
+          />
+          <app-documents-section
+            entityType="Milestone"
+            [entityId]="m.id"
+          />
+        </div>
+      }
+    </div>
+  }
+</div>

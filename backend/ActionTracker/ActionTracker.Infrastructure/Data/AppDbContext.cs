@@ -37,6 +37,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     //       It maps to "WorkspaceStrategicObjectives" to avoid a table clash.
     public DbSet<Project>           Projects             => Set<Project>();
     public DbSet<ProjectSponsor>    ProjectSponsors      => Set<ProjectSponsor>();
+    public DbSet<Milestone>         Milestones           => Set<Milestone>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
+        modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted);
 
         modelBuilder.Entity<Workspace>(entity =>
         {
@@ -133,6 +135,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         }
 
         foreach (var entry in ChangeTracker.Entries<Project>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = utcNow;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<Milestone>())
         {
             if (entry.State == EntityState.Modified)
             {

@@ -192,6 +192,12 @@
         </div>
       </div>
 
+      <!-- ── Milestones ──────────────────────────────── -->
+      <app-milestone-section
+        [projectId]="project.id"
+        [isBaselined]="project.isBaselined"
+      />
+
       <!-- ── Comments & Documents ────────────────────── -->
       <div class="comments-docs-grid">
         <app-comments-section

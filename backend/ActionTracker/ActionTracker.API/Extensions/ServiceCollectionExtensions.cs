@@ -10,6 +10,8 @@ using ActionTracker.Application.Features.Comments.Interfaces;
 using ActionTracker.Application.Features.Comments.Services;
 using ActionTracker.Application.Features.Documents.Interfaces;
 using ActionTracker.Application.Features.Documents.Services;
+using ActionTracker.Application.Features.Milestones.Interfaces;
+using ActionTracker.Application.Features.Milestones.Services;
 using ActionTracker.Application.Features.Projects.Interfaces;
 using ActionTracker.Application.Features.Projects.Services;
 using ActionTracker.Application.Features.Reports.Interfaces;
@@ -97,6 +99,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentService,    DocumentService>();
         services.AddScoped<ICommentService,     CommentService>();
         services.AddScoped<IProjectService,     ProjectService>();
+        services.AddScoped<IMilestoneService,   MilestoneService>();
 
         // New auth contract (Application.Features.Auth.IAuthService)
         services.AddScoped<INewAuthService, NewAuthService>();

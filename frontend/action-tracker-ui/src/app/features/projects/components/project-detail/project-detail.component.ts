@@ -13,11 +13,12 @@ import {
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
+import { MilestoneSectionComponent } from '../milestone-section/milestone-section.component';
 
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeaderComponent, CommentsSectionComponent, DocumentsSectionComponent],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, CommentsSectionComponent, DocumentsSectionComponent, MilestoneSectionComponent],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',
 })

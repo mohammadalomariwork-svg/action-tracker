@@ -27,6 +27,7 @@ public interface IAppDbContext
     // ── Projects feature sets ─────────────────────────────────────────────────
     DbSet<Project>          Projects        { get; }
     DbSet<ProjectSponsor>   ProjectSponsors { get; }
+    DbSet<Milestone>        Milestones      { get; }
 
     DbSet<StrategicObjective> StrategicObjectives { get; }
 
