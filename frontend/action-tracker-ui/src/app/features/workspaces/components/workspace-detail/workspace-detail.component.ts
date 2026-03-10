@@ -63,6 +63,8 @@ export class WorkspaceDetailComponent implements OnInit {
   assigneeDropdownOpen = false;
   assigneeSearchTerm = '';
   editingEscalations: EscalationInfo[] = [];
+  private originalEscalated = false;
+  private originalEscalationText = '';
 
   // Delete
   deletingActionId: string | null = null;
@@ -365,6 +367,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
     this.editingEscalations = [];
+    this.originalEscalated = false;
+    this.originalEscalationText = '';
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
@@ -372,6 +376,14 @@ export class WorkspaceDetailComponent implements OnInit {
 
   openEditActionForm(item: ActionItem): void {
     this.editingActionId = item.id;
+    this.editingEscalations = item.escalations ?? [];
+
+    let lastExplanation = '';
+    if (item.isEscalated && this.editingEscalations.length > 0) {
+      const last = this.editingEscalations[this.editingEscalations.length - 1];
+      lastExplanation = last.explanation ?? '';
+    }
+
     this.actionForm = {
       title:       item.title,
       description: item.description,
@@ -382,13 +394,11 @@ export class WorkspaceDetailComponent implements OnInit {
       dueDate:     item.dueDate.slice(0, 10),
       progress:    item.progress,
       isEscalated: !!item.isEscalated,
-      escalationExplanation: '',
+      escalationExplanation: lastExplanation,
     };
-    this.editingEscalations = item.escalations ?? [];
-    if (item.isEscalated && this.editingEscalations.length > 0) {
-      const last = this.editingEscalations[this.editingEscalations.length - 1];
-      this.actionForm.escalationExplanation = last.explanation ?? '';
-    }
+
+    this.originalEscalated = !!item.isEscalated;
+    this.originalEscalationText = lastExplanation;
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
@@ -445,6 +455,12 @@ export class WorkspaceDetailComponent implements OnInit {
     }
 
     this.actionSaving = true;
+
+    // Determine if escalation actually changed
+    const escalatedChanged = this.actionForm.isEscalated !== this.originalEscalated;
+    const explanationChanged = this.actionForm.escalationExplanation?.trim() !== this.originalEscalationText.trim();
+    const shouldSendEscalation = escalatedChanged || explanationChanged;
+
     const payload: ActionItemCreate = {
       title:       this.actionForm.title.trim(),
       description: this.actionForm.description?.trim() ?? '',
@@ -457,7 +473,9 @@ export class WorkspaceDetailComponent implements OnInit {
       dueDate:     this.actionForm.dueDate,
       progress:    +this.actionForm.progress,
       isEscalated: !!this.actionForm.isEscalated,
-      escalationExplanation: this.actionForm.isEscalated ? this.actionForm.escalationExplanation?.trim() : undefined,
+      escalationExplanation: (this.actionForm.isEscalated && shouldSendEscalation)
+        ? this.actionForm.escalationExplanation?.trim()
+        : undefined,
     };
 
     const obs$ = this.editingActionId
