@@ -381,7 +381,7 @@ export class WorkspaceDetailComponent implements OnInit {
       startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
       dueDate:     item.dueDate.slice(0, 10),
       progress:    item.progress,
-      isEscalated: false,
+      isEscalated: !!item.isEscalated,
       escalationExplanation: '',
     };
     this.editingEscalations = item.escalations ?? [];
