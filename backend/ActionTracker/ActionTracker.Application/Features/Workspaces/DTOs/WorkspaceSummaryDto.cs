@@ -7,7 +7,9 @@ public class WorkspaceSummaryDto
 {
     public int TotalWorkspaces { get; set; }
     public int ActiveWorkspaces { get; set; }
-    public int TotalAdmins { get; set; }
-    public int TotalOpenActions { get; set; }
-    public int NewThisMonth { get; set; }
+    public int StrategicProjects { get; set; }
+    public int OperationalProjects { get; set; }
+    public int StandaloneActionItems { get; set; }
+    public int ProjectActionItems { get; set; }
+    public int StrategicActionItems { get; set; }
 }

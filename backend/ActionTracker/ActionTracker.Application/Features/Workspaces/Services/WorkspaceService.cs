@@ -76,27 +76,31 @@ public class WorkspaceService : IWorkspaceService
     {
         try
         {
-            var now = DateTime.UtcNow;
-            var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-
             var totalWorkspaces  = await _db.Workspaces.CountAsync();
             var activeWorkspaces = await _db.Workspaces.CountAsync(w => w.IsActive);
-            var totalAdmins      = await _db.WorkspaceAdmins
-                .Select(a => a.AdminUserId)
-                .Distinct()
-                .CountAsync();
-            var totalOpenActions = await _db.ActionItems
-                .CountAsync(a => !a.IsDeleted && a.Status != ActionStatus.Done);
-            var newThisMonth     = await _db.Workspaces
-                .CountAsync(w => w.CreatedAt >= startOfMonth);
+
+            var strategicProjects = await _db.Projects
+                .CountAsync(p => !p.IsDeleted && p.ProjectType == ProjectType.Strategic);
+            var operationalProjects = await _db.Projects
+                .CountAsync(p => !p.IsDeleted && p.ProjectType == ProjectType.Operational);
+
+            var standaloneActionItems = await _db.ActionItems
+                .CountAsync(a => !a.IsDeleted && a.IsStandalone);
+            var projectActionItems = await _db.ActionItems
+                .CountAsync(a => !a.IsDeleted && !a.IsStandalone);
+            var strategicActionItems = await _db.ActionItems
+                .CountAsync(a => !a.IsDeleted && !a.IsStandalone
+                    && a.Project != null && a.Project.ProjectType == ProjectType.Strategic);
 
             return new WorkspaceSummaryDto
             {
-                TotalWorkspaces  = totalWorkspaces,
-                ActiveWorkspaces = activeWorkspaces,
-                TotalAdmins      = totalAdmins,
-                TotalOpenActions = totalOpenActions,
-                NewThisMonth     = newThisMonth
+                TotalWorkspaces      = totalWorkspaces,
+                ActiveWorkspaces     = activeWorkspaces,
+                StrategicProjects    = strategicProjects,
+                OperationalProjects  = operationalProjects,
+                StandaloneActionItems = standaloneActionItems,
+                ProjectActionItems   = projectActionItems,
+                StrategicActionItems = strategicActionItems
             };
         }
         catch (Exception ex)

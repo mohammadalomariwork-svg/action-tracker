@@ -57,9 +57,11 @@ export interface WorkspaceList {
 export interface WorkspaceSummary {
   totalWorkspaces: number;
   activeWorkspaces: number;
-  totalAdmins: number;
-  totalOpenActions: number;
-  newThisMonth: number;
+  strategicProjects: number;
+  operationalProjects: number;
+  standaloneActionItems: number;
+  projectActionItems: number;
+  strategicActionItems: number;
 }
 
 /**

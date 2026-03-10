@@ -27,8 +27,7 @@
         </div>
         <div class="wl-stat-body">
           <span class="wl-stat-value">{{ summary.totalWorkspaces }}</span>
-          <span class="wl-stat-label">Total Workspaces</span>
-          <span class="wl-stat-sub text-success">+{{ summary.newThisMonth }} this month</span>
+          <span class="wl-stat-label">Workspaces</span>
         </div>
       </div>
       <div class="wl-stat-card">
@@ -38,27 +37,51 @@
         <div class="wl-stat-body">
           <span class="wl-stat-value">{{ summary.activeWorkspaces }}</span>
           <span class="wl-stat-label">Active Workspaces</span>
-          <span class="wl-stat-sub text-success">{{ getActiveRate() }}</span>
+        </div>
+      </div>
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--indigo">
+          <i class="bi bi-bullseye"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.strategicProjects }}</span>
+          <span class="wl-stat-label">Strategic Projects</span>
         </div>
       </div>
       <div class="wl-stat-card">
         <div class="wl-stat-icon wl-stat-icon--teal">
-          <i class="bi bi-people-fill"></i>
+          <i class="bi bi-gear"></i>
         </div>
         <div class="wl-stat-body">
-          <span class="wl-stat-value">{{ summary.totalAdmins }}</span>
-          <span class="wl-stat-label">Total Admins</span>
-          <span class="wl-stat-sub text-primary">Across all workspaces</span>
+          <span class="wl-stat-value">{{ summary.operationalProjects }}</span>
+          <span class="wl-stat-label">Operational Projects</span>
         </div>
       </div>
       <div class="wl-stat-card">
         <div class="wl-stat-icon wl-stat-icon--yellow">
+          <i class="bi bi-bookmark-star"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.standaloneActionItems }}</span>
+          <span class="wl-stat-label">Standalone Actions</span>
+        </div>
+      </div>
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--orange">
           <i class="bi bi-list-task"></i>
         </div>
         <div class="wl-stat-body">
-          <span class="wl-stat-value">{{ summary.totalOpenActions }}</span>
-          <span class="wl-stat-label">Total Actions</span>
-          <span class="wl-stat-sub text-primary">Open across workspaces</span>
+          <span class="wl-stat-value">{{ summary.projectActionItems }}</span>
+          <span class="wl-stat-label">Project Actions</span>
+        </div>
+      </div>
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--purple">
+          <i class="bi bi-flag"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.strategicActionItems }}</span>
+          <span class="wl-stat-label">Strategic Actions</span>
         </div>
       </div>
     </div>

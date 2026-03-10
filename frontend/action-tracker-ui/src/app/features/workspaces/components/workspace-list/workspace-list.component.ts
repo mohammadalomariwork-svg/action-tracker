@@ -166,11 +166,6 @@ export class WorkspaceListComponent implements OnInit {
     return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
-  getActiveRate(): string {
-    if (!this.summary || this.summary.totalWorkspaces === 0) return '0%';
-    return Math.round((this.summary.activeWorkspaces / this.summary.totalWorkspaces) * 100) + '% active rate';
-  }
-
   onView(id: string): void {
     this.router.navigate(['/workspaces', id]);
   }

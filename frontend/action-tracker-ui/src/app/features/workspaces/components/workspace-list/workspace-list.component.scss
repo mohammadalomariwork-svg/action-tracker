@@ -48,10 +48,13 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
 
-  @media (max-width: 991px) {
+  @media (max-width: 1199px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 767px) {
     grid-template-columns: repeat(2, 1fr);
   }
-  @media (max-width: 575px) {
+  @media (max-width: 479px) {
     grid-template-columns: 1fr;
   }
 }
@@ -91,6 +94,18 @@
   &--yellow {
     background: #fef9c3;
     color: #ca8a04;
+  }
+  &--indigo {
+    background: #e0e7ff;
+    color: #4f46e5;
+  }
+  &--orange {
+    background: #ffedd5;
+    color: #ea580c;
+  }
+  &--purple {
+    background: #f3e8ff;
+    color: #9333ea;
   }
 }
 
