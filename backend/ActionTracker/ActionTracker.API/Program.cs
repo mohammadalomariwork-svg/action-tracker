@@ -206,6 +206,8 @@ try
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             options.JsonSerializerOptions.Converters.Add(
                 new UtcDateTimeJsonConverter());
+            options.JsonSerializerOptions.Converters.Add(
+                new UtcNullableDateTimeJsonConverter());
             options.JsonSerializerOptions.DefaultIgnoreCondition =
                 JsonIgnoreCondition.WhenWritingNull;
         });
