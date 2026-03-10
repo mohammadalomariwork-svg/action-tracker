@@ -6,6 +6,7 @@ using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
 using ActionTracker.Domain.Entities;
+using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -56,7 +57,7 @@ public class WorkspaceService : IWorkspaceService
                     ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
                     MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
                     ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted),
-                    OpenActionItemCount = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted && a.Status != 3 && a.Status != 4)
+                    OpenActionItemCount = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted && a.Status != ActionStatus.Done)
                 })
                 .ToListAsync();
 
@@ -85,7 +86,7 @@ public class WorkspaceService : IWorkspaceService
                 .Distinct()
                 .CountAsync();
             var totalOpenActions = await _db.ActionItems
-                .CountAsync(a => !a.IsDeleted && a.Status != 3 && a.Status != 4);
+                .CountAsync(a => !a.IsDeleted && a.Status != ActionStatus.Done);
             var newThisMonth     = await _db.Workspaces
                 .CountAsync(w => w.CreatedAt >= startOfMonth);
 
@@ -153,7 +154,7 @@ public class WorkspaceService : IWorkspaceService
                     ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
                     MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
                     ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted),
-                    OpenActionItemCount = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted && a.Status != 3 && a.Status != 4)
+                    OpenActionItemCount = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted && a.Status != ActionStatus.Done)
                 })
                 .ToListAsync();
 
