@@ -9,6 +9,9 @@
         </svg>
       </span>
       Milestones
+      @if (milestones().length > 0) {
+        <span class="badge bg-secondary ms-count">{{ milestones().length }}</span>
+      }
     </h3>
     <button class="btn btn-primary btn-sm" (click)="openCreateForm()" [disabled]="showForm()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
@@ -27,217 +30,362 @@
     </div>
   }
 
-  <!-- Create / Edit Form -->
-  @if (showForm()) {
-    <div class="milestone-form">
-      <div class="form-header">
-        <h4 class="form-title">{{ editingId() ? 'Edit Milestone' : 'New Milestone' }}</h4>
-      </div>
-
-      <div class="form-body">
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label class="form-label">Name *</label>
-            <input type="text" class="form-control"
-                   [ngModel]="formName()" (ngModelChange)="formName.set($event)"
-                   placeholder="Enter milestone name" maxlength="255">
-          </div>
-
-          <div class="form-group full-width">
-            <label class="form-label">Description</label>
-            <textarea class="form-control" rows="2"
-                      [ngModel]="formDescription()" (ngModelChange)="formDescription.set($event)"
-                      placeholder="What does completing this milestone mean?"
-                      maxlength="5000"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Sequence Order</label>
-            <input type="number" class="form-control" min="1"
-                   [ngModel]="formSequenceOrder()" (ngModelChange)="formSequenceOrder.set($event)">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Weight (%)</label>
-            <input type="number" class="form-control" min="0" max="100" step="0.01"
-                   [ngModel]="formWeight()" (ngModelChange)="formWeight.set($event)">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Planned Start Date *</label>
-            <input type="date" class="form-control"
-                   [ngModel]="formPlannedStartDate()" (ngModelChange)="formPlannedStartDate.set($event)"
-                   [disabled]="isBaselined() && !!editingId()">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Planned Due Date *</label>
-            <input type="date" class="form-control"
-                   [ngModel]="formPlannedDueDate()" (ngModelChange)="formPlannedDueDate.set($event)"
-                   [disabled]="isBaselined() && !!editingId()">
-          </div>
-
-          @if (editingId()) {
-            <div class="form-group">
-              <label class="form-label">Actual Completion Date</label>
-              <input type="date" class="form-control"
-                     [ngModel]="formActualCompletionDate()" (ngModelChange)="formActualCompletionDate.set($event)">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Status</label>
-              <select class="form-control"
-                      [ngModel]="formStatus()" (ngModelChange)="formStatus.set(+$event)">
-                @for (s of statusOptions; track s) {
-                  <option [value]="s">{{ MilestoneStatusLabels[s] }}</option>
-                }
-              </select>
-            </div>
-          }
-
-          <div class="form-group">
-            <label class="form-label">Completion %</label>
-            <input type="number" class="form-control" min="0" max="100" step="1"
-                   [ngModel]="formCompletionPercentage()" (ngModelChange)="formCompletionPercentage.set($event)">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Approver</label>
-            <select class="form-control"
-                    [ngModel]="formApproverUserId()" (ngModelChange)="formApproverUserId.set($event)">
-              <option value="">-- None --</option>
-              @for (u of users(); track u.id) {
-                <option [value]="u.id">{{ u.fullName }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox"
-                     [ngModel]="formIsDeadlineFixed()" (ngModelChange)="formIsDeadlineFixed.set($event)">
-              Fixed Deadline
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-footer">
-        <button class="btn btn-outline btn-sm" (click)="cancelForm()" [disabled]="submitting()">Cancel</button>
-        <button class="btn btn-primary btn-sm" (click)="submitForm()" [disabled]="submitting()">
-          {{ submitting() ? 'Saving...' : (editingId() ? 'Update' : 'Create') }}
-        </button>
-      </div>
-    </div>
-  }
-
   <!-- Empty state -->
   @if (!loading() && milestones().length === 0 && !showForm()) {
     <p class="empty-state">No milestones yet. Click "Add Milestone" to get started.</p>
   }
 
-  <!-- Milestones list -->
-  @for (m of milestones(); track m.id) {
-    <div class="milestone-card">
-      <div class="milestone-header" (click)="toggleExpand(m.id)">
-        <div class="milestone-left">
-          <span class="milestone-seq">{{ m.sequenceOrder }}</span>
-          <div class="milestone-info">
-            <div class="milestone-title-row">
-              <span class="milestone-code">{{ m.milestoneCode }}</span>
-              <span class="milestone-name">{{ m.name }}</span>
-            </div>
-            <div class="milestone-meta">
-              <span [class]="milestoneStatusClass(m.status)">
-                <span class="bd"></span>
-                {{ m.statusLabel }}
-              </span>
-              <span class="meta-sep">&middot;</span>
-              <span class="meta-item">{{ m.completionPercentage }}% complete</span>
-              <span class="meta-sep">&middot;</span>
-              <span class="meta-item">Weight: {{ m.weight }}%</span>
-              @if (m.isDeadlineFixed) {
-                <span class="meta-sep">&middot;</span>
-                <span class="badge bg-danger-subtle">Fixed Deadline</span>
-              }
-              @if (m.scheduleVarianceDays != null) {
-                <span class="meta-sep">&middot;</span>
-                <span [class]="'meta-item ' + varianceClass(m.scheduleVarianceDays)">
-                  {{ varianceLabel(m.scheduleVarianceDays) }}
+  <!-- Milestones table (desktop) -->
+  @if (!loading() && milestones().length > 0) {
+    <div class="ms-table-wrapper">
+      <table class="ms-table">
+        <thead>
+          <tr>
+            <th class="th-seq">#</th>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Weight</th>
+            <th>Planned Start</th>
+            <th>Planned Due</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of milestones(); track m.id) {
+            <tr class="ms-row" [class.ms-row--expanded]="expandedId() === m.id">
+              <td><span class="ms-seq-badge">{{ m.sequenceOrder }}</span></td>
+              <td><span class="ms-code">{{ m.milestoneCode }}</span></td>
+              <td>
+                <span class="ms-name-link" (click)="toggleExpand(m.id)">{{ m.name }}</span>
+              </td>
+              <td>
+                <span [class]="milestoneStatusClass(m.status)">
+                  <span class="bd"></span>
+                  {{ m.statusLabel }}
                 </span>
-              }
+              </td>
+              <td>
+                <div class="ms-progress-cell">
+                  <div class="ms-progress-bar">
+                    <div class="ms-progress-fill" [style.width.%]="m.completionPercentage"></div>
+                  </div>
+                  <span class="ms-progress-text">{{ m.completionPercentage }}%</span>
+                </div>
+              </td>
+              <td class="text-muted">{{ m.weight }}%</td>
+              <td class="text-muted">{{ m.plannedStartDate | date:'MMM d, y' }}</td>
+              <td class="text-muted">
+                {{ m.plannedDueDate | date:'MMM d, y' }}
+                @if (m.isDeadlineFixed) {
+                  <span class="badge bg-danger-subtle ms-1" style="font-size:10px">Fixed</span>
+                }
+              </td>
+              <td class="text-end">
+                <div class="ms-row-actions">
+                  <button class="btn btn-outline-info btn-sm ms-action-btn"
+                          (click)="toggleExpand(m.id)" title="View">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                  <button class="btn btn-outline-primary btn-sm ms-action-btn"
+                          (click)="openEditForm(m)" title="Edit"
+                          [disabled]="showForm()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm ms-action-btn"
+                          (click)="deleteMilestone(m)" title="Delete">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14H6L5 6"/>
+                      <path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <!-- Expanded detail row -->
+            @if (expandedId() === m.id) {
+              <tr class="ms-detail-row">
+                <td colspan="9">
+                  <div class="ms-detail-content">
+                    @if (m.actualCompletionDate) {
+                      <div class="ms-detail-item">
+                        <span class="ms-detail-label">Completed</span>
+                        <span>{{ m.actualCompletionDate | date:'MMM d, y' }}</span>
+                      </div>
+                    }
+                    @if (m.scheduleVarianceDays != null) {
+                      <div class="ms-detail-item">
+                        <span class="ms-detail-label">Variance</span>
+                        <span [class]="varianceClass(m.scheduleVarianceDays)">
+                          {{ varianceLabel(m.scheduleVarianceDays) }}
+                        </span>
+                      </div>
+                    }
+                    @if (m.description) {
+                      <div class="ms-detail-item ms-detail-item--full">
+                        <span class="ms-detail-label">Description</span>
+                        <p class="ms-detail-desc">{{ m.description }}</p>
+                      </div>
+                    }
+                    @if (m.approverName) {
+                      <div class="ms-detail-item">
+                        <span class="ms-detail-label">Approver</span>
+                        <span class="assignee-chip">
+                          <span class="assignee-avatar">{{ m.approverName.charAt(0).toUpperCase() }}</span>
+                          {{ m.approverName }}
+                        </span>
+                      </div>
+                    }
+                    @if (m.baselinePlannedDueDate) {
+                      <div class="ms-detail-item">
+                        <span class="ms-detail-label">Baseline</span>
+                        <span>{{ m.baselinePlannedStartDate | date:'MMM d, y' }} &ndash; {{ m.baselinePlannedDueDate | date:'MMM d, y' }}</span>
+                      </div>
+                    }
+                    <div class="ms-detail-attachments">
+                      <app-comments-section
+                        entityType="Milestone"
+                        [entityId]="m.id"
+                      />
+                      <app-documents-section
+                        entityType="Milestone"
+                        [entityId]="m.id"
+                      />
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="ms-mobile-cards">
+      @for (m of milestones(); track m.id) {
+        <div class="ms-mobile-card">
+          <div class="ms-mobile-card__header">
+            <span class="ms-seq-badge">{{ m.sequenceOrder }}</span>
+            <span class="ms-code">{{ m.milestoneCode }}</span>
+            <span [class]="milestoneStatusClass(m.status)">
+              <span class="bd"></span>
+              {{ m.statusLabel }}
+            </span>
+          </div>
+          <div class="ms-mobile-card__title" (click)="toggleExpand(m.id)">{{ m.name }}</div>
+          <div class="ms-mobile-card__meta">
+            <div class="ms-mobile-card__meta-row">
+              <span class="ms-mobile-card__meta-label">Progress</span>
+              <span class="ms-mobile-card__meta-value">{{ m.completionPercentage }}%</span>
+            </div>
+            <div class="ms-mobile-card__meta-row">
+              <span class="ms-mobile-card__meta-label">Weight</span>
+              <span class="ms-mobile-card__meta-value">{{ m.weight }}%</span>
+            </div>
+            <div class="ms-mobile-card__meta-row">
+              <span class="ms-mobile-card__meta-label">Period</span>
+              <span class="ms-mobile-card__meta-value">
+                {{ m.plannedStartDate | date:'MMM d, y' }} &ndash; {{ m.plannedDueDate | date:'MMM d, y' }}
+              </span>
             </div>
           </div>
-        </div>
-
-        <div class="milestone-right">
-          <div class="milestone-dates">
-            <span class="date-range">{{ m.plannedStartDate | date:'mediumDate' }} &ndash; {{ m.plannedDueDate | date:'mediumDate' }}</span>
-            @if (m.actualCompletionDate) {
-              <span class="date-actual">Completed {{ m.actualCompletionDate | date:'mediumDate' }}</span>
-            }
-          </div>
-          <div class="milestone-actions" (click)="$event.stopPropagation()">
-            <button class="btn-icon" title="Edit" (click)="openEditForm(m)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
+          <div class="ms-mobile-card__actions">
+            <button class="btn btn-outline-info btn-sm" (click)="toggleExpand(m.id)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              View
+            </button>
+            <button class="btn btn-outline-primary btn-sm" (click)="openEditForm(m)" [disabled]="showForm()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Edit
             </button>
-            <button class="btn-icon btn-icon--danger" title="Delete" (click)="deleteMilestone(m)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M9 6V4h6v2"/>
-              </svg>
+            <button class="btn btn-outline-danger btn-sm" (click)="deleteMilestone(m)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
               Delete
             </button>
           </div>
-        </div>
-      </div>
 
-      <!-- Progress bar -->
-      <div class="progress-bar-container">
-        <div class="progress-bar-fill" [style.width.%]="m.completionPercentage"></div>
-      </div>
-
-      @if (m.description && expandedId() === m.id) {
-        <div class="milestone-description">
-          <p>{{ m.description }}</p>
-        </div>
-      }
-
-      @if (m.approverName && expandedId() === m.id) {
-        <div class="milestone-approver">
-          <span class="detail-label">Approver:</span>
-          <span class="assignee-chip">
-            <span class="assignee-avatar">{{ m.approverName.charAt(0).toUpperCase() }}</span>
-            {{ m.approverName }}
-          </span>
-        </div>
-      }
-
-      @if (expandedId() === m.id && m.baselinePlannedDueDate) {
-        <div class="milestone-baseline">
-          <span class="detail-label">Baseline:</span>
-          <span>{{ m.baselinePlannedStartDate | date:'mediumDate' }} &ndash; {{ m.baselinePlannedDueDate | date:'mediumDate' }}</span>
-        </div>
-      }
-
-      <!-- Comments & Documents for this milestone -->
-      @if (expandedId() === m.id) {
-        <div class="milestone-attachments">
-          <app-comments-section
-            entityType="Milestone"
-            [entityId]="m.id"
-          />
-          <app-documents-section
-            entityType="Milestone"
-            [entityId]="m.id"
-          />
+          <!-- Expanded detail in mobile card -->
+          @if (expandedId() === m.id) {
+            <div class="ms-detail-content ms-detail-content--mobile">
+              @if (m.description) {
+                <div class="ms-detail-item ms-detail-item--full">
+                  <span class="ms-detail-label">Description</span>
+                  <p class="ms-detail-desc">{{ m.description }}</p>
+                </div>
+              }
+              @if (m.approverName) {
+                <div class="ms-detail-item">
+                  <span class="ms-detail-label">Approver</span>
+                  <span class="assignee-chip">
+                    <span class="assignee-avatar">{{ m.approverName.charAt(0).toUpperCase() }}</span>
+                    {{ m.approverName }}
+                  </span>
+                </div>
+              }
+              <div class="ms-detail-attachments">
+                <app-comments-section entityType="Milestone" [entityId]="m.id" />
+                <app-documents-section entityType="Milestone" [entityId]="m.id" />
+              </div>
+            </div>
+          }
         </div>
       }
     </div>
   }
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Offcanvas drawer — Add / Edit Milestone
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end ms-offcanvas"
+     [class.show]="showForm()"
+     [style.visibility]="showForm() ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">
+      @if (editingId()) {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" class="title-icon text-primary">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit Milestone
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18" class="title-icon text-success">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="16"/>
+          <line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        New Milestone
+      }
+    </h5>
+    <button type="button" class="btn-close" (click)="cancelForm()"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (showForm()) {
+      <!-- Name -->
+      <div class="mb-3">
+        <label class="form-label">Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control"
+               [ngModel]="formName()" (ngModelChange)="formName.set($event)"
+               placeholder="Enter milestone name" maxlength="255">
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="3"
+                  [ngModel]="formDescription()" (ngModelChange)="formDescription.set($event)"
+                  placeholder="What does completing this milestone mean?"
+                  maxlength="5000"></textarea>
+      </div>
+
+      <!-- Sequence & Weight -->
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label">Sequence Order</label>
+          <input type="number" class="form-control" min="1"
+                 [ngModel]="formSequenceOrder()" (ngModelChange)="formSequenceOrder.set($event)">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Weight (%)</label>
+          <input type="number" class="form-control" min="0" max="100" step="0.01"
+                 [ngModel]="formWeight()" (ngModelChange)="formWeight.set($event)">
+        </div>
+      </div>
+
+      <!-- Planned Start & Due Date -->
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label">Planned Start <span class="text-danger">*</span></label>
+          <input type="date" class="form-control"
+                 [ngModel]="formPlannedStartDate()" (ngModelChange)="formPlannedStartDate.set($event)"
+                 [disabled]="isBaselined() && !!editingId()">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Planned Due <span class="text-danger">*</span></label>
+          <input type="date" class="form-control"
+                 [ngModel]="formPlannedDueDate()" (ngModelChange)="formPlannedDueDate.set($event)"
+                 [disabled]="isBaselined() && !!editingId()">
+        </div>
+      </div>
+
+      <!-- Edit-only fields -->
+      @if (editingId()) {
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label">Actual Completion</label>
+            <input type="date" class="form-control"
+                   [ngModel]="formActualCompletionDate()" (ngModelChange)="formActualCompletionDate.set($event)">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Status</label>
+            <select class="form-control"
+                    [ngModel]="formStatus()" (ngModelChange)="formStatus.set(+$event)">
+              @for (s of statusOptions; track s) {
+                <option [value]="s">{{ MilestoneStatusLabels[s] }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      }
+
+      <!-- Completion % -->
+      <div class="mb-3">
+        <label class="form-label">Completion %</label>
+        <input type="number" class="form-control" min="0" max="100" step="1"
+               [ngModel]="formCompletionPercentage()" (ngModelChange)="formCompletionPercentage.set($event)">
+      </div>
+
+      <!-- Approver -->
+      <div class="mb-3">
+        <label class="form-label">Approver</label>
+        <select class="form-control"
+                [ngModel]="formApproverUserId()" (ngModelChange)="formApproverUserId.set($event)">
+          <option value="">-- None --</option>
+          @for (u of users(); track u.id) {
+            <option [value]="u.id">{{ u.fullName }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Fixed Deadline -->
+      <div class="mb-3">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="msFixedDeadline"
+                 [ngModel]="formIsDeadlineFixed()" (ngModelChange)="formIsDeadlineFixed.set($event)">
+          <label class="form-check-label" for="msFixedDeadline">Fixed Deadline</label>
+        </div>
+      </div>
+
+      <!-- Save / Cancel -->
+      <div class="d-flex gap-2 justify-content-end border-top pt-3">
+        <button type="button" class="btn btn-outline-secondary"
+                (click)="cancelForm()" [disabled]="submitting()">Cancel</button>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                (click)="submitForm()" [disabled]="submitting()">
+          @if (submitting()) {
+            <span class="spinner-border spinner-border-sm"></span> Saving...
+          } @else {
+            @if (!editingId()) { Create }
+            @else { Update }
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Backdrop -->
+@if (showForm()) {
+  <div class="offcanvas-backdrop fade show" (click)="cancelForm()"></div>
+}
