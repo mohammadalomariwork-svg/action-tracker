@@ -19,7 +19,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-#pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
@@ -1521,10 +1520,16 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasForeignKey("ApproverUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Approver");
 
+                    b.Navigation("Project");
+                });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.OrgUnit", b =>
                 {
@@ -1571,6 +1576,10 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectSponsor", b =>
                 {
+                    b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
+                        .WithMany("Sponsors")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "User")
@@ -1578,6 +1587,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Project");
 
                     b.Navigation("User");
                 });
@@ -1706,8 +1717,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 {
                     b.Navigation("Admins");
                 });
-#pragma warning restore 612, 618
-        }
 #pragma warning restore 612, 618
         }
     }

@@ -19,7 +19,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-#pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
@@ -1732,8 +1731,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 {
                     b.Navigation("Admins");
                 });
-#pragma warning restore 612, 618
-        }
 #pragma warning restore 612, 618
         }
     }
