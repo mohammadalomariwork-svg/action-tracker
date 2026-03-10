@@ -385,6 +385,10 @@ export class WorkspaceDetailComponent implements OnInit {
       escalationExplanation: '',
     };
     this.editingEscalations = item.escalations ?? [];
+    if (item.isEscalated && this.editingEscalations.length > 0) {
+      const last = this.editingEscalations[this.editingEscalations.length - 1];
+      this.actionForm.escalationExplanation = last.explanation ?? '';
+    }
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
@@ -401,6 +405,12 @@ export class WorkspaceDetailComponent implements OnInit {
   onDocumentClick(): void {
     this.assigneeDropdownOpen = false;
     this.sponsorDropdownOpen = false;
+  }
+
+  get lastEscalation(): EscalationInfo | null {
+    return this.editingEscalations.length > 0
+      ? this.editingEscalations[this.editingEscalations.length - 1]
+      : null;
   }
 
   get filteredUsers(): AssignableUser[] {
