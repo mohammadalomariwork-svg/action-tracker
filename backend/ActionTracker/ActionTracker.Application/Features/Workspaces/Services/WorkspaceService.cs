@@ -43,10 +43,22 @@ public class WorkspaceService : IWorkspaceService
         {
             var list = await _db.Workspaces
                 .Include(w => w.Admins)
-                .OrderBy(w => w.Title)
+                .OrderByDescending(w => w.CreatedAt)
+                .Select(w => new WorkspaceListDto
+                {
+                    Id               = w.Id,
+                    Title            = w.Title,
+                    OrganizationUnit = w.OrganizationUnit,
+                    AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
+                    IsActive         = w.IsActive,
+                    CreatedAt        = w.CreatedAt,
+                    ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
+                    MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
+                    ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted)
+                })
                 .ToListAsync();
 
-            return list.Select(ToListDto);
+            return list;
         }
         catch (Exception ex)
         {
@@ -91,10 +103,22 @@ public class WorkspaceService : IWorkspaceService
             var list = await _db.Workspaces
                 .Include(w => w.Admins)
                 .Where(w => w.IsActive && w.Admins.Any(a => a.AdminUserId == adminUserId))
-                .OrderBy(w => w.Title)
+                .OrderByDescending(w => w.CreatedAt)
+                .Select(w => new WorkspaceListDto
+                {
+                    Id               = w.Id,
+                    Title            = w.Title,
+                    OrganizationUnit = w.OrganizationUnit,
+                    AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
+                    IsActive         = w.IsActive,
+                    CreatedAt        = w.CreatedAt,
+                    ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
+                    MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
+                    ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted)
+                })
                 .ToListAsync();
 
-            return list.Select(ToListDto);
+            return list;
         }
         catch (Exception ex)
         {
@@ -441,6 +465,7 @@ public class WorkspaceService : IWorkspaceService
         Title            = w.Title,
         OrganizationUnit = w.OrganizationUnit,
         AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
-        IsActive         = w.IsActive
+        IsActive         = w.IsActive,
+        CreatedAt        = w.CreatedAt
     };
 }

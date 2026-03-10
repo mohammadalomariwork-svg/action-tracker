@@ -22,4 +22,16 @@ public class WorkspaceListDto
 
     /// <summary>Whether the workspace is currently active.</summary>
     public bool IsActive { get; set; }
+
+    /// <summary>UTC timestamp when the workspace was created.</summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>Number of projects in this workspace.</summary>
+    public int ProjectCount { get; set; }
+
+    /// <summary>Number of milestones across all projects in this workspace.</summary>
+    public int MilestoneCount { get; set; }
+
+    /// <summary>Number of action items in this workspace.</summary>
+    public int ActionItemCount { get; set; }
 }

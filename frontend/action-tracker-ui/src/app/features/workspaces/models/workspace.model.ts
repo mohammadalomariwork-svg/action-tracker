@@ -46,6 +46,14 @@ export interface WorkspaceList {
   adminUserNames: string;
   /** Whether the workspace is currently active. */
   isActive: boolean;
+  /** UTC timestamp when the workspace was created. */
+  createdAt: string;
+  /** Number of projects in this workspace. */
+  projectCount: number;
+  /** Number of milestones across all projects in this workspace. */
+  milestoneCount: number;
+  /** Number of action items in this workspace. */
+  actionItemCount: number;
 }
 
 /**
