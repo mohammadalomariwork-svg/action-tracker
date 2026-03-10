@@ -611,11 +611,11 @@ export class WorkspaceDetailComponent implements OnInit {
       priority: prj.priority,
       projectManagerUserId: prj.projectManagerUserId,
       sponsorUserIds: prj.sponsors.map(s => s.userId),
-      plannedStartDate: prj.plannedStartDate ? new Date(prj.plannedStartDate).toISOString().substring(0, 10) : '',
-      plannedEndDate: prj.plannedEndDate ? new Date(prj.plannedEndDate).toISOString().substring(0, 10) : '',
+      plannedStartDate: prj.plannedStartDate ? String(prj.plannedStartDate).substring(0, 10) : '',
+      plannedEndDate: prj.plannedEndDate ? String(prj.plannedEndDate).substring(0, 10) : '',
       approvedBudget: prj.approvedBudget ?? null,
       status: prj.status,
-      actualStartDate: prj.actualStartDate ? new Date(prj.actualStartDate).toISOString().substring(0, 10) : '',
+      actualStartDate: prj.actualStartDate ? String(prj.actualStartDate).substring(0, 10) : '',
     };
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';

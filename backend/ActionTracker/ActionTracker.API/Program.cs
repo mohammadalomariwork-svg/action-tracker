@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ActionTracker.API.Converters;
 using ActionTracker.API.Extensions;
 using ActionTracker.API.Middleware;
 using ActionTracker.Application.Features.ActionItems.Validators;
@@ -203,6 +204,8 @@ try
                 JsonNamingPolicy.CamelCase;
             options.JsonSerializerOptions.Converters.Add(
                 new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            options.JsonSerializerOptions.Converters.Add(
+                new UtcDateTimeJsonConverter());
             options.JsonSerializerOptions.DefaultIgnoreCondition =
                 JsonIgnoreCondition.WhenWritingNull;
         });

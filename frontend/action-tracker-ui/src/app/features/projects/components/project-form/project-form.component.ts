@@ -277,11 +277,11 @@ export class ProjectFormComponent implements OnInit {
             strategicObjectiveId: p.strategicObjectiveId ?? null,
             priority: p.priority,
             projectManagerUserId: p.projectManagerUserId,
-            plannedStartDate: p.plannedStartDate ? new Date(p.plannedStartDate).toISOString().substring(0, 10) : '',
-            plannedEndDate: p.plannedEndDate ? new Date(p.plannedEndDate).toISOString().substring(0, 10) : '',
+            plannedStartDate: p.plannedStartDate ? String(p.plannedStartDate).substring(0, 10) : '',
+            plannedEndDate: p.plannedEndDate ? String(p.plannedEndDate).substring(0, 10) : '',
             approvedBudget: p.approvedBudget ?? null,
             status: p.status,
-            actualStartDate: p.actualStartDate ? new Date(p.actualStartDate).toISOString().substring(0, 10) : '',
+            actualStartDate: p.actualStartDate ? String(p.actualStartDate).substring(0, 10) : '',
           });
 
           if (this.isBaselined) {
