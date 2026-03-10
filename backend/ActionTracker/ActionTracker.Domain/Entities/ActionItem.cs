@@ -15,8 +15,14 @@ public class ActionItem
     /// <summary>The workspace this action item belongs to.</summary>
     public Guid WorkspaceId { get; set; }
 
+    /// <summary>Optional link to a project.</summary>
+    public Guid? ProjectId { get; set; }
+
     /// <summary>Optional link to a milestone within a project.</summary>
     public Guid? MilestoneId { get; set; }
+
+    /// <summary>True when the action item is standalone (not linked to any project/milestone). Default true for backward compatibility.</summary>
+    public bool IsStandalone { get; set; } = true;
 
     public ActionPriority Priority { get; set; }
     public ActionStatus Status { get; set; } = ActionStatus.ToDo;
@@ -44,6 +50,7 @@ public class ActionItem
 
     // Navigation properties
     public Workspace Workspace { get; set; } = null!;
+    public Project? Project { get; set; }
     public Milestone? Milestone { get; set; }
     public ICollection<ActionItemAssignee> Assignees { get; set; } = new List<ActionItemAssignee>();
     public ICollection<ActionItemEscalation> Escalations { get; set; } = new List<ActionItemEscalation>();

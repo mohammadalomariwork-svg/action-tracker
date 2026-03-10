@@ -51,7 +51,15 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Property<bool>("IsEscalated")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsStandalone")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<Guid?>("MilestoneId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Priority")
@@ -85,6 +93,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.HasIndex("MilestoneId");
+
+                    b.HasIndex("ProjectId");
 
                     b.HasIndex("WorkspaceId");
 
@@ -1395,6 +1405,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasForeignKey("MilestoneId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
                         .WithMany()
                         .HasForeignKey("WorkspaceId")
@@ -1402,6 +1417,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Milestone");
+
+                    b.Navigation("Project");
 
                     b.Navigation("Workspace");
                 });

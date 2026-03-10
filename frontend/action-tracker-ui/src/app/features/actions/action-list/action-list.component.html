@@ -119,6 +119,8 @@
               <th class="sortable th-title" (click)="onSortChange('title')">
                 Title <span class="sort-indicator">{{ sortBy() === 'title' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
               </th>
+              <th>Project</th>
+              <th>Milestone</th>
               <th>Assignee(s)</th>
               <th class="sortable" (click)="onSortChange('priority')">
                 Priority <span class="sort-indicator">{{ sortBy() === 'priority' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
@@ -137,7 +139,7 @@
             @if (loading()) {
               @for (r of skeletonRows; track $index) {
                 <tr class="sk-row">
-                  @for (c of [1,2,3,4,5,6,7,8]; track c) {
+                  @for (c of [1,2,3,4,5,6,7,8,9,10]; track c) {
                     <td><span class="sk-cell"></span></td>
                   }
                 </tr>
@@ -148,7 +150,7 @@
             @if (!loading()) {
               @if (items().length === 0) {
                 <tr>
-                  <td colspan="8" class="empty-cell">
+                  <td colspan="10" class="empty-cell">
                     <div class="empty-state">
                       <div class="empty-state__icon">📭</div>
                       <p class="empty-state__title">No action items found</p>
@@ -179,6 +181,24 @@
                   <!-- Title -->
                   <td class="td-title">
                     <span class="title-text" [title]="item.title">{{ item.title }}</span>
+                  </td>
+
+                  <!-- Project -->
+                  <td>
+                    @if (item.projectName) {
+                      <a [routerLink]="['/projects', item.projectId]" class="table-link">{{ item.projectName }}</a>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </td>
+
+                  <!-- Milestone -->
+                  <td>
+                    @if (item.milestoneName && item.projectId) {
+                      <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="table-link">{{ item.milestoneName }}</a>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
                   </td>
 
                   <!-- Assignee(s) -->
@@ -270,6 +290,12 @@
               </div>
               <p class="action-card__title">{{ item.title }}</p>
               <div class="action-card__meta">
+                @if (item.projectName) {
+                  <span class="card-meta-tag">{{ item.projectName }}</span>
+                }
+                @if (item.milestoneName) {
+                  <span class="card-meta-tag">{{ item.milestoneName }}</span>
+                }
                 <span class="assignee">
                   <span class="assignee-avatar">{{ assigneeInitial(item) }}</span>
                   {{ assigneeNames(item) }}

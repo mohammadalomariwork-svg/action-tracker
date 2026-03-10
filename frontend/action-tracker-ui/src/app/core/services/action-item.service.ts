@@ -21,7 +21,9 @@ export class ActionItemService {
     if (filter.priority != null) params = params.set('priority', filter.priority);
     if (filter.assigneeId) params = params.set('assigneeId', filter.assigneeId);
     if (filter.workspaceId) params = params.set('workspaceId', filter.workspaceId);
+    if (filter.projectId) params = params.set('projectId', filter.projectId);
     if (filter.milestoneId) params = params.set('milestoneId', filter.milestoneId);
+    if (filter.isStandalone != null) params = params.set('isStandalone', filter.isStandalone);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
     if (filter.includeDeleted) params = params.set('includeDeleted', true);
 

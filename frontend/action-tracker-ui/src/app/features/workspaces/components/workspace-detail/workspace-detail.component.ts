@@ -439,6 +439,7 @@ export class WorkspaceDetailComponent implements OnInit {
       title:       this.actionForm.title.trim(),
       description: this.actionForm.description?.trim() ?? '',
       workspaceId: this.workspaceId,
+      isStandalone: true,
       assigneeIds: this.actionForm.assigneeIds,
       priority:    +this.actionForm.priority as ActionPriority,
       status:      +this.actionForm.status as ActionStatus,

@@ -49,6 +49,14 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
 
         builder.HasIndex(a => a.WorkspaceId);
 
+        // FK to Project (optional)
+        builder.HasOne(a => a.Project)
+            .WithMany()
+            .HasForeignKey(a => a.ProjectId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(a => a.ProjectId);
+
         // FK to Milestone (optional)
         builder.HasOne(a => a.Milestone)
             .WithMany()
@@ -56,6 +64,9 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(a => a.MilestoneId);
+
+        builder.Property(a => a.IsStandalone)
+            .HasDefaultValue(true);
     }
 }
 

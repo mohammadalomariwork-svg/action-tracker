@@ -44,8 +44,11 @@ export interface ActionItem {
   description: string;
   workspaceId: string;
   workspaceTitle: string;
+  projectId: string | null;
+  projectName: string | null;
   milestoneId: string | null;
   milestoneName: string | null;
+  isStandalone: boolean;
   assignees: AssigneeInfo[];
   priority: ActionPriority;
   priorityLabel: string;
@@ -68,7 +71,9 @@ export interface ActionItemCreate {
   title: string;
   description: string;
   workspaceId: string;
+  projectId?: string;
   milestoneId?: string;
+  isStandalone?: boolean;
   assigneeIds: string[];
   priority: ActionPriority;
   status: ActionStatus;
@@ -90,7 +95,9 @@ export interface ActionItemFilter {
   priority?: ActionPriority;
   assigneeId?: string;
   workspaceId?: string;
+  projectId?: string;
   milestoneId?: string;
+  isStandalone?: boolean;
   searchTerm?: string;
   pageNumber: number;
   pageSize: number;

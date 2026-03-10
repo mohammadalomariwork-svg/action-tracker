@@ -45,11 +45,40 @@
           </div>
 
           <div class="detail-row">
+            <span class="detail-label">Type</span>
+            <span class="detail-value">
+              @if (ai.isStandalone) {
+                <span class="badge badge--secondary">Standalone</span>
+              } @else {
+                <span class="badge badge--primary">Project-linked</span>
+              }
+            </span>
+          </div>
+
+          <div class="detail-row">
             <span class="detail-label">Workspace</span>
             <span class="detail-value">
               <a [routerLink]="['/workspaces', ai.workspaceId]" class="link">{{ ai.workspaceTitle }}</a>
             </span>
           </div>
+
+          @if (ai.projectId) {
+            <div class="detail-row">
+              <span class="detail-label">Project</span>
+              <span class="detail-value">
+                <a [routerLink]="['/projects', ai.projectId]" class="link">{{ ai.projectName }}</a>
+              </span>
+            </div>
+          }
+
+          @if (ai.milestoneId && ai.projectId) {
+            <div class="detail-row">
+              <span class="detail-label">Milestone</span>
+              <span class="detail-value">
+                <a [routerLink]="['/projects', ai.projectId, 'milestones', ai.milestoneId]" class="link">{{ ai.milestoneName }}</a>
+              </span>
+            </div>
+          }
 
           <div class="detail-row">
             <span class="detail-label">Assignee(s)</span>

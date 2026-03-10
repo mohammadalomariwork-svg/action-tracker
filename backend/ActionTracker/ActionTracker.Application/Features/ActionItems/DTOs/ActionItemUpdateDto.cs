@@ -16,8 +16,14 @@ public class ActionItemUpdateDto
 
     public Guid? WorkspaceId { get; set; }
 
+    /// <summary>Optional link to a project. Set to Guid.Empty to clear.</summary>
+    public Guid? ProjectId { get; set; }
+
     /// <summary>Optional link to a milestone. Set to Guid.Empty to clear.</summary>
     public Guid? MilestoneId { get; set; }
+
+    /// <summary>When supplied, updates the standalone flag.</summary>
+    public bool? IsStandalone { get; set; }
 
     /// <summary>When supplied, replaces the full assignee list.</summary>
     public List<string>? AssigneeIds { get; set; }

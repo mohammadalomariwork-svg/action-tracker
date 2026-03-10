@@ -357,6 +357,8 @@
                   <tr>
                     <th>ID</th>
                     <th>Title</th>
+                    <th>Project</th>
+                    <th>Milestone</th>
                     <th>Assignee(s)</th>
                     <th>Priority</th>
                     <th>Status</th>
@@ -382,6 +384,20 @@
                       </td>
                       <td>
                         <span class="wa-title" [title]="item.title">{{ item.title }}</span>
+                      </td>
+                      <td>
+                        @if (item.projectName) {
+                          <a [routerLink]="['/projects', item.projectId]" class="wa-link">{{ item.projectName }}</a>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+                      <td>
+                        @if (item.milestoneName && item.projectId) {
+                          <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="wa-link">{{ item.milestoneName }}</a>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
                       </td>
                       <td>
                         <div class="wa-assignees">
@@ -472,6 +488,18 @@
 
                   <!-- Meta rows -->
                   <div class="wa-action-card__meta">
+                    @if (item.projectName) {
+                      <div class="wa-action-card__meta-row">
+                        <span class="wa-action-card__meta-label"><i class="bi bi-folder me-1"></i>Project</span>
+                        <span class="wa-action-card__meta-value">{{ item.projectName }}</span>
+                      </div>
+                    }
+                    @if (item.milestoneName) {
+                      <div class="wa-action-card__meta-row">
+                        <span class="wa-action-card__meta-label"><i class="bi bi-flag me-1"></i>Milestone</span>
+                        <span class="wa-action-card__meta-value">{{ item.milestoneName }}</span>
+                      </div>
+                    }
                     <div class="wa-action-card__meta-row">
                       <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
                       <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>

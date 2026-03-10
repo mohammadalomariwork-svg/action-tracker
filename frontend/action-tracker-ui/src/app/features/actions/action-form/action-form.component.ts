@@ -220,6 +220,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       title:       raw.title.trim(),
       description: raw.description?.trim() ?? '',
       workspaceId: raw.workspaceId,
+      isStandalone: true,
       assigneeIds: raw.assigneeIds,
       priority:    +raw.priority,
       status:      +raw.status,

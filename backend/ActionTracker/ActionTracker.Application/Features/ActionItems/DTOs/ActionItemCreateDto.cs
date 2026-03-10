@@ -15,8 +15,14 @@ public class ActionItemCreateDto
     [Required]
     public Guid WorkspaceId { get; set; }
 
+    /// <summary>Optional link to a project.</summary>
+    public Guid? ProjectId { get; set; }
+
     /// <summary>Optional link to a milestone.</summary>
     public Guid? MilestoneId { get; set; }
+
+    /// <summary>True for standalone action items (not linked to a project/milestone). Defaults to true.</summary>
+    public bool IsStandalone { get; set; } = true;
 
     /// <summary>At least one assignee is required.</summary>
     [Required]
