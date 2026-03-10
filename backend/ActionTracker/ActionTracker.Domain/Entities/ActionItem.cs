@@ -15,6 +15,9 @@ public class ActionItem
     /// <summary>The workspace this action item belongs to.</summary>
     public Guid WorkspaceId { get; set; }
 
+    /// <summary>Optional link to a milestone within a project.</summary>
+    public Guid? MilestoneId { get; set; }
+
     public ActionPriority Priority { get; set; }
     public ActionStatus Status { get; set; } = ActionStatus.ToDo;
 
@@ -41,6 +44,7 @@ public class ActionItem
 
     // Navigation properties
     public Workspace Workspace { get; set; } = null!;
+    public Milestone? Milestone { get; set; }
     public ICollection<ActionItemAssignee> Assignees { get; set; } = new List<ActionItemAssignee>();
     public ICollection<ActionItemEscalation> Escalations { get; set; } = new List<ActionItemEscalation>();
     public ICollection<ActionItemComment> Comments { get; set; } = new List<ActionItemComment>();

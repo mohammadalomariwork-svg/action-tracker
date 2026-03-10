@@ -30,6 +30,7 @@ public class ActionItemService : IActionItemService
     {
         var query = _dbContext.ActionItems
             .Include(a => a.Workspace)
+            .Include(a => a.Milestone)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .AsQueryable();
@@ -46,6 +47,9 @@ public class ActionItemService : IActionItemService
 
         if (filter.WorkspaceId.HasValue)
             query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
+
+        if (filter.MilestoneId.HasValue)
+            query = query.Where(a => a.MilestoneId == filter.MilestoneId.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.AssigneeId))
             query = query.Where(a => a.Assignees.Any(aa => aa.UserId == filter.AssigneeId));
@@ -100,6 +104,7 @@ public class ActionItemService : IActionItemService
     {
         var item = await _dbContext.ActionItems
             .Include(a => a.Workspace)
+            .Include(a => a.Milestone)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .Include(a => a.Comments).ThenInclude(c => c.Author)
@@ -127,6 +132,7 @@ public class ActionItemService : IActionItemService
             Title       = dto.Title,
             Description = dto.Description,
             WorkspaceId = dto.WorkspaceId,
+            MilestoneId = dto.MilestoneId,
             Priority    = dto.Priority,
             Status      = dto.Status,
             StartDate   = dto.StartDate,
@@ -169,6 +175,7 @@ public class ActionItemService : IActionItemService
         // Re-fetch with navigations populated
         var created = await _dbContext.ActionItems
             .Include(a => a.Workspace)
+            .Include(a => a.Milestone)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .Include(a => a.Comments).ThenInclude(c => c.Author)
@@ -197,6 +204,7 @@ public class ActionItemService : IActionItemService
         if (dto.Title       is not null) item.Title       = dto.Title;
         if (dto.Description is not null) item.Description = dto.Description;
         if (dto.WorkspaceId is not null) item.WorkspaceId = dto.WorkspaceId.Value;
+        if (dto.MilestoneId is not null) item.MilestoneId = dto.MilestoneId.Value == Guid.Empty ? null : dto.MilestoneId.Value;
         if (dto.Priority    is not null) item.Priority    = dto.Priority.Value;
         if (dto.Status      is not null) item.Status      = dto.Status.Value;
         if (dto.StartDate   is not null) item.StartDate   = dto.StartDate.Value;
@@ -244,6 +252,7 @@ public class ActionItemService : IActionItemService
         // Re-fetch so navigations reflect changes
         var updated = await _dbContext.ActionItems
             .Include(a => a.Workspace)
+            .Include(a => a.Milestone)
             .Include(a => a.Assignees).ThenInclude(aa => aa.User)
             .Include(a => a.Escalations).ThenInclude(e => e.EscalatedByUser)
             .Include(a => a.Comments).ThenInclude(c => c.Author)

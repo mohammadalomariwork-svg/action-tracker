@@ -13,6 +13,9 @@ public class ActionItemResponseDto
     public Guid WorkspaceId { get; set; }
     public string WorkspaceTitle { get; set; } = string.Empty;
 
+    public Guid? MilestoneId { get; set; }
+    public string? MilestoneName { get; set; }
+
     public ActionPriority Priority { get; set; }
     public ActionStatus Status { get; set; }
 

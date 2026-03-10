@@ -15,6 +15,9 @@ public class ActionItemCreateDto
     [Required]
     public Guid WorkspaceId { get; set; }
 
+    /// <summary>Optional link to a milestone.</summary>
+    public Guid? MilestoneId { get; set; }
+
     /// <summary>At least one assignee is required.</summary>
     [Required]
     [MinLength(1, ErrorMessage = "At least one assignee is required.")]

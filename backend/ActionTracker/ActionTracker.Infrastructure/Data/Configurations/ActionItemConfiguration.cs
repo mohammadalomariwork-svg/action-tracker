@@ -48,6 +48,14 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(a => a.WorkspaceId);
+
+        // FK to Milestone (optional)
+        builder.HasOne(a => a.Milestone)
+            .WithMany()
+            .HasForeignKey(a => a.MilestoneId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(a => a.MilestoneId);
     }
 }
 

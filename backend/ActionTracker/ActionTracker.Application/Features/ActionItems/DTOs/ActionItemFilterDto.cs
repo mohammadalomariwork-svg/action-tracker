@@ -8,6 +8,7 @@ public class ActionItemFilterDto
     public ActionPriority? Priority    { get; set; }
     public string          AssigneeId  { get; set; } = string.Empty;
     public Guid?           WorkspaceId { get; set; }
+    public Guid?           MilestoneId { get; set; }
     public string          SearchTerm  { get; set; } = string.Empty;
 
     public int PageNumber { get; set; } = 1;

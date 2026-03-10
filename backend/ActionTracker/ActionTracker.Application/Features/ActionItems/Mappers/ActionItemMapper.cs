@@ -13,6 +13,8 @@ public static class ActionItemMapper
         Description    = item.Description,
         WorkspaceId    = item.WorkspaceId,
         WorkspaceTitle = item.Workspace?.Title ?? string.Empty,
+        MilestoneId    = item.MilestoneId,
+        MilestoneName  = item.Milestone?.Name,
         Priority       = item.Priority,
         Status         = item.Status,
         StartDate      = item.StartDate,

@@ -21,6 +21,7 @@ export class ActionItemService {
     if (filter.priority != null) params = params.set('priority', filter.priority);
     if (filter.assigneeId) params = params.set('assigneeId', filter.assigneeId);
     if (filter.workspaceId) params = params.set('workspaceId', filter.workspaceId);
+    if (filter.milestoneId) params = params.set('milestoneId', filter.milestoneId);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
     if (filter.includeDeleted) params = params.set('includeDeleted', true);
 

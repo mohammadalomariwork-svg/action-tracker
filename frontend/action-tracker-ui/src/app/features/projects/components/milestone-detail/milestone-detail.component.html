@@ -34,6 +34,14 @@
       </div>
     }
 
+    <!-- Success -->
+    @if (successMessage) {
+      <div class="alert alert-success" role="alert">
+        {{ successMessage }}
+        <button type="button" class="btn-close-inline" (click)="successMessage = null">×</button>
+      </div>
+    }
+
     @if (!isLoading && milestone) {
 
       <!-- ── Main Info ─────────────────────────────── -->
@@ -60,7 +68,7 @@
             <div class="detail-row">
               <span class="detail-label">Status</span>
               <span class="detail-value">
-                <span [class]="statusClass(milestone.status)">{{ milestone.statusLabel }}</span>
+                <span [class]="milestoneStatusClass(milestone.status)">{{ milestone.statusLabel }}</span>
               </span>
             </div>
             <div class="detail-row">
@@ -182,6 +190,201 @@
         </div>
       </div>
 
+      <!-- ── Action Items Section ──────────────────────────── -->
+      <div class="action-items-section">
+        <div class="section-header">
+          <h3 class="section-title">Action Items
+            <span class="badge bg-secondary ms-2">{{ actionTotalCount }}</span>
+          </h3>
+          <div class="section-header-actions">
+            <div class="form-check form-switch mb-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="showDeletedToggle"
+                [checked]="showDeleted"
+                (change)="toggleShowDeleted()"
+              />
+              <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
+            </div>
+            <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
+              + New Action
+            </button>
+          </div>
+        </div>
+
+        @if (actionLoading) {
+          <div class="text-center py-4">
+            <span class="spinner"></span>
+            <span class="ms-2 text-muted">Loading action items…</span>
+          </div>
+        }
+
+        @if (!actionLoading && actionItems.length === 0) {
+          <div class="empty-state">
+            <p class="text-muted">No action items for this milestone yet.</p>
+          </div>
+        }
+
+        @if (!actionLoading && actionItems.length > 0) {
+
+          <!-- Desktop table -->
+          <div class="table-wrapper d-none d-md-block">
+            <table class="action-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>Assignee(s)</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Start Date</th>
+                  <th>Due Date</th>
+                  <th>Progress</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of actionItems; track item.id) {
+                  <tr [class.row-overdue]="item.isOverdue" [class.row-deleted]="item.isDeleted">
+                    <td>
+                      <span class="action-id">{{ item.actionId }}</span>
+                      @if (item.isEscalated) {
+                        <span class="text-danger ms-1" title="Escalated">⚠</span>
+                      }
+                      @if (item.isDeleted) {
+                        <span class="badge bg-danger ms-1">Deleted</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="action-title" [title]="item.title">{{ item.title }}</span>
+                    </td>
+                    <td>
+                      <div class="assignee-cell">
+                        <span class="assignee-avatar-sm">{{ assigneeInitial(item) }}</span>
+                        <span>{{ assigneeNames(item) }}</span>
+                      </div>
+                    </td>
+                    <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
+                    <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
+                    <td>
+                      <span class="text-muted">{{ item.startDate ? (item.startDate | date:'MMM d, y') : '—' }}</span>
+                    </td>
+                    <td>
+                      <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                    </td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-bar-sm">
+                          <div
+                            class="progress-bar-fill"
+                            [class.bg-success]="item.progress >= 75"
+                            [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                            [class.bg-danger]="item.progress < 40"
+                            [style.width.%]="item.progress"
+                          ></div>
+                        </div>
+                        <span class="progress-label">{{ item.progress }}%</span>
+                      </div>
+                    </td>
+                    <td class="text-end">
+                      <div class="row-actions">
+                        @if (!item.isDeleted) {
+                          <a
+                            class="btn btn-outline btn-sm"
+                            [routerLink]="['/actions', item.id, 'view']"
+                            title="View"
+                          >View</a>
+                          <button
+                            class="btn btn-outline btn-sm"
+                            (click)="openEditActionForm(item)"
+                            title="Edit"
+                            [disabled]="showActionForm"
+                          >Edit</button>
+                          <button
+                            class="btn btn-outline btn-sm btn-danger-text"
+                            (click)="deleteAction(item)"
+                            title="Delete"
+                            [disabled]="deletingActionId === item.id"
+                          >
+                            @if (deletingActionId === item.id) {
+                              <span class="spinner-sm"></span>
+                            } @else {
+                              Delete
+                            }
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile cards -->
+          <div class="d-block d-md-none">
+            @for (item of actionItems; track item.id) {
+              <div class="action-card" [class.action-card--deleted]="item.isDeleted">
+                <div class="action-card__header">
+                  <span class="action-id">{{ item.actionId }}</span>
+                  @if (item.isEscalated) {
+                    <span class="text-danger" title="Escalated">⚠</span>
+                  }
+                  @if (item.isDeleted) {
+                    <span class="badge bg-danger">Deleted</span>
+                  }
+                  <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+                  <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+                </div>
+                <div class="action-card__title">{{ item.title }}</div>
+                <div class="action-card__meta">
+                  <div class="action-card__meta-row">
+                    <span class="action-card__meta-label">Assignees</span>
+                    <span>{{ assigneeNames(item) }}</span>
+                  </div>
+                  <div class="action-card__meta-row">
+                    <span class="action-card__meta-label">Due Date</span>
+                    <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                  </div>
+                  <div class="action-card__meta-row">
+                    <span class="action-card__meta-label">Progress</span>
+                    <span>{{ item.progress }}%</span>
+                  </div>
+                </div>
+                @if (!item.isDeleted) {
+                  <div class="action-card__actions">
+                    <a class="btn btn-outline btn-sm" [routerLink]="['/actions', item.id, 'view']">View</a>
+                    <button class="btn btn-outline btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm">Edit</button>
+                    <button class="btn btn-outline btn-sm btn-danger-text" (click)="deleteAction(item)" [disabled]="deletingActionId === item.id">
+                      @if (deletingActionId === item.id) {
+                        <span class="spinner-sm"></span>
+                      } @else {
+                        Delete
+                      }
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Pagination -->
+          @if (actionTotalCount > actionPageSize) {
+            <div class="pagination-bar">
+              <span class="text-muted small">
+                Page {{ actionPageNumber }} of {{ actionTotalPages }}
+                ({{ actionTotalCount }} items)
+              </span>
+              <div class="pagination-btns">
+                <button class="btn btn-outline btn-sm" (click)="actionPrevPage()" [disabled]="actionPageNumber <= 1">‹ Prev</button>
+                <button class="btn btn-outline btn-sm" (click)="actionNextPage()" [disabled]="actionPageNumber >= actionTotalPages">Next ›</button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
       <!-- ── Comments & Documents ────────────────────── -->
       <div class="comments-docs-grid">
         <app-comments-section
@@ -197,3 +400,184 @@
     }
   </div>
 </div>
+
+<!-- ════════════════════════════════════════════════════════════
+     Offcanvas drawer — Add / Edit Action Item
+     ════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end"
+     [class.show]="showActionForm"
+     [style.visibility]="showActionForm ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">
+      @if (editingActionId) {
+        Edit Action Item
+      } @else {
+        New Action Item
+      }
+    </h5>
+    <button type="button" class="btn-close-x" (click)="cancelActionForm()">×</button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (showActionForm) {
+      <!-- Title -->
+      <div class="mb-3">
+        <label class="form-label">Title <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="actionForm.title" placeholder="Action item title…" maxlength="255" />
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" [(ngModel)]="actionForm.description" placeholder="Optional description…" rows="3"></textarea>
+      </div>
+
+      <!-- Assignees multi-select -->
+      <div class="mb-3">
+        <label class="form-label">Assignee(s) <span class="text-danger">*</span></label>
+        <div class="multi-select" (click)="assigneeDropdownOpen = !assigneeDropdownOpen; $event.stopPropagation()">
+          <div class="multi-select__control form-control">
+            @if (actionForm.assigneeIds.length === 0) {
+              <span class="text-muted">Select assignees…</span>
+            } @else {
+              <div class="multi-select__tags">
+                @for (id of actionForm.assigneeIds; track id) {
+                  <span class="multi-select__tag">
+                    {{ getAssigneeName(id) }}
+                    <button type="button" class="multi-select__tag-remove" (click)="toggleAssignee(id); $event.stopPropagation()">×</button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+          @if (assigneeDropdownOpen) {
+            <div class="multi-select__dropdown">
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Search users…"
+                [(ngModel)]="assigneeSearchTerm"
+                (click)="$event.stopPropagation()"
+              />
+              <div class="multi-select__options">
+                @for (u of filteredUsers; track u.id) {
+                  <label class="multi-select__option" (click)="$event.stopPropagation()">
+                    <input type="checkbox" [checked]="isAssigneeSelected(u.id)" (change)="toggleAssignee(u.id)" />
+                    <span class="assignee-avatar-sm">{{ u.fullName.charAt(0).toUpperCase() }}</span>
+                    <span>{{ u.fullName }}</span>
+                  </label>
+                }
+                @if (filteredUsers.length === 0) {
+                  <div class="text-muted small px-3 py-2">No users found.</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        @if (actionForm.assigneeIds.length === 0) {
+          <small class="text-danger">At least one assignee is required.</small>
+        }
+      </div>
+
+      <!-- Priority & Status -->
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">Priority <span class="text-danger">*</span></label>
+          <select class="form-control" [(ngModel)]="actionForm.priority">
+            @for (opt of PRIORITY_OPTIONS; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-col">
+          <label class="form-label">Status</label>
+          <select class="form-control" [(ngModel)]="actionForm.status" (ngModelChange)="onStatusChange()">
+            @for (opt of STATUS_OPTIONS; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Start Date & Due Date -->
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
+        </div>
+        <div class="form-col">
+          <label class="form-label">Due Date <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="actionForm.dueDate" [min]="actionForm.startDate || ''" />
+          @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
+            <small class="text-danger">Due date must be same or after start date.</small>
+          }
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="mb-3">
+        <label class="form-label">Progress ({{ actionForm.progress }}%)</label>
+        <input type="range" class="form-range" min="0" max="100" step="1" [(ngModel)]="actionForm.progress" />
+      </div>
+
+      <!-- Escalated -->
+      <div class="mb-3">
+        <label class="form-check-label">
+          <input type="checkbox" [(ngModel)]="actionForm.isEscalated" />
+          Escalated
+        </label>
+      </div>
+
+      @if (actionForm.isEscalated) {
+        <div class="mb-3">
+          <label class="form-label">Escalation Explanation <span class="text-danger">*</span></label>
+          <textarea class="form-control" [(ngModel)]="actionForm.escalationExplanation" placeholder="Provide the reason for escalation…" rows="3" maxlength="2000"></textarea>
+          @if (!actionForm.escalationExplanation?.trim()) {
+            <small class="text-danger">Escalation explanation is required.</small>
+          }
+        </div>
+      }
+
+      @if (editingActionId && editingEscalations.length > 0) {
+        <div class="mb-4">
+          <label class="form-label text-muted">Escalation History</label>
+          <div class="escalation-history">
+            @for (esc of editingEscalations; track esc.id) {
+              <div class="escalation-entry">
+                <div class="escalation-entry__header">
+                  <span class="fw-semibold small">{{ esc.escalatedByName || 'Unknown' }}</span>
+                  <span class="text-muted small">{{ esc.createdAt | date:'MMM d, y h:mm a' }}</span>
+                </div>
+                <div class="escalation-entry__body small">{{ esc.explanation }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" (click)="cancelActionForm()" [disabled]="actionSaving">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="saveAction()"
+          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) || (actionForm.isEscalated && !actionForm.escalationExplanation?.trim())"
+        >
+          @if (actionSaving) {
+            <span class="spinner-sm"></span> Saving…
+          } @else {
+            @if (!editingActionId) { Create }
+            @else { Update }
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Backdrop -->
+@if (showActionForm) {
+  <div class="offcanvas-backdrop" (click)="cancelActionForm()"></div>
+}
