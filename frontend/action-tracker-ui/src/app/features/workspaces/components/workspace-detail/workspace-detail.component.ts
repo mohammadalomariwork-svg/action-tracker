@@ -126,8 +126,8 @@ export class WorkspaceDetailComponent implements OnInit {
   ];
 
   private readonly STATUS_MAP: Record<string, ActionStatus> = {
-    toDo: ActionStatus.ToDo, inProgress: ActionStatus.InProgress,
-    inReview: ActionStatus.InReview, done: ActionStatus.Done, overdue: ActionStatus.Overdue,
+    todo: ActionStatus.ToDo, inprogress: ActionStatus.InProgress,
+    inreview: ActionStatus.InReview, done: ActionStatus.Done, overdue: ActionStatus.Overdue,
   };
   private readonly PRIORITY_MAP: Record<string, ActionPriority> = {
     low: ActionPriority.Low, medium: ActionPriority.Medium,
@@ -136,12 +136,12 @@ export class WorkspaceDetailComponent implements OnInit {
 
   private resolveStatus(val: unknown): ActionStatus {
     if (typeof val === 'number') return val;
-    return this.STATUS_MAP[String(val)] ?? ActionStatus.ToDo;
+    return this.STATUS_MAP[String(val).toLowerCase()] ?? ActionStatus.ToDo;
   }
 
   private resolvePriority(val: unknown): ActionPriority {
     if (typeof val === 'number') return val;
-    return this.PRIORITY_MAP[String(val)] ?? ActionPriority.Medium;
+    return this.PRIORITY_MAP[String(val).toLowerCase()] ?? ActionPriority.Medium;
   }
 
   get actionTotalPages(): number {

@@ -365,9 +365,7 @@
                     <th>Start Date</th>
                     <th>Due Date</th>
                     <th>Progress</th>
-                    @if (canManage) {
-                      <th class="text-end">Actions</th>
-                    }
+                    <th class="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -427,21 +425,21 @@
                           <span class="wa-progress-label">{{ item.progress }}%</span>
                         </div>
                       </td>
-                      @if (canManage) {
-                        <td class="text-end">
-                          <div class="wa-row-actions">
-                            @if (!item.isDeleted) {
-                              <a
-                                class="btn btn-outline-info btn-sm wa-action-btn"
-                                [routerLink]="['/actions', item.id, 'view']"
-                                title="View"
-                              ><i class="bi bi-eye"></i></a>
-                              <button
-                                class="btn btn-outline-primary btn-sm wa-action-btn"
-                                (click)="openEditActionForm(item)"
-                                title="Edit"
-                                [disabled]="showActionForm"
-                              ><i class="bi bi-pencil"></i></button>
+                      <td class="text-end">
+                        <div class="wa-row-actions">
+                          @if (!item.isDeleted) {
+                            <a
+                              class="btn btn-outline-info btn-sm wa-action-btn"
+                              [routerLink]="['/actions', item.id, 'view']"
+                              title="View"
+                            ><i class="bi bi-eye"></i></a>
+                            <button
+                              class="btn btn-outline-primary btn-sm wa-action-btn"
+                              (click)="openEditActionForm(item)"
+                              title="Edit"
+                              [disabled]="showActionForm"
+                            ><i class="bi bi-pencil"></i></button>
+                            @if (canManage) {
                               <button
                                 class="btn btn-outline-danger btn-sm wa-action-btn"
                                 (click)="deleteAction(item)"
@@ -455,9 +453,9 @@
                                 }
                               </button>
                             }
-                          </div>
-                        </td>
-                      }
+                          }
+                        </div>
+                      </td>
                     </tr>
                   }
                 </tbody>
@@ -540,23 +538,23 @@
                         class="btn btn-outline-info btn-sm"
                         [routerLink]="['/actions', item.id, 'view']"
                       ><i class="bi bi-eye me-1"></i>View</a>
-                      @if (canManage) {
                       <button
                         class="btn btn-outline-primary btn-sm"
                         (click)="openEditActionForm(item)"
                         [disabled]="showActionForm"
                       ><i class="bi bi-pencil me-1"></i>Edit</button>
-                      <button
-                        class="btn btn-outline-danger btn-sm"
-                        (click)="deleteAction(item)"
-                        [disabled]="deletingActionId === item.id"
-                      >
-                        @if (deletingActionId === item.id) {
-                          <span class="spinner-border spinner-border-sm"></span>
-                        } @else {
-                          <i class="bi bi-trash me-1"></i>Delete
-                        }
-                      </button>
+                      @if (canManage) {
+                        <button
+                          class="btn btn-outline-danger btn-sm"
+                          (click)="deleteAction(item)"
+                          [disabled]="deletingActionId === item.id"
+                        >
+                          @if (deletingActionId === item.id) {
+                            <span class="spinner-border spinner-border-sm"></span>
+                          } @else {
+                            <i class="bi bi-trash me-1"></i>Delete
+                          }
+                        </button>
                       }
                     </div>
                   }
