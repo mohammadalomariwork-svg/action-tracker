@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -16,14 +17,12 @@ import {
   MilestoneStatusLabels,
 } from '../../models/milestone.models';
 import { AssignableUser } from '../../../../core/models/action-item.model';
-import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
-import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 
 @Component({
   selector: 'app-milestone-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CommentsSectionComponent, DocumentsSectionComponent],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './milestone-section.component.html',
   styleUrl: './milestone-section.component.scss',
 })

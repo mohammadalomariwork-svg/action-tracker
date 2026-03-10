@@ -18,6 +18,12 @@ const projectRoutes: Routes = [
     data: { roles: ['Admin', 'Manager'] },
   },
   {
+    path: ':projectId/milestones/:milestoneId',
+    loadComponent: () =>
+      import('./components/milestone-detail/milestone-detail.component').then(m => m.MilestoneDetailComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: ':id',
     loadComponent: () =>
       import('./components/project-detail/project-detail.component').then(m => m.ProjectDetailComponent),

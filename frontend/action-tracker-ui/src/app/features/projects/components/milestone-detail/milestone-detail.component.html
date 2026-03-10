@@ -1,0 +1,199 @@
+<app-breadcrumb [items]="[
+  { label: 'Workspaces', route: '/workspaces' },
+  { label: 'Project', route: '/projects/' + projectId },
+  { label: milestone?.name ?? 'Loading…' }
+]" />
+
+<div class="detail-page">
+
+  <app-page-header
+    [title]="milestone?.milestoneCode ?? 'Loading…'"
+    [subtitle]="milestone?.name ?? ''"
+    icon="🏁">
+    @if (milestone) {
+      <a [routerLink]="['/projects', projectId]" class="btn btn-outline">
+        ← Back to Project
+      </a>
+    }
+  </app-page-header>
+
+  <div class="detail-body">
+
+    <!-- Loading -->
+    @if (isLoading) {
+      <div class="loading-state">
+        <span class="spinner"></span>
+        <p>Loading milestone…</p>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (errorMessage) {
+      <div class="alert alert-danger" role="alert">
+        {{ errorMessage }}
+      </div>
+    }
+
+    @if (!isLoading && milestone) {
+
+      <!-- ── Main Info ─────────────────────────────── -->
+      <div class="info-grid">
+        <div class="side-col">
+
+          <!-- General Details -->
+          <div class="card">
+            <h3 class="card__title">General Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Milestone Code</span>
+              <span class="detail-value">{{ milestone.milestoneCode }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Name</span>
+              <span class="detail-value">{{ milestone.name }}</span>
+            </div>
+            @if (milestone.description) {
+              <div class="detail-row">
+                <span class="detail-label">Description</span>
+                <span class="detail-value detail-value--desc">{{ milestone.description }}</span>
+              </div>
+            }
+            <div class="detail-row">
+              <span class="detail-label">Status</span>
+              <span class="detail-value">
+                <span [class]="statusClass(milestone.status)">{{ milestone.statusLabel }}</span>
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Sequence</span>
+              <span class="detail-value">{{ milestone.sequenceOrder }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Weight</span>
+              <span class="detail-value">{{ milestone.weight }}%</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Fixed Deadline</span>
+              <span class="detail-value">
+                @if (milestone.isDeadlineFixed) {
+                  <span class="badge bg-danger">Yes</span>
+                } @else {
+                  <span class="text-muted">No</span>
+                }
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="side-col">
+
+          <!-- Progress -->
+          <div class="card">
+            <h3 class="card__title">Progress</h3>
+            <div class="detail-row">
+              <span class="detail-label">Completion</span>
+              <span class="detail-value">
+                <div class="progress-container">
+                  <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="milestone.completionPercentage"></div>
+                  </div>
+                  <span class="progress-text">{{ milestone.completionPercentage }}%</span>
+                </div>
+              </span>
+            </div>
+            @if (milestone.scheduleVarianceDays != null) {
+              <div class="detail-row">
+                <span class="detail-label">Variance</span>
+                <span class="detail-value">
+                  <span [class]="varianceClass(milestone.scheduleVarianceDays)">
+                    {{ varianceLabel(milestone.scheduleVarianceDays) }}
+                  </span>
+                </span>
+              </div>
+            }
+          </div>
+
+          <!-- Schedule -->
+          <div class="card">
+            <h3 class="card__title">Schedule</h3>
+            <div class="detail-row">
+              <span class="detail-label">Planned Start</span>
+              <span class="detail-value">{{ milestone.plannedStartDate | date:'mediumDate' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Planned Due</span>
+              <span class="detail-value">{{ milestone.plannedDueDate | date:'mediumDate' }}</span>
+            </div>
+            @if (milestone.actualCompletionDate) {
+              <div class="detail-row">
+                <span class="detail-label">Completed</span>
+                <span class="detail-value">{{ milestone.actualCompletionDate | date:'mediumDate' }}</span>
+              </div>
+            }
+            @if (milestone.baselinePlannedStartDate) {
+              <div class="detail-row">
+                <span class="detail-label">Baseline Start</span>
+                <span class="detail-value">{{ milestone.baselinePlannedStartDate | date:'mediumDate' }}</span>
+              </div>
+            }
+            @if (milestone.baselinePlannedDueDate) {
+              <div class="detail-row">
+                <span class="detail-label">Baseline Due</span>
+                <span class="detail-value">{{ milestone.baselinePlannedDueDate | date:'mediumDate' }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Approver -->
+          @if (milestone.approverName) {
+            <div class="card">
+              <h3 class="card__title">Approver</h3>
+              <div class="detail-row">
+                <span class="detail-label">Assigned To</span>
+                <span class="detail-value">
+                  <span class="assignee-chip">
+                    <span class="assignee-avatar">{{ milestone.approverName.charAt(0).toUpperCase() }}</span>
+                    {{ milestone.approverName }}
+                  </span>
+                </span>
+              </div>
+            </div>
+          }
+
+          <!-- Meta -->
+          <div class="card">
+            <h3 class="card__title">Details</h3>
+            <div class="detail-row">
+              <span class="detail-label">Created</span>
+              <span class="detail-value">{{ milestone.createdAt | date:'medium' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Last Updated</span>
+              <span class="detail-value">
+                @if (milestone.updatedAt) {
+                  {{ milestone.updatedAt | date:'medium' }}
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Comments & Documents ────────────────────── -->
+      <div class="comments-docs-grid">
+        <app-comments-section
+          entityType="Milestone"
+          [entityId]="milestone.id"
+        />
+        <app-documents-section
+          entityType="Milestone"
+          [entityId]="milestone.id"
+        />
+      </div>
+
+    }
+  </div>
+</div>

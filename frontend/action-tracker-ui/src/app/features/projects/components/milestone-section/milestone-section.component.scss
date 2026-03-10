@@ -40,7 +40,7 @@ $sh-focus: 0 0 0 3px rgba(15,108,189,.18);
 .ms-row--expanded { background:$accent-light !important; }
 .ms-seq-badge { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:$r-sm; background:$accent-light; border:1px solid $accent-mid; color:$accent; font-size:11px; font-weight:800; }
 .ms-code { font-size:12px; font-weight:600; color:$text-muted; background:$surface2; border:1px solid $border; padding:2px 8px; border-radius:4px; }
-.ms-name-link { font-weight:600; color:$accent; cursor:pointer; white-space:normal; &:hover { text-decoration:underline; } }
+.ms-name-link { font-weight:600; color:$accent; cursor:pointer; white-space:normal; text-decoration:none; &:hover { text-decoration:underline; } }
 
 .ms-progress-cell { display:flex; align-items:center; gap:8px; min-width:100px; }
 .ms-progress-bar { flex:1; height:6px; background:$border; border-radius:3px; overflow:hidden; }
@@ -72,7 +72,7 @@ $sh-focus: 0 0 0 3px rgba(15,108,189,.18);
   background:$surface; border:1px solid $border; border-radius:$r; padding:14px 16px; margin-bottom:10px; box-shadow:$sh-xs;
   &:last-child { margin-bottom:0; }
   &__header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-  &__title { font-size:14px; font-weight:600; color:$accent; cursor:pointer; margin-bottom:10px; &:hover { text-decoration:underline; } }
+  &__title { font-size:14px; font-weight:600; color:$accent; cursor:pointer; margin-bottom:10px; text-decoration:none; display:block; &:hover { text-decoration:underline; } }
   &__meta { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
   &__meta-row { display:flex; align-items:center; justify-content:space-between; }
   &__meta-label { font-size:12px; font-weight:600; color:$text-dim; }

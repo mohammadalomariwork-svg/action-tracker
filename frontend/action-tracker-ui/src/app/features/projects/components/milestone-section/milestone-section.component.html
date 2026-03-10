@@ -54,11 +54,11 @@
         </thead>
         <tbody>
           @for (m of milestones(); track m.id) {
-            <tr class="ms-row" [class.ms-row--expanded]="expandedId() === m.id">
+            <tr class="ms-row">
               <td><span class="ms-seq-badge">{{ m.sequenceOrder }}</span></td>
               <td><span class="ms-code">{{ m.milestoneCode }}</span></td>
               <td>
-                <span class="ms-name-link" (click)="toggleExpand(m.id)">{{ m.name }}</span>
+                <a class="ms-name-link" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
               </td>
               <td>
                 <span [class]="milestoneStatusClass(m.status)">
@@ -84,13 +84,13 @@
               </td>
               <td class="text-end">
                 <div class="ms-row-actions">
-                  <button class="btn btn-outline-info btn-sm ms-action-btn"
-                          (click)="toggleExpand(m.id)" title="View">
+                  <a class="btn btn-outline-info btn-sm ms-action-btn"
+                     [routerLink]="['/projects', projectId(), 'milestones', m.id]" title="View">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
-                  </button>
+                  </a>
                   <button class="btn btn-outline-primary btn-sm ms-action-btn"
                           (click)="openEditForm(m)" title="Edit"
                           [disabled]="showForm()">
@@ -110,60 +110,6 @@
                 </div>
               </td>
             </tr>
-            <!-- Expanded detail row -->
-            @if (expandedId() === m.id) {
-              <tr class="ms-detail-row">
-                <td colspan="9">
-                  <div class="ms-detail-content">
-                    @if (m.actualCompletionDate) {
-                      <div class="ms-detail-item">
-                        <span class="ms-detail-label">Completed</span>
-                        <span>{{ m.actualCompletionDate | date:'MMM d, y' }}</span>
-                      </div>
-                    }
-                    @if (m.scheduleVarianceDays != null) {
-                      <div class="ms-detail-item">
-                        <span class="ms-detail-label">Variance</span>
-                        <span [class]="varianceClass(m.scheduleVarianceDays)">
-                          {{ varianceLabel(m.scheduleVarianceDays) }}
-                        </span>
-                      </div>
-                    }
-                    @if (m.description) {
-                      <div class="ms-detail-item ms-detail-item--full">
-                        <span class="ms-detail-label">Description</span>
-                        <p class="ms-detail-desc">{{ m.description }}</p>
-                      </div>
-                    }
-                    @if (m.approverName) {
-                      <div class="ms-detail-item">
-                        <span class="ms-detail-label">Approver</span>
-                        <span class="assignee-chip">
-                          <span class="assignee-avatar">{{ m.approverName.charAt(0).toUpperCase() }}</span>
-                          {{ m.approverName }}
-                        </span>
-                      </div>
-                    }
-                    @if (m.baselinePlannedDueDate) {
-                      <div class="ms-detail-item">
-                        <span class="ms-detail-label">Baseline</span>
-                        <span>{{ m.baselinePlannedStartDate | date:'MMM d, y' }} &ndash; {{ m.baselinePlannedDueDate | date:'MMM d, y' }}</span>
-                      </div>
-                    }
-                    <div class="ms-detail-attachments">
-                      <app-comments-section
-                        entityType="Milestone"
-                        [entityId]="m.id"
-                      />
-                      <app-documents-section
-                        entityType="Milestone"
-                        [entityId]="m.id"
-                      />
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            }
           }
         </tbody>
       </table>
@@ -181,7 +127,7 @@
               {{ m.statusLabel }}
             </span>
           </div>
-          <div class="ms-mobile-card__title" (click)="toggleExpand(m.id)">{{ m.name }}</div>
+          <a class="ms-mobile-card__title" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
           <div class="ms-mobile-card__meta">
             <div class="ms-mobile-card__meta-row">
               <span class="ms-mobile-card__meta-label">Progress</span>
@@ -199,10 +145,10 @@
             </div>
           </div>
           <div class="ms-mobile-card__actions">
-            <button class="btn btn-outline-info btn-sm" (click)="toggleExpand(m.id)">
+            <a class="btn btn-outline-info btn-sm" [routerLink]="['/projects', projectId(), 'milestones', m.id]">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               View
-            </button>
+            </a>
             <button class="btn btn-outline-primary btn-sm" (click)="openEditForm(m)" [disabled]="showForm()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Edit
@@ -213,30 +159,6 @@
             </button>
           </div>
 
-          <!-- Expanded detail in mobile card -->
-          @if (expandedId() === m.id) {
-            <div class="ms-detail-content ms-detail-content--mobile">
-              @if (m.description) {
-                <div class="ms-detail-item ms-detail-item--full">
-                  <span class="ms-detail-label">Description</span>
-                  <p class="ms-detail-desc">{{ m.description }}</p>
-                </div>
-              }
-              @if (m.approverName) {
-                <div class="ms-detail-item">
-                  <span class="ms-detail-label">Approver</span>
-                  <span class="assignee-chip">
-                    <span class="assignee-avatar">{{ m.approverName.charAt(0).toUpperCase() }}</span>
-                    {{ m.approverName }}
-                  </span>
-                </div>
-              }
-              <div class="ms-detail-attachments">
-                <app-comments-section entityType="Milestone" [entityId]="m.id" />
-                <app-documents-section entityType="Milestone" [entityId]="m.id" />
-              </div>
-            </div>
-          }
         </div>
       }
     </div>
