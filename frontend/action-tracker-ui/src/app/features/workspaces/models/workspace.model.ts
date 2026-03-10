@@ -35,25 +35,31 @@ export interface Workspace {
 /**
  * Lightweight workspace item used in list views.
  */
+export interface WorkspaceListAdmin {
+  name: string;
+  department: string;
+}
+
 export interface WorkspaceList {
-  /** Primary key of the workspace. */
   id: string;
-  /** Human-readable title of the workspace. */
   title: string;
-  /** Name of the organisational unit this workspace belongs to. */
   organizationUnit: string;
-  /** Comma-separated display names of all workspace admins. */
   adminUserNames: string;
-  /** Whether the workspace is currently active. */
   isActive: boolean;
-  /** UTC timestamp when the workspace was created. */
   createdAt: string;
-  /** Number of projects in this workspace. */
   projectCount: number;
-  /** Number of milestones across all projects in this workspace. */
   milestoneCount: number;
-  /** Number of action items in this workspace. */
   actionItemCount: number;
+  openActionItemCount: number;
+  admins: WorkspaceListAdmin[];
+}
+
+export interface WorkspaceSummary {
+  totalWorkspaces: number;
+  activeWorkspaces: number;
+  totalAdmins: number;
+  totalOpenActions: number;
+  newThisMonth: number;
 }
 
 /**

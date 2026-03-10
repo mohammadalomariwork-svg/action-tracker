@@ -6,6 +6,7 @@ import { ApiResponse } from '../../../core/models/api-response.model';
 import {
   Workspace,
   WorkspaceList,
+  WorkspaceSummary,
   CreateWorkspace,
   UpdateWorkspace,
   OrgUnitDropdownItem,
@@ -28,6 +29,10 @@ export class WorkspaceService {
    */
   getWorkspaces(): Observable<ApiResponse<WorkspaceList[]>> {
     return this.http.get<ApiResponse<WorkspaceList[]>>(this.apiUrl);
+  }
+
+  getSummary(): Observable<ApiResponse<WorkspaceSummary>> {
+    return this.http.get<ApiResponse<WorkspaceSummary>>(`${this.apiUrl}/summary`);
   }
 
   /**

@@ -41,6 +41,7 @@ public class WorkspaceService : IWorkspaceService
     {
         try
         {
+            // Status values 3=Completed, 4=Cancelled – everything else is "open"
             var list = await _db.Workspaces
                 .Include(w => w.Admins)
                 .OrderByDescending(w => w.CreatedAt)
@@ -54,15 +55,52 @@ public class WorkspaceService : IWorkspaceService
                     CreatedAt        = w.CreatedAt,
                     ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
                     MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
-                    ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted)
+                    ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted),
+                    OpenActionItemCount = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted && a.Status != 3 && a.Status != 4)
                 })
                 .ToListAsync();
 
+            await EnrichListAdminsAsync(list);
             return list;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving all workspaces");
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkspaceSummaryDto> GetSummaryAsync()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            var totalWorkspaces  = await _db.Workspaces.CountAsync();
+            var activeWorkspaces = await _db.Workspaces.CountAsync(w => w.IsActive);
+            var totalAdmins      = await _db.WorkspaceAdmins
+                .Select(a => a.AdminUserId)
+                .Distinct()
+                .CountAsync();
+            var totalOpenActions = await _db.ActionItems
+                .CountAsync(a => !a.IsDeleted && a.Status != 3 && a.Status != 4);
+            var newThisMonth     = await _db.Workspaces
+                .CountAsync(w => w.CreatedAt >= startOfMonth);
+
+            return new WorkspaceSummaryDto
+            {
+                TotalWorkspaces  = totalWorkspaces,
+                ActiveWorkspaces = activeWorkspaces,
+                TotalAdmins      = totalAdmins,
+                TotalOpenActions = totalOpenActions,
+                NewThisMonth     = newThisMonth
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error computing workspace summary");
             throw;
         }
     }
@@ -114,10 +152,12 @@ public class WorkspaceService : IWorkspaceService
                     CreatedAt        = w.CreatedAt,
                     ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
                     MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
-                    ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted)
+                    ActionItemCount  = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted),
+                    OpenActionItemCount = _db.ActionItems.Count(a => a.WorkspaceId == w.Id && !a.IsDeleted && a.Status != 3 && a.Status != 4)
                 })
                 .ToListAsync();
 
+            await EnrichListAdminsAsync(list);
             return list;
         }
         catch (Exception ex)
@@ -439,6 +479,59 @@ public class WorkspaceService : IWorkspaceService
             admin.OrgUnitName = user.OrgUnitId.HasValue && orgUnits.TryGetValue(user.OrgUnitId.Value, out var name)
                 ? name
                 : string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Populates <see cref="WorkspaceListDto.Admins"/> with admin name + department
+    /// by looking up workspace admins and joining with Users/OrgUnits.
+    /// </summary>
+    private async Task EnrichListAdminsAsync(List<WorkspaceListDto> list)
+    {
+        if (list.Count == 0) return;
+
+        var workspaceIds = list.Select(w => w.Id).ToList();
+
+        // Get all workspace admins for the workspaces in question
+        var admins = await _db.WorkspaceAdmins
+            .Where(wa => workspaceIds.Contains(wa.WorkspaceId))
+            .Select(wa => new { wa.WorkspaceId, wa.AdminUserId, wa.AdminUserName })
+            .ToListAsync();
+
+        var userIds = admins.Select(a => a.AdminUserId).Distinct().ToList();
+
+        // Get user org unit mapping
+        var users = await _db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.OrgUnitId })
+            .ToListAsync();
+
+        var orgUnitIds = users
+            .Where(u => u.OrgUnitId.HasValue)
+            .Select(u => u.OrgUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        var orgUnits = orgUnitIds.Count > 0
+            ? await _db.OrgUnits
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .Select(o => new { o.Id, o.Name })
+                .ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<Guid, string>();
+
+        foreach (var dto in list)
+        {
+            dto.Admins = admins
+                .Where(a => a.WorkspaceId == dto.Id)
+                .Select(a =>
+                {
+                    var user = users.FirstOrDefault(u => u.Id == a.AdminUserId);
+                    var dept = user?.OrgUnitId.HasValue == true && orgUnits.TryGetValue(user.OrgUnitId!.Value, out var name)
+                        ? name
+                        : string.Empty;
+                    return new WorkspaceListAdminDto { Name = a.AdminUserName, Department = dept };
+                })
+                .ToList();
         }
     }
 

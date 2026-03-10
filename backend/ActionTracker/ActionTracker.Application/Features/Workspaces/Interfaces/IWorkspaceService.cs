@@ -13,6 +13,9 @@ public interface IWorkspaceService
     /// </summary>
     Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync();
 
+    /// <summary>Returns aggregate statistics across all workspaces.</summary>
+    Task<WorkspaceSummaryDto> GetSummaryAsync();
+
     /// <summary>
     /// Returns the full details of a single workspace, or <c>null</c> if not found.
     /// </summary>

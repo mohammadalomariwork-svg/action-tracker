@@ -45,6 +45,22 @@ public class WorkspacesController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/workspaces/summary
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns aggregate workspace statistics for the dashboard.</summary>
+    [HttpGet("summary")]
+    [Authorize(Policy = "AdminOrManager")]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceSummaryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary()
+    {
+        _logger.LogInformation("GET /api/workspaces/summary");
+
+        var summary = await _workspaceService.GetSummaryAsync();
+        return Ok(ApiResponse<WorkspaceSummaryDto>.Ok(summary));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/workspaces/{id}
     // -------------------------------------------------------------------------
 

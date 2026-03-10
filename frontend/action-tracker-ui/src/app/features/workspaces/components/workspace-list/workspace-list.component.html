@@ -2,88 +2,208 @@
 
 <div class="wl-page">
 
-  <!-- ── Header ────────────────────────────────────────────────────────────────── -->
-  <div class="wl-header d-flex flex-wrap justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Workspaces</h2>
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary btn-sm" (click)="onCreateNew()">
-        <i class="bi bi-plus-circle me-1"></i>New Workspace
-      </button>
+  <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+  <div class="wl-page-header">
+    <div class="d-flex align-items-start gap-3">
+      <div class="wl-page-icon">
+        <i class="bi bi-grid-3x3-gap"></i>
+      </div>
+      <div>
+        <h1 class="wl-page-title">Workspaces</h1>
+        <p class="wl-page-subtitle">Manage and organize team workspaces across your organization units.</p>
+      </div>
     </div>
+    <button class="btn btn-primary" (click)="onCreateNew()">
+      <i class="bi bi-plus-lg me-1"></i>New Workspace
+    </button>
   </div>
 
-  <!-- ── Error alert ─────────────────────────────────────────────────────────── -->
+  <!-- ── Summary Cards ───────────────────────────────────────────────────── -->
+  @if (summary) {
+    <div class="wl-stats-row">
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--blue">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.totalWorkspaces }}</span>
+          <span class="wl-stat-label">Total Workspaces</span>
+          <span class="wl-stat-sub text-success">+{{ summary.newThisMonth }} this month</span>
+        </div>
+      </div>
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--green">
+          <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.activeWorkspaces }}</span>
+          <span class="wl-stat-label">Active Workspaces</span>
+          <span class="wl-stat-sub text-success">{{ getActiveRate() }}</span>
+        </div>
+      </div>
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--teal">
+          <i class="bi bi-people"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.totalAdmins }}</span>
+          <span class="wl-stat-label">Total Admins</span>
+          <span class="wl-stat-sub text-primary">Across all workspaces</span>
+        </div>
+      </div>
+      <div class="wl-stat-card">
+        <div class="wl-stat-icon wl-stat-icon--yellow">
+          <i class="bi bi-check2-square"></i>
+        </div>
+        <div class="wl-stat-body">
+          <span class="wl-stat-value">{{ summary.totalOpenActions }}</span>
+          <span class="wl-stat-label">Total Actions</span>
+          <span class="wl-stat-sub text-primary">Open across workspaces</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Error alert ─────────────────────────────────────────────────────── -->
   @if (errorMessage) {
-    <div class="alert alert-danger d-flex align-items-center" role="alert">
+    <div class="alert alert-danger d-flex align-items-center mt-3" role="alert">
       <i class="bi bi-exclamation-triangle-fill me-2"></i>
       {{ errorMessage }}
     </div>
   }
 
-  <!-- ── Loading spinner ─────────────────────────────────────────────────────── -->
+  <!-- ── Loading spinner ─────────────────────────────────────────────────── -->
   @if (isLoading) {
     <div class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading…</span>
+        <span class="visually-hidden">Loading...</span>
       </div>
     </div>
   }
 
   @if (!isLoading) {
-    @if (workspaces.length > 0) {
 
-      <!-- ── Desktop table (hidden on xs/sm) ───────────────────────────────── -->
-      <div class="wl-table-wrapper d-none d-md-block">
+    <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
+    <div class="wl-toolbar">
+      <div class="wl-toolbar-left">
+        <div class="wl-search-box">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            placeholder="Search workspaces..."
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+          />
+        </div>
+      </div>
+      <div class="wl-toolbar-right">
+        <span class="text-muted">Showing <strong>{{ filteredWorkspaces.length }}</strong> workspaces</span>
+      </div>
+    </div>
+
+    @if (filteredWorkspaces.length > 0) {
+
+      <!-- ── Desktop Table ────────────────────────────────────────────── -->
+      <div class="wl-table-wrapper d-none d-lg-block">
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+          <thead>
             <tr>
-              <th>Title</th>
-              <th>Organization Unit</th>
-              <th>Admins</th>
-              <th class="text-center">Projects</th>
-              <th class="text-center">Milestones</th>
-              <th class="text-center">Action Items</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
+              <th class="wl-th-sortable" (click)="toggleSort('title')">
+                TITLE
+                @if (sortField === 'title') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
+              <th class="wl-th-sortable" (click)="toggleSort('organizationUnit')">
+                ORGANIZATION UNIT
+                @if (sortField === 'organizationUnit') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
+              <th>ADMINS</th>
+              <th>STATUS</th>
+              <th class="text-end">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
-            @for (workspace of workspaces; track workspace.id) {
+            @for (workspace of pagedWorkspaces; track workspace.id) {
               <tr>
-                <td class="fw-medium">{{ workspace.title }}</td>
-                <td>{{ workspace.organizationUnit }}</td>
-                <td>{{ workspace.adminUserNames }}</td>
-                <td class="text-center">
-                  <span class="badge bg-info text-dark">{{ workspace.projectCount }}</span>
+                <!-- Title cell with avatar -->
+                <td>
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="wl-avatar" [style.background-color]="getAvatarColor(workspace.title)">
+                      {{ getInitials(workspace.title) }}
+                    </div>
+                    <div>
+                      <div class="wl-ws-name">{{ workspace.title }}</div>
+                      <div class="wl-ws-meta">
+                        Created {{ formatDate(workspace.createdAt) }}
+                        <span class="wl-ws-meta-sep">&middot;</span>
+                        {{ workspace.openActionItemCount }} actions open
+                      </div>
+                    </div>
+                  </div>
                 </td>
-                <td class="text-center">
-                  <span class="badge bg-warning text-dark">{{ workspace.milestoneCount }}</span>
+
+                <!-- Organization Unit -->
+                <td>
+                  <span class="wl-org-chip">
+                    <i class="bi bi-building me-1"></i>{{ workspace.organizationUnit }}
+                  </span>
                 </td>
-                <td class="text-center">
-                  <span class="badge bg-primary">{{ workspace.actionItemCount }}</span>
+
+                <!-- Admins -->
+                <td>
+                  <div class="wl-admin-list">
+                    @for (admin of workspace.admins; track admin.name) {
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <div class="wl-admin-avatar" [style.background-color]="getAvatarColor(admin.name)">
+                          {{ getInitials(admin.name) }}
+                        </div>
+                        <span class="wl-admin-name">
+                          {{ admin.name }}
+                          @if (admin.department) {
+                            <span class="wl-admin-dept">({{ admin.department }})</span>
+                          }
+                        </span>
+                      </div>
+                    }
+                  </div>
                 </td>
+
+                <!-- Status -->
                 <td>
                   @if (workspace.isActive) {
-                    <span class="badge bg-success">Active</span>
+                    <span class="wl-status-badge wl-status-badge--active">
+                      <span class="wl-status-dot"></span>Active
+                    </span>
                   } @else {
-                    <span class="badge bg-secondary">Inactive</span>
+                    <span class="wl-status-badge wl-status-badge--inactive">
+                      <span class="wl-status-dot"></span>Inactive
+                    </span>
                   }
                 </td>
+
+                <!-- Actions -->
                 <td class="text-end">
-                  <div class="d-inline-flex gap-2">
-                    <button class="btn btn-outline-info btn-sm" (click)="onView(workspace.id)" title="View workspace">
-                      <i class="bi bi-eye me-1"></i>View
+                  <div class="wl-action-btns">
+                    <button class="wl-action-btn" (click)="onView(workspace.id)" title="View">
+                      <i class="bi bi-eye"></i> View
                     </button>
-                    <button class="btn btn-outline-primary btn-sm" (click)="onEdit(workspace.id)" title="Edit workspace">
-                      <i class="bi bi-pencil me-1"></i>Edit
+                    <button class="wl-action-btn" (click)="onEdit(workspace.id)" title="Edit">
+                      <i class="bi bi-pencil-square"></i> Edit
                     </button>
                     @if (workspace.isActive) {
-                      <button class="btn btn-outline-danger btn-sm" (click)="onDelete(workspace.id)" title="Delete workspace">
-                        <i class="bi bi-trash me-1"></i>Delete
+                      <button class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)" title="Delete">
+                        <i class="bi bi-trash"></i> Delete
                       </button>
                     } @else {
-                      <button class="btn btn-outline-success btn-sm" (click)="onRestore(workspace.id)" title="Restore workspace">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
+                      <button class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)" title="Restore">
+                        <i class="bi bi-arrow-counterclockwise"></i> Restore
                       </button>
                     }
                   </div>
@@ -94,60 +214,104 @@
         </table>
       </div>
 
-      <!-- ── Mobile cards (visible only on xs/sm) ──────────────────────────── -->
-      <div class="d-block d-md-none">
-        @for (workspace of workspaces; track workspace.id) {
-          <div class="card wl-card mb-3">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                  <h6 class="card-title mb-0">{{ workspace.title }}</h6>
-                  <small class="text-muted">{{ workspace.organizationUnit }}</small>
-                </div>
-                <div>
+      <!-- ── Mobile Cards ─────────────────────────────────────────────── -->
+      <div class="d-block d-lg-none">
+        @for (workspace of pagedWorkspaces; track workspace.id) {
+          <div class="wl-card">
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <div class="wl-avatar" [style.background-color]="getAvatarColor(workspace.title)">
+                {{ getInitials(workspace.title) }}
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="wl-ws-name">{{ workspace.title }}</div>
+                    <div class="wl-ws-meta">Created {{ formatDate(workspace.createdAt) }} &middot; {{ workspace.openActionItemCount }} actions open</div>
+                  </div>
                   @if (workspace.isActive) {
-                    <span class="badge bg-success">Active</span>
+                    <span class="wl-status-badge wl-status-badge--active">
+                      <span class="wl-status-dot"></span>Active
+                    </span>
                   } @else {
-                    <span class="badge bg-secondary">Inactive</span>
+                    <span class="wl-status-badge wl-status-badge--inactive">
+                      <span class="wl-status-dot"></span>Inactive
+                    </span>
                   }
                 </div>
               </div>
+            </div>
 
-              <div class="mb-2">
-                <small class="text-muted d-block">Organization Unit: {{ workspace.organizationUnit }}</small>
-                <small class="text-muted d-block">Admins: {{ workspace.adminUserNames || '—' }}</small>
-              </div>
+            <div class="mb-2">
+              <span class="wl-org-chip">
+                <i class="bi bi-building me-1"></i>{{ workspace.organizationUnit }}
+              </span>
+            </div>
 
-              <div class="d-flex gap-3 mb-2">
-                <small><span class="badge bg-info text-dark">{{ workspace.projectCount }}</span> Projects</small>
-                <small><span class="badge bg-warning text-dark">{{ workspace.milestoneCount }}</span> Milestones</small>
-                <small><span class="badge bg-primary">{{ workspace.actionItemCount }}</span> Actions</small>
-              </div>
+            <div class="wl-admin-list mb-3">
+              @for (admin of workspace.admins; track admin.name) {
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <div class="wl-admin-avatar" [style.background-color]="getAvatarColor(admin.name)">
+                    {{ getInitials(admin.name) }}
+                  </div>
+                  <span class="wl-admin-name">
+                    {{ admin.name }}
+                    @if (admin.department) {
+                      <span class="wl-admin-dept">({{ admin.department }})</span>
+                    }
+                  </span>
+                </div>
+              }
+            </div>
 
-              <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-outline-info btn-sm" (click)="onView(workspace.id)">
-                  <i class="bi bi-eye me-1"></i>View
+            <div class="d-flex flex-wrap gap-2">
+              <button class="wl-action-btn" (click)="onView(workspace.id)">
+                <i class="bi bi-eye"></i> View
+              </button>
+              <button class="wl-action-btn" (click)="onEdit(workspace.id)">
+                <i class="bi bi-pencil-square"></i> Edit
+              </button>
+              @if (workspace.isActive) {
+                <button class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)">
+                  <i class="bi bi-trash"></i> Delete
                 </button>
-                <button class="btn btn-outline-primary btn-sm" (click)="onEdit(workspace.id)">
-                  <i class="bi bi-pencil me-1"></i>Edit
+              } @else {
+                <button class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)">
+                  <i class="bi bi-arrow-counterclockwise"></i> Restore
                 </button>
-                @if (workspace.isActive) {
-                  <button class="btn btn-outline-danger btn-sm" (click)="onDelete(workspace.id)">
-                    <i class="bi bi-trash me-1"></i>Delete
-                  </button>
-                } @else {
-                  <button class="btn btn-outline-success btn-sm" (click)="onRestore(workspace.id)">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
-                  </button>
-                }
-              </div>
+              }
             </div>
           </div>
         }
       </div>
 
+      <!-- ── Pagination ───────────────────────────────────────────────── -->
+      @if (filteredWorkspaces.length > pageSize) {
+        <div class="wl-pagination">
+          <span class="wl-pagination-info">
+            Showing <strong>{{ pageStart }}&ndash;{{ pageEnd }}</strong> of <strong>{{ filteredWorkspaces.length }}</strong> workspaces
+          </span>
+          <div class="wl-pagination-controls">
+            <button class="wl-page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            @for (p of pages; track p) {
+              <button class="wl-page-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+            }
+            <button class="wl-page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="wl-pagination">
+          <span class="wl-pagination-info">
+            Showing <strong>{{ pageStart }}&ndash;{{ pageEnd }}</strong> of <strong>{{ filteredWorkspaces.length }}</strong> workspaces
+          </span>
+        </div>
+      }
+
     } @else if (!errorMessage) {
-      <div class="wl-empty text-center py-5">
+      <div class="wl-empty">
         <i class="bi bi-inbox wl-empty-icon text-muted"></i>
         <p class="text-muted mt-3 mb-3">No workspaces found.</p>
         <button class="btn btn-primary btn-sm" (click)="onCreateNew()">
