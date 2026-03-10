@@ -1408,7 +1408,7 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
                         .WithMany()

@@ -49,11 +49,11 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
 
         builder.HasIndex(a => a.WorkspaceId);
 
-        // FK to Project (optional)
+        // FK to Project (optional) – NoAction to avoid multiple cascade paths via Project→Milestone→ActionItem
         builder.HasOne(a => a.Project)
             .WithMany()
             .HasForeignKey(a => a.ProjectId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasIndex(a => a.ProjectId);
 
