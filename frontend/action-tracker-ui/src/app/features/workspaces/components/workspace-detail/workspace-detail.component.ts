@@ -376,12 +376,13 @@ export class WorkspaceDetailComponent implements OnInit {
 
   openEditActionForm(item: ActionItem): void {
     this.editingActionId = item.id;
-    this.editingEscalations = item.escalations ?? [];
+    this.editingEscalations = [...(item.escalations ?? [])]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    let lastExplanation = '';
+    let latestExplanation = '';
     if (item.isEscalated && this.editingEscalations.length > 0) {
-      const last = this.editingEscalations[this.editingEscalations.length - 1];
-      lastExplanation = last.explanation ?? '';
+      const mostRecent = this.editingEscalations[this.editingEscalations.length - 1];
+      latestExplanation = mostRecent.explanation ?? '';
     }
 
     this.actionForm = {
@@ -394,11 +395,11 @@ export class WorkspaceDetailComponent implements OnInit {
       dueDate:     item.dueDate.slice(0, 10),
       progress:    item.progress,
       isEscalated: !!item.isEscalated,
-      escalationExplanation: lastExplanation,
+      escalationExplanation: latestExplanation,
     };
 
     this.originalEscalated = !!item.isEscalated;
-    this.originalEscalationText = lastExplanation;
+    this.originalEscalationText = latestExplanation;
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
@@ -417,10 +418,9 @@ export class WorkspaceDetailComponent implements OnInit {
     this.sponsorDropdownOpen = false;
   }
 
-  get lastEscalation(): EscalationInfo | null {
-    return this.editingEscalations.length > 0
-      ? this.editingEscalations[this.editingEscalations.length - 1]
-      : null;
+  get latestEscalation(): EscalationInfo | null {
+    if (this.editingEscalations.length === 0) return null;
+    return this.editingEscalations[this.editingEscalations.length - 1];
   }
 
   get filteredUsers(): AssignableUser[] {

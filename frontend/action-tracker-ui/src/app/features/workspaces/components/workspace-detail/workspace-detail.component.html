@@ -753,11 +753,11 @@
           <label class="form-label">
             Escalation Explanation <span class="text-danger">*</span>
           </label>
-          @if (editingActionId && lastEscalation) {
+          @if (editingActionId && latestEscalation) {
             <div class="text-muted small mb-2">
               <i class="bi bi-person me-1"></i>Last escalated by
-              <strong>{{ lastEscalation.escalatedByName || 'Unknown' }}</strong>
-              on {{ lastEscalation.createdAt | date:'MMM d, y h:mm a' }}
+              <strong>{{ latestEscalation.escalatedByName || 'Unknown' }}</strong>
+              on {{ latestEscalation.createdAt | date:'MMM d, y h:mm a' }}
             </div>
           }
           <textarea
