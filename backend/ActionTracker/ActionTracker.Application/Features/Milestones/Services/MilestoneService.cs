@@ -148,6 +148,44 @@ public class MilestoneService : IMilestoneService
         _logger.LogInformation("Baselined {Count} milestones for project {ProjectId}", milestones.Count, projectId);
     }
 
+    public async Task<MilestoneStatsDto> GetProjectStatsAsync(Guid projectId, CancellationToken ct)
+    {
+        var actionItems = await _db.ActionItems
+            .Where(a => a.ProjectId == projectId)
+            .Select(a => new
+            {
+                a.Status,
+                a.IsEscalated,
+                a.DueDate,
+                a.UpdatedAt,
+            })
+            .ToListAsync(ct);
+
+        var total = actionItems.Count;
+        var doneCount = actionItems.Count(a => a.Status == ActionStatus.Done);
+        var completionRate = total > 0
+            ? Math.Round((decimal)doneCount / total * 100, 1)
+            : 0m;
+
+        var doneOnTime = actionItems.Count(a =>
+            a.Status == ActionStatus.Done &&
+            a.UpdatedAt.HasValue &&
+            a.UpdatedAt.Value <= a.DueDate);
+        var onTimeRate = doneCount > 0
+            ? Math.Round((decimal)doneOnTime / doneCount * 100, 1)
+            : 0m;
+
+        var escalated = actionItems.Count(a => a.IsEscalated);
+
+        return new MilestoneStatsDto
+        {
+            TotalActionItems = total,
+            CompletionRate = completionRate,
+            OnTimeDeliveryRate = onTimeRate,
+            EscalatedActionItems = escalated,
+        };
+    }
+
     private static MilestoneResponseDto MapToDto(Milestone m)
     {
         int? varianceDays = null;

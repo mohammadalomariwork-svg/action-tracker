@@ -105,6 +105,15 @@ public class MilestonesController : ControllerBase
         }
     }
 
+    /// <summary>Returns action-item stats for the project's milestones page.</summary>
+    [HttpGet("stats")]
+    [ProducesResponseType(typeof(ApiResponse<MilestoneStatsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProjectStats(Guid projectId, CancellationToken ct)
+    {
+        var stats = await _service.GetProjectStatsAsync(projectId, ct);
+        return Ok(ApiResponse<MilestoneStatsDto>.Ok(stats));
+    }
+
     /// <summary>Locks milestone dates by saving baseline values.</summary>
     [HttpPost("baseline")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

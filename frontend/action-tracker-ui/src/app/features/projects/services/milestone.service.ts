@@ -6,6 +6,7 @@ import {
   MilestoneResponse,
   MilestoneCreate,
   MilestoneUpdate,
+  MilestoneStats,
 } from '../models/milestone.models';
 import { ApiResponse } from '../../../core/models/api-response.model';
 
@@ -39,5 +40,9 @@ export class MilestoneService {
 
   baseline(projectId: string): Observable<void> {
     return this.http.post<void>(`${this.url(projectId)}/baseline`, {});
+  }
+
+  getProjectStats(projectId: string): Observable<ApiResponse<MilestoneStats>> {
+    return this.http.get<ApiResponse<MilestoneStats>>(`${this.url(projectId)}/stats`);
   }
 }

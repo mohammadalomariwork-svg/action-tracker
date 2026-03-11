@@ -50,6 +50,13 @@ export interface MilestoneCreate {
   approverUserId?: string;
 }
 
+export interface MilestoneStats {
+  totalActionItems: number;
+  completionRate: number;
+  onTimeDeliveryRate: number;
+  escalatedActionItems: number;
+}
+
 export interface MilestoneUpdate {
   name: string;
   description?: string;
