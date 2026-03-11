@@ -1,192 +1,448 @@
 <app-breadcrumb [items]="[{ label: 'My Actions', route: '/actions' }, { label: item()?.actionId ?? 'Loading...' }]" />
 
-<div class="detail-page">
+<div class="wd-page">
 
-  <!-- Page header with navigation buttons -->
-  <app-page-header
-    [title]="item()?.actionId ?? 'Loading...'"
-    [subtitle]="item()?.title ?? ''"
-    icon="📋">
-    <a [routerLink]="['/workspaces', workspaceId()]" class="btn btn-outline">
-      ← Back to Workspace
-    </a>
-    <a [routerLink]="['/actions', item()?.id, 'edit']" class="btn btn-primary">
-      ✏️ Edit Action Item
-    </a>
-  </app-page-header>
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      <span class="ms-2 text-muted">Loading action item…</span>
+    </div>
+  }
 
-  <div class="detail-body">
+  @if (!loading() && item(); as ai) {
 
-    <!-- Loading -->
-    @if (loading()) {
-      <div class="loading-state">
-        <span class="spinner"></span>
-        <p>Loading action item...</p>
-      </div>
-    }
-
-    @if (!loading() && item(); as ai) {
-
-      <!-- ── Main Info Card ─────────────────────────── -->
-      <div class="info-grid">
-
-        <!-- Left: Details -->
-        <div class="card">
-          <h3 class="card__title">Details</h3>
-
-          <div class="detail-row">
-            <span class="detail-label">Title</span>
-            <span class="detail-value">{{ ai.title }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Description</span>
-            <span class="detail-value detail-value--desc">{{ ai.description || '—' }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Type</span>
-            <span class="detail-value">
+    <!-- ── Header card ──────────────────────────────────── -->
+    <div class="card wd-header-card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <div>
+            <h4 class="mb-1">
+              <span class="wa-action-id me-2">{{ ai.actionId }}</span>
+              {{ ai.title }}
+              @if (ai.isEscalated) {
+                <i class="bi bi-exclamation-triangle-fill text-danger ms-2" title="Escalated"></i>
+              }
+            </h4>
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
               @if (ai.isStandalone) {
-                <span class="badge badge--secondary">Standalone</span>
+                <span class="badge bg-secondary">Standalone</span>
               } @else {
-                <span class="badge badge--primary">Project-linked</span>
+                <span class="badge bg-primary">Project-linked</span>
               }
-            </span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Workspace</span>
-            <span class="detail-value">
-              <a [routerLink]="['/workspaces', ai.workspaceId]" class="link">{{ ai.workspaceTitle }}</a>
-            </span>
-          </div>
-
-          @if (ai.projectId) {
-            <div class="detail-row">
-              <span class="detail-label">Project</span>
-              <span class="detail-value">
-                <a [routerLink]="['/projects', ai.projectId]" class="link">{{ ai.projectName }}</a>
-              </span>
-            </div>
-          }
-
-          @if (ai.milestoneId && ai.projectId) {
-            <div class="detail-row">
-              <span class="detail-label">Milestone</span>
-              <span class="detail-value">
-                <a [routerLink]="['/projects', ai.projectId, 'milestones', ai.milestoneId]" class="link">{{ ai.milestoneName }}</a>
-              </span>
-            </div>
-          }
-
-          <div class="detail-row">
-            <span class="detail-label">Assignee(s)</span>
-            <span class="detail-value">
-              @for (a of ai.assignees; track a.userId) {
-                <span class="assignee-chip">
-                  <span class="assignee-avatar">{{ a.fullName.charAt(0) }}</span>
-                  {{ a.fullName }}
-                </span>
-              }
-              @if (ai.assignees.length === 0) { <span>—</span> }
-            </span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Priority</span>
-            <span class="detail-value"><app-priority-badge [priority]="ai.priority" /></span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Status</span>
-            <span class="detail-value"><app-status-badge [status]="ai.status" /></span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Progress</span>
-            <span class="detail-value" style="flex:1;max-width:200px">
-              <app-progress-bar [value]="ai.progress" />
-            </span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Start Date</span>
-            <span class="detail-value">{{ ai.startDate ? (ai.startDate | date:'MMM d, y') : '—' }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="detail-label">Due Date</span>
-            <span class="detail-value" [class]="dueDateClass()">
-              {{ ai.dueDate | date:'MMM d, y' }}
+              <span [class]="priorityClass(ai.priority)">{{ ai.priorityLabel }}</span>
+              <span [class]="statusClass(ai.status)">{{ ai.statusLabel }}</span>
               @if (ai.isOverdue) {
-                <span class="overdue-badge">Overdue</span>
+                <span class="badge bg-danger">Overdue</span>
               }
-            </span>
+              @if (ai.isDeleted) {
+                <span class="badge bg-danger">Deleted</span>
+              }
+            </div>
           </div>
 
-          <div class="detail-row">
-            <span class="detail-label">Created</span>
-            <span class="detail-value">{{ ai.createdAt | date:'MMM d, y, h:mm a' }}</span>
+          <div class="d-flex gap-2">
+            <a [routerLink]="['/workspaces', ai.workspaceId]" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+            </a>
+            <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Content row ──────────────────────────────────── -->
+    <div class="row g-4">
+
+      <!-- Left column: Details -->
+      <div class="col-lg-6">
+        <div class="wd-section">
+          <div class="wd-section-header">
+            <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Details</h5>
           </div>
 
-          <div class="detail-row">
-            <span class="detail-label">Last Updated</span>
-            <span class="detail-value">{{ ai.updatedAt | date:'MMM d, y, h:mm a' }}</span>
+          <div class="wd-details-list">
+
+            @if (ai.description) {
+              <div class="wd-detail-row">
+                <span class="wd-detail-label">Description</span>
+                <span class="wd-detail-value text-pre-wrap">{{ ai.description }}</span>
+              </div>
+            }
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Workspace</span>
+              <span class="wd-detail-value">
+                <a [routerLink]="['/workspaces', ai.workspaceId]" class="wa-link">{{ ai.workspaceTitle }}</a>
+              </span>
+            </div>
+
+            @if (ai.projectId) {
+              <div class="wd-detail-row">
+                <span class="wd-detail-label">Project</span>
+                <span class="wd-detail-value">
+                  <a [routerLink]="['/projects', ai.projectId]" class="wa-link">{{ ai.projectName }}</a>
+                </span>
+              </div>
+            }
+
+            @if (ai.milestoneId && ai.projectId) {
+              <div class="wd-detail-row">
+                <span class="wd-detail-label">Milestone</span>
+                <span class="wd-detail-value">
+                  <a [routerLink]="['/projects', ai.projectId, 'milestones', ai.milestoneId]" class="wa-link">{{ ai.milestoneName }}</a>
+                </span>
+              </div>
+            }
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Assignee(s)</span>
+              <span class="wd-detail-value">
+                <div class="d-flex flex-wrap gap-2">
+                  @for (a of ai.assignees; track a.userId) {
+                    <span class="d-inline-flex align-items-center gap-1">
+                      <span class="wa-avatar-sm">{{ a.fullName.charAt(0) }}</span>
+                      <span class="small">{{ a.fullName }}</span>
+                    </span>
+                  }
+                  @if (ai.assignees.length === 0) { <span class="text-muted">—</span> }
+                </div>
+              </span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Priority</span>
+              <span class="wd-detail-value"><span [class]="priorityClass(ai.priority)">{{ ai.priorityLabel }}</span></span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Status</span>
+              <span class="wd-detail-value"><span [class]="statusClass(ai.status)">{{ ai.statusLabel }}</span></span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Progress</span>
+              <span class="wd-detail-value">
+                <div class="wa-progress-cell">
+                  <div class="progress wa-progress-bar" style="width:100px">
+                    <div
+                      class="progress-bar"
+                      [class.bg-success]="ai.progress >= 75"
+                      [class.bg-info]="ai.progress >= 40 && ai.progress < 75"
+                      [class.bg-danger]="ai.progress < 40"
+                      [style.width.%]="ai.progress"
+                    ></div>
+                  </div>
+                  <span class="wa-progress-label">{{ ai.progress }}%</span>
+                </div>
+              </span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Start Date</span>
+              <span class="wd-detail-value">{{ ai.startDate ? (ai.startDate | date:'MMM d, y') : '—' }}</span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Due Date</span>
+              <span class="wd-detail-value" [class]="dueDateClass(ai)">
+                {{ ai.dueDate | date:'MMM d, y' }}
+                @if (ai.isOverdue) {
+                  <span class="badge bg-danger ms-1">Overdue</span>
+                }
+              </span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Created</span>
+              <span class="wd-detail-value text-muted">{{ ai.createdAt | date:'MMM d, y, h:mm a' }}</span>
+            </div>
+
+            <div class="wd-detail-row">
+              <span class="wd-detail-label">Last Updated</span>
+              <span class="wd-detail-value text-muted">{{ ai.updatedAt | date:'MMM d, y, h:mm a' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: Escalation + Comments + Documents -->
+      <div class="col-lg-6">
+
+        <!-- Escalation History -->
+        <div class="wd-section mb-4">
+          <div class="wd-section-header">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Escalation History</h5>
           </div>
 
-          @if (ai.isEscalated) {
-            <div class="detail-row">
-              <span class="detail-label">Escalated</span>
-              <span class="detail-value escalated-flag">🚨 Yes — This item has been escalated</span>
+          @if (ai.escalations.length === 0) {
+            <p class="text-muted text-center py-3 mb-0">No escalations recorded.</p>
+          }
+
+          @for (esc of ai.escalations; track esc.id) {
+            <div class="wa-escalation-entry">
+              <div class="wa-escalation-entry__header">
+                <span class="fw-semibold small">{{ esc.escalatedByName || 'Unknown' }}</span>
+                <span class="text-muted small">{{ esc.createdAt | date:'MMM d, y, h:mm a' }}</span>
+              </div>
+              <div class="wa-escalation-entry__body small">{{ esc.explanation }}</div>
             </div>
           }
         </div>
 
-        <!-- Right column: Escalations + Comments -->
-        <div class="side-col">
+        <!-- Comments -->
+        <app-comments-section
+          entityType="ActionItem"
+          [entityId]="ai.id"
+        />
 
-          <!-- ── Escalation History ─────────────────── -->
-          <div class="card">
-            <h3 class="card__title">🚨 Escalation History</h3>
-
-            @if (ai.escalations.length === 0) {
-              <p class="empty-text">No escalations recorded.</p>
-            }
-
-            @for (esc of ai.escalations; track esc.id) {
-              <div class="escalation-entry">
-                <div class="escalation-header">
-                  <span class="escalation-by">{{ esc.escalatedByName || 'Unknown' }}</span>
-                  <span class="escalation-date">{{ esc.createdAt | date:'MMM d, y, h:mm a' }}</span>
-                </div>
-                <p class="escalation-text">{{ esc.explanation }}</p>
-              </div>
-            }
-          </div>
-
-          <!-- ── Comments Section ───────────────────── -->
-          <app-comments-section
-            entityType="ActionItem"
-            [entityId]="ai.id"
-          />
-
-          <!-- ── Documents Section ──────────────────── -->
+        <!-- Documents -->
+        <div class="mt-4">
           <app-documents-section
             entityType="ActionItem"
             [entityId]="ai.id"
           />
         </div>
       </div>
-    }
+    </div>
+  }
 
-    @if (!loading() && !item()) {
-      <div class="empty-state">
-        <div class="empty-state__icon">📭</div>
-        <p class="empty-state__title">Action item not found</p>
-        <a routerLink="/actions" class="btn btn-primary" style="margin-top:1rem">← Back to List</a>
+  @if (!loading() && !item()) {
+    <div class="wd-empty text-center py-5">
+      <i class="bi bi-clipboard-x wd-empty-icon text-muted"></i>
+      <p class="text-muted mt-2 mb-0">Action item not found.</p>
+      <a routerLink="/actions" class="btn btn-primary btn-sm mt-3">
+        <i class="bi bi-arrow-left me-1"></i>Back to List
+      </a>
+    </div>
+  }
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     Offcanvas drawer — Edit Action Item
+     ════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end wa-offcanvas"
+     [class.show]="showEditForm"
+     [style.visibility]="showEditForm ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title">
+      <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Action Item
+    </h5>
+    <button type="button" class="btn-close" (click)="cancelEditForm()"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (showEditForm) {
+      <!-- Title -->
+      <div class="mb-3">
+        <label class="form-label">Title <span class="text-danger">*</span></label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="editForm.title"
+          placeholder="Action item title…"
+          maxlength="255"
+        />
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea
+          class="form-control"
+          [(ngModel)]="editForm.description"
+          placeholder="Optional description…"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <!-- Assignees multi-select dropdown -->
+      <div class="mb-3">
+        <label class="form-label">Assignee(s) <span class="text-danger">*</span></label>
+        <div class="wa-multi-select" (click)="assigneeDropdownOpen = !assigneeDropdownOpen; $event.stopPropagation()">
+          <div class="wa-multi-select__control form-select">
+            @if (editForm.assigneeIds.length === 0) {
+              <span class="text-muted">Select assignees…</span>
+            } @else {
+              <div class="wa-multi-select__tags">
+                @for (id of editForm.assigneeIds; track id) {
+                  <span class="wa-multi-select__tag">
+                    {{ getAssigneeName(id) }}
+                    <button type="button" class="wa-multi-select__tag-remove" (click)="toggleAssignee(id); $event.stopPropagation()">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+          @if (assigneeDropdownOpen) {
+            <div class="wa-multi-select__dropdown">
+              <input
+                type="text"
+                class="form-control form-control-sm wa-multi-select__search"
+                placeholder="Search users…"
+                [(ngModel)]="assigneeSearchTerm"
+                (click)="$event.stopPropagation()"
+              />
+              <div class="wa-multi-select__options">
+                @for (u of filteredUsers; track u.id) {
+                  <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      [checked]="isAssigneeSelected(u.id)"
+                      (change)="toggleAssignee(u.id)"
+                    />
+                    <span class="wa-multi-select__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
+                    <span>{{ u.fullName }}</span>
+                  </label>
+                }
+                @if (filteredUsers.length === 0) {
+                  <div class="text-muted small px-3 py-2">No users found.</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        @if (editForm.assigneeIds.length === 0) {
+          <small class="text-danger">At least one assignee is required.</small>
+        }
+      </div>
+
+      <!-- Priority & Status row -->
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label">Priority <span class="text-danger">*</span></label>
+          <select class="form-select" [(ngModel)]="editForm.priority">
+            @for (opt of PRIORITY_OPTIONS; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Status</label>
+          <select class="form-select" [(ngModel)]="editForm.status" (ngModelChange)="onStatusChange()">
+            @for (opt of STATUS_OPTIONS; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Start Date & Due Date row -->
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="editForm.startDate" />
+        </div>
+        <div class="col-6">
+          <label class="form-label">Due Date <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="editForm.dueDate" [min]="editForm.startDate || ''" />
+          @if (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate) {
+            <small class="text-danger">Due date must be same or after start date.</small>
+          }
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="mb-3">
+        <label class="form-label">Progress ({{ editForm.progress }}%)</label>
+        <input
+          type="range"
+          class="form-range"
+          min="0" max="100" step="1"
+          [(ngModel)]="editForm.progress"
+        />
+      </div>
+
+      <!-- Escalated -->
+      <div class="mb-3">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="editActionEscalated"
+            [(ngModel)]="editForm.isEscalated"
+          />
+          <label class="form-check-label" for="editActionEscalated">Escalated</label>
+        </div>
+      </div>
+
+      <!-- Escalation Explanation -->
+      @if (editForm.isEscalated) {
+        <div class="mb-3">
+          <label class="form-label">
+            Escalation Explanation <span class="text-danger">*</span>
+          </label>
+          @if (latestEscalation) {
+            <div class="text-muted small mb-2">
+              <i class="bi bi-person me-1"></i>Last escalated by
+              <strong>{{ latestEscalation.escalatedByName || 'Unknown' }}</strong>
+              on {{ latestEscalation.createdAt | date:'MMM d, y h:mm a' }}
+            </div>
+          }
+          <textarea
+            class="form-control"
+            [(ngModel)]="editForm.escalationExplanation"
+            placeholder="Provide the reason for escalation…"
+            rows="3"
+            maxlength="2000"
+          ></textarea>
+          @if (!editForm.escalationExplanation?.trim()) {
+            <small class="text-danger">Escalation explanation is required.</small>
+          }
+        </div>
+      }
+
+      <!-- Escalation History -->
+      @if (editingEscalations.length > 0) {
+        <div class="mb-4">
+          <label class="form-label text-muted"><i class="bi bi-clock-history me-1"></i>Escalation History</label>
+          <div class="wa-escalation-history">
+            @for (esc of editingEscalations; track esc.id) {
+              <div class="wa-escalation-entry">
+                <div class="wa-escalation-entry__header">
+                  <span class="fw-semibold small">{{ esc.escalatedByName || 'Unknown' }}</span>
+                  <span class="text-muted small">{{ esc.createdAt | date:'MMM d, y h:mm a' }}</span>
+                </div>
+                <div class="wa-escalation-entry__body small">{{ esc.explanation }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="d-flex gap-2 justify-content-end border-top pt-3">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          (click)="cancelEditForm()"
+          [disabled]="saving"
+        >Cancel</button>
+        <button
+          type="button"
+          class="btn btn-primary d-inline-flex align-items-center gap-2"
+          (click)="saveEdit()"
+          [disabled]="saving || !editForm.title.trim() || editForm.assigneeIds.length === 0 || !editForm.dueDate || (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate) || (editForm.isEscalated && !editForm.escalationExplanation?.trim())"
+        >
+          @if (saving) {
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            Saving…
+          } @else {
+            <i class="bi bi-check-lg"></i> Update
+          }
+        </button>
       </div>
     }
-
   </div>
 </div>
+
+<!-- Backdrop -->
+@if (showEditForm) {
+  <div class="offcanvas-backdrop fade show" (click)="cancelEditForm()"></div>
+}
