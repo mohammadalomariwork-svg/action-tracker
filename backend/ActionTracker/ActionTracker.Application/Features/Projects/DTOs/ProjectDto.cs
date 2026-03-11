@@ -37,6 +37,8 @@ public class ProjectResponseDto
     public bool IsBaselined { get; set; }
     public bool IsDeleted { get; set; }
 
+    public int ActionItemCount { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -104,4 +106,5 @@ public class ProjectFilterDto
     public int PageSize { get; set; } = 10;
     public string SortBy { get; set; } = "createdAt";
     public bool SortDescending { get; set; } = true;
+    public bool IncludeDeleted { get; set; } = false;
 }

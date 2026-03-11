@@ -156,11 +156,25 @@
               <i class="bi bi-kanban me-2 text-primary"></i>Projects
               <span class="badge bg-secondary ms-2">{{ projectTotalCount }}</span>
             </h5>
-            @if (canManage) {
-              <button class="btn btn-primary btn-sm" (click)="openNewProjectForm()" [disabled]="showProjectForm">
-                <i class="bi bi-plus-circle me-1"></i>New Project
-              </button>
-            }
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <!-- Show deleted toggle -->
+              <div class="form-check form-switch mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="showDeletedProjectsToggle"
+                  [checked]="showDeletedProjects"
+                  (change)="toggleShowDeletedProjects()"
+                />
+                <label class="form-check-label small text-muted" for="showDeletedProjectsToggle">Show deleted</label>
+              </div>
+
+              @if (canManage) {
+                <button class="btn btn-primary btn-sm" (click)="openNewProjectForm()" [disabled]="showProjectForm">
+                  <i class="bi bi-plus-circle me-1"></i>New Project
+                </button>
+              }
+            </div>
           </div>
 
           @if (projectLoading) {
@@ -189,6 +203,7 @@
                     <th>Priority</th>
                     <th>Status</th>
                     <th>PM</th>
+                    <th class="text-center">Items</th>
                     <th>Start</th>
                     <th>End</th>
                     <th class="text-end">Actions</th>
@@ -196,13 +211,21 @@
                 </thead>
                 <tbody>
                   @for (prj of projects; track prj.id) {
-                    <tr>
+                    <tr [class.table-danger]="prj.isDeleted" [class.opacity-50]="prj.isDeleted">
                       <td><span class="wa-action-id">{{ prj.projectCode }}</span></td>
-                      <td><a class="wa-title text-decoration-none" [routerLink]="['/projects', prj.id]" [title]="prj.name">{{ prj.name }}</a></td>
+                      <td>
+                        <a class="wa-title text-decoration-none" [routerLink]="['/projects', prj.id]" [title]="prj.name">{{ prj.name }}</a>
+                        @if (prj.isDeleted) {
+                          <span class="badge bg-danger ms-1">Deleted</span>
+                        }
+                      </td>
                       <td><span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span></td>
                       <td><span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span></td>
                       <td><span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span></td>
                       <td>{{ prj.projectManagerName }}</td>
+                      <td class="text-center">
+                        <span class="badge bg-secondary">{{ prj.actionItemCount }}</span>
+                      </td>
                       <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
                       <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
                       <td class="text-end">
@@ -237,13 +260,16 @@
             <!-- Mobile cards -->
             <div class="d-block d-md-none">
               @for (prj of projects; track prj.id) {
-                <div class="wa-action-card">
+                <div class="wa-action-card" [class.border-danger]="prj.isDeleted" [class.opacity-50]="prj.isDeleted">
                   <div class="wa-action-card__header">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                       <span class="wa-action-id">{{ prj.projectCode }}</span>
                       <span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span>
                       <span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span>
                       <span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span>
+                      @if (prj.isDeleted) {
+                        <span class="badge bg-danger">Deleted</span>
+                      }
                     </div>
                   </div>
                   <a class="wa-action-card__title text-decoration-none" [routerLink]="['/projects', prj.id]">{{ prj.name }}</a>
@@ -251,6 +277,10 @@
                     <div class="wa-action-card__meta-row">
                       <span class="wa-action-card__meta-label"><i class="bi bi-person me-1"></i>PM</span>
                       <span class="wa-action-card__meta-value">{{ prj.projectManagerName }}</span>
+                    </div>
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-list-check me-1"></i>Action Items</span>
+                      <span class="wa-action-card__meta-value">{{ prj.actionItemCount }}</span>
                     </div>
                     <div class="wa-action-card__meta-row">
                       <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Period</span>

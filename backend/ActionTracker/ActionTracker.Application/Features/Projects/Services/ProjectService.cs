@@ -30,6 +30,9 @@ public class ProjectService : IProjectService
             .Include(p => p.Sponsors).ThenInclude(s => s.User)
             .AsQueryable();
 
+        if (filter.IncludeDeleted)
+            query = query.IgnoreQueryFilters();
+
         if (filter.WorkspaceId.HasValue)
             query = query.Where(p => p.WorkspaceId == filter.WorkspaceId.Value);
 
@@ -63,7 +66,40 @@ public class ProjectService : IProjectService
             _                  => filter.SortDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt),
         };
 
-        var projected = query.Select(p => ToDto(p));
+        var projected = query.Select(p => new ProjectResponseDto
+        {
+            Id                          = p.Id,
+            ProjectCode                 = p.ProjectCode,
+            Name                        = p.Name,
+            Description                 = p.Description,
+            WorkspaceId                 = p.WorkspaceId,
+            WorkspaceTitle              = p.Workspace != null ? p.Workspace.Title : string.Empty,
+            ProjectType                 = p.ProjectType,
+            Status                      = p.Status,
+            Priority                    = p.Priority,
+            StrategicObjectiveId        = p.StrategicObjectiveId,
+            StrategicObjectiveStatement = p.StrategicObjective != null ? p.StrategicObjective.Statement : null,
+            ProjectManagerUserId        = p.ProjectManagerUserId,
+            ProjectManagerName          = p.ProjectManager != null ? p.ProjectManager.FirstName + " " + p.ProjectManager.LastName : string.Empty,
+            Sponsors                    = p.Sponsors.Select(s => new SponsorDto
+            {
+                UserId   = s.UserId,
+                FullName = s.User != null ? s.User.FirstName + " " + s.User.LastName : string.Empty,
+                Email    = s.User != null ? s.User.Email! : string.Empty,
+            }).ToList(),
+            OwnerOrgUnitId   = p.OwnerOrgUnitId,
+            OwnerOrgUnitName = p.OwnerOrgUnit != null ? p.OwnerOrgUnit.Name : null,
+            PlannedStartDate = p.PlannedStartDate,
+            PlannedEndDate   = p.PlannedEndDate,
+            ActualStartDate  = p.ActualStartDate,
+            ApprovedBudget   = p.ApprovedBudget,
+            Currency         = p.Currency,
+            IsBaselined      = p.IsBaselined,
+            IsDeleted        = p.IsDeleted,
+            ActionItemCount  = _db.ActionItems.Count(a => a.ProjectId == p.Id),
+            CreatedAt        = p.CreatedAt,
+            UpdatedAt        = p.UpdatedAt,
+        });
 
         return await PagedResult<ProjectResponseDto>.CreateAsync(projected, filter.PageNumber, filter.PageSize, ct);
     }
@@ -78,7 +114,10 @@ public class ProjectService : IProjectService
             .Include(p => p.Sponsors).ThenInclude(s => s.User)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
-        return project is null ? null : MapToDto(project);
+        if (project is null) return null;
+        var dto = MapToDto(project);
+        dto.ActionItemCount = await _db.ActionItems.CountAsync(a => a.ProjectId == id, ct);
+        return dto;
     }
 
     public async Task<ProjectResponseDto> CreateAsync(ProjectCreateDto dto, string userId, CancellationToken ct)
@@ -288,38 +327,4 @@ public class ProjectService : IProjectService
         };
     }
 
-    // Expression-based projection for IQueryable (used in GetAllAsync)
-    private static ProjectResponseDto ToDto(Project p) => new()
-    {
-        Id                          = p.Id,
-        ProjectCode                 = p.ProjectCode,
-        Name                        = p.Name,
-        Description                 = p.Description,
-        WorkspaceId                 = p.WorkspaceId,
-        WorkspaceTitle              = p.Workspace != null ? p.Workspace.Title : string.Empty,
-        ProjectType                 = p.ProjectType,
-        Status                      = p.Status,
-        Priority                    = p.Priority,
-        StrategicObjectiveId        = p.StrategicObjectiveId,
-        StrategicObjectiveStatement = p.StrategicObjective != null ? p.StrategicObjective.Statement : null,
-        ProjectManagerUserId        = p.ProjectManagerUserId,
-        ProjectManagerName          = p.ProjectManager != null ? p.ProjectManager.FirstName + " " + p.ProjectManager.LastName : string.Empty,
-        Sponsors                    = p.Sponsors.Select(s => new SponsorDto
-        {
-            UserId   = s.UserId,
-            FullName = s.User != null ? s.User.FirstName + " " + s.User.LastName : string.Empty,
-            Email    = s.User != null ? s.User.Email! : string.Empty,
-        }).ToList(),
-        OwnerOrgUnitId   = p.OwnerOrgUnitId,
-        OwnerOrgUnitName = p.OwnerOrgUnit != null ? p.OwnerOrgUnit.Name : null,
-        PlannedStartDate = p.PlannedStartDate,
-        PlannedEndDate   = p.PlannedEndDate,
-        ActualStartDate  = p.ActualStartDate,
-        ApprovedBudget   = p.ApprovedBudget,
-        Currency         = p.Currency,
-        IsBaselined      = p.IsBaselined,
-        IsDeleted        = p.IsDeleted,
-        CreatedAt        = p.CreatedAt,
-        UpdatedAt        = p.UpdatedAt,
-    };
 }

@@ -79,6 +79,7 @@ export class WorkspaceDetailComponent implements OnInit {
   projectPageSize = 10;
   projectLoading = false;
   deletingProjectId: string | null = null;
+  showDeletedProjects = false;
 
   // Project drawer form
   showProjectForm = false;
@@ -525,6 +526,7 @@ export class WorkspaceDetailComponent implements OnInit {
       pageSize:       this.projectPageSize,
       sortBy:         'createdAt',
       sortDescending: true,
+      includeDeleted: this.showDeletedProjects || undefined,
     };
 
     this.projectService.getAll(filter)
@@ -552,6 +554,12 @@ export class WorkspaceDetailComponent implements OnInit {
       this.projectPageNumber++;
       this.loadProjects();
     }
+  }
+
+  toggleShowDeletedProjects(): void {
+    this.showDeletedProjects = !this.showDeletedProjects;
+    this.projectPageNumber = 1;
+    this.loadProjects();
   }
 
   deleteProject(prj: ProjectResponse): void {

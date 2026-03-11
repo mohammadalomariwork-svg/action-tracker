@@ -48,6 +48,7 @@ export interface ProjectResponse {
   currency: string;
   isBaselined: boolean;
   isDeleted: boolean;
+  actionItemCount: number;
   createdAt: string;
   updatedAt?: string;
   projectTypeLabel: string;
@@ -94,6 +95,7 @@ export interface ProjectFilter {
   pageSize: number;
   sortBy: string;
   sortDescending: boolean;
+  includeDeleted?: boolean;
 }
 
 export interface StrategicObjectiveOption {
