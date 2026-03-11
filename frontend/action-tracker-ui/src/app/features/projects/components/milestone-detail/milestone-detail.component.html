@@ -286,9 +286,16 @@
                       <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                     </td>
                     <td>
-                      <div class="wa-assignees">
-                        <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
-                        <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
+                      <div class="wa-assignees-list">
+                        @for (a of item.assignees; track a.userId) {
+                          <div class="wa-assignee-row">
+                            <span class="wa-avatar-sm">{{ a.fullName.charAt(0).toUpperCase() }}</span>
+                            <span class="wa-assignee-text">{{ a.fullName }}</span>
+                          </div>
+                        }
+                        @if (!item.assignees || item.assignees.length === 0) {
+                          <span class="text-muted">—</span>
+                        }
                       </div>
                     </td>
                     <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
@@ -367,9 +374,19 @@
                 </div>
                 <a class="wa-action-card__title text-decoration-none" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
                 <div class="wa-action-card__meta">
-                  <div class="wa-action-card__meta-row">
+                  <div class="wa-action-card__meta-row wa-action-card__meta-row--assignees">
                     <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
-                    <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
+                    <div class="wa-action-card__meta-value">
+                      @for (a of item.assignees; track a.userId) {
+                        <div class="wa-assignee-row">
+                          <span class="wa-avatar-sm">{{ a.fullName.charAt(0).toUpperCase() }}</span>
+                          <span class="wa-assignee-text">{{ a.fullName }}</span>
+                        </div>
+                      }
+                      @if (!item.assignees || item.assignees.length === 0) {
+                        <span class="text-muted">—</span>
+                      }
+                    </div>
                   </div>
                   <div class="wa-action-card__meta-row">
                     <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>

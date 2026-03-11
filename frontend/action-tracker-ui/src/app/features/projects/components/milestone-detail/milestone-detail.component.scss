@@ -254,6 +254,8 @@
 .wa-action-id { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.8rem; font-weight: 600; color: #0d6efd; }
 .wa-title { display: inline-block; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .wa-assignees { display: flex; align-items: center; gap: 0.4rem; }
+.wa-assignees-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.wa-assignee-row { display: flex; align-items: center; gap: 0.4rem; }
 .wa-avatar-sm { width: 1.6rem; height: 1.6rem; border-radius: 50%; background: linear-gradient(135deg, #0d6efd, #6610f2); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; }
 .wa-assignee-text { font-size: 0.82rem; color: #495057; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wa-progress-cell { display: flex; align-items: center; gap: 0.5rem; }
@@ -273,7 +275,9 @@
   &__header { margin-bottom: 0.5rem; }
   &__title { display: block; font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 0.75rem; }
   &__meta { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
-  &__meta-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
+  &__meta-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem;
+    &--assignees { align-items: flex-start; }
+  }
   &__meta-label { color: #6c757d; min-width: 100px; flex-shrink: 0; font-weight: 500; }
   &__meta-value { color: #1e293b; flex: 1; min-width: 0; }
   &__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.5rem; border-top: 1px solid #e9ecef; }
