@@ -4,7 +4,54 @@
   min-height: 100%;
 }
 
-// ── Header card ──────────────────────────────────────────────────────────────
+// ── Merged header (title + details) ─────────────────────────────────────────
+.wd-merged-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.wd-merged-header__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.wd-merged-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wd-merged-header__icon {
+  font-size: 2.5rem;
+  color: #6c757d;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wd-merged-header__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.2;
+}
+
+.wd-merged-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+// ── Header card (legacy) ────────────────────────────────────────────────────
 .wd-header-card {
   border: none;
   border-radius: 0.5rem;

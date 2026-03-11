@@ -2,12 +2,6 @@
 
   <app-breadcrumb [items]="[{ label: 'Workspaces', route: '/workspaces' }, { label: workspace?.title ?? 'Loading…' }]" />
 
-  <app-page-header
-    [title]="workspace?.title ?? 'Workspace'"
-    subtitle="Workspace overview and management"
-    icon="bi bi-grid-3x3-gap-fill"
-  />
-
   <!-- ── Loading spinner ─────────────────────────────────────────────────────── -->
   @if (isLoading) {
     <div class="text-center py-5">
@@ -37,45 +31,50 @@
 
   @if (!isLoading && workspace) {
 
-    <!-- ── Basic Details Card ─────────────────────────────────────────────── -->
-    <div class="card wd-header-card mb-4">
-      <div class="card-body">
-        <h4 class="mb-3">
-          <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>{{ workspace.title }}
-        </h4>
-
-        <div class="wd-details-grid">
-          <div class="wd-detail-item">
-            <span class="wd-detail-label">Organization Unit</span>
-            <span class="wd-detail-value">
-              <i class="bi bi-building me-1 text-primary"></i>{{ workspace.organizationUnit }}
-            </span>
+    <!-- ── Details Card (merged header + details) ─────────────────────────── -->
+    <div class="wd-merged-header mb-4">
+      <div class="wd-merged-header__title-row">
+        <div class="wd-merged-header__left">
+          <div class="wd-merged-header__icon">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
           </div>
-
-          <div class="wd-detail-item">
-            <span class="wd-detail-label">Status</span>
-            <span class="wd-detail-value">
-              @if (workspace.isActive) {
-                <span class="badge bg-success">Active</span>
-              } @else {
-                <span class="badge bg-secondary">Inactive</span>
-              }
-            </span>
+          <div>
+            <h1 class="wd-merged-header__title">{{ workspace.title }}</h1>
           </div>
+        </div>
+      </div>
 
-          <div class="wd-detail-item">
-            <span class="wd-detail-label">Created</span>
-            <span class="wd-detail-value">
-              <i class="bi bi-calendar-plus me-1 text-muted"></i>{{ workspace.createdAt | date:'mediumDate' }}
-            </span>
-          </div>
+      <div class="wd-details-grid">
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Organization Unit</span>
+          <span class="wd-detail-value">
+            <i class="bi bi-building me-1 text-primary"></i>{{ workspace.organizationUnit }}
+          </span>
+        </div>
 
-          <div class="wd-detail-item">
-            <span class="wd-detail-label">Last Updated</span>
-            <span class="wd-detail-value">
-              <i class="bi bi-clock-history me-1 text-muted"></i>{{ workspace.updatedAt | date:'mediumDate' }}
-            </span>
-          </div>
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Status</span>
+          <span class="wd-detail-value">
+            @if (workspace.isActive) {
+              <span class="badge bg-success">Active</span>
+            } @else {
+              <span class="badge bg-secondary">Inactive</span>
+            }
+          </span>
+        </div>
+
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Created</span>
+          <span class="wd-detail-value">
+            <i class="bi bi-calendar-plus me-1 text-muted"></i>{{ workspace.createdAt | date:'mediumDate' }}
+          </span>
+        </div>
+
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Last Updated</span>
+          <span class="wd-detail-value">
+            <i class="bi bi-clock-history me-1 text-muted"></i>{{ workspace.updatedAt | date:'mediumDate' }}
+          </span>
         </div>
       </div>
     </div>

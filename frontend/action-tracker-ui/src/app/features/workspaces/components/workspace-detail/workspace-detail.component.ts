@@ -7,7 +7,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { ProjectService } from '../../../projects/services/project.service';
 import { Workspace, WorkspaceAdmin, WorkspaceStats, UserDropdownItem } from '../../models/workspace.model';
@@ -24,7 +23,7 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
 })

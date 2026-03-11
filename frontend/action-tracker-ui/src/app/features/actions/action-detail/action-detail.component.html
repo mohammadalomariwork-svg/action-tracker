@@ -2,12 +2,6 @@
 
   <app-breadcrumb [items]="[{ label: 'My Actions', route: '/actions' }, { label: item()?.actionId ?? 'Loading...' }]" />
 
-  <app-page-header
-    [title]="item()?.actionId ?? 'Action Item'"
-    subtitle="Action item details and tracking"
-    icon="bi bi-clipboard-check"
-  />
-
   <!-- Loading -->
   @if (loading()) {
     <div class="text-center py-5">
@@ -18,18 +12,21 @@
 
   @if (!loading() && item(); as ai) {
 
-    <!-- ── Header card ──────────────────────────────────── -->
-    <div class="card wd-header-card mb-4">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <!-- ── Header card (merged) ──────────────────────────── -->
+    <div class="wd-merged-header mb-4">
+      <div class="wd-merged-header__title-row">
+        <div class="wd-merged-header__left">
+          <div class="wd-merged-header__icon">
+            <i class="bi bi-clipboard-check"></i>
+          </div>
           <div>
-            <h4 class="mb-1">
+            <h1 class="wd-merged-header__title">
               <span class="wa-action-id me-2">{{ ai.actionId }}</span>
               {{ ai.title }}
               @if (ai.isEscalated) {
                 <i class="bi bi-exclamation-triangle-fill text-danger ms-2" title="Escalated"></i>
               }
-            </h4>
+            </h1>
             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
               @if (ai.isStandalone) {
                 <span class="badge bg-secondary">Standalone</span>
@@ -46,15 +43,15 @@
               }
             </div>
           </div>
+        </div>
 
-          <div class="d-flex gap-2">
-            <a [routerLink]="['/workspaces', ai.workspaceId]" class="btn btn-outline-secondary btn-sm">
-              <i class="bi bi-arrow-left me-1"></i>Back to Workspace
-            </a>
-            <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
-              <i class="bi bi-pencil me-1"></i>Edit
-            </button>
-          </div>
+        <div class="wd-merged-header__actions">
+          <a [routerLink]="['/workspaces', ai.workspaceId]" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+          </a>
+          <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
+            <i class="bi bi-pencil me-1"></i>Edit
+          </button>
         </div>
       </div>
     </div>
