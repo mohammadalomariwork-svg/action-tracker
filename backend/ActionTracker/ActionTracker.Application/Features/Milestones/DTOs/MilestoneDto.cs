@@ -22,7 +22,6 @@ public class MilestoneResponseDto
 
     public MilestoneStatus Status { get; set; }
     public decimal CompletionPercentage { get; set; }
-    public decimal Weight { get; set; }
 
     public string? ApproverUserId { get; set; }
     public string? ApproverName { get; set; }
@@ -62,9 +61,6 @@ public class MilestoneCreateDto
     [Range(0, 100)]
     public decimal CompletionPercentage { get; set; }
 
-    [Range(0, 100)]
-    public decimal Weight { get; set; }
-
     public string? ApproverUserId { get; set; }
 }
 
@@ -89,9 +85,6 @@ public class MilestoneUpdateDto
 
     [Range(0, 100)]
     public decimal CompletionPercentage { get; set; }
-
-    [Range(0, 100)]
-    public decimal Weight { get; set; }
 
     public string? ApproverUserId { get; set; }
 }

@@ -39,10 +39,6 @@ public class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
             .HasColumnType("decimal(5,2)")
             .HasDefaultValue(0m);
 
-        builder.Property(m => m.Weight)
-            .HasColumnType("decimal(5,2)")
-            .HasDefaultValue(0m);
-
         builder.Property(m => m.IsDeadlineFixed)
             .HasDefaultValue(false);
 

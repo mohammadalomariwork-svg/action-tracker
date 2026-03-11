@@ -27,7 +27,6 @@ export interface MilestoneResponse {
   isDeadlineFixed: boolean;
   status: MilestoneStatus;
   completionPercentage: number;
-  weight: number;
   approverUserId?: string;
   approverName?: string;
   baselinePlannedStartDate?: string;
@@ -46,7 +45,6 @@ export interface MilestoneCreate {
   plannedDueDate: string;
   isDeadlineFixed: boolean;
   completionPercentage: number;
-  weight: number;
   approverUserId?: string;
 }
 
@@ -67,6 +65,5 @@ export interface MilestoneUpdate {
   isDeadlineFixed: boolean;
   status: MilestoneStatus;
   completionPercentage: number;
-  weight: number;
   approverUserId?: string;
 }

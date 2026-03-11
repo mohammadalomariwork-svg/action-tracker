@@ -29,9 +29,6 @@ public class Milestone
     /// <summary>0–100 completion percentage. Auto-calculated from action items or set manually.</summary>
     public decimal CompletionPercentage { get; set; }
 
-    /// <summary>Weight towards overall project progress. All weights in a project should sum to 100.</summary>
-    public decimal Weight { get; set; }
-
     /// <summary>User responsible for formally signing off on completion.</summary>
     public string? ApproverUserId { get; set; }
 

@@ -78,7 +78,6 @@
               </th>
               <th>STATUS</th>
               <th>PROGRESS</th>
-              <th>WEIGHT</th>
               <th class="ms-th-sortable" (click)="toggleSort('plannedStartDate')">
                 PLANNED START
                 @if (sortField === 'plannedStartDate') {
@@ -138,9 +137,6 @@
                     <span class="ms-progress-text">{{ m.completionPercentage }}%</span>
                   </div>
                 </td>
-
-                <!-- Weight -->
-                <td class="text-muted">{{ m.weight }}%</td>
 
                 <!-- Planned Start -->
                 <td class="text-muted">{{ m.plannedStartDate | date:'MMM d, y' }}</td>
@@ -206,10 +202,6 @@
                   </div>
                   <span class="ms-progress-text">{{ m.completionPercentage }}%</span>
                 </div>
-              </div>
-              <div class="ms-card-meta-row">
-                <span class="ms-card-meta-label">Weight</span>
-                <span class="ms-card-meta-value">{{ m.weight }}%</span>
               </div>
               <div class="ms-card-meta-row">
                 <span class="ms-card-meta-label">Period</span>
@@ -320,18 +312,11 @@
                   maxlength="5000"></textarea>
       </div>
 
-      <!-- Sequence & Weight -->
-      <div class="row mb-3">
-        <div class="col-6">
-          <label class="form-label">Sequence Order</label>
-          <input type="number" class="form-control" min="1"
-                 [ngModel]="formSequenceOrder()" (ngModelChange)="formSequenceOrder.set($event)">
-        </div>
-        <div class="col-6">
-          <label class="form-label">Weight (%)</label>
-          <input type="number" class="form-control" min="0" max="100" step="0.01"
-                 [ngModel]="formWeight()" (ngModelChange)="formWeight.set($event)">
-        </div>
+      <!-- Sequence -->
+      <div class="mb-3">
+        <label class="form-label">Sequence Order</label>
+        <input type="number" class="form-control" min="1"
+               [ngModel]="formSequenceOrder()" (ngModelChange)="formSequenceOrder.set($event)">
       </div>
 
       <!-- Planned Start & Due Date -->

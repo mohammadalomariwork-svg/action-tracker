@@ -56,7 +56,6 @@ export class MilestoneSectionComponent implements OnInit {
   readonly formIsDeadlineFixed = signal(false);
   readonly formStatus = signal<MilestoneStatus>(MilestoneStatus.NotStarted);
   readonly formCompletionPercentage = signal(0);
-  readonly formWeight = signal(0);
   readonly formApproverUserId = signal('');
 
   readonly MilestoneStatus = MilestoneStatus;
@@ -221,7 +220,6 @@ export class MilestoneSectionComponent implements OnInit {
     this.formIsDeadlineFixed.set(m.isDeadlineFixed);
     this.formStatus.set(m.status);
     this.formCompletionPercentage.set(m.completionPercentage);
-    this.formWeight.set(m.weight);
     this.formApproverUserId.set(m.approverUserId ?? '');
     this.showForm.set(true);
   }
@@ -255,7 +253,6 @@ export class MilestoneSectionComponent implements OnInit {
       plannedDueDate: this.formPlannedDueDate(),
       isDeadlineFixed: this.formIsDeadlineFixed(),
       completionPercentage: this.formCompletionPercentage(),
-      weight: this.formWeight(),
       approverUserId: this.formApproverUserId() || undefined,
     };
 
@@ -286,7 +283,6 @@ export class MilestoneSectionComponent implements OnInit {
       isDeadlineFixed: this.formIsDeadlineFixed(),
       status: this.formStatus(),
       completionPercentage: this.formCompletionPercentage(),
-      weight: this.formWeight(),
       approverUserId: this.formApproverUserId() || undefined,
     };
 
@@ -362,7 +358,6 @@ export class MilestoneSectionComponent implements OnInit {
     this.formIsDeadlineFixed.set(false);
     this.formStatus.set(MilestoneStatus.NotStarted);
     this.formCompletionPercentage.set(0);
-    this.formWeight.set(0);
     this.formApproverUserId.set('');
   }
 }

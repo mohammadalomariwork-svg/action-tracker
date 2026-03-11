@@ -67,7 +67,6 @@ public class MilestoneService : IMilestoneService
             IsDeadlineFixed = dto.IsDeadlineFixed,
             Status = MilestoneStatus.NotStarted,
             CompletionPercentage = dto.CompletionPercentage,
-            Weight = dto.Weight,
             ApproverUserId = dto.ApproverUserId,
             CreatedAt = DateTime.UtcNow,
         };
@@ -110,7 +109,6 @@ public class MilestoneService : IMilestoneService
         milestone.IsDeadlineFixed = dto.IsDeadlineFixed;
         milestone.Status = dto.Status;
         milestone.CompletionPercentage = dto.CompletionPercentage;
-        milestone.Weight = dto.Weight;
         milestone.ApproverUserId = dto.ApproverUserId;
 
         // Auto-set ActualCompletionDate when marked Completed
@@ -208,7 +206,6 @@ public class MilestoneService : IMilestoneService
             IsDeadlineFixed = m.IsDeadlineFixed,
             Status = m.Status,
             CompletionPercentage = m.CompletionPercentage,
-            Weight = m.Weight,
             ApproverUserId = m.ApproverUserId,
             ApproverName = m.Approver != null
                 ? $"{m.Approver.FirstName} {m.Approver.LastName}".Trim()
