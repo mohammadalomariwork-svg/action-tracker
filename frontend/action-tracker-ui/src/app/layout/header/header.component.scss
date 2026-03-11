@@ -30,10 +30,26 @@
 // TOP BAR — user info + logout, right-aligned
 // ═══════════════════════════════════════════════════════════
 .top-bar {
-  background: var(--bg-card);
+  background: linear-gradient(145deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%);
+  position: relative;
+  overflow: hidden;
+
+  // decorative circles (matching login panel)
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  &::before { width: 300px; height: 300px; top: -150px; right: -60px; }
+  &::after  { width: 200px; height: 200px; bottom: -100px; left: -40px; }
 }
 
 .top-bar-inner {
+  position: relative;
+  z-index: 1;
   width: 100%;
   display: flex;
   align-items: center;
@@ -76,8 +92,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+  background: #4ade80;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3);
   flex-shrink: 0;
 }
 
@@ -90,16 +106,16 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: none;
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 999px;
   padding: 0.2rem 0.6rem 0.2rem 0.2rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 
   &:hover {
-    border-color: var(--primary);
-    background: rgba(79, 70, 229, 0.04);
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.18);
   }
 }
 
@@ -107,8 +123,8 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #4f46e5;
   font-size: 0.75rem;
   font-weight: 700;
   display: flex;
@@ -120,7 +136,7 @@
 .user-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #fff;
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -129,7 +145,7 @@
 
 .chevron {
   font-size: 0.55rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   transition: transform 0.2s;
 
   &.up {
@@ -209,15 +225,15 @@
   flex-shrink: 0;
 
   &--local {
-    background: #f1f5f9;
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.25);
   }
 
   &--azure {
-    background: rgba(2, 132, 199, 0.1);
-    color: #0284c7;
-    border: 1px solid rgba(2, 132, 199, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.25);
   }
 }
 
@@ -230,11 +246,11 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: none;
-  border: 1px solid var(--danger, #dc2626);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   padding: 0.25rem 0.6rem;
-  color: var(--danger, #dc2626);
+  color: #fff;
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -242,7 +258,7 @@
   white-space: nowrap;
 
   &:hover {
-    background: rgba(220, 38, 38, 0.08);
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 
@@ -259,7 +275,6 @@
 .nav-bar {
   width: 100%;
   background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
 }
 
