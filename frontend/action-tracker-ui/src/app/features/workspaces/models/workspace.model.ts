@@ -59,9 +59,13 @@ export interface WorkspaceStats {
   strategicProjects: number;
   baselinedProjects: number;
   nonBaselinedProjects: number;
+  projectCompletionRate: number;
+  projectOnTimeDeliveryRate: number;
   totalActionItems: number;
   standaloneActionItems: number;
   escalatedActionItems: number;
+  standaloneCompletionRate: number;
+  standaloneOnTimeDeliveryRate: number;
 }
 
 export interface WorkspaceSummary {

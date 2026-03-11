@@ -9,7 +9,11 @@ public class WorkspaceStatsDto
     public int StrategicProjects { get; set; }
     public int BaselinedProjects { get; set; }
     public int NonBaselinedProjects { get; set; }
+    public decimal ProjectCompletionRate { get; set; }
+    public decimal ProjectOnTimeDeliveryRate { get; set; }
     public int TotalActionItems { get; set; }
     public int StandaloneActionItems { get; set; }
     public int EscalatedActionItems { get; set; }
+    public decimal StandaloneCompletionRate { get; set; }
+    public decimal StandaloneOnTimeDeliveryRate { get; set; }
 }

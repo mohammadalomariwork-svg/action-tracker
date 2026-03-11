@@ -183,6 +183,24 @@
           </div>
         </div>
         <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--green">
+            <i class="bi bi-check-circle"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.projectCompletionRate }}%</span>
+            <span class="wd-stat-label">Project Completion Rate</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--teal">
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.projectOnTimeDeliveryRate }}%</span>
+            <span class="wd-stat-label">Project On-Time Delivery</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
           <div class="wd-stat-icon wd-stat-icon--teal">
             <i class="bi bi-list-task"></i>
           </div>
@@ -207,6 +225,24 @@
           <div class="wd-stat-body">
             <span class="wd-stat-value">{{ workspaceStats.escalatedActionItems }}</span>
             <span class="wd-stat-label">Escalated Actions</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--indigo">
+            <i class="bi bi-check-circle"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.standaloneCompletionRate }}%</span>
+            <span class="wd-stat-label">Standalone Completion Rate</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--purple">
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.standaloneOnTimeDeliveryRate }}%</span>
+            <span class="wd-stat-label">Standalone On-Time Delivery</span>
           </div>
         </div>
       </div>

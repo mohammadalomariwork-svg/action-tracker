@@ -127,6 +127,19 @@ public class WorkspaceService : IWorkspaceService
             var nonBaselinedProjects = await _db.Projects
                 .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted && !p.IsBaselined);
 
+            // Project completion & on-time rates
+            var completedProjects = await _db.Projects
+                .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted && p.Status == ProjectStatus.Completed);
+            var completedProjectsOnTime = await _db.Projects
+                .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted
+                    && p.Status == ProjectStatus.Completed
+                    && p.UpdatedAt != null && p.UpdatedAt <= p.PlannedEndDate);
+
+            decimal projectCompletionRate = totalProjects > 0
+                ? Math.Round((decimal)completedProjects / totalProjects * 100, 1) : 0;
+            decimal projectOnTimeRate = completedProjects > 0
+                ? Math.Round((decimal)completedProjectsOnTime / completedProjects * 100, 1) : 0;
+
             var totalActionItems = await _db.ActionItems
                 .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted);
             var standaloneActionItems = await _db.ActionItems
@@ -134,15 +147,32 @@ public class WorkspaceService : IWorkspaceService
             var escalatedActionItems = await _db.ActionItems
                 .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted && a.IsEscalated);
 
+            // Standalone action items completion & on-time rates
+            var standaloneDone = await _db.ActionItems
+                .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted && a.IsStandalone
+                    && a.Status == ActionStatus.Done);
+            var standaloneDoneOnTime = await _db.ActionItems
+                .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted && a.IsStandalone
+                    && a.Status == ActionStatus.Done && a.UpdatedAt <= a.DueDate);
+
+            decimal standaloneCompletionRate = standaloneActionItems > 0
+                ? Math.Round((decimal)standaloneDone / standaloneActionItems * 100, 1) : 0;
+            decimal standaloneOnTimeRate = standaloneDone > 0
+                ? Math.Round((decimal)standaloneDoneOnTime / standaloneDone * 100, 1) : 0;
+
             return new WorkspaceStatsDto
             {
-                TotalProjects        = totalProjects,
-                StrategicProjects    = strategicProjects,
-                BaselinedProjects    = baselinedProjects,
-                NonBaselinedProjects = nonBaselinedProjects,
-                TotalActionItems     = totalActionItems,
-                StandaloneActionItems = standaloneActionItems,
-                EscalatedActionItems = escalatedActionItems
+                TotalProjects                = totalProjects,
+                StrategicProjects            = strategicProjects,
+                BaselinedProjects            = baselinedProjects,
+                NonBaselinedProjects         = nonBaselinedProjects,
+                ProjectCompletionRate        = projectCompletionRate,
+                ProjectOnTimeDeliveryRate    = projectOnTimeRate,
+                TotalActionItems             = totalActionItems,
+                StandaloneActionItems        = standaloneActionItems,
+                EscalatedActionItems         = escalatedActionItems,
+                StandaloneCompletionRate     = standaloneCompletionRate,
+                StandaloneOnTimeDeliveryRate = standaloneOnTimeRate
             };
         }
         catch (Exception ex)
