@@ -77,6 +77,88 @@
   margin: 1.25rem 0;
 }
 
+// ── Stats cards ─────────────────────────────────────────────────────────────
+$stat-primary: #0d6efd;
+$stat-info:    #0891b2;
+$stat-success: #059669;
+$stat-purple:  #7c3aed;
+$stat-danger:  #dc2626;
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 3px solid #e9ecef;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  &--primary { border-left-color: $stat-primary; .stat-card__icon { background: rgba($stat-primary, 0.1); color: $stat-primary; } }
+  &--info    { border-left-color: $stat-info;    .stat-card__icon { background: rgba($stat-info, 0.1);    color: $stat-info;    } }
+  &--success { border-left-color: $stat-success; .stat-card__icon { background: rgba($stat-success, 0.1); color: $stat-success; } }
+  &--purple  { border-left-color: $stat-purple;  .stat-card__icon { background: rgba($stat-purple, 0.1);  color: $stat-purple;  } }
+  &--danger  { border-left-color: $stat-danger;  .stat-card__icon { background: rgba($stat-danger, 0.1);  color: $stat-danger;  } }
+
+  &__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  &__value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1200px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 576px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
 // ── Project code ─────────────────────────────────────────────────────────────
 .wa-project-code {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;

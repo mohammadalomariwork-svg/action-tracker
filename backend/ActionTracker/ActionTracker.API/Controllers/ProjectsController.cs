@@ -92,6 +92,15 @@ public class ProjectsController : ControllerBase
         }
     }
 
+    /// <summary>Returns aggregated stats for a project (milestones, action items, rates).</summary>
+    [HttpGet("{id:guid}/stats")]
+    [ProducesResponseType(typeof(ApiResponse<ProjectStatsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProjectStatsDto>>> GetStats(Guid id, CancellationToken ct)
+    {
+        var stats = await _service.GetStatsAsync(id, ct);
+        return Ok(ApiResponse<ProjectStatsDto>.Ok(stats));
+    }
+
     /// <summary>Returns strategic objectives scoped to the workspace's org unit (with parent fallback).</summary>
     [HttpGet("strategic-objectives-for-workspace/{workspaceId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<List<StrategicObjectiveOptionDto>>), StatusCodes.Status200OK)]

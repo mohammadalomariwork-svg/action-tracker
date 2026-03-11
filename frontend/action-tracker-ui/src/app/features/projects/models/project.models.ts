@@ -85,6 +85,14 @@ export interface ProjectUpdate {
   approvedBudget?: number;
 }
 
+export interface ProjectStats {
+  milestoneCount: number;
+  actionItemCount: number;
+  completionRate: number;
+  onTimeRate: number;
+  escalatedCount: number;
+}
+
 export interface ProjectFilter {
   workspaceId?: string;
   status?: ProjectStatus;

@@ -12,4 +12,5 @@ public interface IProjectService
     Task DeleteAsync(Guid id, CancellationToken ct);
     Task RestoreAsync(Guid id, CancellationToken ct);
     Task<List<StrategicObjectiveOptionDto>> GetStrategicObjectivesForWorkspaceAsync(Guid workspaceId, CancellationToken ct);
+    Task<ProjectStatsDto> GetStatsAsync(Guid projectId, CancellationToken ct);
 }

@@ -7,7 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProjectService } from '../../services/project.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
-  ProjectResponse, ProjectUpdate,
+  ProjectResponse, ProjectUpdate, ProjectStats,
   ProjectType, ProjectStatus, ProjectPriority,
   StrategicObjectiveOption,
 } from '../../models/project.models';
@@ -51,6 +51,7 @@ export class ProjectDetailComponent implements OnInit {
 
   projectId!: string;
   project: ProjectResponse | null = null;
+  stats: ProjectStats | null = null;
   isLoading = false;
   errorMessage: string | null = null;
 
@@ -87,6 +88,7 @@ export class ProjectDetailComponent implements OnInit {
   ngOnInit(): void {
     this.projectId = this.route.snapshot.paramMap.get('id')!;
     this.loadProject();
+    this.loadStats();
     this.loadUsers();
   }
 
@@ -106,6 +108,15 @@ export class ProjectDetailComponent implements OnInit {
           this.errorMessage = err?.error?.message ?? 'Failed to load project details.';
           this.isLoading = false;
         },
+      });
+  }
+
+  loadStats(): void {
+    this.projectService.getStats(this.projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.stats = res.data ?? null; },
+        error: () => {},
       });
   }
 
@@ -243,6 +254,7 @@ export class ProjectDetailComponent implements OnInit {
           this.showEditForm = false;
           this.toastSvc.success('Project updated.');
           this.loadProject();
+          this.loadStats();
         },
         error: (err) => {
           this.saving = false;

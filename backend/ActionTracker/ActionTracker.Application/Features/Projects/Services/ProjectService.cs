@@ -333,6 +333,31 @@ public class ProjectService : IProjectService
         }
     }
 
+    public async Task<ProjectStatsDto> GetStatsAsync(Guid projectId, CancellationToken ct)
+    {
+        var milestoneCount = await _db.Milestones
+            .CountAsync(m => m.ProjectId == projectId, ct);
+
+        var items = await _db.ActionItems
+            .Where(a => a.ProjectId == projectId)
+            .Select(a => new { a.Status, a.IsEscalated, a.DueDate, a.UpdatedAt })
+            .ToListAsync(ct);
+
+        int total      = items.Count;
+        int done       = items.Count(a => a.Status == ActionStatus.Done);
+        int doneOnTime = items.Count(a =>
+            a.Status == ActionStatus.Done && a.UpdatedAt <= a.DueDate);
+
+        return new ProjectStatsDto
+        {
+            MilestoneCount  = milestoneCount,
+            ActionItemCount = total,
+            CompletionRate  = total > 0 ? Math.Round((decimal)done / total * 100, 1) : 0,
+            OnTimeRate      = done  > 0 ? Math.Round((decimal)doneOnTime / done * 100, 1) : 0,
+            EscalatedCount  = items.Count(a => a.IsEscalated),
+        };
+    }
+
     // ── Mapping helpers ─────────────────────────────────────
     private static ProjectResponseDto MapToDto(Project p)
     {

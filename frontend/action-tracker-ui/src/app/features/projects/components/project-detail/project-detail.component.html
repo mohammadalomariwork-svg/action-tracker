@@ -54,6 +54,61 @@
       </div>
     </div>
 
+    <!-- ── Stats Cards ────────────────────────────────── -->
+    @if (stats) {
+      <div class="stats-grid mb-4">
+        <div class="stat-card stat-card--primary">
+          <div class="stat-card__icon">
+            <i class="bi bi-layers"></i>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ stats.milestoneCount }}</span>
+            <span class="stat-card__label">Milestones</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--info">
+          <div class="stat-card__icon">
+            <i class="bi bi-list-check"></i>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ stats.actionItemCount }}</span>
+            <span class="stat-card__label">Action Items</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--success">
+          <div class="stat-card__icon">
+            <i class="bi bi-check-circle"></i>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ stats.completionRate }}%</span>
+            <span class="stat-card__label">Completion Rate</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--purple">
+          <div class="stat-card__icon">
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ stats.onTimeRate }}%</span>
+            <span class="stat-card__label">On-Time Delivery</span>
+          </div>
+        </div>
+
+        <div class="stat-card" [class]="stats.escalatedCount > 0 ? 'stat-card--danger' : 'stat-card--success'">
+          <div class="stat-card__icon">
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ stats.escalatedCount }}</span>
+            <span class="stat-card__label">Escalated Items</span>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- ── Project's Details Section ─────────────────── -->
     <div class="wd-section mb-4">
       <div class="wd-section-header">

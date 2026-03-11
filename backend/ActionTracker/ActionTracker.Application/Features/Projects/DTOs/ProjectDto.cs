@@ -95,6 +95,15 @@ public class StrategicObjectiveOptionDto
     public string Statement { get; set; } = string.Empty;
 }
 
+public class ProjectStatsDto
+{
+    public int MilestoneCount       { get; set; }
+    public int ActionItemCount      { get; set; }
+    public decimal CompletionRate   { get; set; }  // 0-100 %
+    public decimal OnTimeRate       { get; set; }  // 0-100 %
+    public int EscalatedCount       { get; set; }
+}
+
 public class ProjectFilterDto
 {
     public Guid? WorkspaceId { get; set; }

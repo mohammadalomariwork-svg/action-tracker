@@ -7,6 +7,7 @@ import {
   ProjectCreate,
   ProjectUpdate,
   ProjectFilter,
+  ProjectStats,
   StrategicObjectiveOption,
 } from '../models/project.models';
 import { ApiResponse, PagedResult } from '../../../core/models/api-response.model';
@@ -52,6 +53,10 @@ export class ProjectService {
 
   restore(id: string): Observable<void> {
     return this.http.patch<void>(`${this.apiUrl}/${id}/restore`, {});
+  }
+
+  getStats(projectId: string): Observable<ApiResponse<ProjectStats>> {
+    return this.http.get<ApiResponse<ProjectStats>>(`${this.apiUrl}/${projectId}/stats`);
   }
 
   getStrategicObjectivesForWorkspace(workspaceId: string): Observable<ApiResponse<StrategicObjectiveOption[]>> {
