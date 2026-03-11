@@ -71,6 +71,12 @@
   line-height: 1.55;
 }
 
+// ── Grid divider (separates sub-groups within a section) ─────────────────────
+.wd-grid-divider {
+  border-top: 1px solid #e9ecef;
+  margin: 1.25rem 0;
+}
+
 // ── Project code ─────────────────────────────────────────────────────────────
 .wa-project-code {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
