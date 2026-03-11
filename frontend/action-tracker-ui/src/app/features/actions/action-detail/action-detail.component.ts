@@ -56,6 +56,40 @@ export class ActionDetailComponent implements OnInit {
 
   readonly workspaceId = computed(() => this.item()?.workspaceId ?? '');
 
+  readonly breadcrumbItems = computed(() => {
+    const ai = this.item();
+    const items: { label: string; route?: string }[] = [
+      { label: 'Workspaces', route: '/workspaces' },
+    ];
+    if (ai) {
+      items.push({ label: ai.workspaceTitle || '…', route: '/workspaces/' + ai.workspaceId });
+      if (ai.projectId) {
+        items.push({ label: ai.projectName || '…', route: '/projects/' + ai.projectId });
+      }
+      if (ai.milestoneId && ai.projectId) {
+        items.push({ label: ai.milestoneName || '…', route: '/projects/' + ai.projectId + '/milestones/' + ai.milestoneId });
+      }
+      items.push({ label: ai.actionId });
+    } else {
+      items.push({ label: 'Loading…' });
+    }
+    return items;
+  });
+
+  readonly backRoute = computed(() => {
+    const ai = this.item();
+    if (ai?.milestoneId && ai?.projectId) {
+      return ['/projects', ai.projectId, 'milestones', ai.milestoneId];
+    }
+    return ['/workspaces', ai?.workspaceId ?? ''];
+  });
+
+  readonly backLabel = computed(() => {
+    const ai = this.item();
+    if (ai?.milestoneId) return 'Back to Milestone';
+    return 'Back to Workspace';
+  });
+
   // ── Edit form state ──────────────────────────────────
   showEditForm = false;
   saving = false;

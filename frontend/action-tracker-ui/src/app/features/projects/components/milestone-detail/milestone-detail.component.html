@@ -232,27 +232,31 @@
               />
               <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
             </div>
+            <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
+              <i class="bi bi-plus-circle me-1"></i>New Action
+            </button>
           </div>
         </div>
 
         @if (actionLoading) {
           <div class="text-center py-4">
-            <span class="spinner"></span>
+            <div class="spinner-border spinner-border-sm" role="status"></div>
             <span class="ms-2 text-muted">Loading action items…</span>
           </div>
         }
 
         @if (!actionLoading && actionItems.length === 0) {
-          <div class="empty-state">
-            <p class="text-muted">No action items for this milestone yet.</p>
+          <div class="wd-empty text-center py-4">
+            <i class="bi bi-clipboard-check wd-empty-icon text-muted"></i>
+            <p class="text-muted mt-2 mb-0">No action items for this milestone yet.</p>
           </div>
         }
 
         @if (!actionLoading && actionItems.length > 0) {
 
           <!-- Desktop table -->
-          <div class="table-wrapper d-none d-md-block">
-            <table class="action-table">
+          <div class="wa-table-wrapper d-none d-md-block">
+            <table class="table table-hover table-sm wa-table mb-0">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -268,23 +272,23 @@
               </thead>
               <tbody>
                 @for (item of actionItems; track item.id) {
-                  <tr [class.row-overdue]="item.isOverdue" [class.row-deleted]="item.isDeleted">
+                  <tr [class.table-danger]="item.isOverdue" [class.wa-deleted-row]="item.isDeleted">
                     <td>
-                      <span class="action-id">{{ item.actionId }}</span>
+                      <span class="wa-action-id">{{ item.actionId }}</span>
                       @if (item.isEscalated) {
-                        <span class="text-danger ms-1" title="Escalated">⚠</span>
+                        <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
                       }
                       @if (item.isDeleted) {
                         <span class="badge bg-danger ms-1">Deleted</span>
                       }
                     </td>
                     <td>
-                      <span class="action-title" [title]="item.title">{{ item.title }}</span>
+                      <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                     </td>
                     <td>
-                      <div class="assignee-cell">
-                        <span class="assignee-avatar-sm">{{ assigneeInitial(item) }}</span>
-                        <span>{{ assigneeNames(item) }}</span>
+                      <div class="wa-assignees">
+                        <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
+                        <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
                       </div>
                     </td>
                     <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
@@ -296,43 +300,43 @@
                       <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                     </td>
                     <td>
-                      <div class="progress-cell">
-                        <div class="progress-bar-sm">
+                      <div class="wa-progress-cell">
+                        <div class="progress wa-progress-bar">
                           <div
-                            class="progress-bar-fill"
+                            class="progress-bar"
                             [class.bg-success]="item.progress >= 75"
                             [class.bg-info]="item.progress >= 40 && item.progress < 75"
                             [class.bg-danger]="item.progress < 40"
                             [style.width.%]="item.progress"
                           ></div>
                         </div>
-                        <span class="progress-label">{{ item.progress }}%</span>
+                        <span class="wa-progress-label">{{ item.progress }}%</span>
                       </div>
                     </td>
                     <td class="text-end">
-                      <div class="row-actions">
+                      <div class="wa-row-actions">
                         @if (!item.isDeleted) {
                           <a
-                            class="btn btn-outline btn-sm"
+                            class="btn btn-outline-info btn-sm wa-action-btn"
                             [routerLink]="['/actions', item.id, 'view']"
                             title="View"
-                          >View</a>
+                          ><i class="bi bi-eye"></i></a>
                           <button
-                            class="btn btn-outline btn-sm"
+                            class="btn btn-outline-primary btn-sm wa-action-btn"
                             (click)="openEditActionForm(item)"
                             title="Edit"
                             [disabled]="showActionForm"
-                          >Edit</button>
+                          ><i class="bi bi-pencil"></i></button>
                           <button
-                            class="btn btn-outline btn-sm btn-danger-text"
+                            class="btn btn-outline-danger btn-sm wa-action-btn"
                             (click)="deleteAction(item)"
                             title="Delete"
                             [disabled]="deletingActionId === item.id"
                           >
                             @if (deletingActionId === item.id) {
-                              <span class="spinner-sm"></span>
+                              <span class="spinner-border spinner-border-sm"></span>
                             } @else {
-                              Delete
+                              <i class="bi bi-trash"></i>
                             }
                           </button>
                         }
@@ -347,42 +351,63 @@
           <!-- Mobile cards -->
           <div class="d-block d-md-none">
             @for (item of actionItems; track item.id) {
-              <div class="action-card" [class.action-card--deleted]="item.isDeleted">
-                <div class="action-card__header">
-                  <span class="action-id">{{ item.actionId }}</span>
-                  @if (item.isEscalated) {
-                    <span class="text-danger" title="Escalated">⚠</span>
-                  }
-                  @if (item.isDeleted) {
-                    <span class="badge bg-danger">Deleted</span>
-                  }
-                  <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
-                  <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+              <div class="wa-action-card" [class.wa-action-card--deleted]="item.isDeleted">
+                <div class="wa-action-card__header">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="wa-action-id">{{ item.actionId }}</span>
+                    @if (item.isEscalated) {
+                      <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
+                    }
+                    @if (item.isDeleted) {
+                      <span class="badge bg-danger">Deleted</span>
+                    }
+                    <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+                    <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+                  </div>
                 </div>
-                <div class="action-card__title">{{ item.title }}</div>
-                <div class="action-card__meta">
-                  <div class="action-card__meta-row">
-                    <span class="action-card__meta-label">Assignees</span>
-                    <span>{{ assigneeNames(item) }}</span>
+                <a class="wa-action-card__title text-decoration-none" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
+                <div class="wa-action-card__meta">
+                  <div class="wa-action-card__meta-row">
+                    <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
+                    <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
                   </div>
-                  <div class="action-card__meta-row">
-                    <span class="action-card__meta-label">Due Date</span>
-                    <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                  <div class="wa-action-card__meta-row">
+                    <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+                    <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                   </div>
-                  <div class="action-card__meta-row">
-                    <span class="action-card__meta-label">Progress</span>
-                    <span>{{ item.progress }}%</span>
+                  @if (item.startDate) {
+                    <div class="wa-action-card__meta-row">
+                      <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
+                      <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
+                    </div>
+                  }
+                  <div class="wa-action-card__meta-row">
+                    <span class="wa-action-card__meta-label"><i class="bi bi-bar-chart me-1"></i>Progress</span>
+                    <span class="wa-action-card__meta-value">
+                      <div class="wa-progress-cell">
+                        <div class="progress wa-progress-bar" style="width:80px">
+                          <div
+                            class="progress-bar"
+                            [class.bg-success]="item.progress >= 75"
+                            [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                            [class.bg-danger]="item.progress < 40"
+                            [style.width.%]="item.progress"
+                          ></div>
+                        </div>
+                        <span class="wa-progress-label">{{ item.progress }}%</span>
+                      </div>
+                    </span>
                   </div>
                 </div>
                 @if (!item.isDeleted) {
-                  <div class="action-card__actions">
-                    <a class="btn btn-outline btn-sm" [routerLink]="['/actions', item.id, 'view']">View</a>
-                    <button class="btn btn-outline btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm">Edit</button>
-                    <button class="btn btn-outline btn-sm btn-danger-text" (click)="deleteAction(item)" [disabled]="deletingActionId === item.id">
+                  <div class="wa-action-card__actions">
+                    <a class="btn btn-outline-info btn-sm" [routerLink]="['/actions', item.id, 'view']"><i class="bi bi-eye me-1"></i>View</a>
+                    <button class="btn btn-outline-primary btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm"><i class="bi bi-pencil me-1"></i>Edit</button>
+                    <button class="btn btn-outline-danger btn-sm" (click)="deleteAction(item)" [disabled]="deletingActionId === item.id">
                       @if (deletingActionId === item.id) {
-                        <span class="spinner-sm"></span>
+                        <span class="spinner-border spinner-border-sm"></span>
                       } @else {
-                        Delete
+                        <i class="bi bi-trash me-1"></i>Delete
                       }
                     </button>
                   </div>

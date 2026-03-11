@@ -1,6 +1,6 @@
 <div class="wd-page">
 
-  <app-breadcrumb [items]="[{ label: 'My Actions', route: '/actions' }, { label: item()?.actionId ?? 'Loading...' }]" />
+  <app-breadcrumb [items]="breadcrumbItems()" />
 
   <!-- Loading -->
   @if (loading()) {
@@ -21,12 +21,12 @@
           </div>
           <div>
             <h1 class="wd-merged-header__title">
-              <span class="wa-action-id me-2">{{ ai.actionId }}</span>
               {{ ai.title }}
               @if (ai.isEscalated) {
                 <i class="bi bi-exclamation-triangle-fill text-danger ms-2" title="Escalated"></i>
               }
             </h1>
+            <span class="wa-action-id">{{ ai.actionId }}</span>
             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
               @if (ai.isStandalone) {
                 <span class="badge bg-secondary">Standalone</span>
@@ -46,8 +46,8 @@
         </div>
 
         <div class="wd-merged-header__actions">
-          <a [routerLink]="['/workspaces', ai.workspaceId]" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+          <a [routerLink]="backRoute()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>{{ backLabel() }}
           </a>
           <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
             <i class="bi bi-pencil me-1"></i>Edit
