@@ -596,6 +596,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.deletingProjectId = null;
           this.successMessage = `Project "${prj.projectCode}" and its related milestones and action items have been deleted.`;
           this.loadProjects();
+          this.loadActionItems();
           this.loadStats();
         },
         error: (err) => {
@@ -621,6 +622,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.restoringProjectId = null;
           this.successMessage = `Project "${prj.projectCode}" and its related milestones and action items have been restored.`;
           this.loadProjects();
+          this.loadActionItems();
           this.loadStats();
         },
         error: (err) => {
