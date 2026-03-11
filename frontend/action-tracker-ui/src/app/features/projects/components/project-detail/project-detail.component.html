@@ -1,6 +1,6 @@
 <div class="wd-page">
 
-  <app-breadcrumb [items]="[{ label: 'Workspaces', route: '/workspaces' }, { label: project?.name ?? 'Loading…' }]" />
+  <app-breadcrumb [items]="[{ label: 'Workspaces', route: '/workspaces' }, { label: project?.workspaceTitle ?? '…', route: '/workspaces/' + (project?.workspaceId ?? '') }, { label: project?.name ?? 'Loading…' }]" />
 
   <!-- Loading -->
   @if (isLoading) {
