@@ -92,15 +92,46 @@ public class WorkspaceService : IWorkspaceService
                 .CountAsync(a => !a.IsDeleted && !a.IsStandalone
                     && a.Project != null && a.Project.ProjectType == ProjectType.Strategic);
 
+            // Project completion & on-time delivery rates
+            var totalProjects = strategicProjects + operationalProjects;
+            var completedProjects = await _db.Projects
+                .CountAsync(p => !p.IsDeleted && p.Status == ProjectStatus.Completed);
+            var completedProjectsOnTime = await _db.Projects
+                .CountAsync(p => !p.IsDeleted
+                    && p.Status == ProjectStatus.Completed
+                    && p.UpdatedAt != null && p.UpdatedAt <= p.PlannedEndDate);
+
+            decimal projectCompletionRate = totalProjects > 0
+                ? Math.Round((decimal)completedProjects / totalProjects * 100, 1) : 0;
+            decimal projectOnTimeRate = completedProjects > 0
+                ? Math.Round((decimal)completedProjectsOnTime / completedProjects * 100, 1) : 0;
+
+            // Standalone action items completion & on-time delivery rates
+            var standaloneDone = await _db.ActionItems
+                .CountAsync(a => !a.IsDeleted && a.IsStandalone
+                    && a.Status == ActionStatus.Done);
+            var standaloneDoneOnTime = await _db.ActionItems
+                .CountAsync(a => !a.IsDeleted && a.IsStandalone
+                    && a.Status == ActionStatus.Done && a.UpdatedAt <= a.DueDate);
+
+            decimal standaloneCompletionRate = standaloneActionItems > 0
+                ? Math.Round((decimal)standaloneDone / standaloneActionItems * 100, 1) : 0;
+            decimal standaloneOnTimeRate = standaloneDone > 0
+                ? Math.Round((decimal)standaloneDoneOnTime / standaloneDone * 100, 1) : 0;
+
             return new WorkspaceSummaryDto
             {
-                TotalWorkspaces      = totalWorkspaces,
-                ActiveWorkspaces     = activeWorkspaces,
-                StrategicProjects    = strategicProjects,
-                OperationalProjects  = operationalProjects,
-                StandaloneActionItems = standaloneActionItems,
-                ProjectActionItems   = projectActionItems,
-                StrategicActionItems = strategicActionItems
+                TotalWorkspaces              = totalWorkspaces,
+                ActiveWorkspaces             = activeWorkspaces,
+                StrategicProjects            = strategicProjects,
+                OperationalProjects          = operationalProjects,
+                StandaloneActionItems        = standaloneActionItems,
+                ProjectActionItems           = projectActionItems,
+                StrategicActionItems         = strategicActionItems,
+                ProjectCompletionRate        = projectCompletionRate,
+                ProjectOnTimeDeliveryRate    = projectOnTimeRate,
+                StandaloneCompletionRate     = standaloneCompletionRate,
+                StandaloneOnTimeDeliveryRate = standaloneOnTimeRate
             };
         }
         catch (Exception ex)

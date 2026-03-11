@@ -12,4 +12,8 @@ public class WorkspaceSummaryDto
     public int StandaloneActionItems { get; set; }
     public int ProjectActionItems { get; set; }
     public int StrategicActionItems { get; set; }
+    public decimal ProjectCompletionRate { get; set; }
+    public decimal ProjectOnTimeDeliveryRate { get; set; }
+    public decimal StandaloneCompletionRate { get; set; }
+    public decimal StandaloneOnTimeDeliveryRate { get; set; }
 }

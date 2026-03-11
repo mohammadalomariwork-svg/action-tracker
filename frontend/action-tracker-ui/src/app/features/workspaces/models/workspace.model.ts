@@ -76,6 +76,10 @@ export interface WorkspaceSummary {
   standaloneActionItems: number;
   projectActionItems: number;
   strategicActionItems: number;
+  projectCompletionRate: number;
+  projectOnTimeDeliveryRate: number;
+  standaloneCompletionRate: number;
+  standaloneOnTimeDeliveryRate: number;
 }
 
 /**
