@@ -69,6 +69,18 @@ export class MilestoneSectionComponent implements OnInit {
     MilestoneStatus.Cancelled,
   ];
 
+  // Search & sort
+  searchTerm = '';
+  sortField: 'sequenceOrder' | 'name' | 'plannedStartDate' | 'plannedDueDate' = 'sequenceOrder';
+  sortDirection: 'asc' | 'desc' = 'asc';
+
+  // Pagination
+  currentPage = 1;
+  pageSize = 10;
+  totalPages = 1;
+  filteredMilestones: MilestoneResponse[] = [];
+  pagedMilestones: MilestoneResponse[] = [];
+
   ngOnInit(): void {
     this.loadMilestones();
     this.loadUsers();
@@ -79,6 +91,7 @@ export class MilestoneSectionComponent implements OnInit {
     this.milestoneSvc.getByProject(this.projectId()).subscribe({
       next: r => {
         this.milestones.set(r.data ?? []);
+        this.applyFilters();
         this.loading.set(false);
       },
       error: () => {
@@ -94,6 +107,98 @@ export class MilestoneSectionComponent implements OnInit {
       error: () => {},
     });
   }
+
+  // ── Search, Sort, Pagination ────────────────────────────────────────────────
+
+  applyFilters(): void {
+    let result = [...this.milestones()];
+
+    // Search
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase();
+      result = result.filter(m =>
+        m.name.toLowerCase().includes(term) ||
+        m.milestoneCode.toLowerCase().includes(term) ||
+        (m.description ?? '').toLowerCase().includes(term) ||
+        (m.statusLabel ?? '').toLowerCase().includes(term)
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (this.sortField === 'sequenceOrder') {
+        cmp = a.sequenceOrder - b.sequenceOrder;
+      } else if (this.sortField === 'name') {
+        cmp = a.name.localeCompare(b.name);
+      } else if (this.sortField === 'plannedStartDate') {
+        cmp = new Date(a.plannedStartDate).getTime() - new Date(b.plannedStartDate).getTime();
+      } else if (this.sortField === 'plannedDueDate') {
+        cmp = new Date(a.plannedDueDate).getTime() - new Date(b.plannedDueDate).getTime();
+      }
+      return this.sortDirection === 'asc' ? cmp : -cmp;
+    });
+
+    this.filteredMilestones = result;
+    this.totalPages = Math.max(1, Math.ceil(result.length / this.pageSize));
+    if (this.currentPage > this.totalPages) this.currentPage = 1;
+    this.updatePage();
+  }
+
+  updatePage(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.pagedMilestones = this.filteredMilestones.slice(start, start + this.pageSize);
+  }
+
+  onSearchChange(): void {
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  toggleSort(field: 'sequenceOrder' | 'name' | 'plannedStartDate' | 'plannedDueDate'): void {
+    if (this.sortField === field) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDirection = 'asc';
+    }
+    this.applyFilters();
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.updatePage();
+  }
+
+  get pageStart(): number {
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get pageEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredMilestones.length);
+  }
+
+  get pages(): number[] {
+    const pages: number[] = [];
+    for (let i = 1; i <= this.totalPages; i++) pages.push(i);
+    return pages;
+  }
+
+  // ── Status badge class ──────────────────────────────────────────────────────
+
+  statusBadgeClass(s: MilestoneStatus): string {
+    switch (+s) {
+      case MilestoneStatus.NotStarted: return 'ms-status-badge--not-started';
+      case MilestoneStatus.InProgress: return 'ms-status-badge--in-progress';
+      case MilestoneStatus.Completed:  return 'ms-status-badge--completed';
+      case MilestoneStatus.Delayed:    return 'ms-status-badge--delayed';
+      case MilestoneStatus.Cancelled:  return 'ms-status-badge--cancelled';
+      default:                         return 'ms-status-badge--not-started';
+    }
+  }
+
+  // ── Form operations ─────────────────────────────────────────────────────────
 
   openCreateForm(): void {
     this.editingId.set(null);
@@ -157,6 +262,7 @@ export class MilestoneSectionComponent implements OnInit {
     this.milestoneSvc.create(this.projectId(), dto).subscribe({
       next: r => {
         this.milestones.update(list => [...list, r.data].sort((a, b) => a.sequenceOrder - b.sequenceOrder));
+        this.applyFilters();
         this.showForm.set(false);
         this.resetForm();
         this.submitting.set(false);
@@ -190,6 +296,7 @@ export class MilestoneSectionComponent implements OnInit {
           list.map(m => m.id === milestoneId ? r.data : m)
             .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
         );
+        this.applyFilters();
         this.showForm.set(false);
         this.editingId.set(null);
         this.resetForm();
@@ -209,6 +316,7 @@ export class MilestoneSectionComponent implements OnInit {
     this.milestoneSvc.delete(this.projectId(), m.id).subscribe({
       next: () => {
         this.milestones.update(list => list.filter(x => x.id !== m.id));
+        this.applyFilters();
         this.toastSvc.success('Milestone deleted.');
       },
       error: () => this.toastSvc.error('Failed to delete milestone.'),

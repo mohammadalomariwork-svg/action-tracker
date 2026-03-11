@@ -1,171 +1,284 @@
-<div class="milestones-section">
-  <div class="section-header">
-    <h3 class="section-title">
-      <span class="section-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
-        </svg>
-      </span>
-      Milestones
-      @if (milestones().length > 0) {
-        <span class="badge bg-secondary ms-count">{{ milestones().length }}</span>
-      }
-    </h3>
-    <button class="btn btn-primary btn-sm" (click)="openCreateForm()" [disabled]="showForm()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Add Milestone
+<div class="ms-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────────────────── -->
+  <div class="ms-page-header">
+    <div class="d-flex align-items-start gap-3">
+      <div class="ms-page-icon">
+        <i class="bi bi-flag"></i>
+      </div>
+      <div>
+        <h3 class="ms-page-title">
+          Milestones
+          @if (milestones().length > 0) {
+            <span class="ms-count">{{ milestones().length }}</span>
+          }
+        </h3>
+        <p class="ms-page-subtitle">Track and manage project milestones, deadlines, and progress.</p>
+      </div>
+    </div>
+    <button class="btn btn-primary" (click)="openCreateForm()" [disabled]="showForm()">
+      <i class="bi bi-plus-circle me-1"></i>Add Milestone
     </button>
   </div>
 
-  <!-- Loading -->
+  <!-- ── Loading spinner ─────────────────────────────────────────────────── -->
   @if (loading()) {
-    <div class="loading-state">
-      <span class="spinner"></span>
-      <p>Loading milestones...</p>
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
     </div>
   }
 
-  <!-- Empty state -->
-  @if (!loading() && milestones().length === 0 && !showForm()) {
-    <p class="empty-state">No milestones yet. Click "Add Milestone" to get started.</p>
-  }
+  @if (!loading()) {
 
-  <!-- Milestones table (desktop) -->
-  @if (!loading() && milestones().length > 0) {
-    <div class="ms-table-wrapper">
-      <table class="ms-table">
-        <thead>
-          <tr>
-            <th class="th-seq">#</th>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>Weight</th>
-            <th>Planned Start</th>
-            <th>Planned Due</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (m of milestones(); track m.id) {
-            <tr class="ms-row">
-              <td><span class="ms-seq-badge">{{ m.sequenceOrder }}</span></td>
-              <td><span class="ms-code">{{ m.milestoneCode }}</span></td>
-              <td>
-                <a class="ms-name-link" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
-              </td>
-              <td>
-                <span [class]="milestoneStatusClass(m.status)">
-                  <span class="bd"></span>
-                  {{ m.statusLabel }}
-                </span>
-              </td>
-              <td>
+    <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
+    @if (milestones().length > 0 || searchTerm) {
+      <div class="ms-toolbar">
+        <div class="ms-toolbar-left">
+          <div class="ms-search-box">
+            <i class="bi bi-search"></i>
+            <input
+              type="text"
+              placeholder="Search milestones..."
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onSearchChange()"
+            />
+          </div>
+        </div>
+        <div class="ms-toolbar-right">
+          <span class="text-muted">Showing <strong>{{ filteredMilestones.length }}</strong> milestones</span>
+        </div>
+      </div>
+    }
+
+    @if (filteredMilestones.length > 0) {
+
+      <!-- ── Desktop Table ────────────────────────────────────────────── -->
+      <div class="ms-table-wrapper d-none d-lg-block">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ms-th-sortable" (click)="toggleSort('sequenceOrder')">
+                #
+                @if (sortField === 'sequenceOrder') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
+              <th>CODE</th>
+              <th class="ms-th-sortable" (click)="toggleSort('name')">
+                NAME
+                @if (sortField === 'name') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
+              <th>STATUS</th>
+              <th>PROGRESS</th>
+              <th>WEIGHT</th>
+              <th class="ms-th-sortable" (click)="toggleSort('plannedStartDate')">
+                PLANNED START
+                @if (sortField === 'plannedStartDate') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
+              <th class="ms-th-sortable" (click)="toggleSort('plannedDueDate')">
+                PLANNED DUE
+                @if (sortField === 'plannedDueDate') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
+              <th class="text-end">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of pagedMilestones; track m.id) {
+              <tr>
+                <!-- Sequence -->
+                <td>
+                  <span class="ms-seq-badge">{{ m.sequenceOrder }}</span>
+                </td>
+
+                <!-- Code -->
+                <td>
+                  <span class="ms-code">{{ m.milestoneCode }}</span>
+                </td>
+
+                <!-- Name -->
+                <td>
+                  <div>
+                    <a class="ms-name-link" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
+                    @if (m.description) {
+                      <div class="ms-name-meta">{{ m.description | slice:0:60 }}{{ m.description.length > 60 ? '...' : '' }}</div>
+                    }
+                  </div>
+                </td>
+
+                <!-- Status -->
+                <td>
+                  <span class="ms-status-badge" [ngClass]="statusBadgeClass(m.status)">
+                    <span class="ms-status-dot"></span>
+                    {{ m.statusLabel }}
+                  </span>
+                </td>
+
+                <!-- Progress -->
+                <td>
+                  <div class="ms-progress-cell">
+                    <div class="ms-progress-bar">
+                      <div class="ms-progress-fill" [style.width.%]="m.completionPercentage"></div>
+                    </div>
+                    <span class="ms-progress-text">{{ m.completionPercentage }}%</span>
+                  </div>
+                </td>
+
+                <!-- Weight -->
+                <td class="text-muted">{{ m.weight }}%</td>
+
+                <!-- Planned Start -->
+                <td class="text-muted">{{ m.plannedStartDate | date:'MMM d, y' }}</td>
+
+                <!-- Planned Due -->
+                <td class="text-muted">
+                  {{ m.plannedDueDate | date:'MMM d, y' }}
+                  @if (m.isDeadlineFixed) {
+                    <span class="ms-fixed-badge">Fixed</span>
+                  }
+                </td>
+
+                <!-- Actions -->
+                <td class="text-end">
+                  <div class="ms-action-btns">
+                    <a class="ms-action-btn"
+                       [routerLink]="['/projects', projectId(), 'milestones', m.id]" title="View">
+                      <i class="bi bi-eye"></i> View
+                    </a>
+                    <button class="ms-action-btn"
+                            (click)="openEditForm(m)" title="Edit"
+                            [disabled]="showForm()">
+                      <i class="bi bi-pencil-square"></i> Edit
+                    </button>
+                    <button class="ms-action-btn ms-action-btn--danger"
+                            (click)="deleteMilestone(m)" title="Delete">
+                      <i class="bi bi-trash"></i> Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Mobile Cards ─────────────────────────────────────────────── -->
+      <div class="d-block d-lg-none">
+        @for (m of pagedMilestones; track m.id) {
+          <div class="ms-card">
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <span class="ms-seq-badge">{{ m.sequenceOrder }}</span>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <a class="ms-name-link" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
+                    <div class="ms-name-meta">{{ m.milestoneCode }}</div>
+                  </div>
+                  <span class="ms-status-badge" [ngClass]="statusBadgeClass(m.status)">
+                    <span class="ms-status-dot"></span>
+                    {{ m.statusLabel }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ms-card-meta">
+              <div class="ms-card-meta-row">
+                <span class="ms-card-meta-label">Progress</span>
                 <div class="ms-progress-cell">
                   <div class="ms-progress-bar">
                     <div class="ms-progress-fill" [style.width.%]="m.completionPercentage"></div>
                   </div>
                   <span class="ms-progress-text">{{ m.completionPercentage }}%</span>
                 </div>
-              </td>
-              <td class="text-muted">{{ m.weight }}%</td>
-              <td class="text-muted">{{ m.plannedStartDate | date:'MMM d, y' }}</td>
-              <td class="text-muted">
-                {{ m.plannedDueDate | date:'MMM d, y' }}
-                @if (m.isDeadlineFixed) {
-                  <span class="badge bg-danger-subtle ms-1" style="font-size:10px">Fixed</span>
-                }
-              </td>
-              <td class="text-end">
-                <div class="ms-row-actions">
-                  <a class="btn btn-outline-info btn-sm ms-action-btn"
-                     [routerLink]="['/projects', projectId(), 'milestones', m.id]" title="View">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    View
-                  </a>
-                  <button class="btn btn-outline-primary btn-sm ms-action-btn"
-                          (click)="openEditForm(m)" title="Edit"
-                          [disabled]="showForm()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    Edit
-                  </button>
-                  <button class="btn btn-outline-danger btn-sm ms-action-btn"
-                          (click)="deleteMilestone(m)" title="Delete">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M9 6V4h6v2"/>
-                    </svg>
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+              </div>
+              <div class="ms-card-meta-row">
+                <span class="ms-card-meta-label">Weight</span>
+                <span class="ms-card-meta-value">{{ m.weight }}%</span>
+              </div>
+              <div class="ms-card-meta-row">
+                <span class="ms-card-meta-label">Period</span>
+                <span class="ms-card-meta-value">
+                  {{ m.plannedStartDate | date:'MMM d, y' }} &ndash; {{ m.plannedDueDate | date:'MMM d, y' }}
+                  @if (m.isDeadlineFixed) {
+                    <span class="ms-fixed-badge">Fixed</span>
+                  }
+                </span>
+              </div>
+            </div>
 
-    <!-- Mobile cards -->
-    <div class="ms-mobile-cards">
-      @for (m of milestones(); track m.id) {
-        <div class="ms-mobile-card">
-          <div class="ms-mobile-card__header">
-            <span class="ms-seq-badge">{{ m.sequenceOrder }}</span>
-            <span class="ms-code">{{ m.milestoneCode }}</span>
-            <span [class]="milestoneStatusClass(m.status)">
-              <span class="bd"></span>
-              {{ m.statusLabel }}
-            </span>
-          </div>
-          <a class="ms-mobile-card__title" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
-          <div class="ms-mobile-card__meta">
-            <div class="ms-mobile-card__meta-row">
-              <span class="ms-mobile-card__meta-label">Progress</span>
-              <span class="ms-mobile-card__meta-value">{{ m.completionPercentage }}%</span>
-            </div>
-            <div class="ms-mobile-card__meta-row">
-              <span class="ms-mobile-card__meta-label">Weight</span>
-              <span class="ms-mobile-card__meta-value">{{ m.weight }}%</span>
-            </div>
-            <div class="ms-mobile-card__meta-row">
-              <span class="ms-mobile-card__meta-label">Period</span>
-              <span class="ms-mobile-card__meta-value">
-                {{ m.plannedStartDate | date:'MMM d, y' }} &ndash; {{ m.plannedDueDate | date:'MMM d, y' }}
-              </span>
+            <div class="d-flex flex-wrap gap-2 pt-3" style="border-top: 1px solid #e5e7eb;">
+              <a class="ms-action-btn" [routerLink]="['/projects', projectId(), 'milestones', m.id]">
+                <i class="bi bi-eye"></i> View
+              </a>
+              <button class="ms-action-btn" (click)="openEditForm(m)" [disabled]="showForm()">
+                <i class="bi bi-pencil-square"></i> Edit
+              </button>
+              <button class="ms-action-btn ms-action-btn--danger" (click)="deleteMilestone(m)">
+                <i class="bi bi-trash"></i> Delete
+              </button>
             </div>
           </div>
-          <div class="ms-mobile-card__actions">
-            <a class="btn btn-outline-info btn-sm" [routerLink]="['/projects', projectId(), 'milestones', m.id]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              View
-            </a>
-            <button class="btn btn-outline-primary btn-sm" (click)="openEditForm(m)" [disabled]="showForm()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edit
+        }
+      </div>
+
+      <!-- ── Pagination ───────────────────────────────────────────────── -->
+      @if (filteredMilestones.length > pageSize) {
+        <div class="ms-pagination">
+          <span class="ms-pagination-info">
+            Showing <strong>{{ pageStart }}&ndash;{{ pageEnd }}</strong> of <strong>{{ filteredMilestones.length }}</strong> milestones
+          </span>
+          <div class="ms-pagination-controls">
+            <button class="ms-page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+              <i class="bi bi-chevron-left"></i>
             </button>
-            <button class="btn btn-outline-danger btn-sm" (click)="deleteMilestone(m)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
-              Delete
+            @for (p of pages; track p) {
+              <button class="ms-page-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+            }
+            <button class="ms-page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+              <i class="bi bi-chevron-right"></i>
             </button>
           </div>
-
+        </div>
+      } @else if (filteredMilestones.length > 0) {
+        <div class="ms-pagination">
+          <span class="ms-pagination-info">
+            Showing <strong>{{ pageStart }}&ndash;{{ pageEnd }}</strong> of <strong>{{ filteredMilestones.length }}</strong> milestones
+          </span>
         </div>
       }
-    </div>
+
+    } @else if (!loading() && milestones().length === 0 && !showForm()) {
+      <div class="ms-empty">
+        <i class="bi bi-flag ms-empty-icon text-muted"></i>
+        <p class="text-muted mt-3 mb-3">No milestones yet.</p>
+        <button class="btn btn-primary btn-sm" (click)="openCreateForm()">
+          <i class="bi bi-plus-circle me-1"></i>Add First Milestone
+        </button>
+      </div>
+    } @else if (filteredMilestones.length === 0 && searchTerm) {
+      <div class="ms-empty">
+        <i class="bi bi-search ms-empty-icon text-muted"></i>
+        <p class="text-muted mt-3 mb-0">No milestones match your search.</p>
+      </div>
+    }
   }
+
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -178,17 +291,10 @@
   <div class="offcanvas-header">
     <h5 class="offcanvas-title">
       @if (editingId()) {
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" class="title-icon text-primary">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
+        <i class="bi bi-pencil-square text-primary me-2"></i>
         Edit Milestone
       } @else {
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18" class="title-icon text-success">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="16"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
-        </svg>
+        <i class="bi bi-plus-circle text-success me-2"></i>
         New Milestone
       }
     </h5>
