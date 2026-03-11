@@ -145,49 +145,70 @@
 
     <!-- ── Stats Cards ──────────────────────────────────────────────────── -->
     @if (workspaceStats) {
-      <div class="wd-stats-grid mb-4">
-        <app-kpi-card
-          title="Total Projects"
-          [value]="workspaceStats.totalProjects"
-          icon="bi bi-folder"
-          colorClass="primary"
-        />
-        <app-kpi-card
-          title="Strategic Projects"
-          [value]="workspaceStats.strategicProjects"
-          icon="bi bi-bullseye"
-          colorClass="purple"
-        />
-        <app-kpi-card
-          title="Baselined Projects"
-          [value]="workspaceStats.baselinedProjects"
-          icon="bi bi-check2-square"
-          colorClass="success"
-        />
-        <app-kpi-card
-          title="Non-Baselined Projects"
-          [value]="workspaceStats.nonBaselinedProjects"
-          icon="bi bi-square"
-          colorClass="warning"
-        />
-        <app-kpi-card
-          title="Total Action Items"
-          [value]="workspaceStats.totalActionItems"
-          icon="bi bi-list-task"
-          colorClass="info"
-        />
-        <app-kpi-card
-          title="Standalone Actions"
-          [value]="workspaceStats.standaloneActionItems"
-          icon="bi bi-lightning"
-          colorClass="primary"
-        />
-        <app-kpi-card
-          title="Escalated Actions"
-          [value]="workspaceStats.escalatedActionItems"
-          icon="bi bi-exclamation-triangle"
-          colorClass="danger"
-        />
+      <div class="wd-stats-row">
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--blue">
+            <i class="bi bi-kanban"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.totalProjects }}</span>
+            <span class="wd-stat-label">Total Projects</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--indigo">
+            <i class="bi bi-bullseye"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.strategicProjects }}</span>
+            <span class="wd-stat-label">Strategic Projects</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--green">
+            <i class="bi bi-check2-square"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.baselinedProjects }}</span>
+            <span class="wd-stat-label">Baselined Projects</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--yellow">
+            <i class="bi bi-square"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.nonBaselinedProjects }}</span>
+            <span class="wd-stat-label">Non-Baselined Projects</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--teal">
+            <i class="bi bi-list-task"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.totalActionItems }}</span>
+            <span class="wd-stat-label">Total Action Items</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--orange">
+            <i class="bi bi-lightning"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.standaloneActionItems }}</span>
+            <span class="wd-stat-label">Standalone Actions</span>
+          </div>
+        </div>
+        <div class="wd-stat-card">
+          <div class="wd-stat-icon wd-stat-icon--red">
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
+          <div class="wd-stat-body">
+            <span class="wd-stat-value">{{ workspaceStats.escalatedActionItems }}</span>
+            <span class="wd-stat-label">Escalated Actions</span>
+          </div>
+        </div>
       </div>
     }
 
@@ -570,7 +591,7 @@
                   <div class="wa-action-card__meta">
                     @if (item.projectName) {
                       <div class="wa-action-card__meta-row">
-                        <span class="wa-action-card__meta-label"><i class="bi bi-folder me-1"></i>Project</span>
+                        <span class="wa-action-card__meta-label"><i class="bi bi-kanban me-1"></i>Project</span>
                         <span class="wa-action-card__meta-value">{{ item.projectName }}</span>
                       </div>
                     }

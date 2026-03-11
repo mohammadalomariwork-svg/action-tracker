@@ -421,16 +421,65 @@
   gap: 0.35rem;
 }
 
-// ── Stats cards grid ────────────────────────────────────────────────────────
-.wd-stats-grid {
+// ── Stats cards (same style as workspace list) ─────────────────────────────
+.wd-stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.wd-stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.wd-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+
+  &--blue { background: #dbeafe; color: #3b82f6; }
+  &--green { background: #d1fae5; color: #10b981; }
+  &--teal { background: #ccfbf1; color: #0d9488; }
+  &--yellow { background: #fef9c3; color: #ca8a04; }
+  &--indigo { background: #e0e7ff; color: #4f46e5; }
+  &--orange { background: #ffedd5; color: #ea580c; }
+  &--purple { background: #f3e8ff; color: #9333ea; }
+  &--red { background: #fee2e2; color: #dc2626; }
+}
+
+.wd-stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.wd-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.wd-stat-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.25rem;
 }
 
 // ── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: 1200px) {
-  .wd-stats-grid {
+  .wd-stats-row {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -440,7 +489,7 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .wd-stats-grid {
+  .wd-stats-row {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -454,7 +503,7 @@
     grid-template-columns: 1fr;
   }
 
-  .wd-stats-grid {
+  .wd-stats-row {
     grid-template-columns: 1fr;
   }
 
