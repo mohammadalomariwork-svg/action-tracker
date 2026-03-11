@@ -1,13 +1,29 @@
 // ── Footer shell ──────────────────────────────────────────────────────────────
 .footer {
-  background: #1e293b;
-  color: #cbd5e1;
+  background: linear-gradient(145deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%);
+  color: #e0e7ff;
   flex-shrink: 0;
   font-size: 0.85rem;
+  position: relative;
+  overflow: hidden;
+
+  // decorative circles (matching login panel)
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  &::before { width: 380px; height: 380px; top: -100px; right: -80px; }
+  &::after  { width: 260px; height: 260px; bottom: -60px; left: -60px; }
 }
 
 // ── Inner grid ────────────────────────────────────────────────────────────────
 .footer-inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 2rem;
@@ -35,7 +51,7 @@
 .footer-tagline {
   margin: 0;
   line-height: 1.6;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.7);
   max-width: 320px;
 }
 
@@ -45,7 +61,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #f1f5f9;
+  color: #ffffff;
   margin-bottom: 0.75rem;
 }
 
@@ -63,7 +79,7 @@
   }
 
   a {
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     transition: color 0.15s ease;
 
@@ -73,21 +89,23 @@
   }
 
   &--info li {
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.7);
   }
 }
 
 // ── Bottom bar ────────────────────────────────────────────────────────────────
 .footer-bottom {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   max-width: 1280px;
   margin: 0 auto;
   padding: 1rem 2rem;
-  border-top: 1px solid #334155;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   font-size: 0.8rem;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .footer-version {
