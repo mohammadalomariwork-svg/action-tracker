@@ -10,5 +10,5 @@ public interface IMilestoneService
     Task<MilestoneResponseDto> UpdateAsync(Guid projectId, Guid milestoneId, MilestoneUpdateDto dto, CancellationToken ct);
     Task DeleteAsync(Guid projectId, Guid milestoneId, CancellationToken ct);
     Task BaselineMilestonesAsync(Guid projectId, CancellationToken ct);
-    Task<MilestoneStatsDto> GetProjectStatsAsync(Guid projectId, CancellationToken ct);
+    Task<MilestoneStatsDto> GetMilestoneStatsAsync(Guid milestoneId, CancellationToken ct);
 }

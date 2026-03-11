@@ -21,48 +21,6 @@
     </button>
   </div>
 
-  <!-- ── Summary Stats Cards ────────────────────────────────────────────── -->
-  @if (stats()) {
-    <div class="ms-stats-row">
-      <div class="ms-stat-card">
-        <div class="ms-stat-icon ms-stat-icon--blue">
-          <i class="bi bi-list-task"></i>
-        </div>
-        <div class="ms-stat-body">
-          <span class="ms-stat-value">{{ stats()!.totalActionItems }}</span>
-          <span class="ms-stat-label">Action Items</span>
-        </div>
-      </div>
-      <div class="ms-stat-card">
-        <div class="ms-stat-icon ms-stat-icon--green">
-          <i class="bi bi-check-circle"></i>
-        </div>
-        <div class="ms-stat-body">
-          <span class="ms-stat-value">{{ stats()!.completionRate }}%</span>
-          <span class="ms-stat-label">Completion Rate</span>
-        </div>
-      </div>
-      <div class="ms-stat-card">
-        <div class="ms-stat-icon ms-stat-icon--teal">
-          <i class="bi bi-clock-history"></i>
-        </div>
-        <div class="ms-stat-body">
-          <span class="ms-stat-value">{{ stats()!.onTimeDeliveryRate }}%</span>
-          <span class="ms-stat-label">On-Time Delivery</span>
-        </div>
-      </div>
-      <div class="ms-stat-card">
-        <div class="ms-stat-icon ms-stat-icon--orange">
-          <i class="bi bi-exclamation-triangle"></i>
-        </div>
-        <div class="ms-stat-body">
-          <span class="ms-stat-value">{{ stats()!.escalatedActionItems }}</span>
-          <span class="ms-stat-label">Escalated Items</span>
-        </div>
-      </div>
-    </div>
-  }
-
   <!-- ── Loading spinner ─────────────────────────────────────────────────── -->
   @if (loading()) {
     <div class="text-center py-5">

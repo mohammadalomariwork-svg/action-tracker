@@ -15,7 +15,6 @@ import {
   MilestoneUpdate,
   MilestoneStatus,
   MilestoneStatusLabels,
-  MilestoneStats,
 } from '../../models/milestone.models';
 import { AssignableUser } from '../../../../core/models/action-item.model';
 
@@ -38,7 +37,6 @@ export class MilestoneSectionComponent implements OnInit {
   readonly milestones = signal<MilestoneResponse[]>([]);
   readonly loading = signal(false);
   readonly users = signal<AssignableUser[]>([]);
-  readonly stats = signal<MilestoneStats | null>(null);
 
   // Form state
   readonly showForm = signal(false);
@@ -86,7 +84,6 @@ export class MilestoneSectionComponent implements OnInit {
   ngOnInit(): void {
     this.loadMilestones();
     this.loadUsers();
-    this.loadStats();
   }
 
   private loadMilestones(): void {
@@ -101,13 +98,6 @@ export class MilestoneSectionComponent implements OnInit {
         this.loading.set(false);
         this.toastSvc.error('Failed to load milestones.');
       },
-    });
-  }
-
-  private loadStats(): void {
-    this.milestoneSvc.getProjectStats(this.projectId()).subscribe({
-      next: r => this.stats.set(r.data ?? null),
-      error: () => {},
     });
   }
 

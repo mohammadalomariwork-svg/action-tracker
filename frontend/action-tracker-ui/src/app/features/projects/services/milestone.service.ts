@@ -42,7 +42,7 @@ export class MilestoneService {
     return this.http.post<void>(`${this.url(projectId)}/baseline`, {});
   }
 
-  getProjectStats(projectId: string): Observable<ApiResponse<MilestoneStats>> {
-    return this.http.get<ApiResponse<MilestoneStats>>(`${this.url(projectId)}/stats`);
+  getMilestoneStats(projectId: string, milestoneId: string): Observable<ApiResponse<MilestoneStats>> {
+    return this.http.get<ApiResponse<MilestoneStats>>(`${this.url(projectId)}/${milestoneId}/stats`);
   }
 }

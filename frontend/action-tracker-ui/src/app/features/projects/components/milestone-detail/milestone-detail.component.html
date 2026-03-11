@@ -42,6 +42,40 @@
       </div>
     }
 
+    <!-- Stats Cards -->
+    @if (milestoneStats) {
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--total">📋</div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ milestoneStats.totalActionItems }}</span>
+            <span class="stat-card__label">Action Items</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--completion">✅</div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ milestoneStats.completionRate }}%</span>
+            <span class="stat-card__label">Completion Rate</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--ontime">⏱</div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ milestoneStats.onTimeDeliveryRate }}%</span>
+            <span class="stat-card__label">On-Time Delivery</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--escalated">⚠</div>
+          <div class="stat-card__body">
+            <span class="stat-card__value">{{ milestoneStats.escalatedActionItems }}</span>
+            <span class="stat-card__label">Escalated Items</span>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (!isLoading && milestone) {
 
       <!-- ── Milestone Details (single merged section) ─────────────── -->

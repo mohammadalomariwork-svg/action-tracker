@@ -148,10 +148,10 @@ public class MilestoneService : IMilestoneService
         _logger.LogInformation("Baselined {Count} milestones for project {ProjectId}", milestones.Count, projectId);
     }
 
-    public async Task<MilestoneStatsDto> GetProjectStatsAsync(Guid projectId, CancellationToken ct)
+    public async Task<MilestoneStatsDto> GetMilestoneStatsAsync(Guid milestoneId, CancellationToken ct)
     {
         var actionItems = await _db.ActionItems
-            .Where(a => a.ProjectId == projectId)
+            .Where(a => a.MilestoneId == milestoneId)
             .Select(a => new
             {
                 a.Status,

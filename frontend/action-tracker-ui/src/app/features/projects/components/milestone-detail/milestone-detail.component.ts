@@ -11,6 +11,7 @@ import {
   MilestoneResponse,
   MilestoneStatus,
   MilestoneStatusLabels,
+  MilestoneStats,
 } from '../../models/milestone.models';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
@@ -45,6 +46,9 @@ export class MilestoneDetailComponent implements OnInit {
 
   // Workspace context (loaded from project)
   workspaceId: string | null = null;
+
+  // Stats
+  milestoneStats: MilestoneStats | null = null;
 
   readonly MilestoneStatus = MilestoneStatus;
   readonly MilestoneStatusLabels = MilestoneStatusLabels;
@@ -120,6 +124,7 @@ export class MilestoneDetailComponent implements OnInit {
     this.loadMilestone();
     this.loadProject();
     this.loadAllUsers();
+    this.loadStats();
   }
 
   private loadMilestone(): void {
@@ -157,6 +162,15 @@ export class MilestoneDetailComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.allUsers = res.data ?? [],
+        error: () => {},
+      });
+  }
+
+  private loadStats(): void {
+    this.milestoneService.getMilestoneStats(this.projectId, this.milestoneId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => this.milestoneStats = res.data ?? null,
         error: () => {},
       });
   }

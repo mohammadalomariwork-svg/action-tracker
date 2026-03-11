@@ -105,12 +105,12 @@ public class MilestonesController : ControllerBase
         }
     }
 
-    /// <summary>Returns action-item stats for the project's milestones page.</summary>
-    [HttpGet("stats")]
+    /// <summary>Returns action-item stats for a specific milestone.</summary>
+    [HttpGet("{milestoneId:guid}/stats")]
     [ProducesResponseType(typeof(ApiResponse<MilestoneStatsDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetProjectStats(Guid projectId, CancellationToken ct)
+    public async Task<IActionResult> GetMilestoneStats(Guid projectId, Guid milestoneId, CancellationToken ct)
     {
-        var stats = await _service.GetProjectStatsAsync(projectId, ct);
+        var stats = await _service.GetMilestoneStatsAsync(milestoneId, ct);
         return Ok(ApiResponse<MilestoneStatsDto>.Ok(stats));
     }
 
