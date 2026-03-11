@@ -59,16 +59,9 @@
         <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Details</h5>
       </div>
 
-      <div class="wd-details-list">
+      <div class="wd-details-grid">
 
-        @if (ai.description) {
-          <div class="wd-detail-row">
-            <span class="wd-detail-label">Description</span>
-            <span class="wd-detail-value text-pre-wrap">{{ ai.description }}</span>
-          </div>
-        }
-
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Workspace</span>
           <span class="wd-detail-value">
             <a [routerLink]="['/workspaces', ai.workspaceId]" class="wa-link">{{ ai.workspaceTitle }}</a>
@@ -76,7 +69,7 @@
         </div>
 
         @if (ai.projectId) {
-          <div class="wd-detail-row">
+          <div class="wd-detail-item">
             <span class="wd-detail-label">Project</span>
             <span class="wd-detail-value">
               <a [routerLink]="['/projects', ai.projectId]" class="wa-link">{{ ai.projectName }}</a>
@@ -85,7 +78,7 @@
         }
 
         @if (ai.milestoneId && ai.projectId) {
-          <div class="wd-detail-row">
+          <div class="wd-detail-item">
             <span class="wd-detail-label">Milestone</span>
             <span class="wd-detail-value">
               <a [routerLink]="['/projects', ai.projectId, 'milestones', ai.milestoneId]" class="wa-link">{{ ai.milestoneName }}</a>
@@ -93,32 +86,17 @@
           </div>
         }
 
-        <div class="wd-detail-row">
-          <span class="wd-detail-label">Assignee(s)</span>
-          <span class="wd-detail-value">
-            <div class="d-flex flex-wrap gap-2">
-              @for (a of ai.assignees; track a.userId) {
-                <span class="d-inline-flex align-items-center gap-1">
-                  <span class="wa-avatar-sm">{{ a.fullName.charAt(0) }}</span>
-                  <span class="small">{{ a.fullName }}</span>
-                </span>
-              }
-              @if (ai.assignees.length === 0) { <span class="text-muted">—</span> }
-            </div>
-          </span>
-        </div>
-
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Priority</span>
           <span class="wd-detail-value"><span [class]="priorityClass(ai.priority)">{{ ai.priorityLabel }}</span></span>
         </div>
 
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Status</span>
           <span class="wd-detail-value"><span [class]="statusClass(ai.status)">{{ ai.statusLabel }}</span></span>
         </div>
 
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Progress</span>
           <span class="wd-detail-value">
             <div class="wa-progress-cell">
@@ -136,12 +114,12 @@
           </span>
         </div>
 
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Start Date</span>
           <span class="wd-detail-value">{{ ai.startDate ? (ai.startDate | date:'MMM d, y') : '—' }}</span>
         </div>
 
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Due Date</span>
           <span class="wd-detail-value" [class]="dueDateClass(ai)">
             {{ ai.dueDate | date:'MMM d, y' }}
@@ -151,15 +129,37 @@
           </span>
         </div>
 
-        <div class="wd-detail-row">
+        <div class="wd-detail-item--half">
+          <span class="wd-detail-label">Assignee(s)</span>
+          <span class="wd-detail-value">
+            <div class="d-flex flex-wrap gap-2">
+              @for (a of ai.assignees; track a.userId) {
+                <span class="d-inline-flex align-items-center gap-1">
+                  <span class="wa-avatar-sm">{{ a.fullName.charAt(0) }}</span>
+                  <span class="small">{{ a.fullName }}</span>
+                </span>
+              }
+              @if (ai.assignees.length === 0) { <span class="text-muted">—</span> }
+            </div>
+          </span>
+        </div>
+
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Created</span>
           <span class="wd-detail-value text-muted">{{ ai.createdAt | date:'MMM d, y, h:mm a' }}</span>
         </div>
 
-        <div class="wd-detail-row">
+        <div class="wd-detail-item">
           <span class="wd-detail-label">Last Updated</span>
           <span class="wd-detail-value text-muted">{{ ai.updatedAt | date:'MMM d, y, h:mm a' }}</span>
         </div>
+
+        @if (ai.description) {
+          <div class="wd-detail-item--full">
+            <span class="wd-detail-label">Description</span>
+            <span class="wd-detail-value text-pre-wrap">{{ ai.description }}</span>
+          </div>
+        }
       </div>
     </div>
 
