@@ -1,6 +1,6 @@
-<app-breadcrumb [items]="[{ label: 'My Actions', route: '/actions' }, { label: item()?.actionId ?? 'Loading...' }]" />
-
 <div class="wd-page">
+
+  <app-breadcrumb [items]="[{ label: 'My Actions', route: '/actions' }, { label: item()?.actionId ?? 'Loading...' }]" />
 
   <app-page-header
     [title]="item()?.actionId ?? 'Action Item'"

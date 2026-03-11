@@ -1,10 +1,10 @@
-<app-breadcrumb [items]="[
-  { label: 'Workspaces', route: '/workspaces' },
-  { label: 'Project', route: '/projects/' + projectId },
-  { label: milestone?.name ?? 'Loading…' }
-]" />
-
 <div class="detail-page">
+
+  <app-breadcrumb [items]="[
+    { label: 'Workspaces', route: '/workspaces' },
+    { label: 'Project', route: '/projects/' + projectId },
+    { label: milestone?.name ?? 'Loading…' }
+  ]" />
 
   <app-page-header
     [title]="milestone?.milestoneCode ?? 'Loading…'"
