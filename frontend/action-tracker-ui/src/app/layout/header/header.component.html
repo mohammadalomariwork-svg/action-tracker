@@ -56,6 +56,10 @@
                   </span>
                 </div>
                 <hr class="dropdown-divider" />
+                <a class="dropdown-item" routerLink="/profile" (click)="closeMenu()">
+                  <i class="bi bi-person-circle me-2"></i>My Profile
+                </a>
+                <hr class="dropdown-divider" />
                 <button class="dropdown-item logout" (click)="logout()">
                   Sign out
                 </button>

@@ -1,0 +1,193 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.wd-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Merged header ─────────────────────────────────────────────────────────────
+.wd-merged-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.wd-merged-header__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.wd-merged-header__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.wd-merged-header__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.2;
+}
+
+.wd-merged-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+// ── Profile-specific ──────────────────────────────────────────────────────────
+.profile-avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-arabic-name {
+  display: block;
+  font-size: 1rem;
+  color: #6c757d;
+  direction: rtl;
+  margin-top: 0.15rem;
+}
+
+.profile-email {
+  display: block;
+  font-size: 0.85rem;
+  color: #0d6efd;
+  margin-top: 0.25rem;
+}
+
+// ── Section ──────────────────────────────────────────────────────────────────
+.wd-section {
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 1.25rem 1.5rem;
+}
+
+.wd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+// ── Details grid ─────────────────────────────────────────────────────────────
+.wd-details-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.wd-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+
+  &--half {
+    grid-column: span 2;
+  }
+}
+
+.wd-detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+.wd-detail-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+// ── Badge ────────────────────────────────────────────────────────────────────
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+// ── Alert ────────────────────────────────────────────────────────────────────
+.alert-info {
+  background: #e8f4fd;
+  border: 1px solid #b6d4fe;
+  border-radius: 0.5rem;
+  color: #084298;
+  padding: 1rem 1.25rem;
+  font-size: 0.88rem;
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.gap-2 { gap: 0.5rem; }
+.flex-wrap { flex-wrap: wrap; }
+.mt-2 { margin-top: 0.5rem; }
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: 1.5rem; }
+.me-1 { margin-right: 0.25rem; }
+.me-2 { margin-right: 0.5rem; }
+.ms-1 { margin-left: 0.25rem; }
+.ms-2 { margin-left: 0.5rem; }
+.text-muted { color: #6c757d; }
+.text-primary { color: #4f46e5; }
+.text-center { text-align: center; }
+.py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+
+// ── Responsive ──────────────────────────────────────────────────────────────
+@media (max-width: 992px) {
+  .wd-details-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .wd-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .wd-page {
+    padding: 1rem;
+  }
+
+  .wd-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wd-detail-item--half {
+    grid-column: span 1;
+  }
+
+  .profile-avatar-lg {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+}

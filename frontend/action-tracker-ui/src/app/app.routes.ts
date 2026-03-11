@@ -109,6 +109,13 @@ export const routes: Routes = [
           import('./features/action-items/action-item.routes').then(m => m.default),
       },
       {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile.component').then(
+            m => m.ProfileComponent
+          ),
+      },
+      {
         path: 'admin',
         loadChildren: () =>
           import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),

@@ -1,0 +1,262 @@
+<div class="wd-page">
+
+  <app-breadcrumb [items]="[
+    { label: 'Dashboard', route: '/dashboard' },
+    { label: 'My Profile' }
+  ]" />
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      <span class="ms-2 text-muted">Loading profile...</span>
+    </div>
+  }
+
+  <!-- Error (no employee record) -->
+  @if (!loading() && error()) {
+    <div class="wd-merged-header mb-4">
+      <div class="wd-merged-header__title-row">
+        <div class="wd-merged-header__left">
+          <div class="profile-avatar-lg">{{ getInitial() }}</div>
+          <div>
+            <h1 class="wd-merged-header__title">{{ displayName }}</h1>
+            <span class="profile-email">{{ userEmail }}</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+              @for (role of roles; track role) {
+                <span class="badge bg-primary">{{ role }}</span>
+              }
+              <span class="badge bg-secondary">{{ loginProvider }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="wd-merged-header__actions">
+          <a routerLink="/dashboard" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>{{ error() }}
+      <span class="text-muted ms-1">Your account details are shown above. HR employee data is not available for this account.</span>
+    </div>
+  }
+
+  @if (!loading() && profile(); as p) {
+
+    <!-- ── Header card ──────────────────────────────── -->
+    <div class="wd-merged-header mb-4">
+      <div class="wd-merged-header__title-row">
+        <div class="wd-merged-header__left">
+          <div class="profile-avatar-lg">{{ getInitial() }}</div>
+          <div>
+            <h1 class="wd-merged-header__title">{{ p.employeeName || displayName }}</h1>
+            @if (p.employeeArabicName) {
+              <span class="profile-arabic-name">{{ p.employeeArabicName }}</span>
+            }
+            <span class="profile-email">{{ p.emailAddress || userEmail }}</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+              @if (p.empNo) {
+                <span class="badge bg-info text-dark">{{ p.empNo }}</span>
+              }
+              @for (role of roles; track role) {
+                <span class="badge bg-primary">{{ role }}</span>
+              }
+              <span class="badge bg-secondary">{{ loginProvider }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="wd-merged-header__actions">
+          <a routerLink="/dashboard" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Position & Job ───────────────────────────── -->
+    <div class="wd-section mb-4">
+      <div class="wd-section-header">
+        <h5 class="mb-0"><i class="bi bi-briefcase me-2 text-primary"></i>Position & Job</h5>
+      </div>
+      <div class="wd-details-grid">
+        @if (p.title) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Title</span>
+            <span class="wd-detail-value">{{ p.title }}</span>
+          </div>
+        }
+        @if (p.position) {
+          <div class="wd-detail-item wd-detail-item--half">
+            <span class="wd-detail-label">Position</span>
+            <span class="wd-detail-value">{{ p.position }}</span>
+          </div>
+        }
+        @if (p.positionName && p.positionName !== p.position) {
+          <div class="wd-detail-item wd-detail-item--half">
+            <span class="wd-detail-label">Position Name</span>
+            <span class="wd-detail-value">{{ p.positionName }}</span>
+          </div>
+        }
+        @if (p.job) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Job</span>
+            <span class="wd-detail-value">{{ p.job }}</span>
+          </div>
+        }
+        @if (p.grade) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Grade</span>
+            <span class="wd-detail-value">{{ p.grade }}</span>
+          </div>
+        }
+        @if (p.employeeCategory) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Category</span>
+            <span class="wd-detail-value">{{ p.employeeCategory }}</span>
+          </div>
+        }
+        @if (p.contractType) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Contract Type</span>
+            <span class="wd-detail-value">{{ p.contractType }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Organization ─────────────────────────────── -->
+    <div class="wd-section mb-4">
+      <div class="wd-section-header">
+        <h5 class="mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Organization</h5>
+      </div>
+      <div class="wd-details-grid">
+        @if (p.sector) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Sector</span>
+            <span class="wd-detail-value">{{ p.sector }}</span>
+          </div>
+        }
+        @if (p.division) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Division</span>
+            <span class="wd-detail-value">{{ p.division }}</span>
+          </div>
+        }
+        @if (p.department) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Department</span>
+            <span class="wd-detail-value">{{ p.department }}</span>
+          </div>
+        }
+        @if (p.section) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Section</span>
+            <span class="wd-detail-value">{{ p.section }}</span>
+          </div>
+        }
+        @if (p.orgUnit) {
+          <div class="wd-detail-item wd-detail-item--half">
+            <span class="wd-detail-label">Org Unit</span>
+            <span class="wd-detail-value">{{ p.orgUnit }}</span>
+          </div>
+        }
+        @if (p.college) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">College</span>
+            <span class="wd-detail-value">{{ p.college }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Reporting Line ───────────────────────────── -->
+    @if (p.supervisorName || p.vpName || p.svpName) {
+      <div class="wd-section mb-4">
+        <div class="wd-section-header">
+          <h5 class="mb-0"><i class="bi bi-people me-2 text-primary"></i>Reporting Line</h5>
+        </div>
+        <div class="wd-details-grid">
+          @if (p.supervisorName) {
+            <div class="wd-detail-item">
+              <span class="wd-detail-label">Supervisor</span>
+              <span class="wd-detail-value">{{ p.supervisorName }}</span>
+            </div>
+          }
+          @if (p.vpName) {
+            <div class="wd-detail-item">
+              <span class="wd-detail-label">VP</span>
+              <span class="wd-detail-value">{{ p.vpName }}</span>
+            </div>
+          }
+          @if (p.svpName) {
+            <div class="wd-detail-item">
+              <span class="wd-detail-label">SVP</span>
+              <span class="wd-detail-value">{{ p.svpName }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── Personal Info ────────────────────────────── -->
+    <div class="wd-section mb-4">
+      <div class="wd-section-header">
+        <h5 class="mb-0"><i class="bi bi-person-vcard me-2 text-primary"></i>Personal Information</h5>
+      </div>
+      <div class="wd-details-grid">
+        @if (p.nationality) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Nationality</span>
+            <span class="wd-detail-value">{{ p.nationality }}</span>
+          </div>
+        }
+        @if (p.gender) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Gender</span>
+            <span class="wd-detail-value">{{ p.gender }}</span>
+          </div>
+        }
+        @if (p.personType) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Person Type</span>
+            <span class="wd-detail-value">{{ p.personType }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Employment Dates ─────────────────────────── -->
+    <div class="wd-section mb-4">
+      <div class="wd-section-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-check me-2 text-primary"></i>Employment</h5>
+      </div>
+      <div class="wd-details-grid">
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Hire Date</span>
+          <span class="wd-detail-value">{{ p.hireDate | date:'mediumDate' }}</span>
+        </div>
+        @if (p.originalHireDate) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Original Hire Date</span>
+            <span class="wd-detail-value">{{ p.originalHireDate | date:'mediumDate' }}</span>
+          </div>
+        }
+        @if (p.serviceYrs != null) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">Years of Service</span>
+            <span class="wd-detail-value">{{ p.serviceYrs }} years</span>
+          </div>
+        }
+        @if (p.ebsEmployeeNumber) {
+          <div class="wd-detail-item">
+            <span class="wd-detail-label">EBS Employee #</span>
+            <span class="wd-detail-value">{{ p.ebsEmployeeNumber }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+  }
+</div>

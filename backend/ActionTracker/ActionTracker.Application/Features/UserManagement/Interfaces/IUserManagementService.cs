@@ -103,6 +103,14 @@ public interface IUserManagementService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the employee profile from <c>ku_employee_info</c> for the given email address,
+    /// or <c>null</c> if no matching employee record is found.
+    /// </summary>
+    Task<EmployeeProfileDto?> GetEmployeeProfileByEmailAsync(
+        string            email,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Assigns (or clears) the org unit for a user.
     /// Pass null for <paramref name="orgUnitId"/> to unassign.
     /// </summary>

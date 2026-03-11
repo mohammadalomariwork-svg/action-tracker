@@ -273,6 +273,56 @@ public class UserManagementService : IUserManagementService
     }
 
     // -------------------------------------------------------------------------
+    // GetEmployeeProfileByEmailAsync
+    // -------------------------------------------------------------------------
+
+    public async Task<EmployeeProfileDto?> GetEmployeeProfileByEmailAsync(
+        string            email,
+        CancellationToken cancellationToken = default)
+    {
+        var emp = await _context.KuEmployeeInfo
+            .Where(e => e.EmailAddress != null &&
+                        e.EmailAddress.ToLower() == email.ToLower())
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (emp is null) return null;
+
+        return new EmployeeProfileDto
+        {
+            EmpNo              = emp.EmpNo,
+            EBSEmployeeNumber  = emp.EBSEmployeeNumber,
+            EmployeeName       = emp.EmployeeName,
+            EmployeeArabicName = emp.EmployeeArabicName,
+            FirstName          = emp.FirstName,
+            MiddleName         = emp.MiddleName,
+            LastName           = emp.LastName,
+            Title              = emp.Title,
+            EmailAddress       = emp.EmailAddress,
+            Position           = emp.Position,
+            PositionName       = emp.PositionName,
+            Job                = emp.Job,
+            Grade              = emp.Grade,
+            OrgUnit            = emp.OrgUnit,
+            Section            = emp.Section,
+            Department         = emp.Department,
+            Division           = emp.Division,
+            Sector             = emp.Sector,
+            College            = emp.College,
+            VPName             = emp.VPName,
+            SVPName            = emp.SVPName,
+            SupervisorName     = emp.SupervisorName,
+            Nationality        = emp.Nationality,
+            Gender             = emp.Gender,
+            OriginalHireDate   = emp.OriginalHireDate,
+            HireDate           = emp.HireDate,
+            ServiceYrs         = emp.ServiceYrs,
+            ContractType       = emp.ContractType,
+            EmployeeCategory   = emp.EmployeeCategory,
+            PersonType         = emp.PersonType,
+        };
+    }
+
+    // -------------------------------------------------------------------------
     // UpdateUserRoleAsync
     // -------------------------------------------------------------------------
 
