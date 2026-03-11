@@ -583,7 +583,10 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   deleteProject(prj: ProjectResponse): void {
-    if (!confirm(`Delete project "${prj.name}"?`)) return;
+    if (!confirm(
+      `Are you sure you want to delete project "${prj.name}"?\n\n` +
+      `This will also delete all milestones and action items associated with this project.`
+    )) return;
     this.deletingProjectId = prj.id;
 
     this.projectService.delete(prj.id)
@@ -591,12 +594,38 @@ export class WorkspaceDetailComponent implements OnInit {
       .subscribe({
         next: () => {
           this.deletingProjectId = null;
-          this.successMessage = `Project "${prj.projectCode}" deleted.`;
+          this.successMessage = `Project "${prj.projectCode}" and its related milestones and action items have been deleted.`;
           this.loadProjects();
+          this.loadStats();
         },
         error: (err) => {
           this.deletingProjectId = null;
           this.errorMessage = err?.error?.message ?? 'Failed to delete project.';
+        },
+      });
+  }
+
+  restoringProjectId: string | null = null;
+
+  restoreProject(prj: ProjectResponse): void {
+    if (!confirm(
+      `Restore project "${prj.name}"?\n\n` +
+      `All related milestones and action items will be restored as well.`
+    )) return;
+    this.restoringProjectId = prj.id;
+
+    this.projectService.restore(prj.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.restoringProjectId = null;
+          this.successMessage = `Project "${prj.projectCode}" and its related milestones and action items have been restored.`;
+          this.loadProjects();
+          this.loadStats();
+        },
+        error: (err) => {
+          this.restoringProjectId = null;
+          this.errorMessage = err?.error?.message ?? 'Failed to restore project.';
         },
       });
   }

@@ -50,6 +50,10 @@ export class ProjectService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
+  restore(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/restore`, {});
+  }
+
   getStrategicObjectivesForWorkspace(workspaceId: string): Observable<ApiResponse<StrategicObjectiveOption[]>> {
     return this.http.get<ApiResponse<StrategicObjectiveOption[]>>(
       `${this.apiUrl}/strategic-objectives-for-workspace/${workspaceId}`

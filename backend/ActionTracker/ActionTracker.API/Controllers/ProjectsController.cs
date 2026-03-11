@@ -110,7 +110,7 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    /// <summary>Soft-deletes a project.</summary>
+    /// <summary>Soft-deletes a project and its milestones and action items.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -125,6 +125,29 @@ public class ProjectsController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Restores a soft-deleted project and its milestones and action items.</summary>
+    [HttpPatch("{id:guid}/restore")]
+    [Authorize(Roles = "Admin,Manager")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Restore(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            await _service.RestoreAsync(id, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
     }
 }

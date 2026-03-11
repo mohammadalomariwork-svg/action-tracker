@@ -236,9 +236,53 @@ public class ProjectService : IProjectService
             ?? throw new KeyNotFoundException($"Project {id} not found.");
 
         project.IsDeleted = true;
+
+        var milestones = await _db.Milestones
+            .Where(m => m.ProjectId == id && !m.IsDeleted)
+            .ToListAsync(ct);
+        foreach (var m in milestones) m.IsDeleted = true;
+
+        var actionItems = await _db.ActionItems
+            .Where(a => a.ProjectId == id && !a.IsDeleted)
+            .ToListAsync(ct);
+        foreach (var a in actionItems) a.IsDeleted = true;
+
         await _db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Project {ProjectCode} soft-deleted", project.ProjectCode);
+        _logger.LogInformation(
+            "Project {ProjectCode} soft-deleted with {MilestoneCount} milestones and {ActionCount} action items",
+            project.ProjectCode, milestones.Count, actionItems.Count);
+    }
+
+    public async Task RestoreAsync(Guid id, CancellationToken ct)
+    {
+        var project = await _db.Projects
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == id, ct)
+            ?? throw new KeyNotFoundException($"Project {id} not found.");
+
+        if (!project.IsDeleted)
+            throw new InvalidOperationException("Project is not deleted.");
+
+        project.IsDeleted = false;
+
+        var milestones = await _db.Milestones
+            .IgnoreQueryFilters()
+            .Where(m => m.ProjectId == id && m.IsDeleted)
+            .ToListAsync(ct);
+        foreach (var m in milestones) m.IsDeleted = false;
+
+        var actionItems = await _db.ActionItems
+            .IgnoreQueryFilters()
+            .Where(a => a.ProjectId == id && a.IsDeleted)
+            .ToListAsync(ct);
+        foreach (var a in actionItems) a.IsDeleted = false;
+
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Project {ProjectCode} restored with {MilestoneCount} milestones and {ActionCount} action items",
+            project.ProjectCode, milestones.Count, actionItems.Count);
     }
 
     public async Task<List<StrategicObjectiveOptionDto>> GetStrategicObjectivesForWorkspaceAsync(

@@ -334,8 +334,8 @@
                       <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
                       <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
                       <td class="text-end">
-                        @if (!prj.isDeleted) {
-                          <div class="wa-row-actions">
+                        <div class="wa-row-actions">
+                          @if (!prj.isDeleted) {
                             <a class="btn btn-outline-info btn-sm wa-action-btn"
                                [routerLink]="['/projects', prj.id]"
                                title="View"><i class="bi bi-eye"></i></a>
@@ -355,8 +355,19 @@
                                 }
                               </button>
                             }
-                          </div>
-                        }
+                          } @else if (canManage) {
+                            <button class="btn btn-outline-success btn-sm wa-action-btn"
+                                    (click)="restoreProject(prj)"
+                                    title="Restore"
+                                    [disabled]="restoringProjectId === prj.id">
+                              @if (restoringProjectId === prj.id) {
+                                <span class="spinner-border spinner-border-sm"></span>
+                              } @else {
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                              }
+                            </button>
+                          }
+                        </div>
                       </td>
                     </tr>
                   }
@@ -396,29 +407,38 @@
                       </span>
                     </div>
                   </div>
-                  @if (!prj.isDeleted) {
                   <div class="wa-action-card__actions">
-                    <a class="btn btn-outline-info btn-sm"
-                       [routerLink]="['/projects', prj.id]">
-                      <i class="bi bi-eye me-1"></i>View
-                    </a>
-                    @if (canManage) {
-                      <button class="btn btn-outline-primary btn-sm"
-                              (click)="openEditProjectForm(prj)"
-                              [disabled]="showProjectForm">
-                        <i class="bi bi-pencil me-1"></i>Edit
-                      </button>
-                      <button class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
-                              [disabled]="deletingProjectId === prj.id">
-                        @if (deletingProjectId === prj.id) {
+                    @if (!prj.isDeleted) {
+                      <a class="btn btn-outline-info btn-sm"
+                         [routerLink]="['/projects', prj.id]">
+                        <i class="bi bi-eye me-1"></i>View
+                      </a>
+                      @if (canManage) {
+                        <button class="btn btn-outline-primary btn-sm"
+                                (click)="openEditProjectForm(prj)"
+                                [disabled]="showProjectForm">
+                          <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
+                                [disabled]="deletingProjectId === prj.id">
+                          @if (deletingProjectId === prj.id) {
+                            <span class="spinner-border spinner-border-sm"></span>
+                          } @else {
+                            <i class="bi bi-trash me-1"></i>Delete
+                          }
+                        </button>
+                      }
+                    } @else if (canManage) {
+                      <button class="btn btn-outline-success btn-sm" (click)="restoreProject(prj)"
+                              [disabled]="restoringProjectId === prj.id">
+                        @if (restoringProjectId === prj.id) {
                           <span class="spinner-border spinner-border-sm"></span>
                         } @else {
-                          <i class="bi bi-trash me-1"></i>Delete
+                          <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
                         }
                       </button>
                     }
                   </div>
-                  }
                 </div>
               }
             </div>
