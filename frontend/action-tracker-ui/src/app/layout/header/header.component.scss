@@ -11,19 +11,6 @@
   flex-direction: column;
   background: linear-gradient(145deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%);
   position: relative;
-  overflow: hidden;
-
-  // decorative circles (matching login panel)
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    pointer-events: none;
-  }
-  &::before { width: 380px; height: 380px; top: -120px; right: -80px; }
-  &::after  { width: 260px; height: 260px; bottom: -100px; left: -60px; }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -276,6 +263,19 @@
   position: relative;
   z-index: 1;
   width: 100%;
+  overflow: hidden;
+
+  // decorative circles (matching login panel)
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  &::before { width: 380px; height: 380px; top: -200px; right: -80px; }
+  &::after  { width: 260px; height: 260px; bottom: -180px; left: -60px; }
 }
 
 .nav-bar-inner {
