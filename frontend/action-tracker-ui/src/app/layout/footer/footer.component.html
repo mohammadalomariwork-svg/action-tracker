@@ -1,10 +1,51 @@
 <footer class="footer">
-  <div class="footer-content">
-    <span>&copy; 2026 &middot; Khalifa University</span><br/><br/>
-    
+  <div class="footer-inner">
+
+    <!-- ── Brand column ──────────────────────────────────── -->
+    <div class="footer-brand">
+      <img src="assets/images/cropped-logo.png" alt="Khalifa University" class="footer-logo" />
+      <p class="footer-tagline">
+        Action Tracker &mdash; streamlining task management, project oversight,
+        and accountability across Khalifa University.
+      </p>
+    </div>
+
+    <!-- ── Quick Links ───────────────────────────────────── -->
+    <div class="footer-links-group">
+      <h6 class="footer-heading">Quick Links</h6>
+      <ul class="footer-links">
+        <li><a routerLink="/dashboard"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a></li>
+        <li><a routerLink="/workspaces"><i class="bi bi-grid-3x3-gap me-1"></i>Workspaces</a></li>
+        <li><a routerLink="/actions"><i class="bi bi-clipboard-check me-1"></i>My Actions</a></li>
+        <li><a routerLink="/reports"><i class="bi bi-bar-chart-line me-1"></i>Reports</a></li>
+      </ul>
+    </div>
+
+    <!-- ── Resources ─────────────────────────────────────── -->
+    <div class="footer-links-group">
+      <h6 class="footer-heading">Resources</h6>
+      <ul class="footer-links">
+        <li><a routerLink="/management"><i class="bi bi-people me-1"></i>Management</a></li>
+        <li><a routerLink="/admin"><i class="bi bi-gear me-1"></i>Administration</a></li>
+        <li><a href="https://www.ku.ac.ae" target="_blank" rel="noopener"><i class="bi bi-globe me-1"></i>KU Website</a></li>
+      </ul>
+    </div>
+
+    <!-- ── Contact / Info ────────────────────────────────── -->
+    <div class="footer-links-group">
+      <h6 class="footer-heading">Contact</h6>
+      <ul class="footer-links footer-links--info">
+        <li><i class="bi bi-geo-alt me-1"></i>Abu Dhabi, UAE</li>
+        <li><i class="bi bi-envelope me-1"></i>support&#64;ku.ac.ae</li>
+        <li><i class="bi bi-telephone me-1"></i>+971 2 401 8000</li>
+      </ul>
+    </div>
+
   </div>
-  <div class="footer-content">
-    <img src="assets/images/cropped-logo.png" alt="Khalifa University" class="footer-logo" />
-    
+
+  <!-- ── Bottom bar ──────────────────────────────────────── -->
+  <div class="footer-bottom">
+    <span>&copy; {{ year }} Khalifa University. All rights reserved.</span>
+    <span class="footer-version">Action Tracker v1.0</span>
   </div>
 </footer>
