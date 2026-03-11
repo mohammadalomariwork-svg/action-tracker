@@ -720,7 +720,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   onProjectTypeChange(): void {
-    if (+this.projectForm.projectType === ProjectType.Strategic) {
+    if (this.projectForm.projectType === ProjectType.Strategic) {
       this.loadStrategicObjectives();
     } else {
       this.projectForm.strategicObjectiveId = null;
@@ -745,7 +745,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   get isProjectStrategic(): boolean {
-    return +this.projectForm.projectType === ProjectType.Strategic;
+    return this.projectForm.projectType === ProjectType.Strategic;
   }
 
   get filteredSponsorUsers(): AssignableUser[] {
@@ -790,10 +790,10 @@ export class WorkspaceDetailComponent implements OnInit {
       this.projectService.update(this.editingProjectId, {
         name: this.projectForm.name.trim(),
         description: this.projectForm.description?.trim() || undefined,
-        projectType: +this.projectForm.projectType,
-        status: +this.projectForm.status,
+        projectType: this.projectForm.projectType,
+        status: this.projectForm.status,
         strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
-        priority: +this.projectForm.priority,
+        priority: this.projectForm.priority,
         projectManagerUserId: this.projectForm.projectManagerUserId,
         sponsorUserIds: this.projectForm.sponsorUserIds,
         plannedStartDate: this.projectForm.plannedStartDate,
@@ -818,9 +818,9 @@ export class WorkspaceDetailComponent implements OnInit {
         name: this.projectForm.name.trim(),
         description: this.projectForm.description?.trim() || undefined,
         workspaceId: this.workspaceId,
-        projectType: +this.projectForm.projectType,
+        projectType: this.projectForm.projectType,
         strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
-        priority: +this.projectForm.priority,
+        priority: this.projectForm.priority,
         projectManagerUserId: this.projectForm.projectManagerUserId,
         sponsorUserIds: this.projectForm.sponsorUserIds,
         plannedStartDate: this.projectForm.plannedStartDate,
@@ -843,7 +843,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   projectPriorityClass(p: ProjectPriority): string {
-    switch (+p) {
+    switch (p) {
       case ProjectPriority.Critical: return 'badge bg-danger';
       case ProjectPriority.High:     return 'badge bg-warning text-dark';
       case ProjectPriority.Medium:   return 'badge bg-info text-dark';
@@ -853,7 +853,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   projectStatusClass(s: ProjectStatus): string {
-    switch (+s) {
+    switch (s) {
       case ProjectStatus.Draft:     return 'badge bg-secondary';
       case ProjectStatus.Active:    return 'badge bg-primary';
       case ProjectStatus.OnHold:    return 'badge bg-warning text-dark';

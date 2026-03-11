@@ -1,21 +1,21 @@
 export enum ProjectType {
-  Operational = 1,
-  Strategic = 2,
+  Operational = 'operational',
+  Strategic = 'strategic',
 }
 
 export enum ProjectStatus {
-  Draft = 1,
-  Active = 2,
-  OnHold = 3,
-  Completed = 4,
-  Cancelled = 5,
+  Draft = 'draft',
+  Active = 'active',
+  OnHold = 'onHold',
+  Completed = 'completed',
+  Cancelled = 'cancelled',
 }
 
 export enum ProjectPriority {
-  Low = 1,
-  Medium = 2,
-  High = 3,
-  Critical = 4,
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Critical = 'critical',
 }
 
 export interface SponsorInfo {

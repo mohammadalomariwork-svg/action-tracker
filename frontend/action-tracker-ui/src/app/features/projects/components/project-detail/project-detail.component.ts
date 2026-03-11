@@ -61,7 +61,7 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   priorityClass(p: ProjectPriority): string {
-    switch (+p) {
+    switch (p) {
       case ProjectPriority.Critical: return 'badge bg-danger';
       case ProjectPriority.High:     return 'badge bg-warning text-dark';
       case ProjectPriority.Medium:   return 'badge bg-info text-dark';
@@ -71,7 +71,7 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   statusClass(s: ProjectStatus): string {
-    switch (+s) {
+    switch (s) {
       case ProjectStatus.Draft:     return 'badge bg-secondary';
       case ProjectStatus.Active:    return 'badge bg-primary';
       case ProjectStatus.OnHold:    return 'badge bg-warning text-dark';
@@ -82,7 +82,7 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   typeClass(t: ProjectType): string {
-    switch (+t) {
+    switch (t) {
       case ProjectType.Strategic:   return 'badge bg-primary';
       case ProjectType.Operational: return 'badge bg-info text-dark';
       default:                      return 'badge bg-light text-dark';
