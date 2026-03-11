@@ -29,9 +29,9 @@
           </div>
           <div>
             <h1 class="wd-merged-header__title">
-              <span class="wa-project-code me-2">{{ project.projectCode }}</span>
               {{ project.name }}
             </h1>
+            <span class="wa-project-code">{{ project.projectCode }}</span>
             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
               <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
               <span [class]="priorityClass(project.priority)">{{ project.priorityLabel }}</span>
@@ -149,14 +149,14 @@
         </div>
 
         @if (project.projectType === ProjectType.Strategic && project.strategicObjectiveStatement) {
-          <div class="wd-detail-item--full">
+          <div class="wd-detail-item--full wd-detail-item--stacked">
             <span class="wd-detail-label">Strategic Objective</span>
             <span class="wd-detail-value text-pre-wrap">{{ project.strategicObjectiveStatement }}</span>
           </div>
         }
 
         @if (project.description) {
-          <div class="wd-detail-item--full">
+          <div class="wd-detail-item--full wd-detail-item--stacked">
             <span class="wd-detail-label">Description</span>
             <span class="wd-detail-value text-pre-wrap">{{ project.description }}</span>
           </div>
@@ -166,7 +166,7 @@
       <!-- Team -->
       <div class="wd-grid-divider"></div>
       <div class="wd-details-grid">
-        <div class="wd-detail-item--half">
+        <div class="wd-detail-item--half wd-detail-item--stacked">
           <span class="wd-detail-label">Project Manager</span>
           <span class="wd-detail-value">
             <span class="d-inline-flex align-items-center gap-1">
@@ -238,11 +238,6 @@
             </span>
           </div>
         }
-
-        <div class="wd-detail-item">
-          <span class="wd-detail-label">Currency</span>
-          <span class="wd-detail-value">{{ project.currency }}</span>
-        </div>
 
         <div class="wd-detail-item">
           <span class="wd-detail-label">Created</span>
