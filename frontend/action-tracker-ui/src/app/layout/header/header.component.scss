@@ -9,6 +9,21 @@
 .header {
   display: flex;
   flex-direction: column;
+  background: linear-gradient(145deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%);
+  position: relative;
+  overflow: hidden;
+
+  // decorative circles (matching login panel)
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+  &::before { width: 380px; height: 380px; top: -120px; right: -80px; }
+  &::after  { width: 260px; height: 260px; bottom: -100px; left: -60px; }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -30,26 +45,12 @@
 // TOP BAR — user info + logout, right-aligned
 // ═══════════════════════════════════════════════════════════
 .top-bar {
-  background: linear-gradient(145deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%);
   position: relative;
-  overflow: hidden;
-
-  // decorative circles (matching login panel)
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    pointer-events: none;
-  }
-  &::before { width: 300px; height: 300px; top: -150px; right: -60px; }
-  &::after  { width: 200px; height: 200px; bottom: -100px; left: -40px; }
+  z-index: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .top-bar-inner {
-  position: relative;
-  z-index: 1;
   width: 100%;
   display: flex;
   align-items: center;
@@ -71,14 +72,14 @@
 .brand-icon {
   width: 22px;
   height: 22px;
-  color: var(--primary);
+  color: #fff;
   flex-shrink: 0;
 }
 
 .app-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #fff;
   letter-spacing: 0.02em;
 }
 
@@ -265,7 +266,7 @@
 // ── Login link ─────────────────────────────────────────
 .login-link {
   font-weight: 600;
-  color: var(--primary);
+  color: #fff;
   text-decoration: none;
 }
 
@@ -273,9 +274,9 @@
 // NAV BAR — links, full width
 // ═══════════════════════════════════════════════════════════
 .nav-bar {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
 }
 
 .nav-bar-inner {
@@ -299,19 +300,19 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
   transition: color 0.15s, background 0.15s;
   white-space: nowrap;
 
   &:hover {
-    color: var(--primary);
-    background: rgba(79, 70, 229, 0.06);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
   }
 
   &.active {
-    color: var(--primary);
-    background: rgba(79, 70, 229, 0.1);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
     font-weight: 600;
   }
 }
@@ -331,7 +332,7 @@
     display: block;
     width: 22px;
     height: 2px;
-    background: var(--text-primary);
+    background: #fff;
     border-radius: 2px;
     transition: transform 0.2s, opacity 0.2s;
   }
@@ -374,13 +375,13 @@
   // Mobile nav dropdown - only navigation links, separate from user details
   .mobile-nav-links {
     display: none;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border-color);
+    background: rgba(55, 48, 163, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-direction: column;
     align-items: stretch;
     padding: 0.5rem;
     gap: 0.25rem;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
     &.open {
       display: flex;
