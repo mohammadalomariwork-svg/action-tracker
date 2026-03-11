@@ -229,27 +229,29 @@
                       <td class="text-muted">{{ prj.plannedStartDate | date:'MMM d, y' }}</td>
                       <td class="text-muted">{{ prj.plannedEndDate | date:'MMM d, y' }}</td>
                       <td class="text-end">
-                        <div class="wa-row-actions">
-                          <a class="btn btn-outline-info btn-sm wa-action-btn"
-                             [routerLink]="['/projects', prj.id]"
-                             title="View"><i class="bi bi-eye"></i></a>
-                          @if (canManage) {
-                            <button class="btn btn-outline-primary btn-sm wa-action-btn"
-                                    (click)="openEditProjectForm(prj)"
-                                    title="Edit"
-                                    [disabled]="showProjectForm"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-outline-danger btn-sm wa-action-btn"
-                                    (click)="deleteProject(prj)"
-                                    title="Delete"
-                                    [disabled]="deletingProjectId === prj.id">
-                              @if (deletingProjectId === prj.id) {
-                                <span class="spinner-border spinner-border-sm"></span>
-                              } @else {
-                                <i class="bi bi-trash"></i>
-                              }
-                            </button>
-                          }
-                        </div>
+                        @if (!prj.isDeleted) {
+                          <div class="wa-row-actions">
+                            <a class="btn btn-outline-info btn-sm wa-action-btn"
+                               [routerLink]="['/projects', prj.id]"
+                               title="View"><i class="bi bi-eye"></i></a>
+                            @if (canManage) {
+                              <button class="btn btn-outline-primary btn-sm wa-action-btn"
+                                      (click)="openEditProjectForm(prj)"
+                                      title="Edit"
+                                      [disabled]="showProjectForm"><i class="bi bi-pencil"></i></button>
+                              <button class="btn btn-outline-danger btn-sm wa-action-btn"
+                                      (click)="deleteProject(prj)"
+                                      title="Delete"
+                                      [disabled]="deletingProjectId === prj.id">
+                                @if (deletingProjectId === prj.id) {
+                                  <span class="spinner-border spinner-border-sm"></span>
+                                } @else {
+                                  <i class="bi bi-trash"></i>
+                                }
+                              </button>
+                            }
+                          </div>
+                        }
                       </td>
                     </tr>
                   }
@@ -289,6 +291,7 @@
                       </span>
                     </div>
                   </div>
+                  @if (!prj.isDeleted) {
                   <div class="wa-action-card__actions">
                     <a class="btn btn-outline-info btn-sm"
                        [routerLink]="['/projects', prj.id]">
@@ -310,6 +313,7 @@
                       </button>
                     }
                   </div>
+                  }
                 </div>
               }
             </div>
