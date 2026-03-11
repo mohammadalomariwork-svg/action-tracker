@@ -49,7 +49,8 @@ $sh-focus: 0 0 0 3px rgba(15,108,189,.18);
 
 .ms-row-actions { display:inline-flex; gap:4px; }
 .ms-action-btn {
-  display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border-radius:$r-sm; transition:all .15s $ease;
+  display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:$r-sm; font-size:12.5px; font-weight:600; transition:all .15s $ease;
+  svg { flex-shrink:0; }
   &.btn-outline-info { color:$info; border-color:$info-border; &:hover { background:$info-bg; border-color:$info; } }
   &.btn-outline-primary { color:$accent; border-color:$accent-mid; &:hover { background:$accent-light; border-color:$accent; } }
   &.btn-outline-danger { color:$red; border-color:$red-border; &:hover { background:$red-bg; border-color:$red; } }
