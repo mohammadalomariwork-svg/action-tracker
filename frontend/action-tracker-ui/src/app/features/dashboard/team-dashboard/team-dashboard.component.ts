@@ -22,6 +22,7 @@ import { AuthUser }          from '../../../core/models/auth.models';
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -42,7 +43,7 @@ const STATUS_COLORS: Record<string, string> = {
   selector: 'app-team-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DatePipe, DecimalPipe, BaseChartDirective, StatusBadgeComponent, PriorityBadgeComponent, BreadcrumbComponent],
+  imports: [RouterLink, DatePipe, DecimalPipe, BaseChartDirective, StatusBadgeComponent, PriorityBadgeComponent, BreadcrumbComponent, PageHeaderComponent],
   templateUrl: './team-dashboard.component.html',
   styleUrl:    './team-dashboard.component.scss',
 })

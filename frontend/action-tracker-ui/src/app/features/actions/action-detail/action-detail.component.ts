@@ -17,6 +17,7 @@ import {
 import { CommentsSectionComponent }  from '../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../shared/components/documents-section/documents-section.component';
 import { BreadcrumbComponent }       from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent }       from '../../../shared/components/page-header/page-header.component';
 
 interface EditFormData {
   title: string;
@@ -38,7 +39,7 @@ interface EditFormData {
   imports: [
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
-    BreadcrumbComponent,
+    BreadcrumbComponent, PageHeaderComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',

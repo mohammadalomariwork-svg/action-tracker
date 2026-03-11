@@ -15,11 +15,12 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { OrgUnit, OrgUnitTree } from '../../models/org-chart.models';
 import { OrgUnitFormComponent }      from './org-unit-form.component';
 import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
+import { PageHeaderComponent }       from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-org-chart-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, AdminBreadcrumbComponent],
+  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, AdminBreadcrumbComponent, PageHeaderComponent],
   templateUrl: './org-chart-list.component.html',
   styleUrl: './org-chart-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

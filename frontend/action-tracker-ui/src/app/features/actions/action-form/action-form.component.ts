@@ -73,7 +73,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       : 'New Action Item';
   });
 
-  readonly pageIcon = computed(() => this.isEditMode() ? '✏️' : '➕');
+  readonly pageIcon = computed(() => this.isEditMode() ? 'bi bi-pencil-square' : 'bi bi-plus-circle');
 
   readonly descLength  = computed(() => (this.form?.get('description')?.value ?? '').length);
   readonly progressVal = computed(() => +(this.form?.get('progress')?.value ?? 0));

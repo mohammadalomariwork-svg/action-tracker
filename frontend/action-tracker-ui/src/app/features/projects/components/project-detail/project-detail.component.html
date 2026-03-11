@@ -2,6 +2,12 @@
 
 <div class="wd-page">
 
+  <app-page-header
+    [title]="project?.name ?? 'Project'"
+    subtitle="Project overview and management"
+    icon="bi bi-kanban"
+  />
+
   <!-- Loading -->
   @if (isLoading) {
     <div class="text-center py-5">

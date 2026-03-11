@@ -3,20 +3,15 @@
 <div class="wl-page">
 
   <!-- ── Page Header ─────────────────────────────────────────────────────── -->
-  <div class="wl-page-header">
-    <div class="d-flex align-items-start gap-3">
-      <div class="wl-page-icon">
-        <i class="bi bi-briefcase"></i>
-      </div>
-      <div>
-        <h1 class="wl-page-title">Workspaces</h1>
-        <p class="wl-page-subtitle">Manage and organize team workspaces across your organization units.</p>
-      </div>
-    </div>
+  <app-page-header
+    title="Workspaces"
+    subtitle="Manage and organize team workspaces across your organization units."
+    icon="bi bi-briefcase"
+  >
     <button class="btn btn-primary" (click)="onCreateNew()">
       <i class="bi bi-plus-circle me-1"></i>New Workspace
     </button>
-  </div>
+  </app-page-header>
 
   <!-- ── Summary Cards ───────────────────────────────────────────────────── -->
   @if (summary) {

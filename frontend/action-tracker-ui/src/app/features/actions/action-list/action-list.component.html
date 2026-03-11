@@ -3,7 +3,7 @@
 <div class="al-page" (click)="closeStatusMenu()">
 
   <!-- Page header -->
-  <app-page-header title="Action Items" subtitle="Manage and track all action items" icon="📋">
+  <app-page-header title="Action Items" subtitle="Manage and track all action items" icon="bi bi-list-check">
     <button class="btn btn-outline" (click)="exportCsv()" [disabled]="exportingCsv()">
       @if (exportingCsv()) { <span class="spin-sm"></span> } @else { ⬇ }
       Export CSV

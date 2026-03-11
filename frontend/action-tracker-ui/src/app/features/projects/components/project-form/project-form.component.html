@@ -2,21 +2,17 @@
 
 <div class="pf-page">
 
-  <button class="btn btn-link text-decoration-none mb-3 p-0" (click)="onCancel()">
-    <i class="bi bi-arrow-left me-1"></i>Back to Workspace
-  </button>
+  <app-page-header
+    [title]="isEditMode ? 'Edit Project' : 'New Project'"
+    [subtitle]="isEditMode ? 'Update project details' : 'Create a new project'"
+    [icon]="isEditMode ? 'bi bi-pencil-square' : 'bi bi-plus-circle'"
+  >
+    <button class="btn btn-link text-decoration-none p-0" (click)="onCancel()">
+      <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+    </button>
+  </app-page-header>
 
   <div class="card pf-card">
-
-    <div class="card-header d-flex align-items-center gap-2 py-3">
-      @if (isEditMode) {
-        <i class="bi bi-pencil-fill text-primary"></i>
-        <h5 class="mb-0">Edit Project</h5>
-      } @else {
-        <i class="bi bi-plus-circle-fill text-success"></i>
-        <h5 class="mb-0">New Project</h5>
-      }
-    </div>
 
     <div class="card-body">
 

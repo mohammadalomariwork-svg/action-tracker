@@ -8,11 +8,12 @@ import { forkJoin } from 'rxjs';
 import { WorkspaceService } from '../../services/workspace.service';
 import { WorkspaceList, WorkspaceSummary } from '../../models/workspace.model';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-workspace-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, PageHeaderComponent],
   templateUrl: './workspace-list.component.html',
   styleUrl: './workspace-list.component.scss',
 })

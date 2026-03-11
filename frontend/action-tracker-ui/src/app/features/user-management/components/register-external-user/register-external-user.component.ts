@@ -21,6 +21,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { UserManagementService } from '../../services/user-management.service';
 import { RegisterUserResponse } from '../../models/user-management.models';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 interface ExternalUserForm {
   fullName:        FormControl<string>;
@@ -34,7 +35,7 @@ interface ExternalUserForm {
 @Component({
   selector: 'app-register-external-user',
   standalone: true,
-  imports: [ReactiveFormsModule, BreadcrumbComponent],
+  imports: [ReactiveFormsModule, BreadcrumbComponent, PageHeaderComponent],
   templateUrl: './register-external-user.component.html',
   styleUrl: './register-external-user.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

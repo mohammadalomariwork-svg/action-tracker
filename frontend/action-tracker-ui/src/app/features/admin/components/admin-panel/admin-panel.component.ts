@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AdminBreadcrumbComponent } from '../shared/admin-breadcrumb/admin-breadcrumb.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 export interface AdminFeatureCard {
   id: string;
@@ -16,7 +17,7 @@ export interface AdminFeatureCard {
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule, RouterLink, AdminBreadcrumbComponent],
+  imports: [CommonModule, RouterLink, AdminBreadcrumbComponent, PageHeaderComponent],
   templateUrl: './admin-panel.component.html',
   styleUrl: './admin-panel.component.scss',
 })

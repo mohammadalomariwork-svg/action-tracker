@@ -19,11 +19,12 @@ import { Kpi, MeasurementPeriod, MeasurementPeriodLabels } from '../../models/kp
 import { StrategicObjective }          from '../../models/strategic-objectives.models';
 import { KpiFormComponent }            from './kpi-form.component';
 import { AdminBreadcrumbComponent }    from '../shared/admin-breadcrumb/admin-breadcrumb.component';
+import { PageHeaderComponent }         from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-kpi-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, KpiFormComponent, AdminBreadcrumbComponent],
+  imports: [CommonModule, FormsModule, KpiFormComponent, AdminBreadcrumbComponent, PageHeaderComponent],
   templateUrl: './kpi-list.component.html',
   styleUrl: './kpi-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

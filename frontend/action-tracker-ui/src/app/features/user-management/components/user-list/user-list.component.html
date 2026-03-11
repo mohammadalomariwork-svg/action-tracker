@@ -6,17 +6,18 @@
   ]" />
 
   <!-- ── Header ────────────────────────────────────────────────────────────── -->
-  <div class="ul-header d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">User Management</h2>
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-primary btn-sm" (click)="navigateToRegisterAD()">
-        <i class="bi bi-person-badge me-1"></i>Add AD User / Search Employee
-      </button>
-      <button class="btn btn-primary btn-sm" (click)="navigateToRegisterExternal()">
-        <i class="bi bi-person-plus me-1"></i>Add External User
-      </button>
-    </div>
-  </div>
+  <app-page-header
+    title="User Management"
+    subtitle="Manage users, roles and permissions"
+    icon="bi bi-people"
+  >
+    <button class="btn btn-outline-primary btn-sm" (click)="navigateToRegisterAD()">
+      <i class="bi bi-person-badge me-1"></i>Add AD User / Search Employee
+    </button>
+    <button class="btn btn-primary btn-sm" (click)="navigateToRegisterExternal()">
+      <i class="bi bi-person-plus me-1"></i>Add External User
+    </button>
+  </app-page-header>
 
   <!-- ── Search bar ────────────────────────────────────────────────────────── -->
   <div class="ul-search mb-3">

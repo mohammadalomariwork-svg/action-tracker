@@ -9,7 +9,7 @@
   <app-page-header
     [title]="milestone?.milestoneCode ?? 'Loading…'"
     [subtitle]="milestone?.name ?? ''"
-    icon="🏁">
+    icon="bi bi-flag-fill">
     @if (milestone) {
       <a [routerLink]="['/projects', projectId]" class="btn btn-outline">
         ← Back to Project

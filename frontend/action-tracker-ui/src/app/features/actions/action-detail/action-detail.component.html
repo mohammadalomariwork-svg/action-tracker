@@ -2,6 +2,12 @@
 
 <div class="wd-page">
 
+  <app-page-header
+    [title]="item()?.actionId ?? 'Action Item'"
+    subtitle="Action item details and tracking"
+    icon="bi bi-clipboard-check"
+  />
+
   <!-- Loading -->
   @if (loading()) {
     <div class="text-center py-5">

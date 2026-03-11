@@ -16,6 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { KpiService }   from '../../services/kpi.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import {
   Kpi,
   KpiTarget,
@@ -60,7 +61,7 @@ function visibleMonths(period: MeasurementPeriod): number[] {
 @Component({
   selector: 'app-kpi-targets',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BreadcrumbComponent, PageHeaderComponent],
   templateUrl: './kpi-targets.component.html',
   styleUrl: './kpi-targets.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

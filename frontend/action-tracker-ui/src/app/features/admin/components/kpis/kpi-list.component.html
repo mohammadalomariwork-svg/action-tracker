@@ -15,14 +15,15 @@
   }
 
   <!-- ── Header ────────────────────────────────────────────────────────────────  -->
-  <div class="kl-header d-flex flex-wrap justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">KPIs &amp; Targets</h2>
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary btn-sm" (click)="openAdd()">
-        <i class="bi bi-plus-lg me-1"></i>Add KPI
-      </button>
-    </div>
-  </div>
+  <app-page-header
+    title="KPIs & Targets"
+    subtitle="Track key performance indicators"
+    icon="bi bi-graph-up-arrow"
+  >
+    <button class="btn btn-primary btn-sm" (click)="openAdd()">
+      <i class="bi bi-plus-lg me-1"></i>Add KPI
+    </button>
+  </app-page-header>
 
   <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
   @if (error()) {

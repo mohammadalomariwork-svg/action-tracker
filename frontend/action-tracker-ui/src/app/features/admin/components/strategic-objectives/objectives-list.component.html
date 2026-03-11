@@ -4,14 +4,15 @@
   <app-admin-breadcrumb [items]="[{ label: 'Strategic Objectives' }]" class="mb-3 d-block" />
 
   <!-- ── Header ────────────────────────────────────────────────────────────────  -->
-  <div class="ol-header d-flex flex-wrap justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Strategic Objectives</h2>
-    <div class="d-flex gap-2">
-      <button class="btn btn-success btn-sm" (click)="openAdd()">
-        <i class="bi bi-plus-lg me-1"></i>Add Objective
-      </button>
-    </div>
-  </div>
+  <app-page-header
+    title="Strategic Objectives"
+    subtitle="Define and manage strategic objectives"
+    icon="bi bi-bullseye"
+  >
+    <button class="btn btn-success btn-sm" (click)="openAdd()">
+      <i class="bi bi-plus-lg me-1"></i>Add Objective
+    </button>
+  </app-page-header>
 
   <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
   @if (error()) {

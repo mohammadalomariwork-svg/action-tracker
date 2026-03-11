@@ -5,18 +5,13 @@
     { label: isEditMode ? 'Edit Workspace' : 'New Workspace' }
   ]" />
 
-  <div class="card wf-card">
+  <app-page-header
+    [title]="isEditMode ? 'Edit Workspace' : 'New Workspace'"
+    [subtitle]="isEditMode ? 'Update workspace details' : 'Create a new workspace'"
+    [icon]="isEditMode ? 'bi bi-pencil-square' : 'bi bi-plus-circle'"
+  />
 
-    <!-- ── Card header ────────────────────────────────────────────────────────── -->
-    <div class="card-header d-flex align-items-center gap-2 py-3">
-      @if (isEditMode) {
-        <i class="bi bi-pencil-fill text-primary"></i>
-        <h5 class="mb-0">Edit Workspace</h5>
-      } @else {
-        <i class="bi bi-plus-circle-fill text-success"></i>
-        <h5 class="mb-0">New Workspace</h5>
-      }
-    </div>
+  <div class="card wf-card">
 
     <div class="card-body">
 
