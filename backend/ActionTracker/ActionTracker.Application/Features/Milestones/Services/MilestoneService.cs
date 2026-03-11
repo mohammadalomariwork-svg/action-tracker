@@ -169,8 +169,7 @@ public class MilestoneService : IMilestoneService
 
         var doneOnTime = actionItems.Count(a =>
             a.Status == ActionStatus.Done &&
-            a.UpdatedAt.HasValue &&
-            a.UpdatedAt.Value <= a.DueDate);
+            a.UpdatedAt <= a.DueDate);
         var onTimeRate = doneCount > 0
             ? Math.Round((decimal)doneOnTime / doneCount * 100, 1)
             : 0m;
