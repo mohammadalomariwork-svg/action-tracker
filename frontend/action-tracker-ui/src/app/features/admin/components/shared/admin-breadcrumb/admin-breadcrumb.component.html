@@ -1,6 +1,6 @@
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a routerLink="/">Home</a></li>
+    <li class="breadcrumb-item"><a routerLink="/dashboard">Home</a></li>
     <li class="breadcrumb-item"><a routerLink="/admin">Admin</a></li>
     @for (item of items; track item.label; let last = $last) {
       <li class="breadcrumb-item" [class.active]="last" [attr.aria-current]="last ? 'page' : null">

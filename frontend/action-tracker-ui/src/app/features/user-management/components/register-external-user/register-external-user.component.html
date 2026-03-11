@@ -1,13 +1,10 @@
 <div class="reu-page">
 
-  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
-      <li class="breadcrumb-item"><a href="/admin/users">Users</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Register External User</li>
-    </ol>
-  </nav>
+  <app-breadcrumb [items]="[
+    { label: 'Admin', route: '/admin' },
+    { label: 'Users', route: '/admin/users' },
+    { label: 'Register External User' }
+  ]" />
 
   <!-- ── Page title ──────────────────────────────────────────────────────────── -->
   <h2 class="reu-title mb-4">Register External User</h2>

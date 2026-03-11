@@ -1,13 +1,10 @@
 <div class="rau-page">
 
-  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/admin">Admin</a></li>
-      <li class="breadcrumb-item"><a href="/admin/users">Users</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Add AD User / Search Employee</li>
-    </ol>
-  </nav>
+  <app-breadcrumb [items]="[
+    { label: 'Admin', route: '/admin' },
+    { label: 'Users', route: '/admin/users' },
+    { label: 'Add AD User / Search Employee' }
+  ]" />
 
   <h2 class="rau-title mb-4">Add AD User / Search Employee</h2>
 

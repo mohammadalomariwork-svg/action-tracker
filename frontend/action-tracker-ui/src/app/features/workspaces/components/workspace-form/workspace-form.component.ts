@@ -6,11 +6,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { WorkspaceService } from '../../services/workspace.service';
 import { OrgUnitDropdownItem, UserDropdownItem, WorkspaceAdmin } from '../../models/workspace.model';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-workspace-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BreadcrumbComponent],
   templateUrl: './workspace-form.component.html',
   styleUrl: './workspace-form.component.scss',
 })

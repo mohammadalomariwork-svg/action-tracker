@@ -1,5 +1,10 @@
 <div class="wf-page">
 
+  <app-breadcrumb [items]="[
+    { label: 'Workspaces', route: '/workspaces' },
+    { label: isEditMode ? 'Edit Workspace' : 'New Workspace' }
+  ]" />
+
   <div class="card wf-card">
 
     <!-- ── Card header ────────────────────────────────────────────────────────── -->

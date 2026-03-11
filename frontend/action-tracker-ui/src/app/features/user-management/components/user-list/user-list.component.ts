@@ -21,6 +21,7 @@ import {
   UserListItem,
   UpdateUserRoleRequest,
 } from '../../models/user-management.models';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 
 interface OrgUnitOption { id: string; label: string; }
 
@@ -29,7 +30,7 @@ const AVAILABLE_ROLES = ['Admin', 'Manager', 'User', 'Viewer'] as const;
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
