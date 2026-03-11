@@ -18,7 +18,7 @@ import {
   ActionStatus, ActionPriority, AssignableUser, EscalationInfo,
 } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+// PageHeaderComponent removed — using inline wd-merged-header instead
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
@@ -26,7 +26,7 @@ import { DocumentsSectionComponent } from '../../../../shared/components/documen
 @Component({
   selector: 'app-milestone-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, PageHeaderComponent, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent],
   templateUrl: './milestone-detail.component.html',
   styleUrl: './milestone-detail.component.scss',
 })
@@ -44,8 +44,10 @@ export class MilestoneDetailComponent implements OnInit {
   errorMessage: string | null = null;
   successMessage: string | null = null;
 
-  // Workspace context (loaded from project)
+  // Workspace/Project context (loaded from project)
   workspaceId: string | null = null;
+  workspaceTitle: string | null = null;
+  projectName: string | null = null;
 
   // Stats
   milestoneStats: MilestoneStats | null = null;
@@ -151,6 +153,8 @@ export class MilestoneDetailComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.workspaceId = res.data?.workspaceId ?? null;
+          this.workspaceTitle = res.data?.workspaceTitle ?? null;
+          this.projectName = res.data?.name ?? null;
           this.loadActionItems();
         },
         error: () => {},

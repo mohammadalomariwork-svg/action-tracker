@@ -1,21 +1,42 @@
-<div class="detail-page">
+<div class="wd-page">
 
   <app-breadcrumb [items]="[
     { label: 'Workspaces', route: '/workspaces' },
-    { label: 'Project', route: '/projects/' + projectId },
+    { label: workspaceTitle ?? '…', route: '/workspaces/' + (workspaceId ?? '') },
+    { label: projectName ?? '…', route: '/projects/' + projectId },
     { label: milestone?.name ?? 'Loading…' }
   ]" />
 
-  <app-page-header
-    [title]="milestone?.milestoneCode ?? 'Loading…'"
-    [subtitle]="milestone?.name ?? ''"
-    icon="bi bi-flag-fill">
-    @if (milestone) {
-      <a [routerLink]="['/projects', projectId]" class="btn btn-outline">
-        ← Back to Project
-      </a>
-    }
-  </app-page-header>
+  @if (!isLoading && milestone) {
+    <div class="wd-merged-header mb-4">
+      <div class="wd-merged-header__title-row">
+        <div class="wd-merged-header__left">
+          <div class="wd-merged-header__icon">
+            <i class="bi bi-flag-fill"></i>
+          </div>
+          <div>
+            <h1 class="wd-merged-header__title">{{ milestone.name }}</h1>
+            <span class="wa-project-code">{{ milestone.milestoneCode }}</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+              <span [class]="milestoneStatusClass(milestone.status)">{{ milestone.statusLabel }}</span>
+              @if (milestone.isDeadlineFixed) {
+                <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Fixed Deadline</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="wd-merged-header__actions">
+          <a [routerLink]="['/projects', projectId]" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Project
+          </a>
+          <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
+            <i class="bi bi-plus-lg me-1"></i>New Action
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   <div class="detail-body">
 
@@ -211,9 +232,6 @@
               />
               <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
             </div>
-            <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
-              + New Action
-            </button>
           </div>
         </div>
 
