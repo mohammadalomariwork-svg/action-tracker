@@ -12,6 +12,7 @@ import {
   MilestoneStatus,
   MilestoneStatusLabels,
   MilestoneStats,
+  MilestoneUpdate,
 } from '../../models/milestone.models';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
@@ -71,6 +72,19 @@ export class MilestoneDetailComponent implements OnInit {
   assigneeDropdownOpen = false;
   assigneeSearchTerm = '';
   editingEscalations: EscalationInfo[] = [];
+
+  // Milestone edit drawer
+  showEditMilestoneForm = false;
+  milestoneSaving = false;
+  milestoneEditForm: MilestoneEditFormData = this.emptyMilestoneEditForm();
+
+  readonly MILESTONE_STATUS_OPTIONS = [
+    { value: MilestoneStatus.NotStarted, label: 'Not Started' },
+    { value: MilestoneStatus.InProgress, label: 'In Progress' },
+    { value: MilestoneStatus.Completed,  label: 'Completed'   },
+    { value: MilestoneStatus.Delayed,    label: 'Delayed'     },
+    { value: MilestoneStatus.Cancelled,  label: 'Cancelled'   },
+  ];
 
   // Delete
   deletingActionId: string | null = null;
@@ -377,6 +391,79 @@ export class MilestoneDetailComponent implements OnInit {
       });
   }
 
+  // ── Milestone Edit Form ────────────────────────────────
+  private emptyMilestoneEditForm(): MilestoneEditFormData {
+    return {
+      name: '',
+      description: '',
+      sequenceOrder: 1,
+      plannedStartDate: '',
+      plannedDueDate: '',
+      actualCompletionDate: '',
+      isDeadlineFixed: false,
+      status: MilestoneStatus.NotStarted,
+      completionPercentage: 0,
+      approverUserId: '',
+    };
+  }
+
+  openEditMilestoneForm(): void {
+    if (!this.milestone) return;
+    this.milestoneEditForm = {
+      name: this.milestone.name,
+      description: this.milestone.description ?? '',
+      sequenceOrder: this.milestone.sequenceOrder,
+      plannedStartDate: this.milestone.plannedStartDate?.slice(0, 10) ?? '',
+      plannedDueDate: this.milestone.plannedDueDate?.slice(0, 10) ?? '',
+      actualCompletionDate: this.milestone.actualCompletionDate?.slice(0, 10) ?? '',
+      isDeadlineFixed: this.milestone.isDeadlineFixed,
+      status: +this.milestone.status as MilestoneStatus,
+      completionPercentage: this.milestone.completionPercentage,
+      approverUserId: this.milestone.approverUserId ?? '',
+    };
+    this.showEditMilestoneForm = true;
+  }
+
+  cancelEditMilestoneForm(): void {
+    this.showEditMilestoneForm = false;
+  }
+
+  saveEditMilestone(): void {
+    if (!this.milestoneEditForm.name.trim() || !this.milestoneEditForm.plannedStartDate || !this.milestoneEditForm.plannedDueDate) {
+      return;
+    }
+    this.milestoneSaving = true;
+
+    const payload: MilestoneUpdate = {
+      name: this.milestoneEditForm.name.trim(),
+      description: this.milestoneEditForm.description?.trim() || undefined,
+      sequenceOrder: +this.milestoneEditForm.sequenceOrder,
+      plannedStartDate: this.milestoneEditForm.plannedStartDate,
+      plannedDueDate: this.milestoneEditForm.plannedDueDate,
+      actualCompletionDate: this.milestoneEditForm.actualCompletionDate || undefined,
+      isDeadlineFixed: !!this.milestoneEditForm.isDeadlineFixed,
+      status: +this.milestoneEditForm.status as MilestoneStatus,
+      completionPercentage: +this.milestoneEditForm.completionPercentage,
+      approverUserId: this.milestoneEditForm.approverUserId || undefined,
+    };
+
+    this.milestoneService.update(this.projectId, this.milestoneId, payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.milestoneSaving = false;
+          this.showEditMilestoneForm = false;
+          this.milestone = res.data ?? this.milestone;
+          this.successMessage = 'Milestone updated successfully.';
+          this.loadStats();
+        },
+        error: (err) => {
+          this.milestoneSaving = false;
+          this.errorMessage = err?.error?.message ?? 'Failed to update milestone.';
+        },
+      });
+  }
+
   // ── Milestone helpers ──────────────────────────────────
   milestoneStatusClass(s: MilestoneStatus): string {
     switch (+s) {
@@ -452,4 +539,17 @@ interface ActionItemFormData {
   progress: number;
   isEscalated: boolean;
   escalationExplanation: string;
+}
+
+interface MilestoneEditFormData {
+  name: string;
+  description: string;
+  sequenceOrder: number;
+  plannedStartDate: string;
+  plannedDueDate: string;
+  actualCompletionDate: string;
+  isDeadlineFixed: boolean;
+  status: MilestoneStatus;
+  completionPercentage: number;
+  approverUserId: string;
 }

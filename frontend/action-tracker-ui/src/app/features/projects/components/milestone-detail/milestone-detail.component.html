@@ -30,8 +30,8 @@
           <a [routerLink]="['/projects', projectId]" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back to Project
           </a>
-          <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
-            <i class="bi bi-plus-lg me-1"></i>New Action
+          <button class="btn btn-primary btn-sm" (click)="openEditMilestoneForm()" [disabled]="showEditMilestoneForm">
+            <i class="bi bi-pencil me-1"></i>Edit
           </button>
         </div>
       </div>
@@ -422,6 +422,120 @@
     }
   </div>
 </div>
+
+<!-- ════════════════════════════════════════════════════════════
+     Offcanvas drawer — Edit Milestone
+     ════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end"
+     [class.show]="showEditMilestoneForm"
+     [style.visibility]="showEditMilestoneForm ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">
+      <i class="bi bi-pencil-fill text-primary me-1"></i>Edit Milestone
+    </h5>
+    <button type="button" class="btn-close-x" (click)="cancelEditMilestoneForm()">&times;</button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (showEditMilestoneForm) {
+      <!-- Name -->
+      <div class="mb-3">
+        <label class="form-label">Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="milestoneEditForm.name" placeholder="Milestone name" maxlength="255" />
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" [(ngModel)]="milestoneEditForm.description" placeholder="Optional description" rows="3"></textarea>
+      </div>
+
+      <!-- Status -->
+      <div class="mb-3">
+        <label class="form-label">Status <span class="text-danger">*</span></label>
+        <select class="form-control" [(ngModel)]="milestoneEditForm.status">
+          @for (opt of MILESTONE_STATUS_OPTIONS; track opt.value) {
+            <option [ngValue]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Sequence & Completion -->
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">Sequence Order <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" [(ngModel)]="milestoneEditForm.sequenceOrder" min="1" />
+        </div>
+        <div class="form-col">
+          <label class="form-label">Completion ({{ milestoneEditForm.completionPercentage }}%)</label>
+          <input type="range" class="form-range" min="0" max="100" step="1" [(ngModel)]="milestoneEditForm.completionPercentage" />
+        </div>
+      </div>
+
+      <!-- Planned Start & Due -->
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">Planned Start <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="milestoneEditForm.plannedStartDate" />
+        </div>
+        <div class="form-col">
+          <label class="form-label">Planned Due <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" [(ngModel)]="milestoneEditForm.plannedDueDate" [min]="milestoneEditForm.plannedStartDate || ''" />
+          @if (milestoneEditForm.plannedStartDate && milestoneEditForm.plannedDueDate && milestoneEditForm.plannedDueDate < milestoneEditForm.plannedStartDate) {
+            <small class="text-danger">Due date must be after start date.</small>
+          }
+        </div>
+      </div>
+
+      <!-- Actual Completion Date -->
+      <div class="mb-3">
+        <label class="form-label">Actual Completion Date</label>
+        <input type="date" class="form-control" [(ngModel)]="milestoneEditForm.actualCompletionDate" />
+      </div>
+
+      <!-- Fixed Deadline -->
+      <div class="mb-3">
+        <label class="form-check-label">
+          <input type="checkbox" [(ngModel)]="milestoneEditForm.isDeadlineFixed" />
+          Fixed Deadline
+        </label>
+      </div>
+
+      <!-- Approver -->
+      <div class="mb-3">
+        <label class="form-label">Approver</label>
+        <select class="form-control" [(ngModel)]="milestoneEditForm.approverUserId">
+          <option [ngValue]="''">-- None --</option>
+          @for (user of allUsers; track user.id) {
+            <option [value]="user.id">{{ user.fullName }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" (click)="cancelEditMilestoneForm()" [disabled]="milestoneSaving">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="saveEditMilestone()"
+          [disabled]="milestoneSaving || !milestoneEditForm.name.trim() || !milestoneEditForm.plannedStartDate || !milestoneEditForm.plannedDueDate || (milestoneEditForm.plannedDueDate < milestoneEditForm.plannedStartDate)"
+        >
+          @if (milestoneSaving) {
+            <span class="spinner-sm"></span> Saving…
+          } @else {
+            <i class="bi bi-check-lg"></i> Update
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+@if (showEditMilestoneForm) {
+  <div class="offcanvas-backdrop" (click)="cancelEditMilestoneForm()"></div>
+}
 
 <!-- ════════════════════════════════════════════════════════════
      Offcanvas drawer — Add / Edit Action Item
