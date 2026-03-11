@@ -415,7 +415,7 @@
                         }
                       </td>
                       <td>
-                        <span class="wa-title" [title]="item.title">{{ item.title }}</span>
+                        <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                       </td>
                       <td>
                         @if (item.projectName) {
@@ -516,7 +516,7 @@
                   </div>
 
                   <!-- Title -->
-                  <div class="wa-action-card__title">{{ item.title }}</div>
+                  <a class="wa-action-card__title text-decoration-none" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
 
                   <!-- Meta rows -->
                   <div class="wa-action-card__meta">
