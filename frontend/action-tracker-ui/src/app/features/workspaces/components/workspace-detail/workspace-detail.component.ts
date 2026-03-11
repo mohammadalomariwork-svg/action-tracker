@@ -529,10 +529,33 @@ export class WorkspaceDetailComponent implements OnInit {
           this.deletingActionId = null;
           this.successMessage = `Action "${item.actionId}" deleted.`;
           this.loadActionItems();
+          this.loadStats();
         },
         error: (err) => {
           this.deletingActionId = null;
           this.errorMessage = err?.error?.message ?? 'Failed to delete action item.';
+        },
+      });
+  }
+
+  restoringActionId: string | null = null;
+
+  restoreAction(item: ActionItem): void {
+    if (!confirm(`Restore action "${item.title}"?`)) return;
+    this.restoringActionId = item.id;
+
+    this.actionService.restore(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.restoringActionId = null;
+          this.successMessage = `Action "${item.actionId}" restored.`;
+          this.loadActionItems();
+          this.loadStats();
+        },
+        error: (err) => {
+          this.restoringActionId = null;
+          this.errorMessage = err?.error?.message ?? 'Failed to restore action item.';
         },
       });
   }

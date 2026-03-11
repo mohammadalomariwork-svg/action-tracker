@@ -612,6 +612,19 @@
                                 }
                               </button>
                             }
+                          } @else if (canManage && !item.projectId) {
+                            <button
+                              class="btn btn-outline-success btn-sm wa-action-btn"
+                              (click)="restoreAction(item)"
+                              title="Restore"
+                              [disabled]="restoringActionId === item.id"
+                            >
+                              @if (restoringActionId === item.id) {
+                                <span class="spinner-border spinner-border-sm"></span>
+                              } @else {
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                              }
+                            </button>
                           }
                         </div>
                       </td>
@@ -691,8 +704,8 @@
                   </div>
 
                   <!-- Actions -->
-                  @if (!item.isDeleted) {
-                    <div class="wa-action-card__actions">
+                  <div class="wa-action-card__actions">
+                    @if (!item.isDeleted) {
                       <a
                         class="btn btn-outline-info btn-sm"
                         [routerLink]="['/actions', item.id, 'view']"
@@ -715,8 +728,20 @@
                           }
                         </button>
                       }
-                    </div>
-                  }
+                    } @else if (canManage && !item.projectId) {
+                      <button
+                        class="btn btn-outline-success btn-sm"
+                        (click)="restoreAction(item)"
+                        [disabled]="restoringActionId === item.id"
+                      >
+                        @if (restoringActionId === item.id) {
+                          <span class="spinner-border spinner-border-sm"></span>
+                        } @else {
+                          <i class="bi bi-arrow-counterclockwise me-1"></i>Restore
+                        }
+                      </button>
+                    }
+                  </div>
                 </div>
               }
             </div>

@@ -11,6 +11,7 @@ public interface IActionItemService
     Task<ActionItemResponseDto>              CreateAsync(ActionItemCreateDto dto, string createdByUserId, CancellationToken ct);
     Task<ActionItemResponseDto>              UpdateAsync(Guid id, ActionItemUpdateDto dto, string updatedByUserId, CancellationToken ct);
     Task                                     DeleteAsync(Guid id, CancellationToken ct);
+    Task                                     RestoreAsync(Guid id, CancellationToken ct);
     Task                                     UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct);
     Task<int>                                ProcessOverdueItemsAsync(CancellationToken ct);
     Task<List<AssignableUserDto>>             GetAssignableUsersAsync(CancellationToken ct);

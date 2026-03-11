@@ -46,6 +46,10 @@ export class ActionItemService {
     return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
   }
 
+  restore(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/restore`, {});
+  }
+
   updateStatus(id: string, status: ActionStatus): Observable<ApiResponse<ActionItem>> {
     return this.http.patch<ApiResponse<ActionItem>>(`${this.apiUrl}/${id}/status`, { status });
   }

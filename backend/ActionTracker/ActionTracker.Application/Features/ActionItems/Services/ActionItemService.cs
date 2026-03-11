@@ -289,6 +289,26 @@ public class ActionItemService : IActionItemService
         _logger.LogInformation("ActionItem {Id} soft-deleted", id);
     }
 
+    public async Task RestoreAsync(Guid id, CancellationToken ct)
+    {
+        var item = await _dbContext.ActionItems
+            .IgnoreQueryFilters()
+            .Include(a => a.Project)
+            .FirstOrDefaultAsync(a => a.Id == id, ct)
+            ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
+
+        if (!item.IsDeleted)
+            throw new InvalidOperationException("Action item is not deleted.");
+
+        if (item.ProjectId != null && item.Project != null && item.Project.IsDeleted)
+            throw new InvalidOperationException("Cannot restore this action item because its parent project is deleted. Restore the project first.");
+
+        item.IsDeleted = false;
+        await _dbContext.SaveChangesAsync(ct);
+
+        _logger.LogInformation("ActionItem {Id} restored", id);
+    }
+
     public async Task UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct)
     {
         var item = await _dbContext.ActionItems
