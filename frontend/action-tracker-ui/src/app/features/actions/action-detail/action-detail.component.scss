@@ -86,6 +86,13 @@
   &--half {
     grid-column: span 2;
   }
+
+  &--stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    .wd-detail-value { display: block; }
+  }
 }
 
 .wd-detail-label {
