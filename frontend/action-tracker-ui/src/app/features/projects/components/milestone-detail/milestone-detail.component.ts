@@ -86,6 +86,17 @@ export class MilestoneDetailComponent implements OnInit {
     { value: MilestoneStatus.Cancelled,  label: 'Cancelled'   },
   ];
 
+  private readonly MILESTONE_STATUS_MAP: Record<string, MilestoneStatus> = {
+    notStarted: MilestoneStatus.NotStarted, inProgress: MilestoneStatus.InProgress,
+    completed: MilestoneStatus.Completed, delayed: MilestoneStatus.Delayed,
+    cancelled: MilestoneStatus.Cancelled,
+  };
+
+  private resolveMilestoneStatus(val: unknown): MilestoneStatus {
+    if (typeof val === 'number') return val;
+    return this.MILESTONE_STATUS_MAP[String(val)] ?? MilestoneStatus.NotStarted;
+  }
+
   // Delete
   deletingActionId: string | null = null;
 
@@ -417,7 +428,7 @@ export class MilestoneDetailComponent implements OnInit {
       plannedDueDate: this.milestone.plannedDueDate?.slice(0, 10) ?? '',
       actualCompletionDate: this.milestone.actualCompletionDate?.slice(0, 10) ?? '',
       isDeadlineFixed: this.milestone.isDeadlineFixed,
-      status: +this.milestone.status as MilestoneStatus,
+      status: this.resolveMilestoneStatus(this.milestone.status),
       completionPercentage: this.milestone.completionPercentage,
       approverUserId: this.milestone.approverUserId ?? '',
     };
