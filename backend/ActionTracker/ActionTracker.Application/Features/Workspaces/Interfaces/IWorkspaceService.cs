@@ -16,6 +16,10 @@ public interface IWorkspaceService
     /// <summary>Returns aggregate statistics across all workspaces.</summary>
     Task<WorkspaceSummaryDto> GetSummaryAsync();
 
+    /// <summary>Returns per-workspace statistics for the workspace detail dashboard.</summary>
+    /// <param name="workspaceId">Primary key of the workspace.</param>
+    Task<WorkspaceStatsDto?> GetWorkspaceStatsAsync(Guid workspaceId);
+
     /// <summary>
     /// Returns the full details of a single workspace, or <c>null</c> if not found.
     /// </summary>

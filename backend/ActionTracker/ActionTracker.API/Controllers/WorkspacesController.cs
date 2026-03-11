@@ -61,6 +61,27 @@ public class WorkspacesController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/workspaces/{id}/stats
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns per-workspace statistics for the workspace detail dashboard.</summary>
+    /// <param name="id">Primary key of the workspace.</param>
+    [HttpGet("{id:guid}/stats")]
+    [Authorize(Policy = "AdminOrManager")]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceStatsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),            StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStats(Guid id)
+    {
+        _logger.LogInformation("GET /api/workspaces/{Id}/stats", id);
+
+        var stats = await _workspaceService.GetWorkspaceStatsAsync(id);
+        if (stats is null)
+            return NotFound(ApiResponse<string>.Fail($"Workspace '{id}' not found."));
+
+        return Ok(ApiResponse<WorkspaceStatsDto>.Ok(stats));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/workspaces/{id}
     // -------------------------------------------------------------------------
 

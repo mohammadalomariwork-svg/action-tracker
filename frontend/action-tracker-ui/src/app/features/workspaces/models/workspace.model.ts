@@ -54,6 +54,16 @@ export interface WorkspaceList {
   admins: WorkspaceListAdmin[];
 }
 
+export interface WorkspaceStats {
+  totalProjects: number;
+  strategicProjects: number;
+  baselinedProjects: number;
+  nonBaselinedProjects: number;
+  totalActionItems: number;
+  standaloneActionItems: number;
+  escalatedActionItems: number;
+}
+
 export interface WorkspaceSummary {
   totalWorkspaces: number;
   activeWorkspaces: number;

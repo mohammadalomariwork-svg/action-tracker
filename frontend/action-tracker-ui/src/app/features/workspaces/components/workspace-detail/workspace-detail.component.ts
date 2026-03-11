@@ -7,9 +7,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card.component';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { ProjectService } from '../../../projects/services/project.service';
-import { Workspace, WorkspaceAdmin, UserDropdownItem } from '../../models/workspace.model';
+import { Workspace, WorkspaceAdmin, WorkspaceStats, UserDropdownItem } from '../../models/workspace.model';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
   ActionStatus, ActionPriority, AssignableUser, EscalationInfo,
@@ -23,7 +24,7 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent],
+  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, KpiCardComponent],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
 })
@@ -41,6 +42,10 @@ export class WorkspaceDetailComponent implements OnInit {
   errorMessage: string | null = null;
   successMessage: string | null = null;
   canManage = false;
+
+  // Stats
+  workspaceStats: WorkspaceStats | null = null;
+  statsLoading = false;
 
   // Admin management
   availableUsers: UserDropdownItem[] = [];
@@ -178,6 +183,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.loadActionItems();
           this.loadProjects();
           this.loadAllUsers();
+          this.loadStats();
         },
         error: (err) => {
           this.errorMessage = err?.error?.message ?? 'Failed to load workspace details.';
@@ -197,6 +203,21 @@ export class WorkspaceDetailComponent implements OnInit {
         if (user && this.workspace?.admins?.some(a => a.userId === user.email)) {
           this.canManage = true;
         }
+      });
+  }
+
+  private loadStats(): void {
+    this.statsLoading = true;
+    this.workspaceService.getWorkspaceStats(this.workspaceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.workspaceStats = res.data ?? null;
+          this.statsLoading = false;
+        },
+        error: () => {
+          this.statsLoading = false;
+        },
       });
   }
 

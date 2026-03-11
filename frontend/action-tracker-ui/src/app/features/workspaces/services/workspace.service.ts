@@ -7,6 +7,7 @@ import {
   Workspace,
   WorkspaceList,
   WorkspaceSummary,
+  WorkspaceStats,
   CreateWorkspace,
   UpdateWorkspace,
   OrgUnitDropdownItem,
@@ -33,6 +34,10 @@ export class WorkspaceService {
 
   getSummary(): Observable<ApiResponse<WorkspaceSummary>> {
     return this.http.get<ApiResponse<WorkspaceSummary>>(`${this.apiUrl}/summary`);
+  }
+
+  getWorkspaceStats(id: string): Observable<ApiResponse<WorkspaceStats>> {
+    return this.http.get<ApiResponse<WorkspaceStats>>(`${this.apiUrl}/${id}/stats`);
   }
 
   /**

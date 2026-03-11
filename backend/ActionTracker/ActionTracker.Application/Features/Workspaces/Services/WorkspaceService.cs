@@ -110,6 +110,48 @@ public class WorkspaceService : IWorkspaceService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<WorkspaceStatsDto?> GetWorkspaceStatsAsync(Guid workspaceId)
+    {
+        try
+        {
+            var exists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
+            if (!exists) return null;
+
+            var totalProjects = await _db.Projects
+                .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted);
+            var strategicProjects = await _db.Projects
+                .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted && p.ProjectType == ProjectType.Strategic);
+            var baselinedProjects = await _db.Projects
+                .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted && p.IsBaselined);
+            var nonBaselinedProjects = await _db.Projects
+                .CountAsync(p => p.WorkspaceId == workspaceId && !p.IsDeleted && !p.IsBaselined);
+
+            var totalActionItems = await _db.ActionItems
+                .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted);
+            var standaloneActionItems = await _db.ActionItems
+                .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted && a.IsStandalone);
+            var escalatedActionItems = await _db.ActionItems
+                .CountAsync(a => a.WorkspaceId == workspaceId && !a.IsDeleted && a.IsEscalated);
+
+            return new WorkspaceStatsDto
+            {
+                TotalProjects        = totalProjects,
+                StrategicProjects    = strategicProjects,
+                BaselinedProjects    = baselinedProjects,
+                NonBaselinedProjects = nonBaselinedProjects,
+                TotalActionItems     = totalActionItems,
+                StandaloneActionItems = standaloneActionItems,
+                EscalatedActionItems = escalatedActionItems
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error computing stats for workspace {WorkspaceId}", workspaceId);
+            throw;
+        }
+    }
+
     /// <summary>
     /// Returns the full details of a single workspace, or <c>null</c> if not found.
     /// </summary>

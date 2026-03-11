@@ -143,6 +143,54 @@
       }
     </div>
 
+    <!-- ── Stats Cards ──────────────────────────────────────────────────── -->
+    @if (workspaceStats) {
+      <div class="wd-stats-grid mb-4">
+        <app-kpi-card
+          title="Total Projects"
+          [value]="workspaceStats.totalProjects"
+          icon="bi bi-folder"
+          colorClass="primary"
+        />
+        <app-kpi-card
+          title="Strategic Projects"
+          [value]="workspaceStats.strategicProjects"
+          icon="bi bi-bullseye"
+          colorClass="purple"
+        />
+        <app-kpi-card
+          title="Baselined Projects"
+          [value]="workspaceStats.baselinedProjects"
+          icon="bi bi-check2-square"
+          colorClass="success"
+        />
+        <app-kpi-card
+          title="Non-Baselined Projects"
+          [value]="workspaceStats.nonBaselinedProjects"
+          icon="bi bi-square"
+          colorClass="warning"
+        />
+        <app-kpi-card
+          title="Total Action Items"
+          [value]="workspaceStats.totalActionItems"
+          icon="bi bi-list-task"
+          colorClass="info"
+        />
+        <app-kpi-card
+          title="Standalone Actions"
+          [value]="workspaceStats.standaloneActionItems"
+          icon="bi bi-lightning"
+          colorClass="primary"
+        />
+        <app-kpi-card
+          title="Escalated Actions"
+          [value]="workspaceStats.escalatedActionItems"
+          icon="bi bi-exclamation-triangle"
+          colorClass="danger"
+        />
+      </div>
+    }
+
     <!-- ══════════════════════════════════════════════════════════════════════ -->
     <!-- ── Projects & Action Items Row ─────────────────────────────────── -->
     <!-- ══════════════════════════════════════════════════════════════════════ -->
