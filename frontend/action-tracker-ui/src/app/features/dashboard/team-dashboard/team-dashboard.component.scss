@@ -457,14 +457,16 @@ td {
   color: var(--text-primary);
 }
 
-.pie-chart-wrap {
+// Fixed-size pie chart wrapper (responsive:false canvas)
+.pie-canvas-wrap {
   position: relative;
-  height: 200px;
-
-  canvas { position: relative; z-index: 1; }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 240px;
 }
 
-.pie-center {
+.pie-overlay {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -477,14 +479,14 @@ td {
   align-items: center;
 }
 
-.pie-center__num {
+.pie-overlay__num {
   font-size: 1.6rem;
   font-weight: 800;
   color: var(--text-primary);
   line-height: 1;
 }
 
-.pie-center__lbl {
+.pie-overlay__lbl {
   font-size: 0.68rem;
   font-weight: 600;
   color: var(--text-secondary);

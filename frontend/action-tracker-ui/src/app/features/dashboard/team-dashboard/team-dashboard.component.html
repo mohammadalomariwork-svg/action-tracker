@@ -76,34 +76,34 @@
         </div>
       }
 
-      <!-- Pie charts: always rendered when privileged so Chart.js can
-           read container dimensions on first paint, then data updates -->
+      <!-- Pie charts: responsive:false + explicit width/height attrs so
+           Chart.js reads canvas dimensions directly, bypassing CSS layout timing -->
       <div class="pie-row">
         <div class="pie-card">
           <h3 class="pie-card__title">Project Completion Rate</h3>
-          <div class="pie-chart-wrap">
-            <canvas baseChart
+          <div class="pie-canvas-wrap">
+            <canvas baseChart width="220" height="220"
               [data]="projectCompletionPieData"
               [type]="doughnutType"
               [options]="pieOptions"
             ></canvas>
-            <div class="pie-center">
-              <span class="pie-center__num">{{ projectCompletionPct() }}%</span>
-              <span class="pie-center__lbl">completed</span>
+            <div class="pie-overlay">
+              <span class="pie-overlay__num">{{ projectCompletionPct() }}%</span>
+              <span class="pie-overlay__lbl">completed</span>
             </div>
           </div>
         </div>
         <div class="pie-card">
           <h3 class="pie-card__title">Project On-Time Delivery</h3>
-          <div class="pie-chart-wrap">
-            <canvas baseChart
+          <div class="pie-canvas-wrap">
+            <canvas baseChart width="220" height="220"
               [data]="projectDeliveryPieData"
               [type]="doughnutType"
               [options]="pieOptions"
             ></canvas>
-            <div class="pie-center">
-              <span class="pie-center__num">{{ projectDeliveryPct() }}%</span>
-              <span class="pie-center__lbl">on-time</span>
+            <div class="pie-overlay">
+              <span class="pie-overlay__num">{{ projectDeliveryPct() }}%</span>
+              <span class="pie-overlay__lbl">on-time</span>
             </div>
           </div>
         </div>

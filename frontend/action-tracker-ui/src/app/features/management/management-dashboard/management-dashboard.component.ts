@@ -87,8 +87,7 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
   };
 
   readonly pieOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
+    responsive: false,   // fixed canvas size via width/height attrs; avoids 0-dim on OnPush init
     cutout: '68%',
     plugins: {
       legend: { display: false },
