@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" role="img" aria-label="Khalifa University logo">
+  <!-- KU Emblem -->
+  <g transform="translate(8, 8)">
+    <!-- Outer ring -->
+    <circle cx="32" cy="32" r="30" fill="none" stroke="#fff" stroke-width="2"/>
+    <!-- Inner decorative ring -->
+    <circle cx="32" cy="32" r="24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+
+    <!-- Stylised "KU" monogram -->
+    <!-- K left bar -->
+    <rect x="22" y="18" width="4" height="28" rx="2" fill="#fff"/>
+    <!-- K top arm -->
+    <path d="M26 32 L38 18" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <!-- K bottom arm -->
+    <path d="M26 32 L38 46" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+    <!-- Star / accent dots -->
+    <circle cx="32" cy="9"  r="1.8" fill="rgba(255,255,255,0.65)"/>
+    <circle cx="32" cy="55" r="1.8" fill="rgba(255,255,255,0.65)"/>
+    <circle cx="9"  cy="32" r="1.8" fill="rgba(255,255,255,0.65)"/>
+    <circle cx="55" cy="32" r="1.8" fill="rgba(255,255,255,0.65)"/>
+  </g>
+
+  <!-- University name text -->
+  <text x="80" y="28" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="700" fill="#fff" letter-spacing="0.5">KHALIFA</text>
+  <text x="80" y="46" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="700" fill="#fff" letter-spacing="0.5">UNIVERSITY</text>
+  <!-- Tagline -->
+  <text x="80" y="62" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" font-weight="400" fill="rgba(255,255,255,0.65)" letter-spacing="0.3">Abu Dhabi, United Arab Emirates</text>
+</svg>
