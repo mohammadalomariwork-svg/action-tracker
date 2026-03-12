@@ -31,6 +31,84 @@
 
   <div class="td-body">
 
+    <!-- ── Portfolio overview (Admin / Manager only) ──── -->
+    @if (isPrivileged()) {
+      @if (loadingWorkspaceSummary()) {
+        <div class="stats-bar">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="stat-card">
+              <span class="sk" style="height:36px;width:50%"></span>
+              <span class="sk sk--sm"></span>
+            </div>
+          }
+        </div>
+      }
+      @if (!loadingWorkspaceSummary() && workspaceSummary()) {
+        <div class="stats-bar stats-bar--portfolio">
+          <div class="stat-card stat-card--indigo">
+            <div class="stat-body">
+              <span class="stat-value">{{ totalWorkspaces() }}</span>
+              <span class="stat-label">Total Workspaces</span>
+            </div>
+            <span class="stat-icon">🏢</span>
+          </div>
+          <div class="stat-card stat-card--teal">
+            <div class="stat-body">
+              <span class="stat-value">{{ totalProjects() }}</span>
+              <span class="stat-label">Total Projects</span>
+            </div>
+            <span class="stat-icon">📁</span>
+          </div>
+          <div class="stat-card stat-card--purple">
+            <div class="stat-body">
+              <span class="stat-value">{{ strategicProjectsCount() }}</span>
+              <span class="stat-label">Strategic Projects</span>
+            </div>
+            <span class="stat-icon">🎯</span>
+          </div>
+          <div class="stat-card stat-card--warning">
+            <div class="stat-body">
+              <span class="stat-value">{{ operationalProjectsCount() }}</span>
+              <span class="stat-label">Operational Projects</span>
+            </div>
+            <span class="stat-icon">⚙️</span>
+          </div>
+        </div>
+
+        <!-- Project rate pie charts -->
+        <div class="pie-row">
+          <div class="pie-card">
+            <h3 class="pie-card__title">Project Completion Rate</h3>
+            <div class="pie-chart-wrap">
+              <canvas baseChart
+                [data]="projectCompletionPieData"
+                [type]="doughnutType"
+                [options]="pieOptions"
+              ></canvas>
+              <div class="pie-center">
+                <span class="pie-center__num">{{ projectCompletionPct() }}%</span>
+                <span class="pie-center__lbl">completed</span>
+              </div>
+            </div>
+          </div>
+          <div class="pie-card">
+            <h3 class="pie-card__title">Project On-Time Delivery</h3>
+            <div class="pie-chart-wrap">
+              <canvas baseChart
+                [data]="projectDeliveryPieData"
+                [type]="doughnutType"
+                [options]="pieOptions"
+              ></canvas>
+              <div class="pie-center">
+                <span class="pie-center__num">{{ projectDeliveryPct() }}%</span>
+                <span class="pie-center__lbl">on-time</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
     <!-- ── Stats bar ──────────────────────────────────── -->
     @if (loadingKpis()) {
       <div class="stats-bar">
@@ -81,52 +159,6 @@
           <span class="stat-icon">⏰</span>
         </div>
       </div>
-    }
-
-    <!-- ── Portfolio overview (Admin / Manager only) ──── -->
-    @if (isPrivileged()) {
-      @if (loadingWorkspaceSummary()) {
-        <div class="stats-bar">
-          @for (i of [1,2,3,4]; track i) {
-            <div class="stat-card">
-              <span class="sk" style="height:36px;width:50%"></span>
-              <span class="sk sk--sm"></span>
-            </div>
-          }
-        </div>
-      }
-      @if (!loadingWorkspaceSummary() && workspaceSummary()) {
-        <div class="stats-bar stats-bar--portfolio">
-          <div class="stat-card stat-card--indigo">
-            <div class="stat-body">
-              <span class="stat-value">{{ totalWorkspaces() }}</span>
-              <span class="stat-label">Total Workspaces</span>
-            </div>
-            <span class="stat-icon">🏢</span>
-          </div>
-          <div class="stat-card stat-card--teal">
-            <div class="stat-body">
-              <span class="stat-value">{{ totalProjects() }}</span>
-              <span class="stat-label">Total Projects</span>
-            </div>
-            <span class="stat-icon">📁</span>
-          </div>
-          <div class="stat-card stat-card--purple">
-            <div class="stat-body">
-              <span class="stat-value">{{ strategicProjectsCount() }}</span>
-              <span class="stat-label">Strategic Projects</span>
-            </div>
-            <span class="stat-icon">🎯</span>
-          </div>
-          <div class="stat-card stat-card--warning">
-            <div class="stat-body">
-              <span class="stat-value">{{ operationalProjectsCount() }}</span>
-              <span class="stat-label">Operational Projects</span>
-            </div>
-            <span class="stat-icon">⚙️</span>
-          </div>
-        </div>
-      }
     }
 
     <!-- ── Two-column layout ──────────────────────────── -->

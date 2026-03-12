@@ -72,6 +72,22 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
   );
   readonly strategicProjectsCount   = computed(() => this.workspaceSummary()?.strategicProjects   ?? 0);
   readonly operationalProjectsCount = computed(() => this.workspaceSummary()?.operationalProjects ?? 0);
+  readonly projectCompletionPct     = computed(() => Math.round(this.workspaceSummary()?.projectCompletionRate     ?? 0));
+  readonly projectDeliveryPct       = computed(() => Math.round(this.workspaceSummary()?.projectOnTimeDeliveryRate ?? 0));
+
+  // ── Project pie charts ────────────────────────────────
+  projectCompletionPieData: ChartData<'doughnut'> = { labels: [], datasets: [] };
+  projectDeliveryPieData:   ChartData<'doughnut'> = { labels: [], datasets: [] };
+
+  readonly pieOptions: ChartConfiguration<'doughnut'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` } },
+    },
+  };
 
   // ── Enums exposed ─────────────────────────────────────
   readonly ActionStatus   = ActionStatus;
@@ -210,9 +226,25 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
 
   private loadWorkspaceSummary(): void {
     this.workspaceSvc.getSummary().subscribe({
-      next: r => this.workspaceSummary.set(r.data),
+      next: r => {
+        this.workspaceSummary.set(r.data);
+        this.buildProjectPieCharts(r.data);
+      },
       error: () => {},
     });
+  }
+
+  private buildProjectPieCharts(s: WorkspaceSummary): void {
+    const comp  = Math.round(s.projectCompletionRate     ?? 0);
+    const deliv = Math.round(s.projectOnTimeDeliveryRate ?? 0);
+    this.projectCompletionPieData = {
+      labels: ['Completed', 'Remaining'],
+      datasets: [{ data: [comp,  100 - comp],  backgroundColor: ['#059669', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
+    };
+    this.projectDeliveryPieData = {
+      labels: ['On-Time', 'Delayed'],
+      datasets: [{ data: [deliv, 100 - deliv], backgroundColor: ['#0284c7', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
+    };
   }
 
   // ── Chart builders ────────────────────────────────────

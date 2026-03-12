@@ -32,43 +32,7 @@
 
     @if (!loading() && dashboard()) {
 
-      <!-- ── Section 1: KPI Cards ──────────────────────── -->
-      <section class="kpi-row">
-        <app-kpi-card
-          title="Completion Rate"
-          [value]="completionRate() + '%'"
-          subtitle="actions closed"
-          icon="✅"
-          colorClass="success"
-          [trend]="null"
-        />
-        <app-kpi-card
-          title="On-Time Delivery"
-          [value]="onTimeRate() + '%'"
-          subtitle="delivered on schedule"
-          icon="📅"
-          colorClass="primary"
-          [trend]="null"
-        />
-        <app-kpi-card
-          title="Active Escalations"
-          [value]="escalations()"
-          subtitle="require attention"
-          icon="🚨"
-          [colorClass]="escalations() > 0 ? 'danger' : 'success'"
-          [trend]="null"
-        />
-        <app-kpi-card
-          title="Team Velocity"
-          [value]="velocity()"
-          subtitle="actions completed this period"
-          icon="⚡"
-          colorClass="purple"
-          [trend]="null"
-        />
-      </section>
-
-      <!-- ── Section 2: Portfolio KPI Cards ───────────── -->
+      <!-- ── Section 1: Portfolio KPI Cards ──────────── -->
       @if (workspaceSummary()) {
         <section class="kpi-row">
           <app-kpi-card
@@ -104,7 +68,80 @@
             [trend]="null"
           />
         </section>
+
+        <!-- Project rate pie charts -->
+        <section class="charts-row charts-row--pie">
+          <div class="chart-card">
+            <div class="chart-card__header">
+              <h3 class="chart-title">Project Completion Rate</h3>
+            </div>
+            <div class="chart-container chart-container--doughnut">
+              <canvas baseChart
+                [data]="projectCompletionPieData"
+                [type]="doughnutType"
+                [options]="pieOptions"
+              ></canvas>
+              <div class="doughnut-center">
+                <span class="doughnut-center__num">{{ projectCompletionPct() }}%</span>
+                <span class="doughnut-center__lbl">completed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card__header">
+              <h3 class="chart-title">Project On-Time Delivery</h3>
+            </div>
+            <div class="chart-container chart-container--doughnut">
+              <canvas baseChart
+                [data]="projectDeliveryPieData"
+                [type]="doughnutType"
+                [options]="pieOptions"
+              ></canvas>
+              <div class="doughnut-center">
+                <span class="doughnut-center__num">{{ projectDeliveryPct() }}%</span>
+                <span class="doughnut-center__lbl">on-time</span>
+              </div>
+            </div>
+          </div>
+        </section>
       }
+
+      <!-- ── Section 2: Action KPI Cards ──────────────── -->
+      <section class="kpi-row">
+        <app-kpi-card
+          title="Completion Rate"
+          [value]="completionRate() + '%'"
+          subtitle="actions closed"
+          icon="✅"
+          colorClass="success"
+          [trend]="null"
+        />
+        <app-kpi-card
+          title="On-Time Delivery"
+          [value]="onTimeRate() + '%'"
+          subtitle="delivered on schedule"
+          icon="📅"
+          colorClass="primary"
+          [trend]="null"
+        />
+        <app-kpi-card
+          title="Active Escalations"
+          [value]="escalations()"
+          subtitle="require attention"
+          icon="🚨"
+          [colorClass]="escalations() > 0 ? 'danger' : 'success'"
+          [trend]="null"
+        />
+        <app-kpi-card
+          title="Team Velocity"
+          [value]="velocity()"
+          subtitle="actions completed this period"
+          icon="⚡"
+          colorClass="purple"
+          [trend]="null"
+        />
+      </section>
 
       <!-- ── Section 3: Charts ─────────────────────────── -->
       <section class="charts-row">

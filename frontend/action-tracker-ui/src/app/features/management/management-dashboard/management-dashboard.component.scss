@@ -97,6 +97,11 @@ app-page-header {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+
+  // Pie chart row: no legend so center overlay uses true 50%
+  &--pie .doughnut-center {
+    transform: translate(-50%, -50%);
+  }
 }
 
 .chart-card {
