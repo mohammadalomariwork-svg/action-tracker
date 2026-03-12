@@ -9,8 +9,10 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
 import { DashboardService }       from '../../../core/services/dashboard.service';
+import { WorkspaceService }       from '../../workspaces/services/workspace.service';
 import { ManagementDashboard, AtRiskItem, TeamWorkload } from '../../../core/models/dashboard.model';
 import { ActionItem, ActionStatus, ActionPriority }      from '../../../core/models/action-item.model';
+import { WorkspaceSummary }       from '../../workspaces/models/workspace.model';
 
 import { KpiCardComponent }       from '../../../shared/components/kpi-card/kpi-card.component';
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
@@ -42,15 +44,17 @@ const STATUS_COLORS: Record<string, string> = {
   styleUrl:    './management-dashboard.component.scss',
 })
 export class ManagementDashboardComponent implements OnInit, OnDestroy {
-  private readonly dashSvc  = inject(DashboardService);
-  readonly router           = inject(Router);
-  private readonly destroy$ = new Subject<void>();
-  private readonly refresh$ = new Subject<void>();
+  private readonly dashSvc      = inject(DashboardService);
+  private readonly workspaceSvc = inject(WorkspaceService);
+  readonly router               = inject(Router);
+  private readonly destroy$     = new Subject<void>();
+  private readonly refresh$     = new Subject<void>();
 
   // ── State ─────────────────────────────────────────────
-  readonly dashboard    = signal<ManagementDashboard | null>(null);
-  readonly loading      = signal(true);
-  readonly lastUpdated  = signal<Date | null>(null);
+  readonly dashboard        = signal<ManagementDashboard | null>(null);
+  readonly loading          = signal(true);
+  readonly lastUpdated      = signal<Date | null>(null);
+  readonly workspaceSummary = signal<WorkspaceSummary | null>(null);
 
   // ── Computed KPIs ─────────────────────────────────────
   readonly kpis = computed(() => this.dashboard()?.kpis);
@@ -59,6 +63,15 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
   readonly onTimeRate       = computed(() => this.kpis()?.onTimeDeliveryRate ?? 0);
   readonly escalations      = computed(() => this.kpis()?.activeEscalations  ?? 0);
   readonly velocity         = computed(() => this.kpis()?.teamVelocity       ?? 0);
+
+  // ── Workspace / project stats ─────────────────────────
+  readonly totalWorkspaces          = computed(() => this.workspaceSummary()?.totalWorkspaces   ?? 0);
+  readonly totalProjects            = computed(() =>
+    (this.workspaceSummary()?.strategicProjects   ?? 0) +
+    (this.workspaceSummary()?.operationalProjects ?? 0)
+  );
+  readonly strategicProjectsCount   = computed(() => this.workspaceSummary()?.strategicProjects   ?? 0);
+  readonly operationalProjectsCount = computed(() => this.workspaceSummary()?.operationalProjects ?? 0);
 
   // ── Enums exposed ─────────────────────────────────────
   readonly ActionStatus   = ActionStatus;
@@ -186,11 +199,20 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
 
     interval(REFRESH_INTERVAL_MS).pipe(takeUntil(this.destroy$))
       .subscribe(() => this.refresh$.next());
+
+    this.loadWorkspaceSummary();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private loadWorkspaceSummary(): void {
+    this.workspaceSvc.getSummary().subscribe({
+      next: r => this.workspaceSummary.set(r.data),
+      error: () => {},
+    });
   }
 
   // ── Chart builders ────────────────────────────────────

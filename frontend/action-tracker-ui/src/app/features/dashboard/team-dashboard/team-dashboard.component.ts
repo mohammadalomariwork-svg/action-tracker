@@ -11,6 +11,7 @@ import { BaseChartDirective } from 'ng2-charts';
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { DashboardService }  from '../../../core/services/dashboard.service';
 import { AuthService }       from '../../../core/services/auth.service';
+import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 
 import {
   ActionItem, ActionItemFilter,
@@ -18,6 +19,7 @@ import {
 } from '../../../core/models/action-item.model';
 import { DashboardKpi, StatusBreakdown } from '../../../core/models/dashboard.model';
 import { AuthUser }          from '../../../core/models/auth.models';
+import { WorkspaceSummary }  from '../../workspaces/models/workspace.model';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
@@ -48,10 +50,11 @@ const STATUS_COLORS: Record<string, string> = {
   styleUrl:    './team-dashboard.component.scss',
 })
 export class TeamDashboardComponent implements OnInit {
-  private readonly actionSvc = inject(ActionItemService);
-  private readonly dashSvc   = inject(DashboardService);
-  private readonly authSvc   = inject(AuthService);
-  readonly router            = inject(Router);
+  private readonly actionSvc     = inject(ActionItemService);
+  private readonly dashSvc       = inject(DashboardService);
+  private readonly authSvc       = inject(AuthService);
+  private readonly workspaceSvc  = inject(WorkspaceService);
+  readonly router                = inject(Router);
 
   // ── Auth state ────────────────────────────────────────
   readonly currentUser  = toSignal(this.authSvc.currentUser$, { initialValue: null as AuthUser | null });
@@ -66,15 +69,17 @@ export class TeamDashboardComponent implements OnInit {
   });
 
   // ── Loading ───────────────────────────────────────────
-  readonly loadingMine   = signal(true);
-  readonly loadingRecent = signal(true);
-  readonly loadingKpis   = signal(true);
+  readonly loadingMine              = signal(true);
+  readonly loadingRecent            = signal(true);
+  readonly loadingKpis              = signal(true);
+  readonly loadingWorkspaceSummary  = signal(false);
 
   // ── Data ──────────────────────────────────────────────
-  readonly myActions     = signal<ActionItem[]>([]);
-  readonly recentActions = signal<ActionItem[]>([]);
-  readonly kpis          = signal<DashboardKpi | null>(null);
-  readonly statusBreakdown = signal<StatusBreakdown[]>([]);
+  readonly myActions        = signal<ActionItem[]>([]);
+  readonly recentActions    = signal<ActionItem[]>([]);
+  readonly kpis             = signal<DashboardKpi | null>(null);
+  readonly statusBreakdown  = signal<StatusBreakdown[]>([]);
+  readonly workspaceSummary = signal<WorkspaceSummary | null>(null);
 
   // ── Global stats (derived from KPIs) ─────────────────
   readonly totalActions    = computed(() => this.kpis()?.totalActions    ?? 0);
@@ -82,6 +87,15 @@ export class TeamDashboardComponent implements OnInit {
   readonly onTimeRate      = computed(() => this.kpis()?.onTimeDeliveryRate ?? 0);
   readonly escalations     = computed(() => this.kpis()?.activeEscalations  ?? 0);
   readonly overdueCount    = computed(() => this.kpis()?.overdueCount    ?? 0);
+
+  // ── Workspace / project stats ─────────────────────────
+  readonly totalWorkspaces       = computed(() => this.workspaceSummary()?.totalWorkspaces   ?? 0);
+  readonly totalProjects         = computed(() =>
+    (this.workspaceSummary()?.strategicProjects   ?? 0) +
+    (this.workspaceSummary()?.operationalProjects ?? 0)
+  );
+  readonly strategicProjectsCount  = computed(() => this.workspaceSummary()?.strategicProjects   ?? 0);
+  readonly operationalProjectsCount = computed(() => this.workspaceSummary()?.operationalProjects ?? 0);
 
   // ── Status breakdown derived stats ───────────────────
   readonly doneCount = computed(() =>
@@ -136,9 +150,20 @@ export class TeamDashboardComponent implements OnInit {
     this.loadRecentActions();
     this.loadKpis();
     this.loadStatusBreakdown();
+    if (this.isPrivileged()) {
+      this.loadWorkspaceSummary();
+    }
   }
 
   // ── Data loaders ──────────────────────────────────────
+  private loadWorkspaceSummary(): void {
+    this.loadingWorkspaceSummary.set(true);
+    this.workspaceSvc.getSummary().subscribe({
+      next: r => { this.workspaceSummary.set(r.data); this.loadingWorkspaceSummary.set(false); },
+      error: ()  => this.loadingWorkspaceSummary.set(false),
+    });
+  }
+
   private loadMyActions(): void {
     const filter: ActionItemFilter = {
       pageNumber: 1, pageSize: 10,

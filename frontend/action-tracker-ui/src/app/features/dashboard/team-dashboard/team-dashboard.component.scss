@@ -120,6 +120,8 @@ app-page-header {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0.85rem;
+
+  &--portfolio { grid-template-columns: repeat(4, 1fr); }
 }
 
 .stat-card {
@@ -137,11 +139,14 @@ app-page-header {
 
   &:hover { box-shadow: var(--shadow-md); }
 
-  &--primary { border-left-color: var(--primary); }
-  &--success { border-left-color: var(--success); }
-  &--info    { border-left-color: var(--info);    }
-  &--danger  { border-left-color: var(--danger);  }
-  &--warning { border-left-color: var(--warning); }
+  &--primary    { border-left-color: var(--primary); }
+  &--success    { border-left-color: var(--success); }
+  &--info       { border-left-color: var(--info);    }
+  &--danger     { border-left-color: var(--danger);  }
+  &--warning    { border-left-color: var(--warning); }
+  &--indigo     { border-left-color: #4f46e5; }
+  &--teal       { border-left-color: #0d9488; }
+  &--purple     { border-left-color: #7c3aed; }
 }
 
 .stat-body {

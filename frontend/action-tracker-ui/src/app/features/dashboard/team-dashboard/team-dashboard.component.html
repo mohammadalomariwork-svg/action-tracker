@@ -83,6 +83,52 @@
       </div>
     }
 
+    <!-- ── Portfolio overview (Admin / Manager only) ──── -->
+    @if (isPrivileged()) {
+      @if (loadingWorkspaceSummary()) {
+        <div class="stats-bar">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="stat-card">
+              <span class="sk" style="height:36px;width:50%"></span>
+              <span class="sk sk--sm"></span>
+            </div>
+          }
+        </div>
+      }
+      @if (!loadingWorkspaceSummary() && workspaceSummary()) {
+        <div class="stats-bar stats-bar--portfolio">
+          <div class="stat-card stat-card--indigo">
+            <div class="stat-body">
+              <span class="stat-value">{{ totalWorkspaces() }}</span>
+              <span class="stat-label">Total Workspaces</span>
+            </div>
+            <span class="stat-icon">🏢</span>
+          </div>
+          <div class="stat-card stat-card--teal">
+            <div class="stat-body">
+              <span class="stat-value">{{ totalProjects() }}</span>
+              <span class="stat-label">Total Projects</span>
+            </div>
+            <span class="stat-icon">📁</span>
+          </div>
+          <div class="stat-card stat-card--purple">
+            <div class="stat-body">
+              <span class="stat-value">{{ strategicProjectsCount() }}</span>
+              <span class="stat-label">Strategic Projects</span>
+            </div>
+            <span class="stat-icon">🎯</span>
+          </div>
+          <div class="stat-card stat-card--warning">
+            <div class="stat-body">
+              <span class="stat-value">{{ operationalProjectsCount() }}</span>
+              <span class="stat-label">Operational Projects</span>
+            </div>
+            <span class="stat-icon">⚙️</span>
+          </div>
+        </div>
+      }
+    }
+
     <!-- ── Two-column layout ──────────────────────────── -->
     <div class="two-col">
 

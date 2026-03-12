@@ -68,7 +68,45 @@
         />
       </section>
 
-      <!-- ── Section 2: Charts ─────────────────────────── -->
+      <!-- ── Section 2: Portfolio KPI Cards ───────────── -->
+      @if (workspaceSummary()) {
+        <section class="kpi-row">
+          <app-kpi-card
+            title="Total Workspaces"
+            [value]="totalWorkspaces()"
+            subtitle="across all org units"
+            icon="🏢"
+            colorClass="primary"
+            [trend]="null"
+          />
+          <app-kpi-card
+            title="Total Projects"
+            [value]="totalProjects()"
+            subtitle="all project types"
+            icon="📁"
+            colorClass="info"
+            [trend]="null"
+          />
+          <app-kpi-card
+            title="Strategic Projects"
+            [value]="strategicProjectsCount()"
+            subtitle="linked to objectives"
+            icon="🎯"
+            colorClass="purple"
+            [trend]="null"
+          />
+          <app-kpi-card
+            title="Operational Projects"
+            [value]="operationalProjectsCount()"
+            subtitle="execution-focused"
+            icon="⚙️"
+            colorClass="warning"
+            [trend]="null"
+          />
+        </section>
+      }
+
+      <!-- ── Section 3: Charts ─────────────────────────── -->
       <section class="charts-row">
 
         <!-- Doughnut: Status Breakdown -->
