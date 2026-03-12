@@ -1,6 +1,6 @@
 import {
-  Component, OnInit, ChangeDetectionStrategy,
-  inject, signal, computed,
+  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
+  inject, signal, computed, effect, untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
@@ -54,6 +54,7 @@ export class TeamDashboardComponent implements OnInit {
   private readonly dashSvc       = inject(DashboardService);
   private readonly authSvc       = inject(AuthService);
   private readonly workspaceSvc  = inject(WorkspaceService);
+  private readonly cdr           = inject(ChangeDetectorRef);
   readonly router                = inject(Router);
 
   // ── Auth state ────────────────────────────────────────
@@ -162,14 +163,20 @@ export class TeamDashboardComponent implements OnInit {
   };
 
   // ── Lifecycle ─────────────────────────────────────────
+  constructor() {
+    // currentUser is null at ngOnInit time (async auth), so we react to it
+    effect(() => {
+      if (this.isPrivileged() && !this.workspaceSummary()) {
+        untracked(() => this.loadWorkspaceSummary());
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.loadMyActions();
     this.loadRecentActions();
     this.loadKpis();
     this.loadStatusBreakdown();
-    if (this.isPrivileged()) {
-      this.loadWorkspaceSummary();
-    }
   }
 
   // ── Data loaders ──────────────────────────────────────
@@ -196,6 +203,7 @@ export class TeamDashboardComponent implements OnInit {
       labels: ['On-Time', 'Delayed'],
       datasets: [{ data: [deliv, 100 - deliv], backgroundColor: ['#0284c7', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
     };
+    this.cdr.markForCheck();
   }
 
   private loadMyActions(): void {

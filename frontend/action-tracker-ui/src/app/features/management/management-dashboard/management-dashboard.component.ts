@@ -1,5 +1,5 @@
 import {
-  Component, OnInit, OnDestroy, ChangeDetectionStrategy,
+  Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
   inject, signal, computed,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -46,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
 export class ManagementDashboardComponent implements OnInit, OnDestroy {
   private readonly dashSvc      = inject(DashboardService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly cdr          = inject(ChangeDetectorRef);
   readonly router               = inject(Router);
   private readonly destroy$     = new Subject<void>();
   private readonly refresh$     = new Subject<void>();
@@ -245,6 +246,7 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
       labels: ['On-Time', 'Delayed'],
       datasets: [{ data: [deliv, 100 - deliv], backgroundColor: ['#0284c7', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
     };
+    this.cdr.markForCheck();
   }
 
   // ── Chart builders ────────────────────────────────────
