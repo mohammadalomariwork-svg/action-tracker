@@ -14,7 +14,7 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { label: 'Dashboard',       path: '/dashboard',   roles: null },
+  { label: 'Dashboards',      path: '/dashboard',   roles: null },
   { label: 'My Actions',      path: '/actions',     roles: null },
   { label: 'Reports',         path: '/reports',     roles: ['Admin', 'Manager'] },
   { label: 'Team Actions',    path: '/management',  roles: ['Admin', 'Manager'] },

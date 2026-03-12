@@ -4,6 +4,17 @@
   background: var(--bg-main);
 }
 
+// Align breadcrumb and page-header with body content's 1.5rem horizontal inset
+app-breadcrumb {
+  display: block;
+  padding: 0 1.5rem;
+}
+
+app-page-header {
+  display: block;
+  margin: 0 1.5rem;
+}
+
 .md-body {
   padding: 0 1.5rem 2.5rem;
   display: flex;
