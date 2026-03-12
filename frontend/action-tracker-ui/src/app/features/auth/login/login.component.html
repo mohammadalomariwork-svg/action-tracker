@@ -49,7 +49,6 @@
       </div>
 
       <h1 class="card-title">Sign In</h1>
-      <p class="card-sub">Enter your credentials to continue</p>
 
       <!-- Error banner -->
       @if (errorMsg()) {
@@ -61,7 +60,6 @@
 
       <!-- ── SECTION A: System Account Login ──────────────────── -->
       <section class="login-section">
-        <h3 class="section-title">System Account Login</h3>
 
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate autocomplete="on">
 
@@ -180,9 +178,6 @@
         </button>
       </section>
 
-      <footer class="card-footer">
-        Khalifa University &middot; Campus Operations &amp; Service Management
-      </footer>
     </div>
   </main>
 
