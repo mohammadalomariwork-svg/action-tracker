@@ -102,8 +102,14 @@ export class TeamDashboardComponent implements OnInit {
 
   // ── Project pie charts ────────────────────────────────
   readonly doughnutType = 'doughnut' as const;
-  projectCompletionPieData: ChartData<'doughnut'> = { labels: [], datasets: [] };
-  projectDeliveryPieData:   ChartData<'doughnut'> = { labels: [], datasets: [] };
+  projectCompletionPieData: ChartData<'doughnut'> = {
+    labels: ['Completed', 'Remaining'],
+    datasets: [{ data: [0, 100], backgroundColor: ['#059669', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
+  };
+  projectDeliveryPieData: ChartData<'doughnut'> = {
+    labels: ['On-Time', 'Delayed'],
+    datasets: [{ data: [0, 100], backgroundColor: ['#0284c7', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
+  };
 
   readonly pieOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
