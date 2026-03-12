@@ -105,4 +105,11 @@ export class UserManagementService {
   assignOrgUnit(userId: string, request: AssignUserOrgUnitRequest): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${userId}/assign-org-unit`, request);
   }
+
+  /** Returns all role names from the database, sorted A → Z. */
+  getRoles(): Observable<string[]> {
+    return this.http
+      .get<ApiResponse<string[]>>(`${this.baseUrl}/roles`)
+      .pipe(map((res) => res.data));
+  }
 }

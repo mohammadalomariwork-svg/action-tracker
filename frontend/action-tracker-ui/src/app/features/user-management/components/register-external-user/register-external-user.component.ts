@@ -1,5 +1,6 @@
 import {
   Component,
+  OnInit,
   ChangeDetectionStrategy,
   DestroyRef,
   inject,
@@ -40,7 +41,7 @@ interface ExternalUserForm {
   styleUrl: './register-external-user.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RegisterExternalUserComponent {
+export class RegisterExternalUserComponent implements OnInit {
   private readonly userMgmtService = inject(UserManagementService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -51,8 +52,14 @@ export class RegisterExternalUserComponent {
   readonly successMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly showPassword = signal(false);
+  readonly availableRoles = signal<string[]>([]);
 
-  readonly availableRoles = ['Admin', 'Manager', 'User', 'Viewer'] as const;
+  ngOnInit(): void {
+    this.userMgmtService
+      .getRoles()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (roles) => this.availableRoles.set(roles) });
+  }
 
   // ── Form ─────────────────────────────────────────────────────────────────────
   readonly form: FormGroup<ExternalUserForm> = this.fb.group(

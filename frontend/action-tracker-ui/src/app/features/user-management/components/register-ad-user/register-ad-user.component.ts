@@ -69,8 +69,7 @@ export class RegisterADUserComponent implements OnInit {
   readonly submitting = signal(false);
   readonly successMessage = signal<string | null>(null);
   readonly formError = signal<string | null>(null);
-
-  readonly availableRoles = ['Admin', 'Manager', 'User', 'Viewer'] as const;
+  readonly availableRoles = signal<string[]>([]);
 
   readonly form: FormGroup<ADUserForm> = this.fb.group({
     email:       this.fb.nonNullable.control({ value: '', disabled: true }),
@@ -82,6 +81,11 @@ export class RegisterADUserComponent implements OnInit {
   }) as FormGroup<ADUserForm>;
 
   ngOnInit(): void {
+    this.userMgmtService
+      .getRoles()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (roles) => this.availableRoles.set(roles) });
+
     this.searchTrigger
       .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {

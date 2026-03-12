@@ -26,7 +26,6 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 
 interface OrgUnitOption { id: string; label: string; }
 
-const AVAILABLE_ROLES = ['Admin', 'Manager', 'User', 'Viewer'] as const;
 
 @Component({
   selector: 'app-user-list',
@@ -71,11 +70,16 @@ export class UserListComponent implements OnInit {
     Math.max(1, Math.ceil(this.totalCount() / this.pageSize()))
   );
 
-  readonly availableRoles = AVAILABLE_ROLES;
+  readonly availableRoles = signal<string[]>([]);
 
   private readonly searchInput$ = new Subject<string>();
 
   ngOnInit(): void {
+    this.userMgmtService
+      .getRoles()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (roles) => this.availableRoles.set(roles) });
+
     this.searchInput$
       .pipe(
         debounceTime(350),

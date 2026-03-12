@@ -265,7 +265,7 @@
                 [class.is-invalid]="form.controls.roleName.invalid && form.controls.roleName.touched"
               >
                 <option value="" disabled>Select a role…</option>
-                @for (role of availableRoles; track role) {
+                @for (role of availableRoles(); track role) {
                   <option [value]="role">{{ role }}</option>
                 }
               </select>

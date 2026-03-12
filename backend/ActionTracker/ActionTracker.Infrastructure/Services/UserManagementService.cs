@@ -440,6 +440,18 @@ public class UserManagementService : IUserManagementService
     }
 
     // -------------------------------------------------------------------------
+    // GetAllRolesAsync
+    // -------------------------------------------------------------------------
+
+    public Task<List<string>> GetAllRolesAsync(CancellationToken cancellationToken = default)
+    {
+        return _roleManager.Roles
+            .Select(r => r.Name!)
+            .OrderBy(name => name)
+            .ToListAsync(cancellationToken);
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 

@@ -23,6 +23,19 @@ public class UsersController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/users/roles
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns all role names defined in the system, sorted A → Z.</summary>
+    [HttpGet("roles")]
+    [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRoles(CancellationToken ct = default)
+    {
+        var roles = await _userManagement.GetAllRolesAsync(ct);
+        return Ok(ApiResponse<List<string>>.Ok(roles));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/users
     // -------------------------------------------------------------------------
 

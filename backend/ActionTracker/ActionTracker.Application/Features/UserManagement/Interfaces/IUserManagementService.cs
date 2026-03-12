@@ -118,4 +118,9 @@ public interface IUserManagementService
         string            userId,
         Guid?             orgUnitId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all role names defined in <c>AspNetRoles</c>, sorted A → Z.
+    /// </summary>
+    Task<List<string>> GetAllRolesAsync(CancellationToken cancellationToken = default);
 }
