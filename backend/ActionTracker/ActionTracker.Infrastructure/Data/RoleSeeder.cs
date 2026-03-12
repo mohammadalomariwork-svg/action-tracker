@@ -1,3 +1,4 @@
+using ActionTracker.Domain.Constants;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -5,13 +6,33 @@ using Microsoft.Extensions.Logging;
 namespace ActionTracker.Infrastructure.Data;
 
 /// <summary>
-/// Ensures the four application roles exist in the database at startup.
+/// Ensures all application roles exist in the database at startup.
 /// Safe to call multiple times — uses <see cref="RoleManager{TRole}.RoleExistsAsync"/>
-/// before every create, so no duplicates are created.
+/// before every create, so no duplicates are ever created.
 /// </summary>
 public static class RoleSeeder
 {
-    private static readonly string[] Roles = ["Admin", "Manager", "User", "Viewer"];
+    private static readonly string[] Roles =
+    [
+        // System-level
+        AppRoles.Admin,
+        AppRoles.WorkspaceAdmin,
+
+        // PMO
+        AppRoles.PmoHead,
+        AppRoles.PmoAnalyst,
+
+        // Project
+        AppRoles.ProjectSponsor,
+        AppRoles.ProjectManager,
+        AppRoles.ProjectCoordinator,
+        AppRoles.TeamMember,
+
+        // Legacy — already in DB; seeder will skip them via RoleExistsAsync
+        AppRoles.Manager,
+        AppRoles.User,
+        AppRoles.Viewer,
+    ];
 
     public static async Task SeedAsync(IServiceProvider services)
     {
