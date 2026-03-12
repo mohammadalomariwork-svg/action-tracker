@@ -40,11 +40,15 @@
   margin-bottom: 3rem;
 }
 
-.panel-logo__img {
-  height: 56px;
-  width: auto;
-  // Invert to white so logo is visible on the dark gradient background
-  filter: brightness(0) invert(1);
+.panel-logo__icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.panel-logo__name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .panel-headline {
@@ -123,10 +127,15 @@
   justify-content: center;
 }
 
-.card-logo__img {
-  height: 44px;
-  width: auto;
-  filter: brightness(0) invert(1);
+.card-logo__icon {
+  font-size: 1.5rem;
+  color: var(--primary);
+}
+
+.card-logo__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .card-title {
