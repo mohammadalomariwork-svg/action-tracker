@@ -36,8 +36,15 @@
 .panel-logo {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 3rem;
+}
+
+.panel-logo__left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .panel-logo__icon {
@@ -49,6 +56,19 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.panel-logo__divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.panel-logo__ku {
+  height: 48px;
+  width: auto;
+  filter: brightness(0) invert(1);
 }
 
 .panel-headline {
