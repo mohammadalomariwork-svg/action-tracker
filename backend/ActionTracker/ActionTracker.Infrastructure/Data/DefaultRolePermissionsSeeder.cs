@@ -17,6 +17,26 @@ public static class DefaultRolePermissionsSeeder
         // ── Collect all desired (roleName, area, action, scope) tuples ────────
         var desired = BuildDesiredPermissions();
 
+        // ── Load existing Admin rows for scope correction ─────────────────────
+        // Admin permissions must always have OrgUnitScope.All regardless of what
+        // is currently stored; fix any mismatches before the insert pass.
+        var adminRows = await db.RolePermissions
+            .IgnoreQueryFilters()
+            .Where(r => r.RoleName == AppRoles.Admin)
+            .ToListAsync();
+
+        int updatedCount = 0;
+        foreach (var row in adminRows.Where(r => r.OrgUnitScope != OrgUnitScope.All))
+        {
+            row.OrgUnitScope = OrgUnitScope.All;
+            row.IsActive     = true;
+            row.IsDeleted    = false;
+            updatedCount++;
+        }
+
+        if (updatedCount > 0)
+            await db.SaveChangesAsync();
+
         // ── Load existing (roleName, area, action) keys in one query ─────────
         // Ignore global query filter so soft-deleted rows are also considered.
         var existingKeys = await db.RolePermissions
@@ -49,18 +69,20 @@ public static class DefaultRolePermissionsSeeder
             });
         }
 
-        if (toInsert.Count == 0)
+        if (toInsert.Count == 0 && updatedCount == 0)
         {
             logger.LogInformation("DefaultRolePermissionsSeeder: all permissions already seeded, nothing to insert.");
             return;
         }
 
-        await db.RolePermissions.AddRangeAsync(toInsert);
+        if (toInsert.Count > 0)
+            await db.RolePermissions.AddRangeAsync(toInsert);
+
         await db.SaveChangesAsync();
 
         logger.LogInformation(
-            "DefaultRolePermissionsSeeder: inserted {Count} default role permission(s).",
-            toInsert.Count);
+            "DefaultRolePermissionsSeeder: inserted {Count} and corrected {Updated} role permission(s).",
+            toInsert.Count, updatedCount);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
