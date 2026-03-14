@@ -12,6 +12,7 @@ using ActionTracker.Infrastructure.Helpers;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -160,7 +161,36 @@ try
             policy.AddAuthenticationSchemes(schemes);
             policy.RequireRole("Admin", "Manager");
         });
+
+        // ── Fine-grained permission policies ─────────────────────────────────
+        // Discover every public string constant from PermissionPolicies and
+        // register a policy whose name is the constant value ("Area.Action").
+        var policyNames = typeof(PermissionPolicies)
+            .GetFields(
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.Static |
+                System.Reflection.BindingFlags.FlattenHierarchy)
+            .Where(f => f.IsLiteral && !f.IsInitOnly && f.FieldType == typeof(string))
+            .Select(f => f.GetRawConstantValue() as string)
+            .OfType<string>();
+
+        foreach (var policyName in policyNames)
+        {
+            var parts = policyName.Split('.');
+            if (parts.Length != 2) continue;
+            var area   = parts[0];
+            var action = parts[1];
+            options.AddPolicy(policyName, policy =>
+            {
+                policy.AddAuthenticationSchemes(schemes);
+                policy.AddRequirements(new PermissionRequirement(area, action));
+            });
+        }
     });
+
+    // Register the scoped authorization handler (must be scoped because it
+    // depends on IEffectivePermissionService which uses a scoped DbContext).
+    builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
     // -----------------------------------------------------------------------
     // CORS — "AllowAngularApp"
