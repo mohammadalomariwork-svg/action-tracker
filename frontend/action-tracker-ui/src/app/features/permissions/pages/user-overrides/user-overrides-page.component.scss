@@ -1,0 +1,63 @@
+.uop-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+.uop-search-card {
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.uop-panel {
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+// Search dropdown
+.uop-dropdown {
+  position:   absolute;
+  top:        calc(100% + 4px);
+  left:       0;
+  right:      0;
+  z-index:    1050;
+  background: #fff;
+  max-height: 240px;
+  overflow-y: auto;
+
+  &__item {
+    display:    block;
+    width:      100%;
+    padding:    0.5rem 0.75rem;
+    border:     none;
+    background: transparent;
+    text-align: left;
+    cursor:     pointer;
+    transition: background 0.1s;
+
+    &:hover {
+      background: #f0f4ff;
+    }
+  }
+}
+
+// Selected user pill
+.uop-selected-user {
+  display:         inline-flex;
+  align-items:     center;
+  background:      rgba(79, 70, 229, 0.08);
+  border:          1px solid rgba(79, 70, 229, 0.25);
+  border-radius:   8px;
+  padding:         0.35rem 0.75rem;
+  font-size:       0.875rem;
+  color:           var(--text-primary);
+}
+
+// Empty state
+.uop-empty {
+  &__icon {
+    font-size:  4rem;
+    color:      #cbd5e1;
+  }
+}

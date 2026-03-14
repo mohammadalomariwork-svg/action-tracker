@@ -1,0 +1,36 @@
+.eps-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.eps-table {
+  font-size: 0.8125rem;
+
+  td, th {
+    padding: 0.4rem 0.6rem;
+    vertical-align: middle;
+  }
+}
+
+.eps-thead th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-color: var(--border-color);
+  white-space: nowrap;
+}
+
+.eps-row--allowed {
+  background-color: rgba(5, 150, 105, 0.04);
+}
+
+.eps-row--denied {
+  background-color: rgba(220, 38, 38, 0.04);
+}

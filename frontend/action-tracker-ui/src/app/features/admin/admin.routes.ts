@@ -41,4 +41,11 @@ export const ADMIN_ROUTES: Routes = [
       import('../permissions/pages/role-permissions/role-permissions-page.component')
         .then(m => m.RolePermissionsPageComponent),
   },
+  {
+    path: 'permissions/users',
+    canActivate: [permissionsManagementGuard],
+    loadComponent: () =>
+      import('../permissions/pages/user-overrides/user-overrides-page.component')
+        .then(m => m.UserOverridesPageComponent),
+  },
 ];

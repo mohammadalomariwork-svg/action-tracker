@@ -1,0 +1,37 @@
+.uol-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.uol-table {
+  font-size: 0.8125rem;
+
+  td, th {
+    padding: 0.4rem 0.6rem;
+    vertical-align: middle;
+  }
+}
+
+.uol-thead th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-color: var(--border-color);
+  white-space: nowrap;
+}
+
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}

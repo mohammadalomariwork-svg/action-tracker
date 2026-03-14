@@ -1,0 +1,112 @@
+<div class="uop-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <app-admin-breadcrumb
+    [items]="[{ label: 'Admin', route: '/admin' }, { label: 'Permissions', route: '/admin/permissions/roles' }, { label: 'User Overrides' }]"
+    class="mb-3 d-block"
+  />
+
+  <!-- ── Page header ────────────────────────────────────────────────────────── -->
+  <app-page-header
+    title="User Permission Overrides"
+    subtitle="Search for a user to view, grant, or revoke individual permission overrides"
+    icon="bi bi-person-gear"
+  />
+
+  <!-- ── User search ────────────────────────────────────────────────────────── -->
+  <div class="card uop-search-card mt-3">
+    <div class="card-body py-3 px-4">
+      <div class="row align-items-center g-2">
+        <div class="col-md-6 col-lg-5 position-relative">
+          <label class="form-label fw-medium mb-1 small text-secondary">Search User</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white">
+              @if (searchLoading()) {
+                <span class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+              } @else {
+                <i class="bi bi-search text-secondary"></i>
+              }
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search by name or email…"
+              [formControl]="searchControl"
+              (input)="onSearchInput(searchControl.value)"
+              autocomplete="off"
+            />
+            @if (searchControl.value) {
+              <button class="btn btn-outline-secondary" type="button" (click)="clearSelection()" title="Clear">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+
+          <!-- Search results dropdown -->
+          @if (showDropdown() && searchResults().length > 0) {
+            <div class="uop-dropdown shadow-sm border rounded">
+              @for (user of searchResults(); track user.id) {
+                <button type="button" class="uop-dropdown__item" (click)="selectUser(user)">
+                  <span class="fw-medium">{{ user.fullName }}</span>
+                  <span class="text-muted small ms-2">{{ user.email }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        @if (selectedUserId()) {
+          <div class="col-auto">
+            <div class="uop-selected-user">
+              <i class="bi bi-person-check-fill text-primary me-2"></i>
+              <span class="fw-semibold">{{ selectedUserName() }}</span>
+              <span class="text-muted small ms-2">{{ selectedUserId() }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── User data panels ────────────────────────────────────────────────────── -->
+  @if (selectedUserId(); as uid) {
+    <div class="row g-3 mt-1">
+
+      <!-- Overrides list -->
+      <div class="col-12">
+        <div class="card uop-panel">
+          <div class="card-body p-4">
+            <app-user-overrides-list
+              #overridesList
+              [userId]="uid"
+              [userDisplayName]="selectedUserName()"
+              (listChanged)="onListChanged()"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Effective permissions summary -->
+      <div class="col-12">
+        <div class="card uop-panel">
+          <div class="card-body p-4">
+            <app-user-effective-permissions-summary
+              #permSummary
+              [userId]="uid"
+            />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Empty state ──────────────────────────────────────────────────────────── -->
+  @if (!selectedUserId()) {
+    <div class="uop-empty text-center py-5 mt-3">
+      <i class="bi bi-person-badge uop-empty__icon"></i>
+      <p class="text-muted mt-3">Search for a user above to manage their permission overrides.</p>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,103 @@
+<div class="uol-wrap">
+
+  <!-- ── Section header + Add button ─────────────────────────────────────── -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h6 class="uol-section-title mb-0">
+      <i class="bi bi-toggle-on me-2"></i>Permission Overrides
+    </h6>
+    <button class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+      (click)="openAddForm()" [disabled]="loading() || deleting()">
+      <i class="bi bi-plus-lg"></i> Add Override
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="d-flex align-items-center gap-2 text-secondary py-3">
+      <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading…</span></div>
+      <span>Loading overrides…</span>
+    </div>
+  }
+
+  @if (!loading() && overrides().length > 0) {
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered uol-table mb-0">
+        <thead class="uol-thead">
+          <tr>
+            <th>Area</th>
+            <th>Action</th>
+            <th class="text-center">Type</th>
+            <th>Scope</th>
+            <th>Org Unit</th>
+            <th>Expires</th>
+            <th class="text-center">Active</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ov of overrides(); track ov.id) {
+            <tr>
+              <td>{{ ov.area }}</td>
+              <td>{{ ov.action }}</td>
+              <td class="text-center">
+                @if (ov.isGranted) {
+                  <span class="badge bg-success">Granted</span>
+                } @else {
+                  <span class="badge bg-danger">Revoked</span>
+                }
+              </td>
+              <td class="small text-muted">{{ ov.orgUnitScope }}</td>
+              <td class="small text-muted">{{ ov.orgUnitName ?? '—' }}</td>
+              <td class="small text-muted">
+                {{ ov.expiresAt ? (ov.expiresAt | date:'dd MMM yyyy HH:mm') : '—' }}
+              </td>
+              <td class="text-center">
+                @if (ov.isActive) {
+                  <i class="bi bi-check-circle-fill text-success" title="Active"></i>
+                } @else {
+                  <i class="bi bi-dash-circle-fill text-secondary" title="Inactive"></i>
+                }
+              </td>
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-1">
+                  <button class="btn btn-sm btn-icon btn-outline-primary"
+                    title="Edit override" (click)="openEditForm(ov)" [disabled]="deleting()">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-sm btn-icon btn-outline-danger"
+                    title="Delete override" (click)="requestDelete(ov)" [disabled]="deleting()">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (!loading() && !error() && overrides().length === 0) {
+    <p class="text-muted small fst-italic py-2 mb-0">No overrides found. Click "Add Override" to create one.</p>
+  }
+
+</div>
+
+<!-- ── Form modal ────────────────────────────────────────────────────────── -->
+<app-user-override-form #overrideForm (saved)="onFormSaved()" />
+
+<!-- ── Delete confirmation ──────────────────────────────────────────────── -->
+<app-confirm-dialog
+  #confirmDel
+  title="Delete Override"
+  message="Are you sure you want to delete this permission override? This action cannot be undone."
+  confirmLabel="Delete"
+  [danger]="true"
+  (confirmed)="onDeleteConfirmed($event)"
+/>
