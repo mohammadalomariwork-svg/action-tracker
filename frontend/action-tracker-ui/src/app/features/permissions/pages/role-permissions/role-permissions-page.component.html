@@ -1,0 +1,85 @@
+<div class="rp-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <app-admin-breadcrumb
+    [items]="[{ label: 'Admin', route: '/admin' }, { label: 'Permissions', route: '/admin/permissions/roles' }, { label: 'Role Permissions' }]"
+    class="mb-3 d-block"
+  />
+
+  <!-- ── Page header ────────────────────────────────────────────────────────── -->
+  <app-page-header
+    title="Role Permissions"
+    subtitle="Configure which actions each role can perform across the system"
+    icon="bi bi-shield-check"
+  />
+
+  <!-- ── Roles loading / error ─────────────────────────────────────────────── -->
+  @if (loadingRoles()) {
+    <div class="d-flex align-items-center gap-2 text-secondary my-4">
+      <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading roles…</span></div>
+      <span>Loading roles…</span>
+    </div>
+  }
+
+  @if (errorRoles()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorRoles() }}</span>
+    </div>
+  }
+
+  <!-- ── Main content ───────────────────────────────────────────────────────── -->
+  @if (!loadingRoles() && roles().length > 0) {
+    <div class="card rp-card">
+      <div class="card-body p-0">
+
+        <!-- Role selector tabs -->
+        <div class="rp-role-tabs border-bottom px-3 pt-3">
+          <ul class="nav nav-tabs border-0" role="tablist">
+            @for (role of roles(); track role) {
+              <li class="nav-item" role="presentation">
+                <button
+                  type="button"
+                  class="nav-link rp-tab"
+                  [class.active]="selectedRole() === role"
+                  (click)="selectRole(role)"
+                >
+                  {{ role }}
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <!-- Matrix area -->
+        <div class="p-4">
+
+          @if (errorMatrix()) {
+            <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>{{ errorMatrix() }}</span>
+            </div>
+          }
+
+          @if (loadingMatrix() && !matrix()) {
+            <div class="d-flex align-items-center justify-content-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading matrix…</span>
+              </div>
+            </div>
+          }
+
+          @if (matrix(); as m) {
+            <app-role-permission-matrix
+              [matrix]="m"
+              [loading]="loadingMatrix()"
+              (permissionChanged)="onPermissionChanged()"
+            />
+          }
+
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,27 @@
+<tr class="perm-row">
+  <td class="perm-area-cell fw-semibold">
+    {{ areaLabels[area()] }}
+  </td>
+
+  @for (action of allActions; track action) {
+    <td
+      class="perm-toggle-cell text-center"
+      [class.perm-toggle-cell--na]="!isApplicable(action)"
+    >
+      @if (isApplicable(action)) {
+        <div class="form-check form-switch d-flex justify-content-center m-0">
+          <input
+            class="form-check-input perm-switch"
+            type="checkbox"
+            role="switch"
+            [checked]="isChecked(action)"
+            [disabled]="saving()"
+            (change)="onToggle(action, $event)"
+          />
+        </div>
+      } @else {
+        <span class="perm-na" title="Not applicable">—</span>
+      }
+    </td>
+  }
+</tr>

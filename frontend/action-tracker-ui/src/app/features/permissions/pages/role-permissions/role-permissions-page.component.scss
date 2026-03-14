@@ -1,0 +1,48 @@
+.rp-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+.rp-card {
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-card);
+  margin-top: 1.25rem;
+}
+
+.rp-role-tabs {
+  background-color: #fafbfc;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  overflow-x: auto;
+
+  .nav-tabs {
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+  }
+}
+
+.rp-tab {
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 0.6rem 1rem;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover:not(.active) {
+    color: var(--primary);
+    border-bottom-color: rgba(79, 70, 229, 0.3);
+    background: transparent;
+  }
+
+  &.active {
+    color: var(--primary);
+    font-weight: 600;
+    border-bottom: 3px solid var(--primary);
+    background: transparent;
+  }
+}

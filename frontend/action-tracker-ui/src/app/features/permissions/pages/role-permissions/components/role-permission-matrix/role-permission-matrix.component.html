@@ -1,0 +1,52 @@
+<div class="matrix-wrap">
+
+  <!-- ── Error alert ──────────────────────────────────────────────────────── -->
+  @if (error()) {
+    <div class="alert alert-danger alert-dismissible d-flex align-items-center gap-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+      <button type="button" class="btn-close" (click)="error.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <!-- ── Overlay spinner while loading or saving ──────────────────────────── -->
+  @if (loading() || saving()) {
+    <div class="matrix-overlay">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  <!-- ── Permission matrix table ──────────────────────────────────────────── -->
+  <div class="table-responsive">
+    <table class="table table-bordered matrix-table mb-0" [class.matrix-table--faded]="loading() || saving()">
+
+      <!-- Header row: action labels -->
+      <thead class="matrix-thead">
+        <tr>
+          <th class="matrix-corner-cell">Area / Action</th>
+          @for (action of allActions; track action) {
+            <th class="text-center matrix-action-th">
+              {{ actionLabels[action] }}
+            </th>
+          }
+        </tr>
+      </thead>
+
+      <!-- Body rows: one per permission area -->
+      <tbody>
+        @for (area of allAreas; track area) {
+          <app-role-permission-row
+            [area]="area"
+            [permissionMap]="permissionMap()"
+            [saving]="saving()"
+            (toggleChanged)="onToggleChanged($event)"
+          />
+        }
+      </tbody>
+
+    </table>
+  </div>
+
+</div>

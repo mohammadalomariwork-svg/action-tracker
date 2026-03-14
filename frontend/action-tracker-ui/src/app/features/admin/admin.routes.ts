@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from '../../core/guards/admin.guard';
+import { permissionsManagementGuard } from '../../core/guards/permission.guard';
 
 import { AdminPanelComponent }      from './components/admin-panel/admin-panel.component';
 import { OrgChartListComponent }    from './components/org-chart/org-chart-list.component';
@@ -32,5 +33,12 @@ export const ADMIN_ROUTES: Routes = [
     path: 'kpis/:kpiId/targets',
     component: KpiTargetsComponent,
     canActivate: [adminGuard],
+  },
+  {
+    path: 'permissions/roles',
+    canActivate: [permissionsManagementGuard],
+    loadComponent: () =>
+      import('../permissions/pages/role-permissions/role-permissions-page.component')
+        .then(m => m.RolePermissionsPageComponent),
   },
 ];
