@@ -307,8 +307,19 @@ try
     }
 
     // -----------------------------------------------------------------------
-    // Seed required roles (Admin, Manager, User, Viewer)
+    // Seed required roles (Admin, Manager, User, Viewer, …)
     await RoleSeeder.SeedAsync(app.Services);
+
+    // -----------------------------------------------------------------------
+    // Seed default role permissions
+    using (var scope = app.Services.CreateScope())
+    {
+        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var logger = scope.ServiceProvider
+                         .GetRequiredService<ILoggerFactory>()
+                         .CreateLogger(nameof(DefaultRolePermissionsSeeder));
+        await DefaultRolePermissionsSeeder.SeedAsync(db, logger);
+    }
 
     // -----------------------------------------------------------------------
     // Run
