@@ -4,6 +4,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { permissionGuard } from './core/guards/permission-data.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -20,6 +21,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/unauthorized/unauthorized.component').then(
         m => m.UnauthorizedComponent
+      ),
+  },
+
+  {
+    path: 'access-denied',
+    loadComponent: () =>
+      import('./core/pages/access-denied/access-denied.component').then(
+        m => m.AccessDeniedComponent
       ),
   },
 
@@ -42,6 +51,8 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'Dashboard', requiredAction: 'View' },
         loadComponent: () =>
           import('./features/dashboard/team-dashboard/team-dashboard.component').then(
             m => m.TeamDashboardComponent
@@ -95,6 +106,8 @@ export const routes: Routes = [
       },
       {
         path: 'workspaces',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'Workspaces', requiredAction: 'View' },
         loadChildren: () =>
           import('./features/workspaces/workspace.routes').then(m => m.default),
       },
@@ -123,7 +136,8 @@ export const routes: Routes = [
       },
       {
         path: 'admin/users',
-        canActivate: [adminGuard],
+        canActivate: [adminGuard, permissionGuard],
+        data: { requiredArea: 'UserManagement', requiredAction: 'View' },
         loadChildren: () =>
           import('./features/user-management/user-management.routes').then(
             m => m.USER_MANAGEMENT_ROUTES

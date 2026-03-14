@@ -1,0 +1,24 @@
+<div class="ad-page">
+  <div class="ad-card">
+
+    <div class="ad-icon-wrap">
+      <i class="bi bi-shield-lock-fill ad-icon"></i>
+    </div>
+
+    <h1 class="ad-title">Access Denied</h1>
+    <p class="ad-subtitle">
+      You don't have permission to view this page.<br>
+      Please contact your administrator if you believe this is a mistake.
+    </p>
+
+    <div class="d-flex gap-2 justify-content-center flex-wrap">
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="goBack()">
+        <i class="bi bi-arrow-left me-1"></i>Go Back
+      </button>
+      <a routerLink="/dashboard" class="btn btn-primary btn-sm">
+        <i class="bi bi-house me-1"></i>Go to Dashboard
+      </a>
+    </div>
+
+  </div>
+</div>

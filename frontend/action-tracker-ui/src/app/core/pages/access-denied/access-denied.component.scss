@@ -1,0 +1,43 @@
+.ad-page {
+  min-height: 100vh;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      var(--bg-main, #f1f5f9);
+  padding:         2rem;
+}
+
+.ad-card {
+  background:    var(--bg-card, #ffffff);
+  border:        1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--border-radius, 12px);
+  box-shadow:    var(--shadow-md, 0 4px 16px rgba(0,0,0,.08));
+  max-width:     480px;
+  width:         100%;
+  padding:       3rem 2.5rem;
+  text-align:    center;
+}
+
+.ad-icon-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.ad-icon {
+  font-size:  4rem;
+  color:      #dc2626;
+  opacity:    0.85;
+}
+
+.ad-title {
+  font-size:   1.75rem;
+  font-weight: 700;
+  color:       var(--text-primary, #1e293b);
+  margin-bottom: 0.75rem;
+}
+
+.ad-subtitle {
+  font-size:     0.9375rem;
+  color:         var(--text-secondary, #64748b);
+  line-height:   1.6;
+  margin-bottom: 2rem;
+}
