@@ -52,7 +52,7 @@ export class UserOverrideFormComponent implements AfterViewInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild('modalEl') modalEl!: ElementRef<HTMLElement>;
-  private bsModal!: ReturnType<typeof bootstrap.Modal>;
+  private bsModal!: InstanceType<typeof bootstrap.Modal>;
 
   private userId          = '';
   private userDisplayName = '';
