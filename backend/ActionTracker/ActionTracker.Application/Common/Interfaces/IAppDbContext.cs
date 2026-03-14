@@ -1,3 +1,4 @@
+using ActionTracker.Application.Permissions;
 using ActionTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,10 @@ public interface IAppDbContext
     DbSet<Milestone>        Milestones      { get; }
 
     DbSet<StrategicObjective> StrategicObjectives { get; }
+
+    // ── Permissions feature sets ──────────────────────────────────────────────
+    DbSet<RolePermission>         RolePermissions         { get; }
+    DbSet<UserPermissionOverride> UserPermissionOverrides { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
