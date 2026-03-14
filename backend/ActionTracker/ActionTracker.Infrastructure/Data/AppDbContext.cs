@@ -1,4 +1,5 @@
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Permissions;
 using ActionTracker.Domain.Common;
 using ActionTracker.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -31,6 +32,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<KpiTarget>           KpiTargets           => Set<KpiTarget>();
     public DbSet<Workspace>           Workspaces           => Set<Workspace>();
     public DbSet<WorkspaceAdmin>      WorkspaceAdmins      => Set<WorkspaceAdmin>();
+
+    // ── Permissions feature sets ──────────────────────────────────────────────
+    public DbSet<RolePermission>         RolePermissions         => Set<RolePermission>();
+    public DbSet<UserPermissionOverride> UserPermissionOverrides => Set<UserPermissionOverride>();
 
     // ── Projects feature sets ─────────────────────────────────────────────────
     // NOTE: PM.StrategicObjective (workspace-scoped, int PK) is a different
