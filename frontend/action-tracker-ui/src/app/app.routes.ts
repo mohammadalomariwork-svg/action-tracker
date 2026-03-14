@@ -137,7 +137,7 @@ export const routes: Routes = [
       {
         path: 'admin/users',
         canActivate: [adminGuard, permissionGuard],
-        data: { requiredArea: 'UserManagement', requiredAction: 'View' },
+        data: { requiredArea: 'User Management', requiredAction: 'View' },
         loadChildren: () =>
           import('./features/user-management/user-management.routes').then(
             m => m.USER_MANAGEMENT_ROUTES

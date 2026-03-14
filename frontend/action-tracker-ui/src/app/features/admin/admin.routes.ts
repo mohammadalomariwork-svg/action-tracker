@@ -37,7 +37,7 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'permissions/roles',
     canActivate: [permissionGuard],
-    data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },
+    data: { requiredArea: 'Permissions Management', requiredAction: 'View' },
     loadComponent: () =>
       import('../permissions/pages/role-permissions/role-permissions-page.component')
         .then(m => m.RolePermissionsPageComponent),
@@ -45,7 +45,7 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'permissions/users',
     canActivate: [permissionGuard],
-    data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },
+    data: { requiredArea: 'Permissions Management', requiredAction: 'View' },
     loadComponent: () =>
       import('../permissions/pages/user-overrides/user-overrides-page.component')
         .then(m => m.UserOverridesPageComponent),

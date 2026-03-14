@@ -15,7 +15,7 @@ export const permissionsManagementGuard: CanActivateFn = () => {
 
   return permissionState.loadPermissions().pipe(
     map(() => {
-      if (permissionState.hasPermission('PermissionsManagement', 'View')) {
+      if (permissionState.hasPermission('Permissions Management', 'View')) {
         return true;
       }
       router.navigate(['/unauthorized']);
@@ -23,7 +23,7 @@ export const permissionsManagementGuard: CanActivateFn = () => {
     }),
     catchError(() => {
       // API call failed (e.g. not authenticated); fall back to current cached state
-      if (permissionState.hasPermission('PermissionsManagement', 'View')) {
+      if (permissionState.hasPermission('Permissions Management', 'View')) {
         return of(true);
       }
       router.navigate(['/unauthorized']);
