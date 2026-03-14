@@ -57,6 +57,14 @@ export class AdminPanelComponent {
       route:       '/admin/users',
       color:       'info',
     },
+    {
+      id:          'permissions',
+      title:       'Permissions Management',
+      description: 'Configure role permission matrices and manage user-level permission overrides.',
+      icon:        'bi-shield-check-fill',
+      route:       '/admin/permissions/roles',
+      color:       'danger',
+    },
   ];
 
   navigate(route: string): void {
