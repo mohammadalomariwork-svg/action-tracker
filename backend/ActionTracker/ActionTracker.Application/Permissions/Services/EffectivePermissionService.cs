@@ -100,21 +100,31 @@ public class EffectivePermissionService : IEffectivePermissionService
 
     public async Task<bool> HasPermissionAsync(string userId, string area, string action)
     {
+        // Normalize by stripping spaces so that policy keys like "PermissionsManagement"
+        // match Description values like "Permissions Management".
+        static string N(string s) => s.Replace(" ", "").ToLowerInvariant();
+        var normArea   = N(area);
+        var normAction = N(action);
+
         var permissions = await GetEffectivePermissionsAsync(userId);
         return permissions.Any(p =>
-            p.Area   == area &&
-            p.Action == action &&
+            N(p.Area)   == normArea &&
+            N(p.Action) == normAction &&
             p.IsAllowed);
     }
 
     public async Task<bool> HasPermissionForOrgUnitAsync(
         string userId, string area, string action, Guid orgUnitId)
     {
+        static string N(string s) => s.Replace(" ", "").ToLowerInvariant();
+        var normArea   = N(area);
+        var normAction = N(action);
+
         var permissions = await GetEffectivePermissionsAsync(userId);
 
         var perm = permissions.FirstOrDefault(p =>
-            p.Area   == area &&
-            p.Action == action &&
+            N(p.Area)   == normArea &&
+            N(p.Action) == normAction &&
             p.IsAllowed);
 
         if (perm is null) return false;
