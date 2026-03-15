@@ -1,4 +1,3 @@
-using ActionTracker.Application.Permissions;
 using ActionTracker.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -8,27 +7,30 @@ namespace ActionTracker.Infrastructure.Data;
 /// <summary>
 /// Seeds the default role permissions for all eight system roles.
 /// Idempotent — only inserts records that do not already exist
-/// (checked by RoleName + Area + Action combination).
+/// (checked by RoleName + AreaId + ActionId combination).
+/// Must run AFTER PermissionCatalogSeeder.
 /// </summary>
 public static class DefaultRolePermissionsSeeder
 {
+    // OrgUnitScope int values: 0 = All, 1 = SpecificOrgUnit, 2 = OwnOnly
+    private const int ScopeAll     = 0;
+    private const int ScopeOwnOnly = 2;
+
     public static async Task SeedAsync(AppDbContext db, ILogger logger)
     {
-        // ── Collect all desired (roleName, area, action, scope) tuples ────────
-        var desired = BuildDesiredPermissions();
+        // ── Collect all desired (roleName, areaId, areaName, actionId, actionName, scope) ─
+        var desired = BuildDesiredPermissions().ToList();
 
-        // ── Load existing Admin rows for scope correction ─────────────────────
-        // Admin permissions must always have OrgUnitScope.All regardless of what
-        // is currently stored; fix any mismatches before the insert pass.
+        // ── Ensure Admin rows always have OrgUnitScope = 0 (All) ──────────────
         var adminRows = await db.RolePermissions
             .IgnoreQueryFilters()
             .Where(r => r.RoleName == AppRoles.Admin)
             .ToListAsync();
 
         int updatedCount = 0;
-        foreach (var row in adminRows.Where(r => r.OrgUnitScope != OrgUnitScope.All))
+        foreach (var row in adminRows.Where(r => r.OrgUnitScope != ScopeAll))
         {
-            row.OrgUnitScope = OrgUnitScope.All;
+            row.OrgUnitScope = ScopeAll;
             row.IsActive     = true;
             row.IsDeleted    = false;
             updatedCount++;
@@ -37,35 +39,36 @@ public static class DefaultRolePermissionsSeeder
         if (updatedCount > 0)
             await db.SaveChangesAsync();
 
-        // ── Load existing (roleName, area, action) keys in one query ─────────
-        // Ignore global query filter so soft-deleted rows are also considered.
+        // ── Load existing (roleName, areaId, actionId) keys ──────────────────
         var existingKeys = await db.RolePermissions
             .IgnoreQueryFilters()
-            .Select(r => new RolePermissionKey(r.RoleName, r.Area, r.Action))
+            .Select(r => new RolePermissionKey(r.RoleName, r.AreaId, r.ActionId))
             .ToListAsync();
 
         var existingSet = existingKeys.ToHashSet();
 
-        // ── Build the missing rows ────────────────────────────────────────────
-        var now = DateTime.UtcNow;
-        var toInsert = new List<RolePermission>();
+        // ── Build missing rows ────────────────────────────────────────────────
+        var now      = DateTime.UtcNow;
+        var toInsert = new List<Application.Permissions.RolePermission>();
 
-        foreach (var (roleName, area, action, scope) in desired)
+        foreach (var (roleName, areaId, areaName, actionId, actionName, scope) in desired)
         {
-            var key = new RolePermissionKey(roleName, area, action);
+            var key = new RolePermissionKey(roleName, areaId, actionId);
             if (existingSet.Contains(key)) continue;
 
-            toInsert.Add(new RolePermission
+            toInsert.Add(new Application.Permissions.RolePermission
             {
-                Id           = Guid.NewGuid(),
-                RoleName     = roleName,
-                Area         = area,
-                Action       = action,
+                Id         = Guid.NewGuid(),
+                RoleName   = roleName,
+                AreaId     = areaId,
+                AreaName   = areaName,
+                ActionId   = actionId,
+                ActionName = actionName,
                 OrgUnitScope = scope,
-                IsActive     = true,
-                IsDeleted    = false,
-                CreatedAt    = now,
-                CreatedBy    = "system",
+                IsActive   = true,
+                IsDeleted  = false,
+                CreatedAt  = now,
+                CreatedBy  = "system",
             });
         }
 
@@ -89,107 +92,110 @@ public static class DefaultRolePermissionsSeeder
     // Permission matrix
     // ─────────────────────────────────────────────────────────────────────────
 
-    private static IEnumerable<(string Role, PermissionArea Area, PermissionAction Action, OrgUnitScope Scope)>
+    private static IEnumerable<(string Role, Guid AreaId, string AreaName, Guid ActionId, string ActionName, int Scope)>
         BuildDesiredPermissions()
     {
-        var all = OrgUnitScope.All;
+        // ── Convenience aliases ───────────────────────────────────────────────
+        // Areas
+        var dash    = (PermissionCatalogSeeder.AreaDashboard,             "Dashboard");
+        var ws      = (PermissionCatalogSeeder.AreaWorkspaces,            "Workspaces");
+        var proj    = (PermissionCatalogSeeder.AreaProjects,              "Projects");
+        var mile    = (PermissionCatalogSeeder.AreaMilestones,            "Milestones");
+        var ai      = (PermissionCatalogSeeder.AreaActionItems,           "ActionItems");
+        var so      = (PermissionCatalogSeeder.AreaStrategicObjectives,   "StrategicObjectives");
+        var kpi     = (PermissionCatalogSeeder.AreaKPIs,                  "KPIs");
+        var rep     = (PermissionCatalogSeeder.AreaReports,               "Reports");
+        var org     = (PermissionCatalogSeeder.AreaOrgChart,              "OrgChart");
+        var um      = (PermissionCatalogSeeder.AreaUserManagement,        "UserManagement");
+        var pm      = (PermissionCatalogSeeder.AreaPermissionsManagement, "PermissionsManagement");
+        var roles   = (PermissionCatalogSeeder.AreaRoles,                 "Roles");
 
-        // ── Admin — every area × every action ────────────────────────────────
-        foreach (var area in Enum.GetValues<PermissionArea>())
-        foreach (var action in Enum.GetValues<PermissionAction>())
-            yield return (AppRoles.Admin, area, action, all);
+        // Actions
+        var view    = (PermissionCatalogSeeder.ActionView,    "View");
+        var create  = (PermissionCatalogSeeder.ActionCreate,  "Create");
+        var edit    = (PermissionCatalogSeeder.ActionEdit,    "Edit");
+        var delete  = (PermissionCatalogSeeder.ActionDelete,  "Delete");
+        var approve = (PermissionCatalogSeeder.ActionApprove, "Approve");
+        var export  = (PermissionCatalogSeeder.ActionExport,  "Export");
+        var assign  = (PermissionCatalogSeeder.ActionAssign,  "Assign");
 
-        // ── PMO Head — full on 10 areas, View-only on PermissionsManagement ──
-        var pmoHeadFullAreas = new[]
-        {
-            PermissionArea.Dashboard, PermissionArea.Projects,  PermissionArea.Milestones,
-            PermissionArea.ActionItems, PermissionArea.StrategicObjectives, PermissionArea.KPIs,
-            PermissionArea.Reports, PermissionArea.Workspaces, PermissionArea.OrgChart,
-            PermissionArea.UserManagement,
-        };
-        foreach (var area in pmoHeadFullAreas)
-        foreach (var action in Enum.GetValues<PermissionAction>())
-            yield return (AppRoles.PmoHead, area, action, all);
-        yield return (AppRoles.PmoHead, PermissionArea.PermissionsManagement, PermissionAction.View, all);
+        var allActions = new[] { view, create, edit, delete, approve, export, assign };
 
-        // ── PMO Analyst — View+Create+Edit on 6 areas, View-only on 3 ────────
-        var pmoAnalystRichAreas = new[]
-        {
-            PermissionArea.Projects, PermissionArea.Milestones, PermissionArea.ActionItems,
-            PermissionArea.StrategicObjectives, PermissionArea.KPIs, PermissionArea.Reports,
-        };
-        var vce = new[] { PermissionAction.View, PermissionAction.Create, PermissionAction.Edit };
-        foreach (var area in pmoAnalystRichAreas)
+        // Local helper
+        static (string, Guid, string, Guid, string, int) P(
+            string role,
+            (Guid Id, string Name) area,
+            (Guid Id, string Name) action,
+            int scope = ScopeAll)
+            => (role, area.Id, area.Name, action.Id, action.Name, scope);
+
+        // ── Admin — every area × every action, scope All ──────────────────────
+        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles };
+        foreach (var area   in allAreas)
+        foreach (var action in allActions)
+            yield return P(AppRoles.Admin, area, action);
+
+        // ── PMO Head — full on 10 areas, View on PermissionsManagement + Roles ─
+        var pmoFullAreas = new[] { dash, proj, mile, ai, so, kpi, rep, ws, org, um };
+        foreach (var area   in pmoFullAreas)
+        foreach (var action in allActions)
+            yield return P(AppRoles.PmoHead, area, action);
+        yield return P(AppRoles.PmoHead, pm,    view);
+        yield return P(AppRoles.PmoHead, roles, view);
+
+        // ── PMO Analyst — View+Create+Edit on 6 areas, View-only on 3 ─────────
+        var analyRich = new[] { proj, mile, ai, so, kpi, rep };
+        var vce       = new[] { view, create, edit };
+        foreach (var area   in analyRich)
         foreach (var action in vce)
-            yield return (AppRoles.PmoAnalyst, area, action, all);
+            yield return P(AppRoles.PmoAnalyst, area, action);
+        foreach (var area in new[] { dash, ws, org })
+            yield return P(AppRoles.PmoAnalyst, area, view);
 
-        foreach (var area in new[] { PermissionArea.Dashboard, PermissionArea.Workspaces, PermissionArea.OrgChart })
-            yield return (AppRoles.PmoAnalyst, area, PermissionAction.View, all);
-
-        // ── Project Sponsor — View+Approve on 5 areas, View-only on 2 ────────
-        var sponsorRichAreas = new[]
+        // ── Project Sponsor — View+Approve on 5 areas, View-only on 2 ─────────
+        var sponsorRich = new[] { proj, mile, ai, rep, kpi };
+        foreach (var area in sponsorRich)
         {
-            PermissionArea.Projects, PermissionArea.Milestones, PermissionArea.ActionItems,
-            PermissionArea.Reports, PermissionArea.KPIs,
-        };
-        foreach (var area in sponsorRichAreas)
-        {
-            yield return (AppRoles.ProjectSponsor, area, PermissionAction.View, all);
-            yield return (AppRoles.ProjectSponsor, area, PermissionAction.Approve, all);
+            yield return P(AppRoles.ProjectSponsor, area, view);
+            yield return P(AppRoles.ProjectSponsor, area, approve);
         }
-        foreach (var area in new[] { PermissionArea.Dashboard, PermissionArea.StrategicObjectives })
-            yield return (AppRoles.ProjectSponsor, area, PermissionAction.View, all);
+        foreach (var area in new[] { dash, so })
+            yield return P(AppRoles.ProjectSponsor, area, view);
 
         // ── Project Manager ───────────────────────────────────────────────────
-        // View+Create+Edit+Delete+Export on Projects, Milestones, Reports
-        var pmRichAreas = new[] { PermissionArea.Projects, PermissionArea.Milestones, PermissionArea.Reports };
-        var vcdeExp = new[]
-        {
-            PermissionAction.View, PermissionAction.Create, PermissionAction.Edit,
-            PermissionAction.Delete, PermissionAction.Export,
-        };
-        foreach (var area in pmRichAreas)
+        var pmRich   = new[] { proj, mile, rep };
+        var vcdeExp  = new[] { view, create, edit, delete, export };
+        foreach (var area   in pmRich)
         foreach (var action in vcdeExp)
-            yield return (AppRoles.ProjectManager, area, action, all);
+            yield return P(AppRoles.ProjectManager, area, action);
 
         // ActionItems: View+Create+Edit+Delete+Export+Assign
-        foreach (var action in new[]
-        {
-            PermissionAction.View, PermissionAction.Create, PermissionAction.Edit,
-            PermissionAction.Delete, PermissionAction.Export, PermissionAction.Assign,
-        })
-            yield return (AppRoles.ProjectManager, PermissionArea.ActionItems, action, all);
+        foreach (var action in new[] { view, create, edit, delete, export, assign })
+            yield return P(AppRoles.ProjectManager, ai, action);
 
-        // View-only for Dashboard, KPIs, StrategicObjectives
-        foreach (var area in new[] { PermissionArea.Dashboard, PermissionArea.KPIs, PermissionArea.StrategicObjectives })
-            yield return (AppRoles.ProjectManager, area, PermissionAction.View, all);
+        foreach (var area in new[] { dash, kpi, so })
+            yield return P(AppRoles.ProjectManager, area, view);
 
-        // ── Project Coordinator — View+Create+Edit on ActionItems+Milestones, View-only on 3 ──
-        foreach (var area in new[] { PermissionArea.ActionItems, PermissionArea.Milestones })
+        // ── Project Coordinator ───────────────────────────────────────────────
+        foreach (var area   in new[] { ai, mile })
         foreach (var action in vce)
-            yield return (AppRoles.ProjectCoordinator, area, action, all);
+            yield return P(AppRoles.ProjectCoordinator, area, action);
+        foreach (var area in new[] { proj, dash, rep })
+            yield return P(AppRoles.ProjectCoordinator, area, view);
 
-        foreach (var area in new[] { PermissionArea.Projects, PermissionArea.Dashboard, PermissionArea.Reports })
-            yield return (AppRoles.ProjectCoordinator, area, PermissionAction.View, all);
-
-        // ── Team Member — View+Edit on ActionItems (OwnOnly), View-only on 3 ─
-        yield return (AppRoles.TeamMember, PermissionArea.ActionItems, PermissionAction.View, OrgUnitScope.OwnOnly);
-        yield return (AppRoles.TeamMember, PermissionArea.ActionItems, PermissionAction.Edit, OrgUnitScope.OwnOnly);
-
-        foreach (var area in new[] { PermissionArea.Projects, PermissionArea.Milestones, PermissionArea.Dashboard })
-            yield return (AppRoles.TeamMember, area, PermissionAction.View, all);
+        // ── Team Member — View+Edit on ActionItems (OwnOnly), View-only on 3 ──
+        yield return P(AppRoles.TeamMember, ai, view, ScopeOwnOnly);
+        yield return P(AppRoles.TeamMember, ai, edit, ScopeOwnOnly);
+        foreach (var area in new[] { proj, mile, dash })
+            yield return P(AppRoles.TeamMember, area, view);
 
         // ── Workspace Admin — full on 3 areas, View-only on 4 ────────────────
-        foreach (var area in new[] { PermissionArea.Workspaces, PermissionArea.OrgChart, PermissionArea.UserManagement })
-        foreach (var action in Enum.GetValues<PermissionAction>())
-            yield return (AppRoles.WorkspaceAdmin, area, action, all);
-
-        foreach (var area in new[]
-        {
-            PermissionArea.Dashboard, PermissionArea.Projects,
-            PermissionArea.ActionItems, PermissionArea.Reports,
-        })
-            yield return (AppRoles.WorkspaceAdmin, area, PermissionAction.View, all);
+        foreach (var area   in new[] { ws, org, um })
+        foreach (var action in allActions)
+            yield return P(AppRoles.WorkspaceAdmin, area, action);
+        foreach (var area in new[] { dash, proj, ai, rep })
+            yield return P(AppRoles.WorkspaceAdmin, area, view);
+        yield return P(AppRoles.WorkspaceAdmin, roles, view);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -198,6 +204,6 @@ public static class DefaultRolePermissionsSeeder
 
     private readonly record struct RolePermissionKey(
         string RoleName,
-        PermissionArea Area,
-        PermissionAction Action);
+        Guid   AreaId,
+        Guid   ActionId);
 }

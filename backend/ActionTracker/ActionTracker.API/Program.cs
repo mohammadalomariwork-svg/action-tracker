@@ -311,6 +311,17 @@ try
     await RoleSeeder.SeedAsync(app.Services);
 
     // -----------------------------------------------------------------------
+    // Seed permission catalog (areas, actions, mappings) — must run first
+    using (var scope = app.Services.CreateScope())
+    {
+        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var logger = scope.ServiceProvider
+                         .GetRequiredService<ILoggerFactory>()
+                         .CreateLogger(nameof(PermissionCatalogSeeder));
+        await PermissionCatalogSeeder.SeedAsync(db, logger);
+    }
+
+    // -----------------------------------------------------------------------
     // Seed default role permissions
     using (var scope = app.Services.CreateScope())
     {
