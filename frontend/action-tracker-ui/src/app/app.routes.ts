@@ -61,7 +61,7 @@ export const routes: Routes = [
       {
         path: 'management',
         canActivate: [permissionGuard],
-        data: { requiredArea: 'Action Items', requiredAction: 'View' },
+        data: { requiredArea: 'ActionItems', requiredAction: 'View' },
         loadComponent: () =>
           import('./features/management/management-dashboard/management-dashboard.component').then(
             m => m.ManagementDashboardComponent
@@ -137,7 +137,7 @@ export const routes: Routes = [
       {
         path: 'admin/users',
         canActivate: [permissionGuard],
-        data: { requiredArea: 'User Management', requiredAction: 'View' },
+        data: { requiredArea: 'UserManagement', requiredAction: 'View' },
         loadChildren: () =>
           import('./features/user-management/user-management.routes').then(
             m => m.USER_MANAGEMENT_ROUTES

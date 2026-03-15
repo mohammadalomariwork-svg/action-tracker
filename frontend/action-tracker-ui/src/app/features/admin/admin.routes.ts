@@ -18,13 +18,13 @@ export const ADMIN_ROUTES: Routes = [
     path: 'org-chart',
     component: OrgChartListComponent,
     canActivate: [permissionGuard],
-    data: { requiredArea: 'Org Chart', requiredAction: 'View' },
+    data: { requiredArea: 'OrgChart', requiredAction: 'View' },
   },
   {
     path: 'objectives',
     component: ObjectivesListComponent,
     canActivate: [permissionGuard],
-    data: { requiredArea: 'Strategic Objectives', requiredAction: 'View' },
+    data: { requiredArea: 'StrategicObjectives', requiredAction: 'View' },
   },
   {
     path: 'kpis',
@@ -41,7 +41,7 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'permissions/roles',
     canActivate: [permissionGuard],
-    data: { requiredArea: 'Permissions Management', requiredAction: 'View' },
+    data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },
     loadComponent: () =>
       import('../permissions/pages/role-permissions/role-permissions-page.component')
         .then(m => m.RolePermissionsPageComponent),
@@ -49,7 +49,7 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'permissions/users',
     canActivate: [permissionGuard],
-    data: { requiredArea: 'Permissions Management', requiredAction: 'View' },
+    data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },
     loadComponent: () =>
       import('../permissions/pages/user-overrides/user-overrides-page.component')
         .then(m => m.UserOverridesPageComponent),
