@@ -10,11 +10,25 @@ public class UserPermissionOverride
     /// <summary>Denormalized display name — avoids a join when reading overrides.</summary>
     public string UserDisplayName { get; set; } = string.Empty;
 
-    public PermissionArea Area { get; set; }
-    public PermissionAction Action { get; set; }
-    public OrgUnitScope OrgUnitScope { get; set; }
+    /// <summary>ID of the AppPermissionArea record (no FK constraint).</summary>
+    public Guid AreaId { get; set; }
 
-    /// <summary>Populated when <see cref="OrgUnitScope"/> is <see cref="OrgUnitScope.SpecificOrgUnit"/>.</summary>
+    /// <summary>Denormalized area name for fast reads (e.g. "Projects").</summary>
+    public string AreaName { get; set; } = string.Empty;
+
+    /// <summary>ID of the AppPermissionAction record (no FK constraint).</summary>
+    public Guid ActionId { get; set; }
+
+    /// <summary>Denormalized action name for fast reads (e.g. "View").</summary>
+    public string ActionName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 0 = All, 1 = SpecificOrgUnit, 2 = OwnOnly.
+    /// Stored as plain int — no enum dependency.
+    /// </summary>
+    public int OrgUnitScope { get; set; } = 0;
+
+    /// <summary>Populated when <see cref="OrgUnitScope"/> is 1 (SpecificOrgUnit).</summary>
     public Guid? OrgUnitId { get; set; }
 
     /// <summary>Denormalized display name of the org unit — avoids a join when reading overrides.</summary>
