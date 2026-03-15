@@ -22,6 +22,7 @@ import {
   UpdateUserRoleRequest,
 } from '../../models/user-management.models';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { AdminBreadcrumbComponent } from '../../../admin/components/shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../../shared';
 
@@ -31,7 +32,7 @@ interface OrgUnitOption { id: string; label: string; }
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, AdminBreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
