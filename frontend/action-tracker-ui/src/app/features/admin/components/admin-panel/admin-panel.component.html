@@ -13,7 +13,7 @@
   <!-- ── Feature cards grid ─────────────────────────────────────────────────── -->
   <div class="row g-4">
     @for (card of features; track card.id) {
-      <ng-container *appHasPermission="card.permissionArea" [appHasPermissionAction]="'View'">
+      <ng-container *appHasPermission="card.permissionArea; action: 'View'">
         <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
           <div
             class="card admin-card h-100"

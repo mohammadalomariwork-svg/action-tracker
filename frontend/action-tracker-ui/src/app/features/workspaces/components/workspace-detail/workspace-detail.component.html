@@ -84,7 +84,7 @@
       <div class="wd-section-header">
         <h5 class="mb-0">
           <i class="bi bi-people-fill me-2 text-primary"></i>Workspace Admins
-          <span class="badge bg-secondary ms-2">{{ workspace.admins?.length ?? 0 }}</span>
+          <span class="badge bg-secondary ms-2">{{ workspace.admins.length }}</span>
         </h5>
 
         @if (canManage) {
@@ -118,7 +118,7 @@
           @for (admin of workspace.admins; track admin.userId) {
             <div class="wd-admin-card">
               <div class="wd-admin-avatar">
-                {{ admin.userName?.charAt(0)?.toUpperCase() ?? '?' }}
+                {{ admin.userName.charAt(0).toUpperCase() || '?' }}
               </div>
               <div class="wd-admin-info">
                 <span class="wd-admin-name">{{ admin.userName }}</span>
@@ -280,7 +280,7 @@
               </div>
 
               @if (canManage) {
-                <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Create'"
+                <button *appHasPermission="'Projects'; action: 'Create'"
                         class="btn btn-primary btn-sm" (click)="openNewProjectForm()" [disabled]="showProjectForm">
                   <i class="bi bi-plus-circle me-1"></i>New Project
                 </button>
@@ -346,12 +346,12 @@
                                [routerLink]="['/projects', prj.id]"
                                title="View"><i class="bi bi-eye"></i></a>
                             @if (canManage) {
-                              <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Edit'"
+                              <button *appHasPermission="'Projects'; action: 'Edit'"
                                       class="btn btn-outline-primary btn-sm wa-action-btn"
                                       (click)="openEditProjectForm(prj)"
                                       title="Edit"
                                       [disabled]="showProjectForm"><i class="bi bi-pencil"></i></button>
-                              <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Delete'"
+                              <button *appHasPermission="'Projects'; action: 'Delete'"
                                       class="btn btn-outline-danger btn-sm wa-action-btn"
                                       (click)="deleteProject(prj)"
                                       title="Delete"
@@ -422,13 +422,13 @@
                         <i class="bi bi-eye me-1"></i>View
                       </a>
                       @if (canManage) {
-                        <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Edit'"
+                        <button *appHasPermission="'Projects'; action: 'Edit'"
                                 class="btn btn-outline-primary btn-sm"
                                 (click)="openEditProjectForm(prj)"
                                 [disabled]="showProjectForm">
                           <i class="bi bi-pencil me-1"></i>Edit
                         </button>
-                        <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Delete'"
+                        <button *appHasPermission="'Projects'; action: 'Delete'"
                                 class="btn btn-outline-danger btn-sm" (click)="deleteProject(prj)"
                                 [disabled]="deletingProjectId === prj.id">
                           @if (deletingProjectId === prj.id) {
@@ -961,7 +961,7 @@
             rows="3"
             maxlength="2000"
           ></textarea>
-          @if (!actionForm.escalationExplanation?.trim()) {
+          @if (!actionForm.escalationExplanation.trim()) {
             <small class="text-danger">Escalation explanation is required.</small>
           }
         </div>
@@ -997,7 +997,7 @@
           type="button"
           class="btn btn-primary d-inline-flex align-items-center gap-2"
           (click)="saveAction()"
-          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) || (actionForm.isEscalated && !actionForm.escalationExplanation?.trim())"
+          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) || (actionForm.isEscalated && !actionForm.escalationExplanation.trim())"
         >
           @if (actionSaving) {
             <span class="spinner-border spinner-border-sm" role="status"></span>

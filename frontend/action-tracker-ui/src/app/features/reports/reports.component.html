@@ -88,7 +88,7 @@
         @if (hasFilters()) {
           <button class="btn btn-ghost" (click)="clearFilters()">✕ Clear Filters</button>
         }
-        <button *appHasPermission="'Reports'" [appHasPermissionAction]="'Export'"
+        <button *appHasPermission="'Reports'; action: 'Export'"
           class="btn btn-primary"
           (click)="exportCsv()"
           [disabled]="exporting()"

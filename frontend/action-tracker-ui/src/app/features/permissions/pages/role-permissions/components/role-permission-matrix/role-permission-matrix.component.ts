@@ -50,7 +50,7 @@ export class RolePermissionMatrixComponent {
   readonly permissionMap = computed<Map<string, RolePermissionDto>>(() => {
     const map = new Map<string, RolePermissionDto>();
     for (const perm of this.matrix().permissions) {
-      map.set(`${perm.area}:${perm.action}`, perm);
+      map.set(`${perm.areaName}:${perm.actionName}`, perm);
     }
     return map;
   });
@@ -71,13 +71,23 @@ export class RolePermissionMatrixComponent {
     this.saving.set(true);
     this.error.set(null);
 
-    // Frontend enums are 0-based; backend enums are 1-based → add 1 for the wire value.
+    const areaName   = PERMISSION_AREA_LABELS[area];
+    const actionName = PERMISSION_ACTION_LABELS[action];
+    const mapping    = this.matrix().availableMappings.find(
+      m => m.areaName === areaName && m.actionName === actionName
+    );
+    if (!mapping) {
+      this.saving.set(false);
+      this.error.set('Permission mapping not found in catalog.');
+      return;
+    }
+
     this.rolePermissionService
       .create({
         roleName:     this.matrix().roleName,
-        area:         area + 1,
-        action:       action + 1,
-        orgUnitScope: 1, // OrgUnitScope.All = 1 on the backend
+        areaId:       mapping.areaId,
+        actionId:     mapping.actionId,
+        orgUnitScope: 0, // All org units
       })
       .subscribe({
         next:  () => { this.saving.set(false); this.permissionChanged.emit(); },

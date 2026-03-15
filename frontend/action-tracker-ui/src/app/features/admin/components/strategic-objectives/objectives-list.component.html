@@ -9,7 +9,7 @@
     subtitle="Define and manage strategic objectives"
     icon="bi bi-bullseye"
   >
-    <button *appHasPermission="'StrategicObjectives'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'StrategicObjectives'; action: 'Create'"
             class="btn btn-success btn-sm" (click)="openAdd()">
       <i class="bi bi-plus-lg me-1"></i>Add Objective
     </button>
@@ -179,12 +179,12 @@
               <td class="text-end">
                 <div class="d-flex gap-1 justify-content-end">
                   @if (!obj.isDeleted) {
-                    <button *appHasPermission="'StrategicObjectives'" [appHasPermissionAction]="'Edit'"
+                    <button *appHasPermission="'StrategicObjectives'; action: 'Edit'"
                             class="btn btn-outline-primary btn-xs" title="Edit"
                             (click)="openEdit(obj)">
                       <i class="bi bi-pencil"></i>
                     </button>
-                    <button *appHasPermission="'StrategicObjectives'" [appHasPermissionAction]="'Delete'"
+                    <button *appHasPermission="'StrategicObjectives'; action: 'Delete'"
                             class="btn btn-outline-danger btn-xs" title="Delete"
                             (click)="onDelete(obj)">
                       <i class="bi bi-trash"></i>
@@ -252,11 +252,11 @@
 
             <div class="d-flex flex-wrap gap-2">
               @if (!obj.isDeleted) {
-                <button *appHasPermission="'StrategicObjectives'" [appHasPermissionAction]="'Edit'"
+                <button *appHasPermission="'StrategicObjectives'; action: 'Edit'"
                         class="btn btn-outline-primary btn-sm" (click)="openEdit(obj)">
                   <i class="bi bi-pencil me-1"></i>Edit
                 </button>
-                <button *appHasPermission="'StrategicObjectives'" [appHasPermissionAction]="'Delete'"
+                <button *appHasPermission="'StrategicObjectives'; action: 'Delete'"
                         class="btn btn-outline-danger btn-sm" (click)="onDelete(obj)">
                   <i class="bi bi-trash me-1"></i>Delete
                 </button>

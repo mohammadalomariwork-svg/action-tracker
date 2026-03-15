@@ -11,11 +11,11 @@
     subtitle="Manage users, roles and permissions"
     icon="bi bi-people"
   >
-    <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'UserManagement'; action: 'Create'"
             class="btn btn-outline-primary btn-sm" (click)="navigateToRegisterAD()">
       <i class="bi bi-person-badge me-1"></i>Add AD User / Search Employee
     </button>
-    <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'UserManagement'; action: 'Create'"
             class="btn btn-primary btn-sm" (click)="navigateToRegisterExternal()">
       <i class="bi bi-person-plus me-1"></i>Add External User
     </button>
@@ -109,10 +109,10 @@
 
               <!-- Roles -->
               <td>
-                @for (role of (user.roles ?? []); track role) {
+                @for (role of user.roles; track role) {
                   <span class="badge bg-primary me-1">{{ role }}</span>
                 }
-                @if (!user.roles?.length) {
+                @if (!user.roles.length) {
                   <span class="text-muted fst-italic">None</span>
                 }
               </td>
@@ -195,7 +195,7 @@
                     >✕</button>
                   </div>
                 } @else {
-                  <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Edit'"
+                  <button *appHasPermission="'UserManagement'; action: 'Edit'"
                     class="btn btn-outline-primary btn-sm me-1"
                     (click)="openRoleEdit(user)"
                   >Change Role</button>
@@ -205,7 +205,7 @@
                     title="Assign org unit"
                   >User Unit</button>
                   @if (user.isActive) {
-                    <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Delete'"
+                    <button *appHasPermission="'UserManagement'; action: 'Delete'"
                       class="btn btn-outline-danger btn-sm"
                       (click)="deactivate(user)"
                     >Deactivate</button>
@@ -259,13 +259,13 @@
             </div>
 
             <div class="mb-3">
-              @for (role of (user.roles ?? []); track role) {
+              @for (role of user.roles; track role) {
                 <span class="badge bg-primary me-1">{{ role }}</span>
               }
             </div>
 
             <div class="d-flex flex-wrap gap-2">
-              <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Edit'"
+              <button *appHasPermission="'UserManagement'; action: 'Edit'"
                 class="btn btn-outline-primary btn-sm"
                 (click)="openRoleEdit(user)"
               >Change Role</button>
@@ -274,7 +274,7 @@
                 (click)="openOrgUnitEdit(user)"
               >User Unit</button>
               @if (user.isActive) {
-                <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Delete'"
+                <button *appHasPermission="'UserManagement'; action: 'Delete'"
                   class="btn btn-outline-danger btn-sm"
                   (click)="deactivate(user)"
                 >Deactivate</button>

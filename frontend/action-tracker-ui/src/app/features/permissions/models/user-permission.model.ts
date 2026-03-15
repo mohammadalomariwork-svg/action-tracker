@@ -30,6 +30,16 @@ export interface CreateUserPermissionOverrideDto {
   expiresAt?: string;
 }
 
+export interface UpdateUserPermissionOverrideDto {
+  isGranted: boolean;
+  orgUnitScope: number;
+  orgUnitId?: string;
+  orgUnitName?: string;
+  reason?: string;
+  expiresAt?: string;
+  isActive: boolean;
+}
+
 export interface EffectivePermissionDto {
   userId: string;
   userDisplayName: string;

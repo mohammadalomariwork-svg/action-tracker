@@ -14,7 +14,7 @@
     <button class="btn btn-outline-secondary btn-sm" (click)="goBack()">
       <i class="bi bi-arrow-left me-1"></i>Back to Roles
     </button>
-    <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Assign'"
+    <button *appHasPermission="'Roles'; action: 'Assign'"
             class="btn btn-primary btn-sm" (click)="openAddModal()">
       <i class="bi bi-person-plus me-1"></i>Add Users
     </button>
@@ -43,7 +43,7 @@
       <div class="text-center py-5 text-muted">
         <i class="bi bi-people display-4 d-block mb-3"></i>
         <p class="mb-3">No users assigned to this role yet.</p>
-        <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Assign'"
+        <button *appHasPermission="'Roles'; action: 'Assign'"
                 class="btn btn-primary" (click)="openAddModal()">
           <i class="bi bi-person-plus me-1"></i>Add Users
         </button>

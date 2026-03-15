@@ -7,7 +7,7 @@
     subtitle="Manage application roles and their permissions"
     icon="bi bi-shield-lock"
   >
-    <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'Roles'; action: 'Create'"
             class="btn btn-primary btn-sm" (click)="openAddForm()">
       <i class="bi bi-plus-circle me-1"></i>Add Role
     </button>
@@ -38,7 +38,7 @@
       <div class="text-center py-5 text-muted">
         <i class="bi bi-shield-x display-4 d-block mb-3"></i>
         <p class="mb-3">No roles found.</p>
-        <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Create'"
+        <button *appHasPermission="'Roles'; action: 'Create'"
                 class="btn btn-primary" (click)="openAddForm()">
           <i class="bi bi-plus-circle me-1"></i>Add First Role
         </button>
@@ -51,7 +51,7 @@
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                   <h5 class="card-title fw-bold mb-0">{{ role.name }}</h5>
-                  <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Delete'"
+                  <button *appHasPermission="'Roles'; action: 'Delete'"
                           class="btn btn-outline-danger btn-sm"
                           (click)="openDeleteConfirm(role)"
                           title="Delete role">

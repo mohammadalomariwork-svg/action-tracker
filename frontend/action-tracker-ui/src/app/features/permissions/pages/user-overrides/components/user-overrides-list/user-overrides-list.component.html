@@ -43,8 +43,8 @@
         <tbody>
           @for (ov of overrides(); track ov.id) {
             <tr>
-              <td>{{ ov.area }}</td>
-              <td>{{ ov.action }}</td>
+              <td>{{ ov.areaName }}</td>
+              <td>{{ ov.actionName }}</td>
               <td class="text-center">
                 @if (ov.isGranted) {
                   <span class="badge bg-success">Granted</span>
@@ -52,7 +52,7 @@
                   <span class="badge bg-danger">Revoked</span>
                 }
               </td>
-              <td class="small text-muted">{{ ov.orgUnitScope }}</td>
+              <td class="small text-muted">{{ ov.orgUnitScopeLabel }}</td>
               <td class="small text-muted">{{ ov.orgUnitName ?? '—' }}</td>
               <td class="small text-muted">
                 {{ ov.expiresAt ? (ov.expiresAt | date:'dd MMM yyyy HH:mm') : '—' }}

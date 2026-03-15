@@ -101,8 +101,8 @@ export class HeaderComponent {
     const hasPerm = (area: string, action: string): boolean =>
       perms.some(
         p =>
-          p.area.toLowerCase()   === area.toLowerCase()   &&
-          p.action.toLowerCase() === action.toLowerCase() &&
+          p.areaName.toLowerCase()   === area.toLowerCase()   &&
+          p.actionName.toLowerCase() === action.toLowerCase() &&
           p.isAllowed,
       );
 

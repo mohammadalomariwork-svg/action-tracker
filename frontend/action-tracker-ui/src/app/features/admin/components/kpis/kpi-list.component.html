@@ -20,7 +20,7 @@
     subtitle="Track key performance indicators"
     icon="bi bi-graph-up-arrow"
   >
-    <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'KPIs'; action: 'Create'"
             class="btn btn-primary btn-sm" (click)="openAdd()">
       <i class="bi bi-plus-lg me-1"></i>Add KPI
     </button>
@@ -193,12 +193,12 @@
               <td class="text-end">
                 <div class="d-flex gap-1 justify-content-end">
                   @if (!kpi.isDeleted) {
-                    <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Edit'"
+                    <button *appHasPermission="'KPIs'; action: 'Edit'"
                             class="btn btn-outline-primary btn-xs" title="Edit"
                             (click)="openEdit(kpi)">
                       <i class="bi bi-pencil"></i>
                     </button>
-                    <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Delete'"
+                    <button *appHasPermission="'KPIs'; action: 'Delete'"
                             class="btn btn-outline-danger btn-xs" title="Delete"
                             (click)="onDelete(kpi)">
                       <i class="bi bi-trash"></i>
@@ -263,11 +263,11 @@
 
             <div class="d-flex flex-wrap gap-2">
               @if (!kpi.isDeleted) {
-                <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Edit'"
+                <button *appHasPermission="'KPIs'; action: 'Edit'"
                         class="btn btn-outline-primary btn-sm" (click)="openEdit(kpi)">
                   <i class="bi bi-pencil me-1"></i>Edit
                 </button>
-                <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Delete'"
+                <button *appHasPermission="'KPIs'; action: 'Delete'"
                         class="btn btn-outline-danger btn-sm" (click)="onDelete(kpi)">
                   <i class="bi bi-trash me-1"></i>Delete
                 </button>

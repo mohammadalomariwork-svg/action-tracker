@@ -16,7 +16,7 @@
         <p class="ms-page-subtitle">Track and manage project milestones, deadlines, and progress.</p>
       </div>
     </div>
-    <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'Projects'; action: 'Create'"
             class="btn btn-primary" (click)="openCreateForm()" [disabled]="showForm()">
       <i class="bi bi-plus-circle me-1"></i>Add Milestone
     </button>
@@ -157,13 +157,13 @@
                        [routerLink]="['/projects', projectId(), 'milestones', m.id]" title="View">
                       <i class="bi bi-eye"></i> View
                     </a>
-                    <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Edit'"
+                    <button *appHasPermission="'Projects'; action: 'Edit'"
                             class="ms-action-btn"
                             (click)="openEditForm(m)" title="Edit"
                             [disabled]="showForm()">
                       <i class="bi bi-pencil-square"></i> Edit
                     </button>
-                    <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Delete'"
+                    <button *appHasPermission="'Projects'; action: 'Delete'"
                             class="ms-action-btn ms-action-btn--danger"
                             (click)="deleteMilestone(m)" title="Delete">
                       <i class="bi bi-trash"></i> Delete
@@ -221,11 +221,11 @@
               <a class="ms-action-btn" [routerLink]="['/projects', projectId(), 'milestones', m.id]">
                 <i class="bi bi-eye"></i> View
               </a>
-              <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Edit'"
+              <button *appHasPermission="'Projects'; action: 'Edit'"
                       class="ms-action-btn" (click)="openEditForm(m)" [disabled]="showForm()">
                 <i class="bi bi-pencil-square"></i> Edit
               </button>
-              <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Delete'"
+              <button *appHasPermission="'Projects'; action: 'Delete'"
                       class="ms-action-btn ms-action-btn--danger" (click)="deleteMilestone(m)">
                 <i class="bi bi-trash"></i> Delete
               </button>
@@ -264,7 +264,7 @@
       <div class="ms-empty">
         <i class="bi bi-flag ms-empty-icon text-muted"></i>
         <p class="text-muted mt-3 mb-3">No milestones yet.</p>
-        <button *appHasPermission="'Projects'" [appHasPermissionAction]="'Create'"
+        <button *appHasPermission="'Projects'; action: 'Create'"
                 class="btn btn-primary btn-sm" (click)="openCreateForm()">
           <i class="bi bi-plus-circle me-1"></i>Add First Milestone
         </button>

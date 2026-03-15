@@ -4,14 +4,15 @@
  * If visibleOrgUnitIds is empty, returns all items unfiltered
  * (fallback for admin/global-access users).
  */
-export function filterByOrgUnit<T extends { orgUnitId?: string }>(
+export function filterByOrgUnit<T>(
   items: T[],
   visibleOrgUnitIds: string[]
 ): T[] {
   if (!visibleOrgUnitIds || visibleOrgUnitIds.length === 0) {
     return items;
   }
-  return items.filter(
-    item => !item.orgUnitId || visibleOrgUnitIds.includes(item.orgUnitId)
-  );
+  return items.filter(item => {
+    const id = (item as Record<string, unknown>)['orgUnitId'] as string | undefined;
+    return !id || visibleOrgUnitIds.includes(id);
+  });
 }

@@ -8,7 +8,7 @@
     subtitle="Manage organization structure and units"
     icon="bi bi-diagram-3-fill"
   >
-    <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Create'"
+    <button *appHasPermission="'OrgChart'; action: 'Create'"
             class="btn btn-primary" (click)="onAddRoot()">
       <i class="bi bi-plus-circle me-1"></i>Add Org Unit
     </button>
@@ -59,7 +59,7 @@
           } @else {
             <div class="text-center py-4">
               <p class="text-muted mb-2">No org units found.</p>
-              <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Create'"
+              <button *appHasPermission="'OrgChart'; action: 'Create'"
                       class="btn btn-primary btn-sm" (click)="onAddRoot()">
                 <i class="bi bi-plus-circle me-1"></i>Add Root Unit
               </button>
@@ -133,19 +133,19 @@
       <!-- Actions -->
       <div class="ocl-actions d-flex gap-1 flex-shrink-0">
         @if (!node.isDeleted && node.level < 10) {
-          <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Create'"
+          <button *appHasPermission="'OrgChart'; action: 'Create'"
                   class="btn btn-outline-success btn-xs" title="Add child"
                   (click)="onAddChild(node); $event.stopPropagation()">
             <i class="bi bi-plus-circle"></i>
           </button>
         }
         @if (!node.isDeleted) {
-          <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Edit'"
+          <button *appHasPermission="'OrgChart'; action: 'Edit'"
                   class="btn btn-outline-primary btn-xs" title="Edit"
                   (click)="onEdit(node); $event.stopPropagation()">
             <i class="bi bi-pencil"></i>
           </button>
-          <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Delete'"
+          <button *appHasPermission="'OrgChart'; action: 'Delete'"
                   class="btn btn-outline-danger btn-xs" title="Delete"
                   (click)="onDelete(node); $event.stopPropagation()">
             <i class="bi bi-trash"></i>

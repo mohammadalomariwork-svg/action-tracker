@@ -31,10 +31,10 @@
           </tr>
         </thead>
         <tbody>
-          @for (perm of permissions(); track perm.area + ':' + perm.action) {
+          @for (perm of permissions(); track perm.areaId + ':' + perm.actionId) {
             <tr [class.eps-row--allowed]="perm.isAllowed" [class.eps-row--denied]="!perm.isAllowed">
-              <td>{{ perm.area }}</td>
-              <td>{{ perm.action }}</td>
+              <td>{{ perm.areaName }}</td>
+              <td>{{ perm.actionName }}</td>
               <td class="text-center">
                 @if (perm.isAllowed) {
                   <i class="bi bi-check-circle-fill text-success fs-6" title="Allowed"></i>
@@ -42,7 +42,7 @@
                   <i class="bi bi-x-circle-fill text-danger fs-6" title="Denied"></i>
                 }
               </td>
-              <td>{{ perm.orgUnitScope }}</td>
+              <td>{{ perm.orgUnitScopeLabel }}</td>
               <td class="text-muted small">{{ perm.orgUnitName ?? '—' }}</td>
               <td><span [class]="sourceBadgeClass(perm.source)">{{ sourceLabel(perm.source) }}</span></td>
             </tr>

@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable, forkJoin } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { EffectivePermissionDto } from '../models/user-permission.model';
 import { UserPermissionService } from './user-permission.service';
-import { environment } from '../../../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionStateService {

@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   OnDestroy,
+  OnInit,
   ViewChild,
   inject,
   output,
@@ -22,6 +23,8 @@ import {
 } from '../../../../models/permission.enums';
 import { UserPermissionOverrideDto } from '../../../../models/user-permission.model';
 import { UserPermissionService } from '../../../../services/user-permission.service';
+import { PermissionCatalogService } from '../../../../services/permission-catalog.service';
+import { AreaActionMappingDto } from '../../../../models/permission-catalog.model';
 
 declare const bootstrap: { Modal: new (el: HTMLElement, opts?: object) => { show(): void; hide(): void; dispose(): void } };
 
@@ -46,13 +49,22 @@ interface OverrideForm {
   templateUrl: './user-override-form.component.html',
   styleUrl: './user-override-form.component.scss',
 })
-export class UserOverrideFormComponent implements AfterViewInit, OnDestroy {
-  private readonly svc       = inject(UserPermissionService);
-  private readonly fb        = inject(FormBuilder);
+export class UserOverrideFormComponent implements OnInit, AfterViewInit, OnDestroy {
+  private readonly svc        = inject(UserPermissionService);
+  private readonly catalogSvc = inject(PermissionCatalogService);
+  private readonly fb         = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+
+  private mappings: AreaActionMappingDto[] = [];
 
   @ViewChild('modalEl') modalEl!: ElementRef<HTMLElement>;
   private bsModal!: InstanceType<typeof bootstrap.Modal>;
+
+  ngOnInit(): void {
+    this.catalogSvc.getMappings()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: m => this.mappings = m, error: () => {} });
+  }
 
   private userId          = '';
   private userDisplayName = '';
@@ -130,10 +142,10 @@ export class UserOverrideFormComponent implements AfterViewInit, OnDestroy {
     this.mode.set('edit');
     this.error.set(null);
     this.form.reset({
-      area:         this.labelToAreaEnum(override.area)         ?? 0,
-      action:       this.labelToActionEnum(override.action)     ?? 0,
+      area:         this.labelToAreaEnum(override.areaName)         ?? 0,
+      action:       this.labelToActionEnum(override.actionName)     ?? 0,
       isGranted:    override.isGranted,
-      orgUnitScope: this.labelToScopeEnum(override.orgUnitScope) ?? 0,
+      orgUnitScope: this.labelToScopeEnum(override.orgUnitScopeLabel) ?? 0,
       orgUnitId:    override.orgUnitId   ?? '',
       orgUnitName:  override.orgUnitName ?? '',
       reason:       override.reason      ?? '',
@@ -159,14 +171,25 @@ export class UserOverrideFormComponent implements AfterViewInit, OnDestroy {
     this.saving.set(true);
     this.error.set(null);
 
+    const areaName   = PERMISSION_AREA_LABELS[v.area   as PermissionArea];
+    const actionName = PERMISSION_ACTION_LABELS[v.action as PermissionAction];
+    const mapping    = this.mappings.find(
+      m => m.areaName === areaName && m.actionName === actionName
+    );
+    if (this.mode() === 'create' && !mapping) {
+      this.saving.set(false);
+      this.error.set('Permission mapping not found. Please refresh and try again.');
+      return;
+    }
+
     const obs$ = this.mode() === 'create'
       ? this.svc.createOverride({
           userId:          this.userId,
           userDisplayName: this.userDisplayName,
-          area:            v.area   + 1,   // frontend 0-based → backend 1-based
-          action:          v.action + 1,
+          areaId:          mapping!.areaId,
+          actionId:        mapping!.actionId,
           isGranted:       v.isGranted,
-          orgUnitScope:    v.orgUnitScope + 1,
+          orgUnitScope:    v.orgUnitScope,
           orgUnitId:       v.orgUnitId   || undefined,
           orgUnitName:     v.orgUnitName || undefined,
           reason:          v.reason      || undefined,
