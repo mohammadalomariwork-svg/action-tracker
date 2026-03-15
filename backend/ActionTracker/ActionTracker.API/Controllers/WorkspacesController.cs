@@ -58,15 +58,40 @@ public class WorkspacesController : ControllerBase
     // GET api/workspaces/summary
     // -------------------------------------------------------------------------
 
-    /// <summary>Returns aggregate workspace statistics for the dashboard.</summary>
+    /// <summary>
+    /// Returns aggregate workspace statistics scoped to the caller's visible org units.
+    /// An optional <paramref name="orgUnitId"/> query parameter narrows the scope further
+    /// to a single org unit (must be within the caller's visible set).
+    /// </summary>
     [HttpGet("summary")]
     [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceSummaryDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSummary()
+    public async Task<IActionResult> GetSummary([FromQuery] Guid? orgUnitId = null)
     {
-        _logger.LogInformation("GET /api/workspaces/summary");
+        _logger.LogInformation("GET /api/workspaces/summary orgUnitId={OrgUnitId}", orgUnitId);
 
-        var summary = await _workspaceService.GetSummaryAsync();
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        var visibleOrgUnitIds = string.IsNullOrEmpty(userId)
+            ? null
+            : await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+
+        // Determine the effective scope: user's visible org units, optionally narrowed
+        // down to a single org unit chosen in the UI.
+        List<Guid>? effectiveOrgUnitIds;
+        if (orgUnitId.HasValue)
+        {
+            var hasScope = visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0;
+            if (!hasScope || visibleOrgUnitIds!.Contains(orgUnitId.Value))
+                effectiveOrgUnitIds = new List<Guid> { orgUnitId.Value };
+            else
+                effectiveOrgUnitIds = new List<Guid>(); // requested org unit not in scope → zeros
+        }
+        else
+        {
+            effectiveOrgUnitIds = visibleOrgUnitIds?.Count > 0 ? visibleOrgUnitIds : null;
+        }
+
+        var summary = await _workspaceService.GetSummaryAsync(effectiveOrgUnitIds);
         return Ok(ApiResponse<WorkspaceSummaryDto>.Ok(summary));
     }
 

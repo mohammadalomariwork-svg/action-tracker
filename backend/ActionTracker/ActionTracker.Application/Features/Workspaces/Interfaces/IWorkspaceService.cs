@@ -15,8 +15,12 @@ public interface IWorkspaceService
     /// </summary>
     Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleOrgUnitIds = null);
 
-    /// <summary>Returns aggregate statistics across all workspaces.</summary>
-    Task<WorkspaceSummaryDto> GetSummaryAsync();
+    /// <summary>
+    /// Returns aggregate statistics scoped to the given org unit IDs.
+    /// Pass a non-empty list to restrict to those org units (same scoping as GetAllWorkspacesAsync).
+    /// Pass null or empty to return global statistics.
+    /// </summary>
+    Task<WorkspaceSummaryDto> GetSummaryAsync(List<Guid>? visibleOrgUnitIds = null);
 
     /// <summary>Returns per-workspace statistics for the workspace detail dashboard.</summary>
     /// <param name="workspaceId">Primary key of the workspace.</param>

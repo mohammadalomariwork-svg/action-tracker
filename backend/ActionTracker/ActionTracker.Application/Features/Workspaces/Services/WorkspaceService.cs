@@ -80,34 +80,57 @@ public class WorkspaceService : IWorkspaceService
     }
 
     /// <inheritdoc />
-    public async Task<WorkspaceSummaryDto> GetSummaryAsync()
+    public async Task<WorkspaceSummaryDto> GetSummaryAsync(List<Guid>? visibleOrgUnitIds = null)
     {
         try
         {
-            var totalWorkspaces  = await _db.Workspaces.CountAsync();
-            var activeWorkspaces = await _db.Workspaces.CountAsync(w => w.IsActive);
+            // Short-circuit: caller explicitly passed an empty scope list → no access.
+            if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count == 0)
+                return new WorkspaceSummaryDto();
+
+            // Build the scoped workspace query (mirrors GetAllWorkspacesAsync logic).
+            IQueryable<Workspace> workspaceScope = _db.Workspaces;
+            if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0)
+                workspaceScope = workspaceScope.Where(
+                    w => w.OrgUnitId != null && visibleOrgUnitIds.Contains(w.OrgUnitId.Value));
+
+            // All project / action-item counts are filtered through the scoped workspace IDs.
+            var scopedWorkspaceIds = workspaceScope.Select(w => w.Id);
+
+            var totalWorkspaces  = await workspaceScope.CountAsync();
+            var activeWorkspaces = await workspaceScope.CountAsync(w => w.IsActive);
 
             var strategicProjects = await _db.Projects
-                .CountAsync(p => !p.IsDeleted && p.ProjectType == ProjectType.Strategic);
+                .CountAsync(p => !p.IsDeleted
+                    && p.ProjectType == ProjectType.Strategic
+                    && scopedWorkspaceIds.Contains(p.WorkspaceId));
             var operationalProjects = await _db.Projects
-                .CountAsync(p => !p.IsDeleted && p.ProjectType == ProjectType.Operational);
+                .CountAsync(p => !p.IsDeleted
+                    && p.ProjectType == ProjectType.Operational
+                    && scopedWorkspaceIds.Contains(p.WorkspaceId));
 
             var standaloneActionItems = await _db.ActionItems
-                .CountAsync(a => !a.IsDeleted && a.IsStandalone);
+                .CountAsync(a => !a.IsDeleted && a.IsStandalone
+                    && scopedWorkspaceIds.Contains(a.WorkspaceId));
             var projectActionItems = await _db.ActionItems
-                .CountAsync(a => !a.IsDeleted && !a.IsStandalone);
+                .CountAsync(a => !a.IsDeleted && !a.IsStandalone
+                    && scopedWorkspaceIds.Contains(a.WorkspaceId));
             var strategicActionItems = await _db.ActionItems
                 .CountAsync(a => !a.IsDeleted && !a.IsStandalone
+                    && scopedWorkspaceIds.Contains(a.WorkspaceId)
                     && a.Project != null && a.Project.ProjectType == ProjectType.Strategic);
 
             // Project completion & on-time delivery rates
             var totalProjects = strategicProjects + operationalProjects;
             var completedProjects = await _db.Projects
-                .CountAsync(p => !p.IsDeleted && p.Status == ProjectStatus.Completed);
+                .CountAsync(p => !p.IsDeleted
+                    && p.Status == ProjectStatus.Completed
+                    && scopedWorkspaceIds.Contains(p.WorkspaceId));
             var completedProjectsOnTime = await _db.Projects
                 .CountAsync(p => !p.IsDeleted
                     && p.Status == ProjectStatus.Completed
-                    && p.UpdatedAt != null && p.UpdatedAt <= p.PlannedEndDate);
+                    && p.UpdatedAt != null && p.UpdatedAt <= p.PlannedEndDate
+                    && scopedWorkspaceIds.Contains(p.WorkspaceId));
 
             decimal projectCompletionRate = totalProjects > 0
                 ? Math.Round((decimal)completedProjects / totalProjects * 100, 1) : 0;
@@ -117,9 +140,11 @@ public class WorkspaceService : IWorkspaceService
             // Standalone action items completion & on-time delivery rates
             var standaloneDone = await _db.ActionItems
                 .CountAsync(a => !a.IsDeleted && a.IsStandalone
+                    && scopedWorkspaceIds.Contains(a.WorkspaceId)
                     && a.Status == ActionStatus.Done);
             var standaloneDoneOnTime = await _db.ActionItems
                 .CountAsync(a => !a.IsDeleted && a.IsStandalone
+                    && scopedWorkspaceIds.Contains(a.WorkspaceId)
                     && a.Status == ActionStatus.Done && a.UpdatedAt <= a.DueDate);
 
             decimal standaloneCompletionRate = standaloneActionItems > 0
