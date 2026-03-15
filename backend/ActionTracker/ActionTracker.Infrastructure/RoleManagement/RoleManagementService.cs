@@ -146,6 +146,7 @@ public class RoleManagementService : IRoleManagementService
             UserId          = u.Id,
             UserDisplayName = u.DisplayName ?? u.UserName ?? u.Id,
             Email           = u.Email ?? string.Empty,
+            OrgUnitId       = u.OrgUnitId,
             OrgUnitName     = u.OrgUnitId.HasValue && orgUnitNames.TryGetValue(u.OrgUnitId.Value, out var n)
                                 ? n : null,
         }).ToList();

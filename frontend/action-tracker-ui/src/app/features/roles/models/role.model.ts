@@ -9,6 +9,7 @@ export interface RoleUserDto {
   userId: string;
   userDisplayName: string;
   email: string;
+  orgUnitId?: string;
   orgUnitName?: string;
 }
 
