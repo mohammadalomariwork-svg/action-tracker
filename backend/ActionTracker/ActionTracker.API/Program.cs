@@ -284,6 +284,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UsePermissionEnforcement();
 
     app.UseSwagger();
     app.UseSwaggerUI(options =>
