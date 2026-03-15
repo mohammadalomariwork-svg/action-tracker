@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ActionTracker.Application.Permissions.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -31,8 +32,7 @@ public sealed class RequirePermissionAttribute : Attribute, IAsyncActionFilter
             return;
         }
 
-        var permissionService = context.HttpContext.RequestServices
-            .GetRequiredService<IEffectivePermissionService>();
+        var permissionService = context.HttpContext.RequestServices.GetRequiredService<IEffectivePermissionService>();
 
         var granted = await permissionService.HasPermissionAsync(userId, _area, _action);
 
