@@ -375,4 +375,193 @@
     }
   }
 
+  <!-- ── Offcanvas drawer: Create / Edit ─────────────────────────────────── -->
+  <div class="wl-offcanvas offcanvas offcanvas-end"
+       [class.show]="showDrawer"
+       [style.visibility]="showDrawer ? 'visible' : 'hidden'"
+       tabindex="-1">
+
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title">
+        @if (isEditDrawer) {
+          <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Workspace
+        } @else {
+          <i class="bi bi-plus-circle-fill text-primary me-2"></i>New Workspace
+        }
+      </h5>
+      <button type="button" class="btn-close" (click)="closeDrawer()"></button>
+    </div>
+
+    <div class="offcanvas-body">
+
+      @if (drawerLoading && isEditDrawer && !form?.value?.title) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading…</span>
+          </div>
+        </div>
+      } @else if (form) {
+
+        @if (drawerError) {
+          <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ drawerError }}</span>
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onDrawerSubmit()" novalidate>
+
+          <!-- Title -->
+          <div class="mb-3">
+            <label for="wlTitle" class="form-label">
+              Title <span class="text-danger">*</span>
+            </label>
+            <input
+              id="wlTitle"
+              type="text"
+              class="form-control"
+              formControlName="title"
+              placeholder="e.g. Q1 Strategic Actions"
+              autocomplete="off"
+              [class.is-invalid]="isInvalid('title')"
+            />
+            @if (hasError('title', 'required')) {
+              <div class="invalid-feedback">Title is required.</div>
+            } @else if (hasError('title', 'minlength')) {
+              <div class="invalid-feedback">Title must be at least 3 characters.</div>
+            } @else if (hasError('title', 'maxlength')) {
+              <div class="invalid-feedback">Title cannot exceed 200 characters.</div>
+            }
+          </div>
+
+          <!-- Organization Unit -->
+          <div class="mb-3">
+            <label for="wlOrgUnit" class="form-label">
+              Organization Unit <span class="text-danger">*</span>
+            </label>
+            <select
+              id="wlOrgUnit"
+              class="form-select"
+              formControlName="organizationUnit"
+              [class.is-invalid]="isInvalid('organizationUnit')"
+            >
+              <option value="">— Select an organisation unit —</option>
+              @for (unit of orgUnits; track unit.id) {
+                <option [value]="unit.name">{{ unitLabel(unit) }}</option>
+              }
+            </select>
+            @if (hasError('organizationUnit', 'required')) {
+              <div class="invalid-feedback">Organization unit is required.</div>
+            }
+          </div>
+
+          <!-- Workspace Admins -->
+          <div class="mb-4">
+            <label class="form-label">
+              Workspace Admins <span class="text-danger">*</span>
+            </label>
+
+            <div class="input-group mb-2">
+              <select
+                class="form-select"
+                [(ngModel)]="selectedUserId"
+                [ngModelOptions]="{ standalone: true }"
+                [class.is-invalid]="hasAdminsError && selectedAdmins.length === 0"
+              >
+                <option value="">— Select a user to add —</option>
+                @for (user of availableUsers; track user.id) {
+                  <option [value]="user.id">{{ user.displayName }}</option>
+                }
+              </select>
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                (click)="addAdmin()"
+                [disabled]="!selectedUserId"
+                title="Add this user as admin"
+              >
+                <i class="bi bi-plus-lg me-1"></i>Add
+              </button>
+            </div>
+
+            @if (selectedAdmins.length > 0) {
+              <ul class="list-group wl-drawer-admin-list">
+                @for (admin of selectedAdmins; track admin.userId) {
+                  <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+                    <span>
+                      <i class="bi bi-person-fill text-primary me-2"></i>
+                      {{ admin.userName }}
+                    </span>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="removeAdmin(admin.userId)"
+                      title="Remove admin"
+                    >
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (hasAdminsError) {
+              <div class="text-danger small mt-1">
+                <i class="bi bi-exclamation-circle me-1"></i>At least one admin user is required.
+              </div>
+            }
+          </div>
+
+          <!-- isActive toggle (edit mode only) -->
+          @if (isEditDrawer) {
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input
+                  id="wlIsActive"
+                  type="checkbox"
+                  class="form-check-input"
+                  formControlName="isActive"
+                  role="switch"
+                />
+                <label for="wlIsActive" class="form-check-label">Active</label>
+              </div>
+              <div class="form-text">Inactive workspaces are hidden from the list view.</div>
+            </div>
+          }
+
+          <!-- Actions -->
+          <div class="d-flex gap-2 justify-content-end mt-4 pt-3 border-top">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="closeDrawer()"
+              [disabled]="drawerLoading"
+            >
+              <i class="bi bi-x-lg me-1"></i>Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary d-inline-flex align-items-center gap-2"
+              [disabled]="drawerLoading"
+            >
+              @if (drawerLoading) {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Saving…
+              } @else if (isEditDrawer) {
+                <i class="bi bi-check-lg"></i>Save Changes
+              } @else {
+                <i class="bi bi-plus-circle"></i>Create Workspace
+              }
+            </button>
+          </div>
+
+        </form>
+      }
+    </div>
+  </div>
+
+  @if (showDrawer) {
+    <div class="offcanvas-backdrop fade show" (click)="closeDrawer()"></div>
+  }
+
 </div>

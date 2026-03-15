@@ -475,3 +475,59 @@
   font-size: 3rem;
   display: block;
 }
+
+// ── Offcanvas drawer ───────────────────────────────────────────────────────────
+.wl-offcanvas {
+  width: 520px;
+  max-width: 100vw;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  visibility: hidden;
+
+  &.show {
+    transform: translateX(0);
+    visibility: visible !important;
+  }
+}
+
+.offcanvas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  flex-shrink: 0;
+}
+
+.offcanvas-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.offcanvas-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.offcanvas-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1040;
+}
+
+.wl-drawer-admin-list {
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
