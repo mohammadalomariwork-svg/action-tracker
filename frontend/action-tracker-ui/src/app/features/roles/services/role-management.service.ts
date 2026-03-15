@@ -1,7 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
+import { ApiResponse } from '../../../core/models/api-response.model';
 import {
   AppRoleDto,
   RoleUserDto,
@@ -16,23 +18,33 @@ export class RoleManagementService {
   private readonly baseUrl = environment.apiUrl + '/roles';
 
   getAllRoles(): Observable<AppRoleDto[]> {
-    return this.http.get<AppRoleDto[]>(this.baseUrl);
+    return this.http
+      .get<ApiResponse<AppRoleDto[]>>(this.baseUrl)
+      .pipe(map((res) => res.data));
   }
 
   getRole(roleName: string): Observable<AppRoleDto> {
-    return this.http.get<AppRoleDto>(`${this.baseUrl}/${roleName}`);
+    return this.http
+      .get<ApiResponse<AppRoleDto>>(`${this.baseUrl}/${roleName}`)
+      .pipe(map((res) => res.data));
   }
 
   getRoleUsers(roleName: string): Observable<RoleUserDto[]> {
-    return this.http.get<RoleUserDto[]>(`${this.baseUrl}/${roleName}/users`);
+    return this.http
+      .get<ApiResponse<RoleUserDto[]>>(`${this.baseUrl}/${roleName}/users`)
+      .pipe(map((res) => res.data));
   }
 
   getRolePermissions(roleName: string): Observable<PermissionMatrixDto> {
-    return this.http.get<PermissionMatrixDto>(`${this.baseUrl}/${roleName}/permissions`);
+    return this.http
+      .get<ApiResponse<PermissionMatrixDto>>(`${this.baseUrl}/${roleName}/permissions`)
+      .pipe(map((res) => res.data));
   }
 
   createRole(name: string): Observable<AppRoleDto> {
-    return this.http.post<AppRoleDto>(this.baseUrl, { name });
+    return this.http
+      .post<ApiResponse<AppRoleDto>>(this.baseUrl, { name })
+      .pipe(map((res) => res.data));
   }
 
   deleteRole(roleName: string): Observable<void> {
