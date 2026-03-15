@@ -1,5 +1,6 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Permissions;
+using ActionTracker.Application.Permissions.Domain;
 using ActionTracker.Domain.Common;
 using ActionTracker.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -36,6 +37,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     // ── Permissions feature sets ──────────────────────────────────────────────
     public DbSet<RolePermission>         RolePermissions         => Set<RolePermission>();
     public DbSet<UserPermissionOverride> UserPermissionOverrides => Set<UserPermissionOverride>();
+    public DbSet<AppPermissionArea>      PermissionAreas         => Set<AppPermissionArea>();
+    public DbSet<AppPermissionAction>    PermissionActions       => Set<AppPermissionAction>();
+    public DbSet<AreaPermissionMapping>  AreaPermissionMappings  => Set<AreaPermissionMapping>();
 
     // ── Projects feature sets ─────────────────────────────────────────────────
     // NOTE: PM.StrategicObjective (workspace-scoped, int PK) is a different

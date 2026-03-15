@@ -20,17 +20,24 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
             .IsRequired()
             .HasMaxLength(256);
 
-        builder.Property(r => r.Area)
+        builder.Property(r => r.AreaId)
             .IsRequired()
-            .HasConversion<int>();
+            .HasColumnType("uniqueidentifier");
 
-        builder.Property(r => r.Action)
+        builder.Property(r => r.AreaName)
             .IsRequired()
-            .HasConversion<int>();
+            .HasMaxLength(100);
+
+        builder.Property(r => r.ActionId)
+            .IsRequired()
+            .HasColumnType("uniqueidentifier");
+
+        builder.Property(r => r.ActionName)
+            .IsRequired()
+            .HasMaxLength(100);
 
         builder.Property(r => r.OrgUnitScope)
-            .IsRequired()
-            .HasConversion<int>();
+            .IsRequired();
 
         builder.Property(r => r.OrgUnitId)
             .IsRequired(false);
@@ -57,7 +64,7 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
             .HasDefaultValue(false);
 
         // Composite index for the most common lookup: "what actions is this role allowed in this area?"
-        builder.HasIndex(r => new { r.RoleName, r.Area, r.Action });
+        builder.HasIndex(r => new { r.RoleName, r.AreaId, r.ActionId });
 
         builder.HasQueryFilter(r => !r.IsDeleted);
     }

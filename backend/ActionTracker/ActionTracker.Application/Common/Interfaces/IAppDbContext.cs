@@ -1,4 +1,5 @@
 using ActionTracker.Application.Permissions;
+using ActionTracker.Application.Permissions.Domain;
 using ActionTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,6 +36,9 @@ public interface IAppDbContext
     // ── Permissions feature sets ──────────────────────────────────────────────
     DbSet<RolePermission>         RolePermissions         { get; }
     DbSet<UserPermissionOverride> UserPermissionOverrides { get; }
+    DbSet<AppPermissionArea>      PermissionAreas         { get; }
+    DbSet<AppPermissionAction>    PermissionActions       { get; }
+    DbSet<AreaPermissionMapping>  AreaPermissionMappings  { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

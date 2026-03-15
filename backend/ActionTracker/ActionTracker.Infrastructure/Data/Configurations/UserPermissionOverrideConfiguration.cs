@@ -24,17 +24,24 @@ public class UserPermissionOverrideConfiguration : IEntityTypeConfiguration<User
             .IsRequired()
             .HasMaxLength(256);
 
-        builder.Property(u => u.Area)
+        builder.Property(u => u.AreaId)
             .IsRequired()
-            .HasConversion<int>();
+            .HasColumnType("uniqueidentifier");
 
-        builder.Property(u => u.Action)
+        builder.Property(u => u.AreaName)
             .IsRequired()
-            .HasConversion<int>();
+            .HasMaxLength(100);
+
+        builder.Property(u => u.ActionId)
+            .IsRequired()
+            .HasColumnType("uniqueidentifier");
+
+        builder.Property(u => u.ActionName)
+            .IsRequired()
+            .HasMaxLength(100);
 
         builder.Property(u => u.OrgUnitScope)
-            .IsRequired()
-            .HasConversion<int>();
+            .IsRequired();
 
         builder.Property(u => u.OrgUnitId)
             .IsRequired(false);
@@ -68,7 +75,7 @@ public class UserPermissionOverrideConfiguration : IEntityTypeConfiguration<User
             .HasDefaultValue(false);
 
         // Composite index for the most common lookup: "what overrides exist for this user in this area?"
-        builder.HasIndex(u => new { u.UserId, u.Area, u.Action });
+        builder.HasIndex(u => new { u.UserId, u.AreaId, u.ActionId });
 
         builder.HasQueryFilter(u => !u.IsDeleted);
     }
