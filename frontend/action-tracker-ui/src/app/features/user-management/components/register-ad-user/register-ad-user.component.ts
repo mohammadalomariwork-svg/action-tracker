@@ -23,7 +23,7 @@ import {
   EmployeeSearchResult,
   RegisterUserResponse,
 } from '../../models/user-management.models';
-import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { AdminBreadcrumbComponent } from '../../../admin/components/shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 interface ADUserForm {
@@ -40,7 +40,7 @@ const SEARCH_PAGE_SIZE = 10;
 @Component({
   selector: 'app-register-ad-user',
   standalone: true,
-  imports: [ReactiveFormsModule, BreadcrumbComponent, PageHeaderComponent],
+  imports: [ReactiveFormsModule, AdminBreadcrumbComponent, PageHeaderComponent],
   templateUrl: './register-ad-user.component.html',
   styleUrl: './register-ad-user.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
