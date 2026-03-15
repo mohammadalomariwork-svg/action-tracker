@@ -23,6 +23,7 @@ using ActionTracker.Application.Features.OrgChart.Interfaces;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Application.Permissions.Services;
 using ActionTracker.Application.Features.Workspaces.Services;
 using ActionTracker.Infrastructure.Data;
@@ -107,6 +108,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserPermissionOverrideService,  UserPermissionOverrideService>();
         services.AddScoped<IEffectivePermissionService,     EffectivePermissionService>();
         services.AddScoped<IPermissionCatalogService,       PermissionCatalogService>();
+        services.AddScoped<IOrgUnitScopeResolver,           OrgUnitScopeResolver>();
 
         // New auth contract (Application.Features.Auth.IAuthService)
         services.AddScoped<INewAuthService, NewAuthService>();
