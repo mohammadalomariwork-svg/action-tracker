@@ -128,7 +128,7 @@ public static class PermissionCatalogSeeder
         // Deterministic mapping IDs: first 8 hex digits encode area index + action index
         // Format: 3000_AAII_0000_0000_0000_000000000000 where AA=area(01-12), II=action(01-07)
         static Guid MappingId(int areaIdx, int actionIdx)
-            => new($"30{areaIdx:D2}{actionIdx:D2}000-0000-0000-0000-000000000000");
+            => new($"3000{areaIdx:D2}{actionIdx:D2}-0000-0000-0000-000000000000");
 
         // (areaId, areaName, areaIndex) × actions[]
         var desiredMappings = new List<(Guid AreaId, string AreaName, int AreaIdx, Guid ActionId, string ActionName, int ActionIdx)>
