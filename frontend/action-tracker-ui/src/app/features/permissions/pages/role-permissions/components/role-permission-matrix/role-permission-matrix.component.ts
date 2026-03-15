@@ -84,10 +84,9 @@ export class RolePermissionMatrixComponent {
 
     this.rolePermissionService
       .create({
-        roleName:     this.matrix().roleName,
-        areaId:       mapping.areaId,
-        actionId:     mapping.actionId,
-        orgUnitScope: 0, // All org units
+        roleName: this.matrix().roleName,
+        areaId:   mapping.areaId,
+        actionId: mapping.actionId,
       })
       .subscribe({
         next:  () => { this.saving.set(false); this.permissionChanged.emit(); },
