@@ -29,6 +29,13 @@ public sealed class PermissionAuthorizationHandler
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
+        // Fail immediately for unauthenticated requests.
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            context.Fail();
+            return;
+        }
+
         // Extract user ID from standard NameIdentifier or OIDC "sub" claim.
         var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                   ?? context.User.FindFirst("sub")?.Value;

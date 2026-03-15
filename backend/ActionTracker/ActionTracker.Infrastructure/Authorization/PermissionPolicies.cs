@@ -29,6 +29,7 @@ public static class PermissionPolicies
     public const string MilestonesCreate = "Milestones.Create";
     public const string MilestonesEdit   = "Milestones.Edit";
     public const string MilestonesDelete = "Milestones.Delete";
+    public const string MilestonesAssign = "Milestones.Assign";
 
     // ── Action Items ──────────────────────────────────────────────────────────
     public const string ActionItemsView   = "ActionItems.View";
@@ -52,6 +53,9 @@ public static class PermissionPolicies
     // ── Reports ───────────────────────────────────────────────────────────────
     public const string ReportsView   = "Reports.View";
     public const string ReportsExport = "Reports.Export";
+    public const string ReportsCreate = "Reports.Create";
+    public const string ReportsEdit   = "Reports.Edit";
+    public const string ReportsDelete = "Reports.Delete";
 
     // ── OrgChart ──────────────────────────────────────────────────────────────
     public const string OrgChartView   = "OrgChart.View";
@@ -66,8 +70,16 @@ public static class PermissionPolicies
     public const string UserManagementDelete = "UserManagement.Delete";
 
     // ── Permissions Management ────────────────────────────────────────────────
-    public const string PermissionsManagementView   = "PermissionsManagement.View";
-    public const string PermissionsManagementCreate = "PermissionsManagement.Create";
-    public const string PermissionsManagementEdit   = "PermissionsManagement.Edit";
-    public const string PermissionsManagementDelete = "PermissionsManagement.Delete";
+    public const string PermissionsManagementView    = "PermissionsManagement.View";
+    public const string PermissionsManagementCreate  = "PermissionsManagement.Create";
+    public const string PermissionsManagementEdit    = "PermissionsManagement.Edit";
+    public const string PermissionsManagementDelete  = "PermissionsManagement.Delete";
+    public const string PermissionsManagementApprove = "PermissionsManagement.Approve";
+
+    // ── Roles ─────────────────────────────────────────────────────────────────
+    public const string RolesView   = "Roles.View";
+    public const string RolesCreate = "Roles.Create";
+    public const string RolesEdit   = "Roles.Edit";
+    public const string RolesDelete = "Roles.Delete";
+    public const string RolesAssign = "Roles.Assign";
 }
