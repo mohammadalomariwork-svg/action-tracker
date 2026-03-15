@@ -1,0 +1,120 @@
+<div class="rp-page">
+
+  <app-admin-breadcrumb [items]="[
+    { label: 'Admin', route: '/admin' },
+    { label: 'Roles', route: '/admin/roles' },
+    { label: roleName() + ' — Permissions' }
+  ]" class="mb-3 d-block" />
+
+  <app-page-header
+    [title]="roleName() + ' — Permissions'"
+    subtitle="Configure which permissions are granted to this role"
+    icon="bi bi-key"
+  >
+    <button class="btn btn-outline-secondary btn-sm" (click)="goBack()">
+      <i class="bi bi-arrow-left me-1"></i>Back to Roles
+    </button>
+  </app-page-header>
+
+  <!-- ── Loading ─────────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading…</span></div>
+      <p class="text-muted mt-2">Loading permissions matrix…</p>
+    </div>
+  }
+
+  <!-- ── Error ───────────────────────────────────────────────────────────────── -->
+  @if (error() && !loading()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>{{ error() }}
+      <button class="btn btn-sm btn-outline-danger ms-auto" (click)="loadMatrix()">Retry</button>
+    </div>
+  }
+
+  <!-- ── Matrix ──────────────────────────────────────────────────────────────── -->
+  @if (!loading() && !error() && matrix()) {
+
+    @if (areas().length === 0) {
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-table display-4 d-block mb-3"></i>
+        <p>No permission catalog entries found. Configure the catalog first.</p>
+      </div>
+    } @else {
+
+      <div class="rp-table-wrapper">
+        <table class="table table-bordered rp-matrix">
+          <thead class="table-light">
+            <tr>
+              <th class="rp-area-col">Area</th>
+              @for (action of actions(); track action.id) {
+                <th class="rp-action-col text-center">{{ action.displayName }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (area of areas(); track area.id) {
+              <tr>
+                <td class="rp-area-cell fw-semibold">{{ area.displayName }}</td>
+                @for (action of actions(); track action.id) {
+                  <td class="rp-cell text-center">
+                    @if (hasMappingFor(area.id, action.id)) {
+                      @let cell = getCellState(area.id, action.id);
+                      @if (cell) {
+                        <div class="rp-cell-inner">
+                          <input
+                            type="checkbox"
+                            class="form-check-input rp-checkbox"
+                            [checked]="cell.checked"
+                            (change)="toggleCell(area.id, action.id)"
+                          />
+                          @if (cell.checked) {
+                            <div class="rp-scope mt-1">
+                              <select
+                                class="form-select form-select-sm"
+                                [ngModel]="cell.orgUnitScope"
+                                (ngModelChange)="setScopeForCell(area.id, action.id, +$event)"
+                              >
+                                <option [value]="0">All Org Units</option>
+                                <option [value]="1">Specific Org Unit</option>
+                                <option [value]="2">Own Only</option>
+                              </select>
+                              @if (cell.orgUnitScope === 1) {
+                                <input
+                                  type="text"
+                                  class="form-control form-control-sm mt-1"
+                                  placeholder="Org Unit ID or Name"
+                                  [ngModel]="cell.orgUnitId"
+                                  (ngModelChange)="setOrgUnitForCell(area.id, action.id, $event)"
+                                />
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    } @else {
+                      <span class="text-muted rp-dash">—</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Save button -->
+      <div class="rp-actions mt-3 d-flex justify-content-end">
+        <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Edit'"
+                class="btn btn-primary"
+                (click)="savePermissions()"
+                [disabled]="saving()">
+          @if (saving()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+          <i class="bi bi-floppy me-1"></i>Save Permissions
+        </button>
+      </div>
+
+    }
+  }
+
+</div>

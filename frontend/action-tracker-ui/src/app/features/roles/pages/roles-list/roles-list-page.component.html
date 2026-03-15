@@ -1,0 +1,154 @@
+<div class="rl-page">
+
+  <app-admin-breadcrumb [items]="[{ label: 'Admin', route: '/admin' }, { label: 'Roles' }]" class="mb-3 d-block" />
+
+  <app-page-header
+    title="Role Management"
+    subtitle="Manage application roles and their permissions"
+    icon="bi bi-shield-lock"
+  >
+    <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Create'"
+            class="btn btn-primary btn-sm" (click)="openAddForm()">
+      <i class="bi bi-plus-circle me-1"></i>Add Role
+    </button>
+  </app-page-header>
+
+  <!-- ── Loading ─────────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+      <p class="text-muted mt-2">Loading roles…</p>
+    </div>
+  }
+
+  <!-- ── Error ───────────────────────────────────────────────────────────────── -->
+  @if (error() && !loading()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      {{ error() }}
+      <button class="btn btn-sm btn-outline-danger ms-auto" (click)="loadRoles()">Retry</button>
+    </div>
+  }
+
+  <!-- ── Role cards grid ─────────────────────────────────────────────────────── -->
+  @if (!loading() && !error()) {
+    @if (roles().length === 0) {
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-shield-x display-4 d-block mb-3"></i>
+        <p class="mb-3">No roles found.</p>
+        <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Create'"
+                class="btn btn-primary" (click)="openAddForm()">
+          <i class="bi bi-plus-circle me-1"></i>Add First Role
+        </button>
+      </div>
+    } @else {
+      <div class="row g-3">
+        @for (role of roles(); track role.id) {
+          <div class="col-xl-4 col-lg-6 col-12">
+            <div class="card rl-role-card h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <h5 class="card-title fw-bold mb-0">{{ role.name }}</h5>
+                  <button *appHasPermission="'Roles'" [appHasPermissionAction]="'Delete'"
+                          class="btn btn-outline-danger btn-sm"
+                          (click)="openDeleteConfirm(role)"
+                          title="Delete role">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                  <span class="badge bg-primary-subtle text-primary-emphasis">
+                    <i class="bi bi-people me-1"></i>{{ role.userCount }} Users
+                  </span>
+                  <span class="badge bg-success-subtle text-success-emphasis">
+                    <i class="bi bi-shield-check me-1"></i>{{ role.permissionCount }} Permissions
+                  </span>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                  <button class="btn btn-outline-primary btn-sm flex-grow-1"
+                          (click)="goToPermissions(role)">
+                    <i class="bi bi-key me-1"></i>Manage Permissions
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm flex-grow-1"
+                          (click)="goToUsers(role)">
+                    <i class="bi bi-people me-1"></i>Manage Users
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>
+
+<!-- ══ Add Role Modal ══════════════════════════════════════════════════════════ -->
+@if (showAddForm()) {
+  <div class="modal d-block rl-modal-backdrop" tabindex="-1" (click)="closeAddForm()">
+    <div class="modal-dialog modal-sm modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Role</h5>
+          <button type="button" class="btn-close" (click)="closeAddForm()"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label" for="newRoleName">Role Name</label>
+          <input
+            id="newRoleName"
+            class="form-control"
+            type="text"
+            placeholder="e.g. ProjectManager"
+            [ngModel]="newRoleName()"
+            (ngModelChange)="newRoleName.set($event)"
+            (keyup.enter)="createRole()"
+          />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeAddForm()" [disabled]="addingRole()">Cancel</button>
+          <button class="btn btn-primary" (click)="createRole()" [disabled]="addingRole() || !newRoleName().trim()">
+            @if (addingRole()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            Create Role
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══ Delete Confirmation Modal ═══════════════════════════════════════════════ -->
+@if (confirmDelete()) {
+  <div class="modal d-block rl-modal-backdrop" tabindex="-1" (click)="cancelDelete()">
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title text-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Role
+          </h5>
+          <button type="button" class="btn-close" (click)="cancelDelete()"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete the role <strong>{{ deletingRole()?.name }}</strong>?
+          This action cannot be undone.</p>
+          @if (deleteError()) {
+            <div class="alert alert-danger py-2">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ deleteError() }}
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="cancelDelete()" [disabled]="deletingInProgress()">Cancel</button>
+          <button class="btn btn-danger" (click)="doDelete()" [disabled]="deletingInProgress()">
+            @if (deletingInProgress()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,74 @@
+.rp-page {
+  padding: 1.5rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.rp-table-wrapper {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #dee2e6;
+}
+
+.rp-matrix {
+  min-width: 600px;
+  margin-bottom: 0;
+
+  th, td {
+    vertical-align: top;
+    padding: 0.5rem;
+  }
+}
+
+.rp-area-col {
+  width: 180px;
+  min-width: 180px;
+  position: sticky;
+  left: 0;
+  background: var(--bs-table-bg, #fff);
+  z-index: 1;
+}
+
+.rp-area-cell {
+  position: sticky;
+  left: 0;
+  background: var(--bs-table-bg, #fff);
+  z-index: 1;
+  border-right: 2px solid #dee2e6;
+}
+
+.rp-action-col {
+  min-width: 140px;
+  font-size: 0.85rem;
+}
+
+.rp-cell {
+  min-width: 140px;
+  padding: 0.4rem;
+}
+
+.rp-cell-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rp-checkbox {
+  width: 1.25em;
+  height: 1.25em;
+  cursor: pointer;
+}
+
+.rp-scope {
+  width: 100%;
+  max-width: 130px;
+}
+
+.rp-dash {
+  color: #adb5bd;
+  font-size: 1.1rem;
+}
+
+.rp-actions {
+  gap: 0.5rem;
+}

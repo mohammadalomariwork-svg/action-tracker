@@ -54,4 +54,28 @@ export const ADMIN_ROUTES: Routes = [
       import('../permissions/pages/user-overrides/user-overrides-page.component')
         .then(m => m.UserOverridesPageComponent),
   },
+  {
+    path: 'roles',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Roles', requiredAction: 'View' },
+    loadComponent: () =>
+      import('../roles/pages/roles-list/roles-list-page.component')
+        .then(m => m.RolesListPageComponent),
+  },
+  {
+    path: 'roles/:roleName/permissions',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Roles', requiredAction: 'Edit' },
+    loadComponent: () =>
+      import('../roles/pages/role-permissions/role-permissions-page.component')
+        .then(m => m.RolePermissionsPageComponent),
+  },
+  {
+    path: 'roles/:roleName/users',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Roles', requiredAction: 'Assign' },
+    loadComponent: () =>
+      import('../roles/pages/role-users/role-users-page.component')
+        .then(m => m.RoleUsersPageComponent),
+  },
 ];
