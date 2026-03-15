@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { BehaviorSubject, throwError } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { PermissionStateService } from '../../features/permissions/services/permission-state.service';
 
 // Paths that must never have a token attached and must never trigger a
 // refresh attempt (avoids loops and redundant headers on public endpoints).
@@ -23,7 +24,8 @@ function withBearer(req: HttpRequest<unknown>, token: string): HttpRequest<unkno
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
+  const authService     = inject(AuthService);
+  const permissionState = inject(PermissionStateService);
 
   // Skip public auth endpoints entirely — no token injection, no 401 handling.
   if (SKIP_URLS.some(url => req.url.includes(url))) {
@@ -61,6 +63,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       return authService.refreshToken().pipe(
         switchMap(response => {
           isRefreshing$.next(false);
+          // Reload permissions outside the current HTTP chain to avoid circular
+          // dependency (PermissionStateService → HttpClient → authInterceptor).
+          queueMicrotask(() => permissionState.loadPermissions().subscribe());
           // Retry the original request with the new token.
           return next(withBearer(req, response.accessToken));
         }),

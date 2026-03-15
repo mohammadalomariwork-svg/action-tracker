@@ -2,6 +2,7 @@ import {
   APP_INITIALIZER,
   ApplicationConfig,
   importProvidersFrom,
+  inject,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
@@ -11,12 +12,15 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 import { MsalBroadcastService, MsalModule, MsalService } from '@azure/msal-angular';
 import { InteractionType, PublicClientApplication } from '@azure/msal-browser';
+import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { getMsalConfig } from './core/auth/msal.config';
+import { AuthService } from './core/services/auth.service';
+import { PermissionStateService } from './features/permissions/services/permission-state.service';
 
 // ── MSAL setup ───────────────────────────────────────────────────────────────
 // The PublicClientApplication instance must be created *outside* appConfig so
@@ -74,6 +78,22 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: () => () => msalInstance.initialize(),
+      multi: true,
+    },
+
+    // Pre-load permissions before the first route guard runs.
+    // Only fires when the user already has a valid session (e.g. hard refresh).
+    // Errors are swallowed so a permissions API failure never blocks bootstrap.
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const authService     = inject(AuthService);
+        const permissionState = inject(PermissionStateService);
+        return () => {
+          if (!authService.isAuthenticated()) return Promise.resolve();
+          return firstValueFrom(permissionState.loadPermissions()).catch(() => null);
+        };
+      },
       multi: true,
     },
 
