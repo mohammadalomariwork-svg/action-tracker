@@ -1,3 +1,4 @@
+using ActionTracker.Application.Permissions;
 using ActionTracker.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -49,14 +50,14 @@ public static class DefaultRolePermissionsSeeder
 
         // ── Build missing rows ────────────────────────────────────────────────
         var now      = DateTime.UtcNow;
-        var toInsert = new List<Application.Permissions.RolePermission>();
+        var toInsert = new List<RolePermission>();
 
         foreach (var (roleName, areaId, areaName, actionId, actionName, scope) in desired)
         {
             var key = new RolePermissionKey(roleName, areaId, actionId);
             if (existingSet.Contains(key)) continue;
 
-            toInsert.Add(new Application.Permissions.RolePermission
+            toInsert.Add(new RolePermission
             {
                 Id         = Guid.NewGuid(),
                 RoleName   = roleName,

@@ -1,13 +1,14 @@
 using ActionTracker.Application.Permissions;
 using ActionTracker.Application.Permissions.DTOs;
 using ActionTracker.Application.RoleManagement.DTOs;
+using ActionTracker.Application.RoleManagement.Services;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace ActionTracker.Application.RoleManagement.Services;
+namespace ActionTracker.Infrastructure.RoleManagement;
 
 public class RoleManagementService : IRoleManagementService
 {

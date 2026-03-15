@@ -27,6 +27,8 @@ using ActionTracker.Application.Helpers;
 using ActionTracker.Application.Permissions.Services;
 using ActionTracker.Application.RoleManagement.Services;
 using ActionTracker.Application.Features.Workspaces.Services;
+using InfraOrgUnitScopeResolver = ActionTracker.Infrastructure.Services.OrgUnitScopeResolver;
+using InfraRoleManagementService = ActionTracker.Infrastructure.RoleManagement.RoleManagementService;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Helpers;
 using ActionTracker.Infrastructure.Services;
@@ -109,10 +111,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserPermissionOverrideService,  UserPermissionOverrideService>();
         services.AddScoped<IEffectivePermissionService,     EffectivePermissionService>();
         services.AddScoped<IPermissionCatalogService,       PermissionCatalogService>();
-        services.AddScoped<IOrgUnitScopeResolver,           OrgUnitScopeResolver>();
+        services.AddScoped<IOrgUnitScopeResolver,           InfraOrgUnitScopeResolver>();
 
         // Role Management
-        services.AddScoped<IRoleManagementService,          RoleManagementService>();
+        services.AddScoped<IRoleManagementService,          InfraRoleManagementService>();
 
         // New auth contract (Application.Features.Auth.IAuthService)
         services.AddScoped<INewAuthService, NewAuthService>();

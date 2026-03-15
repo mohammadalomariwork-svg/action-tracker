@@ -1,9 +1,10 @@
+using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace ActionTracker.Application.Helpers;
+namespace ActionTracker.Infrastructure.Services;
 
 public class OrgUnitScopeResolver : IOrgUnitScopeResolver
 {
