@@ -149,6 +149,18 @@
             (ngModelChange)="onSearchChange()"
           />
         </div>
+        @if (uniqueOrgUnits.length > 0) {
+          <select
+            class="form-select form-select-sm wl-org-filter"
+            [(ngModel)]="orgUnitFilter"
+            (ngModelChange)="onOrgUnitFilterChange()"
+          >
+            <option value="">All Org Units</option>
+            @for (ou of uniqueOrgUnits; track ou.id) {
+              <option [value]="ou.id">{{ ou.name }}</option>
+            }
+          </select>
+        }
       </div>
       <div class="wl-toolbar-right">
         <span class="text-muted">Showing <strong>{{ filteredWorkspaces.length }}</strong> workspaces</span>

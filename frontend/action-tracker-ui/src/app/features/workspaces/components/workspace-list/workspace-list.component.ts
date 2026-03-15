@@ -34,8 +34,10 @@ export class WorkspaceListComponent implements OnInit {
   isLoading   = false;
   errorMessage: string | null = null;
 
-  // Search & sort
+  // Search, sort & org unit filter
   searchTerm = '';
+  orgUnitFilter = '';
+  uniqueOrgUnits: { id: string; name: string }[] = [];
   sortField: 'title' | 'organizationUnit' | 'createdAt' = 'createdAt';
   sortDirection: 'asc' | 'desc' = 'desc';
 
@@ -69,13 +71,14 @@ export class WorkspaceListComponent implements OnInit {
 
     forkJoin({
       workspaces: this.workspaceService.getWorkspaces(),
-      summary: this.workspaceService.getSummary()
+      summary: this.workspaceService.getSummary(this.orgUnitFilter || undefined)
     })
     .pipe(takeUntilDestroyed(this.destroyRef))
     .subscribe({
       next: ({ workspaces, summary }) => {
         this.allWorkspaces = workspaces.data ?? [];
         this.summary = summary.data ?? null;
+        this.deriveUniqueOrgUnits();
         this.applyFilters();
         this.isLoading = false;
       },
@@ -88,6 +91,10 @@ export class WorkspaceListComponent implements OnInit {
 
   applyFilters(): void {
     let result = [...this.allWorkspaces];
+
+    if (this.orgUnitFilter) {
+      result = result.filter(w => w.orgUnitId === this.orgUnitFilter);
+    }
 
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase();
@@ -124,6 +131,25 @@ export class WorkspaceListComponent implements OnInit {
   onSearchChange(): void {
     this.currentPage = 1;
     this.applyFilters();
+  }
+
+  onOrgUnitFilterChange(): void {
+    this.currentPage = 1;
+    this.workspaceService.getSummary(this.orgUnitFilter || undefined)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (res) => { this.summary = res.data ?? null; } });
+    this.applyFilters();
+  }
+
+  private deriveUniqueOrgUnits(): void {
+    const seen = new Set<string>();
+    this.uniqueOrgUnits = [];
+    for (const w of this.allWorkspaces) {
+      if (!w.orgUnitId || seen.has(w.orgUnitId)) continue;
+      seen.add(w.orgUnitId);
+      this.uniqueOrgUnits.push({ id: w.orgUnitId, name: w.organizationUnit });
+    }
+    this.uniqueOrgUnits.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   toggleSort(field: 'title' | 'organizationUnit'): void {

@@ -32,8 +32,10 @@ export class WorkspaceService {
     return this.http.get<ApiResponse<WorkspaceList[]>>(this.apiUrl);
   }
 
-  getSummary(): Observable<ApiResponse<WorkspaceSummary>> {
-    return this.http.get<ApiResponse<WorkspaceSummary>>(`${this.apiUrl}/summary`);
+  getSummary(orgUnitId?: string): Observable<ApiResponse<WorkspaceSummary>> {
+    const params: Record<string, string> = {};
+    if (orgUnitId) params['orgUnitId'] = orgUnitId;
+    return this.http.get<ApiResponse<WorkspaceSummary>>(`${this.apiUrl}/summary`, { params });
   }
 
   getWorkspaceStats(id: string): Observable<ApiResponse<WorkspaceStats>> {
