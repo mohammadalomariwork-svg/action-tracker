@@ -20,7 +20,8 @@
     subtitle="Track key performance indicators"
     icon="bi bi-graph-up-arrow"
   >
-    <button class="btn btn-primary btn-sm" (click)="openAdd()">
+    <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Create'"
+            class="btn btn-primary btn-sm" (click)="openAdd()">
       <i class="bi bi-plus-lg me-1"></i>Add KPI
     </button>
   </app-page-header>
@@ -192,11 +193,13 @@
               <td class="text-end">
                 <div class="d-flex gap-1 justify-content-end">
                   @if (!kpi.isDeleted) {
-                    <button class="btn btn-outline-primary btn-xs" title="Edit"
+                    <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Edit'"
+                            class="btn btn-outline-primary btn-xs" title="Edit"
                             (click)="openEdit(kpi)">
                       <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-outline-danger btn-xs" title="Delete"
+                    <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Delete'"
+                            class="btn btn-outline-danger btn-xs" title="Delete"
                             (click)="onDelete(kpi)">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -260,10 +263,12 @@
 
             <div class="d-flex flex-wrap gap-2">
               @if (!kpi.isDeleted) {
-                <button class="btn btn-outline-primary btn-sm" (click)="openEdit(kpi)">
+                <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Edit'"
+                        class="btn btn-outline-primary btn-sm" (click)="openEdit(kpi)">
                   <i class="bi bi-pencil me-1"></i>Edit
                 </button>
-                <button class="btn btn-outline-danger btn-sm" (click)="onDelete(kpi)">
+                <button *appHasPermission="'KPIs'" [appHasPermissionAction]="'Delete'"
+                        class="btn btn-outline-danger btn-sm" (click)="onDelete(kpi)">
                   <i class="bi bi-trash me-1"></i>Delete
                 </button>
                 <button class="btn btn-outline-info btn-sm" (click)="onManageTargets(kpi)">

@@ -5,6 +5,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { HasPermissionDirective } from '../../../../shared';
 
 import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -22,7 +23,7 @@ import { AssignableUser } from '../../../../core/models/action-item.model';
   selector: 'app-milestone-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective],
   templateUrl: './milestone-section.component.html',
   styleUrl: './milestone-section.component.scss',
 })

@@ -20,11 +20,12 @@ import { OrgUnit }                   from '../../models/org-chart.models';
 import { ObjectiveFormComponent }    from './objective-form.component';
 import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }       from '../../../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective }    from '../../../../shared';
 
 @Component({
   selector: 'app-objectives-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ObjectiveFormComponent, AdminBreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, ObjectiveFormComponent, AdminBreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './objectives-list.component.html',
   styleUrl: './objectives-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

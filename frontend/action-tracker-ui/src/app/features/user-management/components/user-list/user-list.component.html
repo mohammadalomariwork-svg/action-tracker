@@ -11,10 +11,12 @@
     subtitle="Manage users, roles and permissions"
     icon="bi bi-people"
   >
-    <button class="btn btn-outline-primary btn-sm" (click)="navigateToRegisterAD()">
+    <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Create'"
+            class="btn btn-outline-primary btn-sm" (click)="navigateToRegisterAD()">
       <i class="bi bi-person-badge me-1"></i>Add AD User / Search Employee
     </button>
-    <button class="btn btn-primary btn-sm" (click)="navigateToRegisterExternal()">
+    <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Create'"
+            class="btn btn-primary btn-sm" (click)="navigateToRegisterExternal()">
       <i class="bi bi-person-plus me-1"></i>Add External User
     </button>
   </app-page-header>
@@ -193,7 +195,7 @@
                     >✕</button>
                   </div>
                 } @else {
-                  <button
+                  <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Edit'"
                     class="btn btn-outline-primary btn-sm me-1"
                     (click)="openRoleEdit(user)"
                   >Change Role</button>
@@ -203,7 +205,7 @@
                     title="Assign org unit"
                   >User Unit</button>
                   @if (user.isActive) {
-                    <button
+                    <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Delete'"
                       class="btn btn-outline-danger btn-sm"
                       (click)="deactivate(user)"
                     >Deactivate</button>
@@ -263,7 +265,7 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2">
-              <button
+              <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Edit'"
                 class="btn btn-outline-primary btn-sm"
                 (click)="openRoleEdit(user)"
               >Change Role</button>
@@ -272,7 +274,7 @@
                 (click)="openOrgUnitEdit(user)"
               >User Unit</button>
               @if (user.isActive) {
-                <button
+                <button *appHasPermission="'UserManagement'" [appHasPermissionAction]="'Delete'"
                   class="btn btn-outline-danger btn-sm"
                   (click)="deactivate(user)"
                 >Deactivate</button>

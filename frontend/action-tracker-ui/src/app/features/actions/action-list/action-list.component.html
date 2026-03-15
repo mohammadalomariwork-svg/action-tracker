@@ -4,11 +4,13 @@
 
   <!-- Page header -->
   <app-page-header title="Action Items" subtitle="Manage and track all action items" icon="bi bi-list-check">
-    <button class="btn btn-outline" (click)="exportCsv()" [disabled]="exportingCsv()">
+    <button *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Export'"
+            class="btn btn-outline" (click)="exportCsv()" [disabled]="exportingCsv()">
       @if (exportingCsv()) { <span class="spin-sm"></span> } @else { ⬇ }
       Export CSV
     </button>
-    <a routerLink="/actions/new" class="btn btn-primary">+ New Action</a>
+    <a *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Create'"
+       routerLink="/actions/new" class="btn btn-primary">+ New Action</a>
   </app-page-header>
 
   <div class="al-body">
@@ -162,7 +164,8 @@
                         }
                       </p>
                       @if (!hasActiveFilter()) {
-                        <a routerLink="/actions/new" class="btn btn-primary" style="margin-top:1rem">+ New Action</a>
+                        <a *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Create'"
+                           routerLink="/actions/new" class="btn btn-primary" style="margin-top:1rem">+ New Action</a>
                       }
                     </div>
                   </td>
@@ -251,8 +254,10 @@
                   <td class="td-actions">
                     <div class="row-actions">
                       <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view" title="View">👁️</a>
-                      <a [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit" title="Edit">✏️</a>
-                      <button class="row-btn row-btn--delete" title="Delete" (click)="confirmDelete(item.id)">🗑️</button>
+                      <a *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Edit'"
+                         [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit" title="Edit">✏️</a>
+                      <button *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Delete'"
+                              class="row-btn row-btn--delete" title="Delete" (click)="confirmDelete(item.id)">🗑️</button>
                     </div>
                   </td>
 
@@ -310,8 +315,10 @@
               <app-progress-bar [value]="item.progress" />
               <div class="row-actions" style="margin-top:.75rem">
                 <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view">👁️ View</a>
-                <a [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit">✏️ Edit</a>
-                <button class="row-btn row-btn--delete" (click)="confirmDelete(item.id)">🗑️ Delete</button>
+                <a *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Edit'"
+                   [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit">✏️ Edit</a>
+                <button *appHasPermission="'ActionItems'" [appHasPermissionAction]="'Delete'"
+                        class="row-btn row-btn--delete" (click)="confirmDelete(item.id)">🗑️ Delete</button>
               </div>
             </div>
           }

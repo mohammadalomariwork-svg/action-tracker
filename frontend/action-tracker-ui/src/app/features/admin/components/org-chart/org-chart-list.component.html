@@ -8,7 +8,8 @@
     subtitle="Manage organization structure and units"
     icon="bi bi-diagram-3-fill"
   >
-    <button class="btn btn-primary" (click)="onAddRoot()">
+    <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Create'"
+            class="btn btn-primary" (click)="onAddRoot()">
       <i class="bi bi-plus-circle me-1"></i>Add Org Unit
     </button>
   </app-page-header>
@@ -58,7 +59,8 @@
           } @else {
             <div class="text-center py-4">
               <p class="text-muted mb-2">No org units found.</p>
-              <button class="btn btn-primary btn-sm" (click)="onAddRoot()">
+              <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Create'"
+                      class="btn btn-primary btn-sm" (click)="onAddRoot()">
                 <i class="bi bi-plus-circle me-1"></i>Add Root Unit
               </button>
             </div>
@@ -131,17 +133,20 @@
       <!-- Actions -->
       <div class="ocl-actions d-flex gap-1 flex-shrink-0">
         @if (!node.isDeleted && node.level < 10) {
-          <button class="btn btn-outline-success btn-xs" title="Add child"
+          <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Create'"
+                  class="btn btn-outline-success btn-xs" title="Add child"
                   (click)="onAddChild(node); $event.stopPropagation()">
             <i class="bi bi-plus-circle"></i>
           </button>
         }
         @if (!node.isDeleted) {
-          <button class="btn btn-outline-primary btn-xs" title="Edit"
+          <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Edit'"
+                  class="btn btn-outline-primary btn-xs" title="Edit"
                   (click)="onEdit(node); $event.stopPropagation()">
             <i class="bi bi-pencil"></i>
           </button>
-          <button class="btn btn-outline-danger btn-xs" title="Delete"
+          <button *appHasPermission="'OrgChart'" [appHasPermissionAction]="'Delete'"
+                  class="btn btn-outline-danger btn-xs" title="Delete"
                   (click)="onDelete(node); $event.stopPropagation()">
             <i class="bi bi-trash"></i>
           </button>

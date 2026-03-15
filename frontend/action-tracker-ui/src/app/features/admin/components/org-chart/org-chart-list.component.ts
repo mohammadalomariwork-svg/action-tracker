@@ -16,11 +16,12 @@ import { OrgUnit, OrgUnitTree } from '../../models/org-chart.models';
 import { OrgUnitFormComponent }      from './org-unit-form.component';
 import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }       from '../../../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective }    from '../../../../shared';
 
 @Component({
   selector: 'app-org-chart-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, AdminBreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, AdminBreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './org-chart-list.component.html',
   styleUrl: './org-chart-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

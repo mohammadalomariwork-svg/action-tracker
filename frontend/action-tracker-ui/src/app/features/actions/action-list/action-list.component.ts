@@ -25,6 +25,7 @@ import { ProgressBarComponent }   from '../../../shared/components/progress-bar/
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { HasPermissionDirective } from '../../../shared';
 
 export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -49,6 +50,7 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
     FormsModule, ReactiveFormsModule, RouterLink, DatePipe,
     StatusBadgeComponent, PriorityBadgeComponent,
     ProgressBarComponent, ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
+    HasPermissionDirective,
   ],
   templateUrl: './action-list.component.html',
   styleUrl:    './action-list.component.scss',

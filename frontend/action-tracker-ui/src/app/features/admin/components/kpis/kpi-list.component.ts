@@ -20,11 +20,12 @@ import { StrategicObjective }          from '../../models/strategic-objectives.m
 import { KpiFormComponent }            from './kpi-form.component';
 import { AdminBreadcrumbComponent }    from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }         from '../../../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective }      from '../../../../shared';
 
 @Component({
   selector: 'app-kpi-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, KpiFormComponent, AdminBreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, KpiFormComponent, AdminBreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './kpi-list.component.html',
   styleUrl: './kpi-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
