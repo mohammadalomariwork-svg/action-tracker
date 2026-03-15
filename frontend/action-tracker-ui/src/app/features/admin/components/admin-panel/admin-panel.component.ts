@@ -72,6 +72,15 @@ export class AdminPanelComponent {
       color:           'danger',
       permissionArea:  'PermissionsManagement',
     },
+    {
+      id:              'roles',
+      title:           'Roles Management',
+      description:     'Create and manage system roles, assign permissions and users to each role.',
+      icon:            'bi-person-badge-fill',
+      route:           '/admin/roles',
+      color:           'secondary',
+      permissionArea:  'Roles',
+    },
   ];
 
   navigate(route: string): void {
