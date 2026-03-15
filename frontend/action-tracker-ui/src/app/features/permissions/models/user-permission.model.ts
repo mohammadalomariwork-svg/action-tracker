@@ -1,50 +1,46 @@
 export interface UserPermissionOverrideDto {
-  id:              string;
-  userId:          string;
+  id: string;
+  userId: string;
   userDisplayName: string;
-  area:            string;
-  action:          string;
-  orgUnitScope:    string;
-  orgUnitId:       string | null;
-  orgUnitName:     string | null;
-  isGranted:       boolean;
-  reason:          string | null;
-  expiresAt:       string | null;
-  isActive:        boolean;
-  createdAt:       string;
+  areaId: string;
+  areaName: string;
+  actionId: string;
+  actionName: string;
+  orgUnitScope: number;
+  orgUnitScopeLabel: string;
+  orgUnitId?: string;
+  orgUnitName?: string;
+  isGranted: boolean;
+  reason?: string;
+  expiresAt?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface CreateUserPermissionOverrideDto {
-  userId:          string;
+  userId: string;
   userDisplayName: string;
-  area:            number;
-  action:          number;
-  orgUnitScope:    number;
-  orgUnitId?:      string;
-  orgUnitName?:    string;
-  isGranted:       boolean;
-  reason?:         string;
-  expiresAt?:      string;
-}
-
-export interface UpdateUserPermissionOverrideDto {
+  areaId: string;
+  actionId: string;
   orgUnitScope: number;
-  orgUnitId?:   string;
+  orgUnitId?: string;
   orgUnitName?: string;
-  isGranted:    boolean;
-  reason?:      string;
-  expiresAt?:   string;
-  isActive:     boolean;
+  isGranted: boolean;
+  reason?: string;
+  expiresAt?: string;
 }
 
 export interface EffectivePermissionDto {
-  userId:          string;
+  userId: string;
   userDisplayName: string;
-  area:            string;
-  action:          string;
-  isAllowed:       boolean;
-  source:          string;
-  orgUnitScope:    string;
-  orgUnitId:       string | null;
-  orgUnitName:     string | null;
+  areaId: string;
+  areaName: string;
+  actionId: string;
+  actionName: string;
+  isAllowed: boolean;
+  source: string;
+  orgUnitScope: number;
+  orgUnitScopeLabel: string;
+  orgUnitId?: string;
+  orgUnitName?: string;
 }
