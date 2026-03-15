@@ -106,6 +106,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRolePermissionService,          RolePermissionService>();
         services.AddScoped<IUserPermissionOverrideService,  UserPermissionOverrideService>();
         services.AddScoped<IEffectivePermissionService,     EffectivePermissionService>();
+        services.AddScoped<IPermissionCatalogService,       PermissionCatalogService>();
 
         // New auth contract (Application.Features.Auth.IAuthService)
         services.AddScoped<INewAuthService, NewAuthService>();
