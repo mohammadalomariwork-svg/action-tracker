@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.OrgChart.DTOs;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "LocalOrAzureAD")]
 public class OrgUnitsController : ControllerBase
 {
     private readonly IOrgUnitService          _orgUnitService;
@@ -30,6 +31,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Get full org chart tree.</summary>
     [HttpGet("tree")]
+    [Authorize(Policy = PermissionPolicies.OrgChartView)]
     [ProducesResponseType(typeof(ApiResponse<OrgUnitTreeDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTree(
         [FromQuery] bool includeDeleted = false,
@@ -47,6 +49,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Get a paged flat list of all org units.</summary>
     [HttpGet]
+    [Authorize(Policy = PermissionPolicies.OrgChartView)]
     [ProducesResponseType(typeof(ApiResponse<OrgUnitListResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int  page           = 1,
@@ -68,6 +71,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Get a single org unit by ID.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.OrgChartView)]
     [ProducesResponseType(typeof(ApiResponse<OrgUnitDto>),  StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),      StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct = default)
@@ -87,6 +91,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Get all direct children of an org unit.</summary>
     [HttpGet("{id:guid}/children")]
+    [Authorize(Policy = PermissionPolicies.OrgChartView)]
     [ProducesResponseType(typeof(ApiResponse<List<OrgUnitDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),           StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetChildren(Guid id, CancellationToken ct = default)
@@ -110,6 +115,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Create a new org unit.</summary>
     [HttpPost]
+    [Authorize(Policy = PermissionPolicies.OrgChartCreate)]
     [ProducesResponseType(typeof(ApiResponse<OrgUnitDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),     StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>),     StatusCodes.Status409Conflict)]
@@ -146,6 +152,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Update an existing org unit.</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.OrgChartEdit)]
     [ProducesResponseType(typeof(ApiResponse<OrgUnitDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),     StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>),     StatusCodes.Status404NotFound)]
@@ -180,6 +187,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Soft-delete an org unit and all its descendants.</summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.OrgChartDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SoftDelete(Guid id, CancellationToken ct = default)
@@ -203,6 +211,7 @@ public class OrgUnitsController : ControllerBase
 
     /// <summary>Restore a soft-deleted org unit.</summary>
     [HttpPost("{id:guid}/restore")]
+    [Authorize(Policy = PermissionPolicies.OrgChartEdit)]
     [ProducesResponseType(typeof(ApiResponse<OrgUnitDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),     StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Restore(Guid id, CancellationToken ct = default)

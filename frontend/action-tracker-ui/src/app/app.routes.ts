@@ -60,8 +60,8 @@ export const routes: Routes = [
       },
       {
         path: 'management',
-        canActivate: [roleGuard],
-        data: { roles: ['Admin', 'Manager'] },
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'Action Items', requiredAction: 'View' },
         loadComponent: () =>
           import('./features/management/management-dashboard/management-dashboard.component').then(
             m => m.ManagementDashboardComponent
@@ -97,8 +97,8 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [roleGuard],
-        data: { roles: ['Admin', 'Manager'] },
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'Reports', requiredAction: 'View' },
         loadComponent: () =>
           import('./features/reports/reports.component').then(
             m => m.ReportsComponent
@@ -132,11 +132,11 @@ export const routes: Routes = [
         path: 'admin',
         loadChildren: () =>
           import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
-        canActivate: [adminGuard],
+        canActivate: [authGuard],
       },
       {
         path: 'admin/users',
-        canActivate: [adminGuard, permissionGuard],
+        canActivate: [permissionGuard],
         data: { requiredArea: 'User Management', requiredAction: 'View' },
         loadChildren: () =>
           import('./features/user-management/user-management.routes').then(

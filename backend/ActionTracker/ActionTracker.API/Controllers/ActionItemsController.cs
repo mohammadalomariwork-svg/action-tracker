@@ -3,6 +3,7 @@ using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Helpers;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -111,9 +112,9 @@ public class ActionItemsController : ControllerBase
     // DELETE api/action-items/{id}   [Admin, Manager only]
     // -------------------------------------------------------------------------
 
-    /// <summary>Soft-deletes an action item. Restricted to Admin and Manager roles.</summary>
+    /// <summary>Soft-deletes an action item.</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.ActionItemsDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -132,7 +133,7 @@ public class ActionItemsController : ControllerBase
 
     /// <summary>Restores a soft-deleted action item. Blocked if its parent project is deleted.</summary>
     [HttpPatch("{id:guid}/restore")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.ActionItemsEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

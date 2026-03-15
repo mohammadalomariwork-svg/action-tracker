@@ -2,6 +2,7 @@ using System;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,14 +13,12 @@ namespace ActionTracker.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = "LocalOrAzureAD")]
 public class WorkspacesController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
     private readonly ILogger<WorkspacesController> _logger;
 
-    /// <summary>
-    /// Initialises a new instance of <see cref="WorkspacesController"/>.
-    /// </summary>
     public WorkspacesController(
         IWorkspaceService workspaceService,
         ILogger<WorkspacesController> logger)
@@ -34,7 +33,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Returns all active workspaces ordered by title.</summary>
     [HttpGet]
-    [Authorize(Policy = "AdminOrManager")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<WorkspaceListDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
@@ -50,7 +49,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Returns aggregate workspace statistics for the dashboard.</summary>
     [HttpGet("summary")]
-    [Authorize(Policy = "AdminOrManager")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceSummaryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary()
     {
@@ -67,7 +66,7 @@ public class WorkspacesController : ControllerBase
     /// <summary>Returns per-workspace statistics for the workspace detail dashboard.</summary>
     /// <param name="id">Primary key of the workspace.</param>
     [HttpGet("{id:guid}/stats")]
-    [Authorize(Policy = "AdminOrManager")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceStatsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),            StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetStats(Guid id)
@@ -88,7 +87,7 @@ public class WorkspacesController : ControllerBase
     /// <summary>Returns the full details of a single workspace.</summary>
     /// <param name="id">Primary key of the workspace.</param>
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "AdminOrManager")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
@@ -127,7 +126,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Creates a new workspace.</summary>
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesCreate)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateWorkspaceDto dto)
@@ -153,7 +152,7 @@ public class WorkspacesController : ControllerBase
     /// <param name="id">Primary key of the workspace to update.</param>
     /// <param name="dto">Update payload. The <c>Id</c> field must match the route.</param>
     [HttpPut("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
@@ -180,7 +179,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Returns a flat list of non-deleted org units for the workspace form dropdown.</summary>
     [HttpGet("org-units")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrgUnitDropdownItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrgUnitsForDropdown()
     {
@@ -196,7 +195,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Returns active users for the workspace admin dropdown.</summary>
     [HttpGet("active-users")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<UserDropdownItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetActiveUsersForDropdown()
     {
@@ -213,7 +212,7 @@ public class WorkspacesController : ControllerBase
     /// <summary>Soft-deletes a workspace by setting it inactive.</summary>
     /// <param name="id">Primary key of the workspace to delete.</param>
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
@@ -234,7 +233,7 @@ public class WorkspacesController : ControllerBase
     /// <summary>Restores a soft-deleted workspace by setting it active again.</summary>
     /// <param name="id">Primary key of the workspace to restore.</param>
     [HttpPatch("{id:guid}/restore")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Restore(Guid id)

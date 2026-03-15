@@ -1,6 +1,7 @@
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.UserManagement.DTOs;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "LocalOrAzureAD")]
 public class UsersController : ControllerBase
 {
     private readonly IUserManagementService      _userManagement;
@@ -28,6 +29,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Returns all role names defined in the system, sorted A → Z.</summary>
     [HttpGet("roles")]
+    [Authorize(Policy = PermissionPolicies.UserManagementView)]
     [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRoles(CancellationToken ct = default)
     {
@@ -41,6 +43,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Get all users with their roles (paged, searchable, sortable).</summary>
     [HttpGet]
+    [Authorize(Policy = PermissionPolicies.UserManagementView)]
     [ProducesResponseType(typeof(ApiResponse<UserListResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllUsers(
         [FromQuery] int    page     = 1,
@@ -64,6 +67,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Get a single user by ID.</summary>
     [HttpGet("{id}", Name = nameof(GetUserById))]
+    [Authorize(Policy = PermissionPolicies.UserManagementView)]
     [ProducesResponseType(typeof(ApiResponse<UserListItemDto>),  StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),           StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(string id, CancellationToken ct = default)
@@ -83,6 +87,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Register a new local (username/password) user and assign a role.</summary>
     [HttpPost("register-external")]
+    [Authorize(Policy = PermissionPolicies.UserManagementCreate)]
     [ProducesResponseType(typeof(ApiResponse<RegisterUserResponseDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),                  StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<string>),                  StatusCodes.Status400BadRequest)]
@@ -119,6 +124,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Register a new Azure AD user (no password) and assign a role.</summary>
     [HttpPost("register-ad")]
+    [Authorize(Policy = PermissionPolicies.UserManagementCreate)]
     [ProducesResponseType(typeof(ApiResponse<RegisterUserResponseDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),                  StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<string>),                  StatusCodes.Status400BadRequest)]
@@ -158,6 +164,7 @@ public class UsersController : ControllerBase
     /// Each result indicates whether the employee is already registered in the system.
     /// </summary>
     [HttpGet("search-employees")]
+    [Authorize(Policy = PermissionPolicies.UserManagementView)]
     [ProducesResponseType(typeof(ApiResponse<EmployeeSearchResultDto[]>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SearchEmployees(
         [FromQuery] string searchTerm,
@@ -185,6 +192,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Replace all roles for a user with the specified role.</summary>
     [HttpPut("update-role")]
+    [Authorize(Policy = PermissionPolicies.UserManagementEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateUserRole(
@@ -215,6 +223,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Deactivate a user account, preventing future logins.</summary>
     [HttpPut("{id}/deactivate")]
+    [Authorize(Policy = PermissionPolicies.UserManagementEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
@@ -243,6 +252,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Reactivate a previously deactivated user account.</summary>
     [HttpPut("{id}/reactivate")]
+    [Authorize(Policy = PermissionPolicies.UserManagementEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
@@ -271,6 +281,7 @@ public class UsersController : ControllerBase
 
     /// <summary>Assign (or unassign) an org unit for a user.</summary>
     [HttpPut("{id}/assign-org-unit")]
+    [Authorize(Policy = PermissionPolicies.UserManagementEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]

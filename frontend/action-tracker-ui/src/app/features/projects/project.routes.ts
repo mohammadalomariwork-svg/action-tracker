@@ -1,21 +1,21 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../../core/guards/auth.guard';
-import { roleGuard } from '../../core/guards/role.guard';
+import { permissionGuard } from '../../core/guards/permission-data.guard';
 
 const projectRoutes: Routes = [
   {
     path: 'new',
     loadComponent: () =>
       import('./components/project-form/project-form.component').then(m => m.ProjectFormComponent),
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['Admin', 'Manager'] },
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredArea: 'Projects', requiredAction: 'Create' },
   },
   {
     path: 'edit/:id',
     loadComponent: () =>
       import('./components/project-form/project-form.component').then(m => m.ProjectFormComponent),
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['Admin', 'Manager'] },
+    canActivate: [authGuard, permissionGuard],
+    data: { requiredArea: 'Projects', requiredAction: 'Edit' },
   },
   {
     path: ':projectId/milestones/:milestoneId',

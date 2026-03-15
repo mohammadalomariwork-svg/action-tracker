@@ -1,6 +1,7 @@
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Dashboard.DTOs;
 using ActionTracker.Application.Features.Dashboard.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,7 +27,7 @@ public class DashboardController : ControllerBase
 
     /// <summary>Returns high-level KPI metrics. Restricted to Admin and Manager roles.</summary>
     [HttpGet("kpis")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.DashboardView)]
     [ProducesResponseType(typeof(ApiResponse<DashboardKpiDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DashboardKpiDto>>> GetKpis(CancellationToken ct)
     {
@@ -47,7 +48,7 @@ public class DashboardController : ControllerBase
     /// Restricted to Admin and Manager roles.
     /// </summary>
     [HttpGet("management")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.DashboardView)]
     [ProducesResponseType(typeof(ApiResponse<ManagementDashboardDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<ManagementDashboardDto>>> GetManagementDashboard(
         CancellationToken ct)

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.StrategicObjectives.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "LocalOrAzureAD")]
 public class StrategicObjectivesController : ControllerBase
 {
     private readonly IStrategicObjectiveService          _service;
@@ -32,6 +33,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Get a paged list of strategic objectives, optionally filtered by org unit.</summary>
     [HttpGet]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesView)]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveListResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int   page           = 1,
@@ -54,6 +56,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Get a single strategic objective by ID.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesView)]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),                StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct = default)
@@ -73,6 +76,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Get all strategic objectives belonging to a specific org unit.</summary>
     [HttpGet("by-orgunit/{orgUnitId:guid}")]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesView)]
     [ProducesResponseType(typeof(ApiResponse<List<StrategicObjectiveDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByOrgUnit(Guid orgUnitId, CancellationToken ct = default)
     {
@@ -88,6 +92,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Create a new strategic objective. ObjectiveCode is auto-generated.</summary>
     [HttpPost]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesCreate)]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),                StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(
@@ -119,6 +124,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Update an existing strategic objective.</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesEdit)]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),                StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>),                StatusCodes.Status404NotFound)]
@@ -153,6 +159,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Soft-delete a strategic objective.</summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SoftDelete(Guid id, CancellationToken ct = default)
@@ -176,6 +183,7 @@ public class StrategicObjectivesController : ControllerBase
 
     /// <summary>Restore a soft-deleted strategic objective.</summary>
     [HttpPost("{id:guid}/restore")]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesEdit)]
     [ProducesResponseType(typeof(ApiResponse<StrategicObjectiveDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),                StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Restore(Guid id, CancellationToken ct = default)

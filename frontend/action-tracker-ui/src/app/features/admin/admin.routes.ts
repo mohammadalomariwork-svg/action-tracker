@@ -17,22 +17,26 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'org-chart',
     component: OrgChartListComponent,
-    canActivate: [adminGuard],
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Org Chart', requiredAction: 'View' },
   },
   {
     path: 'objectives',
     component: ObjectivesListComponent,
-    canActivate: [adminGuard],
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Strategic Objectives', requiredAction: 'View' },
   },
   {
     path: 'kpis',
     component: KpiListComponent,
-    canActivate: [adminGuard],
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'KPIs', requiredAction: 'View' },
   },
   {
     path: 'kpis/:kpiId/targets',
     component: KpiTargetsComponent,
-    canActivate: [adminGuard],
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'KPIs', requiredAction: 'View' },
   },
   {
     path: 'permissions/roles',

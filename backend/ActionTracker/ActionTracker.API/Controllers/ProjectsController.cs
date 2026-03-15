@@ -3,6 +3,7 @@ using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Projects.DTOs;
 using ActionTracker.Application.Features.Projects.Interfaces;
 using ActionTracker.Application.Helpers;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -121,7 +122,7 @@ public class ProjectsController : ControllerBase
 
     /// <summary>Soft-deletes a project and its milestones and action items.</summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.ProjectsDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -139,7 +140,7 @@ public class ProjectsController : ControllerBase
 
     /// <summary>Restores a soft-deleted project and its milestones and action items.</summary>
     [HttpPatch("{id:guid}/restore")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.ProjectsEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

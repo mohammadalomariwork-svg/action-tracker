@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Kpis.DTOs;
 using ActionTracker.Application.Features.Kpis.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace ActionTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "LocalOrAzureAD")]
 public class KpisController : ControllerBase
 {
     private readonly IKpiService          _service;
@@ -30,6 +31,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Get a paged list of KPIs, optionally filtered by strategic objective.</summary>
     [HttpGet]
+    [Authorize(Policy = PermissionPolicies.KPIsView)]
     [ProducesResponseType(typeof(ApiResponse<KpiListResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int   page           = 1,
@@ -52,6 +54,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Get a single KPI with its targets, optionally filtered by year.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.KPIsView)]
     [ProducesResponseType(typeof(ApiResponse<KpiWithTargetsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),            StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(
@@ -74,6 +77,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Get all active KPIs for a specific strategic objective.</summary>
     [HttpGet("by-objective/{objectiveId:guid}")]
+    [Authorize(Policy = PermissionPolicies.KPIsView)]
     [ProducesResponseType(typeof(ApiResponse<List<KpiDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByObjective(Guid objectiveId, CancellationToken ct = default)
     {
@@ -89,6 +93,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Create a new KPI. KpiNumber is auto-assigned per strategic objective.</summary>
     [HttpPost]
+    [Authorize(Policy = PermissionPolicies.KPIsCreate)]
     [ProducesResponseType(typeof(ApiResponse<KpiDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(
@@ -121,6 +126,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Update an existing KPI. StrategicObjectiveId and KpiNumber cannot be changed.</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.KPIsEdit)]
     [ProducesResponseType(typeof(ApiResponse<KpiDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -151,6 +157,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Soft-delete a KPI.</summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.KPIsDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SoftDelete(Guid id, CancellationToken ct = default)
@@ -174,6 +181,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Restore a soft-deleted KPI.</summary>
     [HttpPost("{id:guid}/restore")]
+    [Authorize(Policy = PermissionPolicies.KPIsEdit)]
     [ProducesResponseType(typeof(ApiResponse<KpiDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Restore(Guid id, CancellationToken ct = default)
@@ -198,6 +206,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Insert or update a single KPI target for a specific month.</summary>
     [HttpPost("targets/upsert")]
+    [Authorize(Policy = PermissionPolicies.KPIsEdit)]
     [ProducesResponseType(typeof(ApiResponse<KpiTargetDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),       StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpsertTarget(
@@ -228,6 +237,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Insert or update all monthly targets for a KPI/year combination in one transaction.</summary>
     [HttpPost("targets/bulk-upsert")]
+    [Authorize(Policy = PermissionPolicies.KPIsEdit)]
     [ProducesResponseType(typeof(ApiResponse<List<KpiTargetDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),             StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> BulkUpsertTargets(
@@ -262,6 +272,7 @@ public class KpisController : ControllerBase
 
     /// <summary>Get all targets for a KPI in a specific year.</summary>
     [HttpGet("{id:guid}/targets")]
+    [Authorize(Policy = PermissionPolicies.KPIsView)]
     [ProducesResponseType(typeof(ApiResponse<List<KpiTargetDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTargets(
         Guid id,

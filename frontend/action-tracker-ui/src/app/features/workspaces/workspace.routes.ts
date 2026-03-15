@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { roleGuard } from '../../core/guards/role.guard';
+import { permissionGuard } from '../../core/guards/permission-data.guard';
 
 import { WorkspaceListComponent } from './components/workspace-list/workspace-list.component';
 import { WorkspaceFormComponent } from './components/workspace-form/workspace-form.component';
@@ -9,26 +9,26 @@ const workspaceRoutes: Routes = [
   {
     path: '',
     component: WorkspaceListComponent,
-    canActivate: [roleGuard],
-    data: { roles: ['Admin', 'Manager'] },
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Workspaces', requiredAction: 'View' },
   },
   {
     path: 'new',
     component: WorkspaceFormComponent,
-    canActivate: [roleGuard],
-    data: { roles: ['Admin'] },
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Workspaces', requiredAction: 'Create' },
   },
   {
     path: 'edit/:id',
     component: WorkspaceFormComponent,
-    canActivate: [roleGuard],
-    data: { roles: ['Admin'] },
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Workspaces', requiredAction: 'Edit' },
   },
   {
     path: ':id',
     component: WorkspaceDetailComponent,
-    canActivate: [roleGuard],
-    data: { roles: ['Admin', 'Manager'] },
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Workspaces', requiredAction: 'View' },
   },
 ];
 

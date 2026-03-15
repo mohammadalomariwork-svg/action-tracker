@@ -2,6 +2,7 @@ using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Dashboard.DTOs;
 using ActionTracker.Application.Features.Reports.DTOs;
 using ActionTracker.Application.Features.Reports.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,7 +30,7 @@ public class ReportsController : ControllerBase
     /// Exports filtered action items to a UTF-8 CSV file (BOM-prefixed for Excel).
     /// </summary>
     [HttpGet("export-csv")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.ReportsExport)]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExportCsv(
         [FromQuery] ExportRequestDto filter, CancellationToken ct)
@@ -49,7 +50,7 @@ public class ReportsController : ControllerBase
 
     /// <summary>Returns high-level KPI summary statistics.</summary>
     [HttpGet("summary")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = PermissionPolicies.ReportsView)]
     [ProducesResponseType(typeof(ApiResponse<DashboardKpiDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DashboardKpiDto>>> GetSummary(CancellationToken ct)
     {
