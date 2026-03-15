@@ -46,9 +46,10 @@ public class WorkspaceService : IWorkspaceService
                 .Include(w => w.Admins)
                 .AsQueryable();
 
-            // Apply org unit scope filter when the user has a scoped org unit
+            // Apply org unit scope filter when the user has a scoped org unit.
+            // Only workspaces explicitly mapped to a visible org unit are returned.
             if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0)
-                baseQuery = baseQuery.Where(w => w.OrgUnitId == null || visibleOrgUnitIds.Contains(w.OrgUnitId.Value));
+                baseQuery = baseQuery.Where(w => w.OrgUnitId != null && visibleOrgUnitIds.Contains(w.OrgUnitId.Value));
 
             var list = await baseQuery
                 .OrderByDescending(w => w.CreatedAt)

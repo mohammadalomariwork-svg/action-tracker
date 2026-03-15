@@ -61,8 +61,15 @@ public class ActionItemService : IActionItemService
         if (!string.IsNullOrWhiteSpace(filter.AssigneeId))
             query = query.Where(a => a.Assignees.Any(aa => aa.UserId == filter.AssigneeId));
 
+        // Filter action items whose workspace belongs to a visible org unit.
         if (filter.VisibleOrgUnitIds != null && filter.VisibleOrgUnitIds.Count > 0)
-            query = query.Where(a => a.Workspace == null || a.Workspace.OrgUnitId == null || filter.VisibleOrgUnitIds.Contains(a.Workspace.OrgUnitId.Value));
+        {
+            var ids = filter.VisibleOrgUnitIds;
+            query = query.Where(a =>
+                a.Workspace != null &&
+                a.Workspace.OrgUnitId != null &&
+                ids.Contains(a.Workspace.OrgUnitId.Value));
+        }
 
         // Full-text search across title, description, and assignee identity
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
