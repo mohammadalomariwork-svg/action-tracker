@@ -52,7 +52,7 @@ export class RoleManagementService {
   }
 
   assignPermissionsToRole(dto: AssignRolePermissionsDto): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/${dto.roleName}/permissions`, dto);
+    return this.http.post<void>(`${this.baseUrl}/${dto.roleName}/permissions`, dto);
   }
 
   assignUsersToRole(dto: AssignUsersToRoleDto): Observable<void> {
