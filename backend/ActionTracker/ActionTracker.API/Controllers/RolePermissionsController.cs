@@ -117,8 +117,8 @@ public class RolePermissionsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateRolePermissionDto dto)
     {
         _logger.LogInformation(
-            "POST /api/role-permissions role={Role} area={Area} action={Action}",
-            dto.RoleName, dto.Area, dto.Action);
+            "POST /api/role-permissions role={Role} areaId={AreaId} actionId={ActionId}",
+            dto.RoleName, dto.AreaId, dto.ActionId);
 
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));

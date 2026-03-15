@@ -80,8 +80,8 @@ public class UserPermissionsController : ControllerBase
     public async Task<IActionResult> CreateOverride([FromBody] CreateUserPermissionOverrideDto dto)
     {
         _logger.LogInformation(
-            "POST /api/user-permissions/overrides userId={UserId} area={Area} action={Action}",
-            dto.UserId, dto.Area, dto.Action);
+            "POST /api/user-permissions/overrides userId={UserId} areaId={AreaId} actionId={ActionId}",
+            dto.UserId, dto.AreaId, dto.ActionId);
 
         if (!ModelState.IsValid)
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
