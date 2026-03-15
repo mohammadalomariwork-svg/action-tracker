@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, forkJoin } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { EffectivePermissionDto } from '../models/user-permission.model';
 import { UserPermissionService } from './user-permission.service';
 import { environment } from '../../../../../environments/environment';
@@ -29,7 +29,9 @@ export class PermissionStateService {
   loadPermissions(): Observable<[EffectivePermissionDto[], string[]]> {
     return forkJoin([
       this.userPermissionService.getMyEffectivePermissions(),
-      this.http.get<string[]>(`${environment.apiUrl}/users/me/org-units`),
+      this.http
+        .get<{ orgUnitIds: string[]; count: number }>(`${environment.apiUrl}/users/me/org-units`)
+        .pipe(map(r => r.orgUnitIds)),
     ]).pipe(
       tap(([permissions, orgUnitIds]) => {
         this._permissions$.next(permissions);
@@ -69,10 +71,17 @@ export class PermissionStateService {
   }
 
   /**
-   * Returns true if the given org unit ID is in the user's visible set.
+   * Returns true if the given org unit ID is in the user's visible set,
+   * if the visible list is empty (global/admin access),
+   * or if the user has a Workspaces permission with orgUnitScope 0 (All Org Units).
    */
   canSeeOrgUnit(orgUnitId: string): boolean {
-    return this._visibleOrgUnitIds$.value.includes(orgUnitId);
+    const ids = this._visibleOrgUnitIds$.value;
+    if (!ids || ids.length === 0) return true;
+    if (ids.includes(orgUnitId)) return true;
+    return this._permissions$.value.some(
+      p => p.areaName.toLowerCase() === 'workspaces' && p.isAllowed && p.orgUnitScope === 0
+    );
   }
 
   /**

@@ -9,6 +9,8 @@ import { WorkspaceService } from '../../services/workspace.service';
 import { WorkspaceList, WorkspaceSummary } from '../../models/workspace.model';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { PermissionStateService } from '../../../permissions/services/permission-state.service';
+import { filterByOrgUnit } from '../../../../shared/utils/org-unit-filter.util';
 
 @Component({
   selector: 'app-workspace-list',
@@ -18,9 +20,10 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
   styleUrl: './workspace-list.component.scss',
 })
 export class WorkspaceListComponent implements OnInit {
-  private readonly workspaceService = inject(WorkspaceService);
-  private readonly router           = inject(Router);
-  private readonly destroyRef       = inject(DestroyRef);
+  private readonly workspaceService   = inject(WorkspaceService);
+  private readonly router             = inject(Router);
+  private readonly destroyRef         = inject(DestroyRef);
+  private readonly permissionStateSvc = inject(PermissionStateService);
 
   // Data
   allWorkspaces: WorkspaceList[] = [];
@@ -57,7 +60,8 @@ export class WorkspaceListComponent implements OnInit {
     .pipe(takeUntilDestroyed(this.destroyRef))
     .subscribe({
       next: ({ workspaces, summary }) => {
-        this.allWorkspaces = workspaces.data ?? [];
+        const all = workspaces.data ?? [];
+        this.allWorkspaces = filterByOrgUnit(all, this.permissionStateSvc.getVisibleOrgUnitIds());
         this.summary = summary.data ?? null;
         this.applyFilters();
         this.isLoading = false;

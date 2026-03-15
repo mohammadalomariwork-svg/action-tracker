@@ -26,6 +26,8 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../shared';
+import { PermissionStateService } from '../../permissions/services/permission-state.service';
+import { filterByOrgUnit }        from '../../../shared/utils/org-unit-filter.util';
 
 export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -56,11 +58,12 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
   styleUrl:    './action-list.component.scss',
 })
 export class ActionListComponent implements OnInit, OnDestroy {
-  private readonly actionSvc  = inject(ActionItemService);
-  private readonly userSvc    = inject(UserService);
-  private readonly toastSvc   = inject(ToastService);
-  private readonly reportSvc  = inject(ReportService);
-  readonly router             = inject(Router);
+  private readonly actionSvc          = inject(ActionItemService);
+  private readonly userSvc            = inject(UserService);
+  private readonly toastSvc           = inject(ToastService);
+  private readonly reportSvc          = inject(ReportService);
+  private readonly permissionStateSvc = inject(PermissionStateService);
+  readonly router                     = inject(Router);
   private readonly destroy$   = new Subject<void>();
 
   @ViewChild('deleteDialog') deleteDialog!: ConfirmDialogComponent;
@@ -156,7 +159,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.actionSvc.getAll(filter).subscribe({
       next: r => {
         const paged: PagedResult<ActionItem> = r.data;
-        this.items.set(paged.items);
+        const filtered = filterByOrgUnit(paged.items, this.permissionStateSvc.getVisibleOrgUnitIds());
+        this.items.set(filtered);
         this.totalCount.set(paged.totalCount);
         this.loading.set(false);
       },
