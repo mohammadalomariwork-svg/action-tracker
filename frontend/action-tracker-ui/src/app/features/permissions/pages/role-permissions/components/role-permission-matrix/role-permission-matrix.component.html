@@ -37,12 +37,13 @@
       <!-- Body rows: one per permission area -->
       <tbody>
         @for (area of allAreas; track area) {
-          <app-role-permission-row
+          <tr
+            app-role-permission-row
             [area]="area"
             [permissionMap]="permissionMap()"
             [saving]="saving()"
             (toggleChanged)="onToggleChanged($event)"
-          />
+          ></tr>
         }
       </tbody>
 

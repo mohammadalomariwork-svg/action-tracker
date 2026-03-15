@@ -30,7 +30,7 @@ const APPLICABLE_ACTIONS = new Map<PermissionArea, Set<PermissionAction>>([
 ]);
 
 @Component({
-  selector: 'app-role-permission-row',
+  selector: 'tr[app-role-permission-row]',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './role-permission-row.component.html',

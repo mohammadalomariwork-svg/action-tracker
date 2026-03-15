@@ -28,11 +28,12 @@ public static class RoleSeeder
         AppRoles.ProjectCoordinator,
         AppRoles.TeamMember,
 
-        // Legacy — already in DB; seeder will skip them via RoleExistsAsync
-        AppRoles.Manager,
-        AppRoles.User,
+        // Legacy read-only role
         AppRoles.Viewer,
     ];
+
+    /// <summary>Roles that have been retired and should be deleted on startup.</summary>
+    private static readonly string[] DeprecatedRoles = [AppRoles.Manager, AppRoles.User];
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -41,6 +42,20 @@ public static class RoleSeeder
         var logger            = scope.ServiceProvider
                                      .GetRequiredService<ILoggerFactory>()
                                      .CreateLogger(nameof(RoleSeeder));
+
+        // Delete deprecated roles if they still exist in the database.
+        foreach (var deprecated in DeprecatedRoles)
+        {
+            var existing = await roleManager.FindByNameAsync(deprecated);
+            if (existing is null) continue;
+
+            var deleteResult = await roleManager.DeleteAsync(existing);
+            if (deleteResult.Succeeded)
+                logger.LogInformation("Deprecated role '{Role}' deleted.", deprecated);
+            else
+                logger.LogWarning("Failed to delete deprecated role '{Role}': {Errors}",
+                    deprecated, string.Join(", ", deleteResult.Errors.Select(e => e.Description)));
+        }
 
         foreach (var role in Roles)
         {
