@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.UserManagement.DTOs;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,14 +15,17 @@ namespace ActionTracker.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserManagementService      _userManagement;
+    private readonly IOrgUnitScopeResolver       _orgUnitScopeResolver;
     private readonly ILogger<UsersController>    _logger;
 
     public UsersController(
         IUserManagementService   userManagement,
+        IOrgUnitScopeResolver    orgUnitScopeResolver,
         ILogger<UsersController> logger)
     {
-        _userManagement = userManagement;
-        _logger         = logger;
+        _userManagement       = userManagement;
+        _orgUnitScopeResolver = orgUnitScopeResolver;
+        _logger               = logger;
     }
 
     // -------------------------------------------------------------------------
@@ -310,5 +315,31 @@ public class UsersController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET api/users/me/org-units
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns the org unit IDs visible to the currently authenticated user.
+    /// Includes the user's own org unit and all descendants.
+    /// Returns an empty list when the user has no assigned org unit.
+    /// </summary>
+    [HttpGet("me/org-units")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyOrgUnits(CancellationToken ct = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var orgUnitIds = await _orgUnitScopeResolver.GetUserOrgUnitIdsAsync(userId);
+
+        return Ok(new
+        {
+            orgUnitIds = orgUnitIds.Select(id => id.ToString()).ToList(),
+            count      = orgUnitIds.Count,
+        });
     }
 }
