@@ -22,6 +22,8 @@ export interface Workspace {
   title: string;
   /** Name of the organisational unit this workspace belongs to. */
   organizationUnit: string;
+  /** ID of the organisational unit (for access scoping). */
+  orgUnitId?: string;
   /** All admin users assigned to this workspace. */
   admins: WorkspaceAdmin[];
   /** Whether the workspace is currently active. */
@@ -44,6 +46,7 @@ export interface WorkspaceList {
   id: string;
   title: string;
   organizationUnit: string;
+  orgUnitId?: string;
   adminUserNames: string;
   isActive: boolean;
   createdAt: string;
@@ -90,6 +93,8 @@ export interface CreateWorkspace {
   title: string;
   /** Name of the organisational unit the workspace belongs to. */
   organizationUnit: string;
+  /** ID of the organisational unit (for access scoping). */
+  orgUnitId?: string;
   /** One or more admin users to assign (at least one required). */
   admins: WorkspaceAdmin[];
 }
@@ -104,6 +109,8 @@ export interface UpdateWorkspace {
   title: string;
   /** Updated organisational unit name. */
   organizationUnit: string;
+  /** ID of the organisational unit (for access scoping). */
+  orgUnitId?: string;
   /** Replacement admin user list (replaces the entire existing list). */
   admins: WorkspaceAdmin[];
   /** Set to `false` to deactivate the workspace. */

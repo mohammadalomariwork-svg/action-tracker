@@ -30,6 +30,11 @@ public class UpdateWorkspaceDto
     public string OrganizationUnit { get; set; } = string.Empty;
 
     /// <summary>
+    /// ID of the organisational unit (used for access scoping).
+    /// </summary>
+    public Guid? OrgUnitId { get; set; }
+
+    /// <summary>
     /// Replacement admin user list. The existing admin list is fully replaced
     /// by this set. At least one admin is required.
     /// </summary>

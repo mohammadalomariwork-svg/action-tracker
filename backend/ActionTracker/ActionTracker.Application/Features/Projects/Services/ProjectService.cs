@@ -54,6 +54,9 @@ public class ProjectService : IProjectService
                 (p.Description != null && p.Description.ToLower().Contains(term)));
         }
 
+        if (filter.VisibleOrgUnitIds != null && filter.VisibleOrgUnitIds.Count > 0)
+            query = query.Where(p => p.OwnerOrgUnitId == null || filter.VisibleOrgUnitIds.Contains(p.OwnerOrgUnitId.Value));
+
         // Sorting
         query = filter.SortBy?.ToLower() switch
         {

@@ -20,5 +20,8 @@ public class Workspace
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Foreign key to the OrgUnit this workspace belongs to (for access scoping).</summary>
+    public Guid? OrgUnitId { get; set; }
+
     public ICollection<WorkspaceAdmin> Admins { get; set; } = new List<WorkspaceAdmin>();
 }

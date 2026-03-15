@@ -116,4 +116,12 @@ public class ProjectFilterDto
     public string SortBy { get; set; } = "createdAt";
     public bool SortDescending { get; set; } = true;
     public bool IncludeDeleted { get; set; } = false;
+
+    /// <summary>
+    /// When non-null and non-empty, only projects whose OwnerOrgUnitId is in this
+    /// list (or is null) are returned. Populated server-side from the user's
+    /// org unit scope — never sent from the client.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<Guid>? VisibleOrgUnitIds { get; set; }
 }

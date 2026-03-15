@@ -9,9 +9,11 @@ namespace ActionTracker.Application.Features.Workspaces.Interfaces;
 public interface IWorkspaceService
 {
     /// <summary>
-    /// Returns a lightweight list of all workspaces regardless of active status.
+    /// Returns a lightweight list of workspaces, optionally filtered by org unit scope.
+    /// Pass a non-empty list to restrict results to those org units (and their children).
+    /// Pass null or empty to return all workspaces.
     /// </summary>
-    Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync();
+    Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleOrgUnitIds = null);
 
     /// <summary>Returns aggregate statistics across all workspaces.</summary>
     Task<WorkspaceSummaryDto> GetSummaryAsync();

@@ -15,12 +15,14 @@ namespace ActionTracker.API.Controllers;
 public class ProjectsController : ControllerBase
 {
     private readonly IProjectService _service;
+    private readonly IOrgUnitScopeResolver _scopeResolver;
     private readonly ILogger<ProjectsController> _logger;
 
-    public ProjectsController(IProjectService service, ILogger<ProjectsController> logger)
+    public ProjectsController(IProjectService service, IOrgUnitScopeResolver scopeResolver, ILogger<ProjectsController> logger)
     {
-        _service = service;
-        _logger  = logger;
+        _service       = service;
+        _scopeResolver = scopeResolver;
+        _logger        = logger;
     }
 
     /// <summary>Returns a paginated, filtered list of projects.</summary>
@@ -29,6 +31,14 @@ public class ProjectsController : ControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<ProjectResponseDto>>>> GetAll(
         [FromQuery] ProjectFilterDto filter, CancellationToken ct)
     {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var visibleIds = await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+            if (visibleIds.Count > 0)
+                filter.VisibleOrgUnitIds = visibleIds;
+        }
+
         var result = await _service.GetAllAsync(filter, ct);
         return Ok(ApiResponse<PagedResult<ProjectResponseDto>>.Ok(result));
     }

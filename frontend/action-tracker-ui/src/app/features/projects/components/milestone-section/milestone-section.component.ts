@@ -10,8 +10,6 @@ import { HasPermissionDirective } from '../../../../shared';
 import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ProjectService } from '../../services/project.service';
-import { PermissionStateService } from '../../../permissions/services/permission-state.service';
-import { filterByOrgUnit } from '../../../../shared/utils/org-unit-filter.util';
 import {
   MilestoneResponse,
   MilestoneCreate,
@@ -36,7 +34,6 @@ export class MilestoneSectionComponent implements OnInit {
   private readonly milestoneSvc       = inject(MilestoneService);
   private readonly projectSvc         = inject(ProjectService);
   private readonly toastSvc           = inject(ToastService);
-  private readonly permissionStateSvc = inject(PermissionStateService);
 
   readonly milestones = signal<MilestoneResponse[]>([]);
   readonly loading = signal(false);
@@ -94,7 +91,7 @@ export class MilestoneSectionComponent implements OnInit {
     this.milestoneSvc.getByProject(this.projectId()).subscribe({
       next: r => {
         const all = r.data ?? [];
-        this.milestones.set(filterByOrgUnit(all, this.permissionStateSvc.getVisibleOrgUnitIds()));
+        this.milestones.set(all);
         this.applyFilters();
         this.loading.set(false);
       },

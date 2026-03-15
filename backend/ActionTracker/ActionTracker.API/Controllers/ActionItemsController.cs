@@ -15,12 +15,14 @@ namespace ActionTracker.API.Controllers;
 public class ActionItemsController : ControllerBase
 {
     private readonly IActionItemService _service;
+    private readonly IOrgUnitScopeResolver _scopeResolver;
     private readonly ILogger<ActionItemsController> _logger;
 
-    public ActionItemsController(IActionItemService service, ILogger<ActionItemsController> logger)
+    public ActionItemsController(IActionItemService service, IOrgUnitScopeResolver scopeResolver, ILogger<ActionItemsController> logger)
     {
-        _service = service;
-        _logger  = logger;
+        _service       = service;
+        _scopeResolver = scopeResolver;
+        _logger        = logger;
     }
 
     // -------------------------------------------------------------------------
@@ -33,6 +35,14 @@ public class ActionItemsController : ControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<ActionItemResponseDto>>>> GetAll(
         [FromQuery] ActionItemFilterDto filter, CancellationToken ct)
     {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var visibleIds = await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+            if (visibleIds.Count > 0)
+                filter.VisibleOrgUnitIds = visibleIds;
+        }
+
         var result = await _service.GetAllAsync(filter, ct);
         return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
     }

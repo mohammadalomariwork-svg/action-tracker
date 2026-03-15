@@ -142,7 +142,7 @@ export class WorkspaceFormComponent implements OnInit {
           const w = res.data;
           this.form.patchValue({
             title:            w.title,
-            organizationUnit: w.organizationUnit,
+            organizationUnit: w.orgUnitId ?? w.organizationUnit,
             isActive:         w.isActive,
           });
           this.selectedAdmins = (w.admins ?? []).map(a => ({
@@ -174,23 +174,28 @@ export class WorkspaceFormComponent implements OnInit {
     this.isLoading    = true;
     this.errorMessage = null;
 
-    const { title, organizationUnit, isActive } = this.form.value as {
+    const { title, organizationUnit: orgUnitId, isActive } = this.form.value as {
       title: string;
       organizationUnit: string;
       isActive: boolean;
     };
 
+    const selectedUnit = this.orgUnits.find(u => u.id === orgUnitId);
+    const orgUnitName = selectedUnit?.name ?? orgUnitId;
+
     const request$ = this.isEditMode && this.workspaceId !== null
       ? this.workspaceService.updateWorkspace(this.workspaceId, {
           id: this.workspaceId,
           title,
-          organizationUnit,
+          organizationUnit: orgUnitName,
+          orgUnitId: orgUnitId || undefined,
           admins: this.selectedAdmins,
           isActive,
         })
       : this.workspaceService.createWorkspace({
           title,
-          organizationUnit,
+          organizationUnit: orgUnitName,
+          orgUnitId: orgUnitId || undefined,
           admins: this.selectedAdmins,
         });
 

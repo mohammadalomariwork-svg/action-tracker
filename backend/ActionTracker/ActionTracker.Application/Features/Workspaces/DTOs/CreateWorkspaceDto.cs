@@ -23,6 +23,11 @@ public class CreateWorkspaceDto
     public string OrganizationUnit { get; set; } = string.Empty;
 
     /// <summary>
+    /// ID of the organisational unit (used for access scoping).
+    /// </summary>
+    public Guid? OrgUnitId { get; set; }
+
+    /// <summary>
     /// One or more admin users to assign to the workspace.
     /// At least one admin is required.
     /// </summary>

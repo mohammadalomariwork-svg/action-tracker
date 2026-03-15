@@ -38,19 +38,26 @@ public class WorkspaceService : IWorkspaceService
     /// <summary>
     /// Returns all workspaces (active and inactive) ordered alphabetically by title.
     /// </summary>
-    public async Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync()
+    public async Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleOrgUnitIds = null)
     {
         try
         {
-            // Status values 3=Completed, 4=Cancelled – everything else is "open"
-            var list = await _db.Workspaces
+            var baseQuery = _db.Workspaces
                 .Include(w => w.Admins)
+                .AsQueryable();
+
+            // Apply org unit scope filter when the user has a scoped org unit
+            if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0)
+                baseQuery = baseQuery.Where(w => w.OrgUnitId == null || visibleOrgUnitIds.Contains(w.OrgUnitId.Value));
+
+            var list = await baseQuery
                 .OrderByDescending(w => w.CreatedAt)
                 .Select(w => new WorkspaceListDto
                 {
                     Id               = w.Id,
                     Title            = w.Title,
                     OrganizationUnit = w.OrganizationUnit,
+                    OrgUnitId        = w.OrgUnitId,
                     AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
                     IsActive         = w.IsActive,
                     CreatedAt        = w.CreatedAt,
@@ -310,6 +317,7 @@ public class WorkspaceService : IWorkspaceService
                 Id               = Guid.NewGuid(),
                 Title            = dto.Title,
                 OrganizationUnit = dto.OrganizationUnit,
+                OrgUnitId        = dto.OrgUnitId,
                 CreatedAt        = DateTime.UtcNow,
                 IsActive         = true
             };
@@ -362,6 +370,7 @@ public class WorkspaceService : IWorkspaceService
 
             workspace.Title            = dto.Title;
             workspace.OrganizationUnit = dto.OrganizationUnit;
+            workspace.OrgUnitId        = dto.OrgUnitId;
             workspace.IsActive         = dto.IsActive;
             workspace.UpdatedAt        = DateTime.UtcNow;
 
@@ -652,6 +661,7 @@ public class WorkspaceService : IWorkspaceService
         Id               = w.Id,
         Title            = w.Title,
         OrganizationUnit = w.OrganizationUnit,
+        OrgUnitId        = w.OrgUnitId,
         Admins           = w.Admins
                             .Select(a => new WorkspaceAdminDto { UserId = a.AdminUserId, UserName = a.AdminUserName })
                             .ToList(),

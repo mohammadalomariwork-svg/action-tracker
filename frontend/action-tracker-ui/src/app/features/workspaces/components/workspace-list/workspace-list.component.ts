@@ -10,8 +10,6 @@ import { WorkspaceList, WorkspaceSummary, OrgUnitDropdownItem, UserDropdownItem,
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
-import { PermissionStateService } from '../../../permissions/services/permission-state.service';
-import { filterByOrgUnit } from '../../../../shared/utils/org-unit-filter.util';
 
 @Component({
   selector: 'app-workspace-list',
@@ -24,7 +22,6 @@ export class WorkspaceListComponent implements OnInit {
   private readonly workspaceService   = inject(WorkspaceService);
   private readonly router             = inject(Router);
   private readonly destroyRef         = inject(DestroyRef);
-  private readonly permissionStateSvc = inject(PermissionStateService);
   private readonly fb                 = inject(FormBuilder);
 
   // Data
@@ -77,8 +74,7 @@ export class WorkspaceListComponent implements OnInit {
     .pipe(takeUntilDestroyed(this.destroyRef))
     .subscribe({
       next: ({ workspaces, summary }) => {
-        const all = workspaces.data ?? [];
-        this.allWorkspaces = filterByOrgUnit(all, this.permissionStateSvc.getVisibleOrgUnitIds());
+        this.allWorkspaces = workspaces.data ?? [];
         this.summary = summary.data ?? null;
         this.applyFilters();
         this.isLoading = false;
@@ -208,7 +204,7 @@ export class WorkspaceListComponent implements OnInit {
           const w = res.data;
           this.form.patchValue({
             title:            w.title,
-            organizationUnit: w.organizationUnit,
+            organizationUnit: w.orgUnitId ?? w.organizationUnit,
             isActive:         w.isActive,
           });
           this.selectedAdmins = (w.admins ?? []).map(a => ({
@@ -320,23 +316,28 @@ export class WorkspaceListComponent implements OnInit {
     this.drawerLoading = true;
     this.drawerError   = null;
 
-    const { title, organizationUnit, isActive } = this.form.value as {
+    const { title, organizationUnit: orgUnitId, isActive } = this.form.value as {
       title: string;
       organizationUnit: string;
       isActive: boolean;
     };
 
+    const selectedUnit = this.orgUnits.find(u => u.id === orgUnitId);
+    const orgUnitName = selectedUnit?.name ?? orgUnitId;
+
     const request$ = this.isEditDrawer && this.editingWorkspaceId !== null
       ? this.workspaceService.updateWorkspace(this.editingWorkspaceId, {
           id: this.editingWorkspaceId,
           title,
-          organizationUnit,
+          organizationUnit: orgUnitName,
+          orgUnitId: orgUnitId || undefined,
           admins: this.selectedAdmins,
           isActive,
         })
       : this.workspaceService.createWorkspace({
           title,
-          organizationUnit,
+          organizationUnit: orgUnitName,
+          orgUnitId: orgUnitId || undefined,
           admins: this.selectedAdmins,
         });
 

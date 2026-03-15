@@ -1,7 +1,9 @@
 using System;
+using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,13 +19,16 @@ namespace ActionTracker.API.Controllers;
 public class WorkspacesController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
+    private readonly IOrgUnitScopeResolver _scopeResolver;
     private readonly ILogger<WorkspacesController> _logger;
 
     public WorkspacesController(
         IWorkspaceService workspaceService,
+        IOrgUnitScopeResolver scopeResolver,
         ILogger<WorkspacesController> logger)
     {
         _workspaceService = workspaceService;
+        _scopeResolver    = scopeResolver;
         _logger           = logger;
     }
 
@@ -39,7 +44,13 @@ public class WorkspacesController : ControllerBase
     {
         _logger.LogInformation("GET /api/workspaces");
 
-        var workspaces = await _workspaceService.GetAllWorkspacesAsync();
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        var visibleOrgUnitIds = string.IsNullOrEmpty(userId)
+            ? null
+            : await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+
+        var workspaces = await _workspaceService.GetAllWorkspacesAsync(
+            visibleOrgUnitIds?.Count > 0 ? visibleOrgUnitIds : null);
         return Ok(ApiResponse<IEnumerable<WorkspaceListDto>>.Ok(workspaces));
     }
 

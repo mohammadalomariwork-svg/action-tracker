@@ -11,6 +11,7 @@ public class WorkspaceListDto
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string OrganizationUnit { get; set; } = string.Empty;
+    public Guid? OrgUnitId { get; set; }
     public string AdminUserNames { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }

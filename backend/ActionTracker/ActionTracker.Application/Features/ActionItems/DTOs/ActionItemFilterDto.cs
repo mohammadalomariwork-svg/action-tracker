@@ -25,4 +25,12 @@ public class ActionItemFilterDto
     public string SortBy          { get; set; } = "DueDate";
     public bool   SortDescending  { get; set; } = false;
     public bool   IncludeDeleted  { get; set; } = false;
+
+    /// <summary>
+    /// When non-null and non-empty, only action items whose workspace OrgUnitId is
+    /// in this list (or is null) are returned. Populated server-side from the
+    /// user's org unit scope — never sent from the client.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<Guid>? VisibleOrgUnitIds { get; set; }
 }

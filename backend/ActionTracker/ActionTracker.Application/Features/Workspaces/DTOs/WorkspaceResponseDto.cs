@@ -17,6 +17,9 @@ public class WorkspaceResponseDto
     /// <summary>Name of the organisational unit this workspace belongs to.</summary>
     public string OrganizationUnit { get; set; } = string.Empty;
 
+    /// <summary>ID of the organisational unit (for access scoping).</summary>
+    public Guid? OrgUnitId { get; set; }
+
     /// <summary>All admin users assigned to this workspace.</summary>
     public List<WorkspaceAdminDto> Admins { get; set; } = new();
 
