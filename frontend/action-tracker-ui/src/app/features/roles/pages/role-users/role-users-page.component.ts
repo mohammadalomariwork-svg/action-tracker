@@ -1,6 +1,6 @@
 import {
   Component, OnInit, ChangeDetectionStrategy,
-  DestroyRef, inject, signal,
+  DestroyRef, inject, signal, computed,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -47,6 +47,18 @@ export class RoleUsersPageComponent implements OnInit {
   readonly roleUsers   = signal<RoleUserDto[]>([]);
   readonly loading     = signal(false);
   readonly error       = signal<string | null>(null);
+
+  // Pagination
+  readonly pageSize    = 10;
+  readonly currentPage = signal(1);
+  readonly totalPages  = computed(() => Math.max(1, Math.ceil(this.roleUsers().length / this.pageSize)));
+  readonly pagedUsers  = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.roleUsers().slice(start, start + this.pageSize);
+  });
+  readonly pageNumbers = computed(() =>
+    Array.from({ length: this.totalPages() }, (_, i) => i + 1)
+  );
 
   // Remove user state
   readonly confirmRemoveUser    = signal<RoleUserDto | null>(null);
@@ -101,7 +113,7 @@ export class RoleUsersPageComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     this.roleSvc.getRoleUsers(this.roleName()).subscribe({
-      next: (users) => { this.roleUsers.set(users); this.loading.set(false); },
+      next: (users) => { this.roleUsers.set(users); this.currentPage.set(1); this.loading.set(false); },
       error: ()     => { this.error.set('Failed to load role users.'); this.loading.set(false); },
     });
   }
@@ -218,6 +230,16 @@ export class RoleUsersPageComponent implements OnInit {
           this.toast.error(err?.error?.message ?? 'Failed to update org unit.');
         },
       });
+  }
+
+  // ── Pagination ─────────────────────────────────────────────────────────────
+
+  pageEnd(): number {
+    return Math.min(this.currentPage() * this.pageSize, this.roleUsers().length);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) this.currentPage.set(page);
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────

@@ -61,7 +61,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (user of roleUsers(); track user.userId) {
+            @for (user of pagedUsers(); track user.userId) {
               <tr>
                 <td class="fw-semibold">{{ user.userDisplayName }}</td>
                 <td class="text-muted small">{{ user.email }}</td>
@@ -115,7 +115,7 @@
 
       <!-- Mobile cards -->
       <div class="d-block d-md-none">
-        @for (user of roleUsers(); track user.userId) {
+        @for (user of pagedUsers(); track user.userId) {
           <div class="card mb-2">
             <div class="card-body py-2">
               <div class="d-flex justify-content-between align-items-start">
@@ -159,6 +159,34 @@
           </div>
         }
       </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+          <span class="text-muted small">
+            Showing {{ (currentPage() - 1) * pageSize + 1 }}–{{ pageEnd() }} of {{ roleUsers().length }} users
+          </span>
+          <nav>
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" [class.disabled]="currentPage() === 1">
+                <button class="page-link" (click)="goToPage(currentPage() - 1)">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+              </li>
+              @for (p of pageNumbers(); track p) {
+                <li class="page-item" [class.active]="p === currentPage()">
+                  <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
+                </li>
+              }
+              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                <button class="page-link" (click)="goToPage(currentPage() + 1)">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      }
     }
   }
 
