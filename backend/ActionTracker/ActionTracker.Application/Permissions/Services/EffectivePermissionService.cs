@@ -1,4 +1,3 @@
-using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Permissions.DTOs;
 using ActionTracker.Domain.Entities;
@@ -43,7 +42,7 @@ public class EffectivePermissionService : IEffectivePermissionService
         var rolePermissions = roles.Count == 0
             ? new List<RolePermission>()
             : await _db.RolePermissions
-                .Where(r => roles.Contains(r.RoleName) && r.IsActive)
+                .Where(r => roles.Contains(r.RoleName) && !r.IsDeleted && r.IsActive)
                 .ToListAsync();
 
         // 2. Load active, non-expired user overrides.
@@ -51,26 +50,29 @@ public class EffectivePermissionService : IEffectivePermissionService
         var overrides = await _db.UserPermissionOverrides
             .Where(o => o.UserId == userId
                      && o.IsActive
+                     && !o.IsDeleted
                      && (o.ExpiresAt == null || o.ExpiresAt > now))
             .ToListAsync();
 
-        // 3. Build a mutable map keyed by (Area, Action).
-        var map = new Dictionary<(PermissionArea, PermissionAction), EffectivePermissionDto>();
+        // 3. Build a mutable map keyed by (AreaId, ActionId).
+        var map = new Dictionary<(Guid, Guid), EffectivePermissionDto>();
 
         foreach (var rp in rolePermissions)
         {
-            var key = (rp.Area, rp.Action);
+            var key = (rp.AreaId, rp.ActionId);
             if (!map.ContainsKey(key))
             {
                 map[key] = new EffectivePermissionDto
                 {
                     UserId          = userId,
                     UserDisplayName = displayName,
-                    Area            = rp.Area.GetDescription(),
-                    Action          = rp.Action.GetDescription(),
+                    AreaId          = rp.AreaId,
+                    AreaName        = rp.AreaName,
+                    ActionId        = rp.ActionId,
+                    ActionName      = rp.ActionName,
                     IsAllowed       = true,
                     Source          = "Role",
-                    OrgUnitScope    = rp.OrgUnitScope.GetDescription(),
+                    OrgUnitScope    = rp.OrgUnitScope,
                     OrgUnitId       = rp.OrgUnitId,
                     OrgUnitName     = rp.OrgUnitName,
                 };
@@ -80,19 +82,31 @@ public class EffectivePermissionService : IEffectivePermissionService
         // 4. Apply user-level overrides — they always win over the role grant.
         foreach (var uo in overrides)
         {
-            var key = (uo.Area, uo.Action);
-            map[key] = new EffectivePermissionDto
+            var key = (uo.AreaId, uo.ActionId);
+
+            if (uo.IsGranted)
             {
-                UserId          = userId,
-                UserDisplayName = displayName,
-                Area            = uo.Area.GetDescription(),
-                Action          = uo.Action.GetDescription(),
-                IsAllowed       = uo.IsGranted,
-                Source          = uo.IsGranted ? "UserOverride-Granted" : "UserOverride-Revoked",
-                OrgUnitScope    = uo.OrgUnitScope.GetDescription(),
-                OrgUnitId       = uo.OrgUnitId,
-                OrgUnitName     = uo.OrgUnitName,
-            };
+                map[key] = new EffectivePermissionDto
+                {
+                    UserId          = userId,
+                    UserDisplayName = displayName,
+                    AreaId          = uo.AreaId,
+                    AreaName        = uo.AreaName,
+                    ActionId        = uo.ActionId,
+                    ActionName      = uo.ActionName,
+                    IsAllowed       = true,
+                    Source          = "UserOverride-Granted",
+                    OrgUnitScope    = uo.OrgUnitScope,
+                    OrgUnitId       = uo.OrgUnitId,
+                    OrgUnitName     = uo.OrgUnitName,
+                };
+            }
+            else
+            {
+                // Explicit revocation — remove from the effective set so only
+                // allowed permissions appear in the result.
+                map.Remove(key);
+            }
         }
 
         return map.Values.ToList();
@@ -100,48 +114,31 @@ public class EffectivePermissionService : IEffectivePermissionService
 
     public async Task<bool> HasPermissionAsync(string userId, string area, string action)
     {
-        // Normalize by stripping spaces so that policy keys like "PermissionsManagement"
-        // match Description values like "Permissions Management".
-        static string N(string s) => s.Replace(" ", "").ToLowerInvariant();
-        var normArea   = N(area);
-        var normAction = N(action);
-
         var permissions = await GetEffectivePermissionsAsync(userId);
         return permissions.Any(p =>
-            N(p.Area)   == normArea &&
-            N(p.Action) == normAction &&
+            string.Equals(p.AreaName,   area,   StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(p.ActionName, action, StringComparison.OrdinalIgnoreCase) &&
             p.IsAllowed);
     }
 
     public async Task<bool> HasPermissionForOrgUnitAsync(
         string userId, string area, string action, Guid orgUnitId)
     {
-        static string N(string s) => s.Replace(" ", "").ToLowerInvariant();
-        var normArea   = N(area);
-        var normAction = N(action);
-
         var permissions = await GetEffectivePermissionsAsync(userId);
 
         var perm = permissions.FirstOrDefault(p =>
-            N(p.Area)   == normArea &&
-            N(p.Action) == normAction &&
+            string.Equals(p.AreaName,   area,   StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(p.ActionName, action, StringComparison.OrdinalIgnoreCase) &&
             p.IsAllowed);
 
         if (perm is null) return false;
 
         return perm.OrgUnitScope switch
         {
-            // "All" → unrestricted access
-            var s when s == OrgUnitScope.All.GetDescription()
-                => true,
-
-            // "Specific Org Unit" → only the designated org unit
-            var s when s == OrgUnitScope.SpecificOrgUnit.GetDescription()
-                => perm.OrgUnitId == orgUnitId,
-
-            // "Own Only" → ownership check is context-dependent; allow at this layer
-            // and let the calling service enforce record-level ownership.
-            _ => true,
+            0 => true,                            // All — unrestricted
+            1 => perm.OrgUnitId == orgUnitId,     // SpecificOrgUnit
+            2 => false,                           // OwnOnly — caller enforces ownership
+            _ => false,
         };
     }
 }

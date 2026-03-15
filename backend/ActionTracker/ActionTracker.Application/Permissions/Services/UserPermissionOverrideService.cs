@@ -1,4 +1,3 @@
-using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Permissions.DTOs;
 using Microsoft.EntityFrameworkCore;
@@ -22,8 +21,8 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
     public async Task<List<UserPermissionOverrideDto>> GetAllByUserAsync(string userId)
     {
         var entities = await _db.UserPermissionOverrides
-            .Where(o => o.UserId == userId && o.IsActive)
-            .OrderBy(o => o.Area).ThenBy(o => o.Action)
+            .Where(o => o.UserId == userId && !o.IsDeleted)
+            .OrderBy(o => o.AreaName).ThenBy(o => o.ActionName)
             .ToListAsync();
 
         return entities.Select(MapToDto).ToList();
@@ -41,8 +40,9 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
         var entities = await _db.UserPermissionOverrides
             .Where(o => o.UserId == userId
                      && o.IsActive
+                     && !o.IsDeleted
                      && (o.ExpiresAt == null || o.ExpiresAt > now))
-            .OrderBy(o => o.Area).ThenBy(o => o.Action)
+            .OrderBy(o => o.AreaName).ThenBy(o => o.ActionName)
             .ToListAsync();
 
         return entities.Select(MapToDto).ToList();
@@ -53,26 +53,34 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
     public async Task<UserPermissionOverrideDto> CreateAsync(
         CreateUserPermissionOverrideDto dto, string createdByUserId)
     {
-        var area   = (PermissionArea)  dto.Area;
-        var action = (PermissionAction)dto.Action;
+        var area = await _db.PermissionAreas
+            .FirstOrDefaultAsync(a => a.Id == dto.AreaId && a.IsActive)
+            ?? throw new ArgumentException($"Area '{dto.AreaId}' does not exist or is not active.");
+
+        var action = await _db.PermissionActions
+            .FirstOrDefaultAsync(a => a.Id == dto.ActionId && a.IsActive)
+            ?? throw new ArgumentException($"Action '{dto.ActionId}' does not exist or is not active.");
 
         var duplicate = await _db.UserPermissionOverrides
-            .AnyAsync(o => o.UserId == dto.UserId
-                        && o.Area   == area
-                        && o.Action == action);
+            .AnyAsync(o => o.UserId   == dto.UserId
+                        && o.AreaId   == dto.AreaId
+                        && o.ActionId == dto.ActionId
+                        && !o.IsDeleted);
 
         if (duplicate)
             throw new ArgumentException(
-                $"An override for user '{dto.UserId}', area '{area}', action '{action}' already exists.");
+                $"An override for user '{dto.UserId}', area '{area.Name}', action '{action.Name}' already exists.");
 
         var entity = new UserPermissionOverride
         {
             Id              = Guid.NewGuid(),
             UserId          = dto.UserId,
             UserDisplayName = dto.UserDisplayName,
-            Area            = area,
-            Action          = action,
-            OrgUnitScope    = (OrgUnitScope)dto.OrgUnitScope,
+            AreaId          = area.Id,
+            AreaName        = area.Name,
+            ActionId        = action.Id,
+            ActionName      = action.Name,
+            OrgUnitScope    = dto.OrgUnitScope,
             OrgUnitId       = dto.OrgUnitId,
             OrgUnitName     = dto.OrgUnitName,
             IsGranted       = dto.IsGranted,
@@ -89,7 +97,7 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
         _logger.LogInformation(
             "UserPermissionOverride {Id} created for user '{UserId}' area '{Area}' action '{Action}' " +
             "IsGranted={IsGranted} by {CreatedBy}",
-            entity.Id, entity.UserId, entity.Area, entity.Action, entity.IsGranted, createdByUserId);
+            entity.Id, entity.UserId, entity.AreaName, entity.ActionName, entity.IsGranted, createdByUserId);
 
         return MapToDto(entity);
     }
@@ -100,7 +108,7 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
         var entity = await _db.UserPermissionOverrides.FirstOrDefaultAsync(o => o.Id == id)
                      ?? throw new KeyNotFoundException($"UserPermissionOverride {id} not found.");
 
-        entity.OrgUnitScope = (OrgUnitScope)dto.OrgUnitScope;
+        entity.OrgUnitScope = dto.OrgUnitScope;
         entity.OrgUnitId    = dto.OrgUnitId;
         entity.OrgUnitName  = dto.OrgUnitName;
         entity.IsGranted    = dto.IsGranted;
@@ -112,8 +120,7 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
 
         await _db.SaveChangesAsync();
 
-        _logger.LogInformation(
-            "UserPermissionOverride {Id} updated by {User}", id, updatedByUserId);
+        _logger.LogInformation("UserPermissionOverride {Id} updated by {User}", id, updatedByUserId);
 
         return MapToDto(entity);
     }
@@ -130,8 +137,7 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
 
         await _db.SaveChangesAsync();
 
-        _logger.LogInformation(
-            "UserPermissionOverride {Id} soft-deleted by {User}", id, deletedByUserId);
+        _logger.LogInformation("UserPermissionOverride {Id} soft-deleted by {User}", id, deletedByUserId);
     }
 
     // ── Mapper ────────────────────────────────────────────────────────────────
@@ -141,9 +147,11 @@ public class UserPermissionOverrideService : IUserPermissionOverrideService
         Id              = o.Id,
         UserId          = o.UserId,
         UserDisplayName = o.UserDisplayName,
-        Area            = o.Area.GetDescription(),
-        Action          = o.Action.GetDescription(),
-        OrgUnitScope    = o.OrgUnitScope.GetDescription(),
+        AreaId          = o.AreaId,
+        AreaName        = o.AreaName,
+        ActionId        = o.ActionId,
+        ActionName      = o.ActionName,
+        OrgUnitScope    = o.OrgUnitScope,
         OrgUnitId       = o.OrgUnitId,
         OrgUnitName     = o.OrgUnitName,
         IsGranted       = o.IsGranted,
