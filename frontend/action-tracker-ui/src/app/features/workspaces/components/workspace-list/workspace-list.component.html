@@ -8,7 +8,7 @@
     subtitle="Manage and organize team workspaces across your organization units."
     icon="bi bi-briefcase"
   >
-    <button class="btn btn-primary" (click)="onCreateNew()">
+    <button *appHasPermission="'Workspaces'; action: 'Create'" class="btn btn-primary" (click)="onCreateNew()">
       <i class="bi bi-plus-circle me-1"></i>New Workspace
     </button>
   </app-page-header>
@@ -245,18 +245,18 @@
                 <!-- Actions -->
                 <td class="text-end">
                   <div class="wl-action-btns">
-                    <button class="wl-action-btn" (click)="onView(workspace.id)" title="View">
+                    <button *appHasPermission="'Workspaces'; action: 'View'" class="wl-action-btn" (click)="onView(workspace.id)" title="View">
                       <i class="bi bi-eye"></i> View
                     </button>
-                    <button class="wl-action-btn" (click)="onEdit(workspace.id)" title="Edit">
+                    <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn" (click)="onEdit(workspace.id)" title="Edit">
                       <i class="bi bi-pencil-square"></i> Edit
                     </button>
                     @if (workspace.isActive) {
-                      <button class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)" title="Delete">
+                      <button *appHasPermission="'Workspaces'; action: 'Delete'" class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)" title="Delete">
                         <i class="bi bi-trash"></i> Delete
                       </button>
                     } @else {
-                      <button class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)" title="Restore">
+                      <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)" title="Restore">
                         <i class="bi bi-arrow-counterclockwise"></i> Restore
                       </button>
                     }
@@ -318,18 +318,18 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2">
-              <button class="wl-action-btn" (click)="onView(workspace.id)">
+              <button *appHasPermission="'Workspaces'; action: 'View'" class="wl-action-btn" (click)="onView(workspace.id)">
                 <i class="bi bi-eye"></i> View
               </button>
-              <button class="wl-action-btn" (click)="onEdit(workspace.id)">
+              <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn" (click)="onEdit(workspace.id)">
                 <i class="bi bi-pencil-square"></i> Edit
               </button>
               @if (workspace.isActive) {
-                <button class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)">
+                <button *appHasPermission="'Workspaces'; action: 'Delete'" class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)">
                   <i class="bi bi-trash"></i> Delete
                 </button>
               } @else {
-                <button class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)">
+                <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)">
                   <i class="bi bi-arrow-counterclockwise"></i> Restore
                 </button>
               }
@@ -368,7 +368,7 @@
       <div class="wl-empty">
         <i class="bi bi-inbox wl-empty-icon text-muted"></i>
         <p class="text-muted mt-3 mb-3">No workspaces found.</p>
-        <button class="btn btn-primary btn-sm" (click)="onCreateNew()">
+        <button *appHasPermission="'Workspaces'; action: 'Create'" class="btn btn-primary btn-sm" (click)="onCreateNew()">
           <i class="bi bi-plus-circle me-1"></i>Create First Workspace
         </button>
       </div>

@@ -5,7 +5,8 @@
     <h6 class="uol-section-title mb-0">
       <i class="bi bi-toggle-on me-2"></i>Permission Overrides
     </h6>
-    <button class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+    <button *appHasPermission="'PermissionsManagement'; action: 'Create'"
+      class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
       (click)="openAddForm()" [disabled]="loading() || deleting()">
       <i class="bi bi-plus-lg"></i> Add Override
     </button>
@@ -66,11 +67,13 @@
               </td>
               <td class="text-center">
                 <div class="d-flex justify-content-center gap-1">
-                  <button class="btn btn-sm btn-icon btn-outline-primary"
+                  <button *appHasPermission="'PermissionsManagement'; action: 'Edit'"
+                    class="btn btn-sm btn-icon btn-outline-primary"
                     title="Edit override" (click)="openEditForm(ov)" [disabled]="deleting()">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-sm btn-icon btn-outline-danger"
+                  <button *appHasPermission="'PermissionsManagement'; action: 'Delete'"
+                    class="btn btn-sm btn-icon btn-outline-danger"
                     title="Delete override" (click)="requestDelete(ov)" [disabled]="deleting()">
                     <i class="bi bi-trash"></i>
                   </button>

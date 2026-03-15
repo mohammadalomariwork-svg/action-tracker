@@ -9,13 +9,14 @@ import { WorkspaceService } from '../../services/workspace.service';
 import { WorkspaceList, WorkspaceSummary, OrgUnitDropdownItem, UserDropdownItem, WorkspaceAdmin } from '../../models/workspace.model';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 import { PermissionStateService } from '../../../permissions/services/permission-state.service';
 import { filterByOrgUnit } from '../../../../shared/utils/org-unit-filter.util';
 
 @Component({
   selector: 'app-workspace-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, BreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './workspace-list.component.html',
   styleUrl: './workspace-list.component.scss',
 })

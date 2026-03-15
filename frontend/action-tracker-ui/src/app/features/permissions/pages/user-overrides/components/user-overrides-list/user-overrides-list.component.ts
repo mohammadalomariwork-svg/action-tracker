@@ -5,11 +5,12 @@ import { UserPermissionOverrideDto } from '../../../../models/user-permission.mo
 import { UserPermissionService } from '../../../../services/user-permission.service';
 import { UserOverrideFormComponent } from '../user-override-form/user-override-form.component';
 import { ConfirmDialogComponent } from '../../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../../../../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-user-overrides-list',
   standalone: true,
-  imports: [CommonModule, UserOverrideFormComponent, ConfirmDialogComponent],
+  imports: [CommonModule, UserOverrideFormComponent, ConfirmDialogComponent, HasPermissionDirective],
   templateUrl: './user-overrides-list.component.html',
   styleUrl: './user-overrides-list.component.scss',
 })
