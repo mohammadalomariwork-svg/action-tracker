@@ -36,16 +36,6 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(r => r.OrgUnitScope)
-            .IsRequired();
-
-        builder.Property(r => r.OrgUnitId)
-            .IsRequired(false);
-
-        builder.Property(r => r.OrgUnitName)
-            .IsRequired(false)
-            .HasMaxLength(256);
-
         builder.Property(r => r.IsActive)
             .HasDefaultValue(true);
 

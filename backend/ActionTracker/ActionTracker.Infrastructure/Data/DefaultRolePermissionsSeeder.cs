@@ -13,32 +13,10 @@ namespace ActionTracker.Infrastructure.Data;
 /// </summary>
 public static class DefaultRolePermissionsSeeder
 {
-    // OrgUnitScope int values: 0 = All, 1 = SpecificOrgUnit, 2 = OwnOnly
-    private const int ScopeAll     = 0;
-    private const int ScopeOwnOnly = 2;
-
     public static async Task SeedAsync(AppDbContext db, ILogger logger)
     {
-        // ── Collect all desired (roleName, areaId, areaName, actionId, actionName, scope) ─
+        // ── Collect all desired (roleName, areaId, areaName, actionId, actionName) ─
         var desired = BuildDesiredPermissions().ToList();
-
-        // ── Ensure Admin rows always have OrgUnitScope = 0 (All) ──────────────
-        var adminRows = await db.RolePermissions
-            .IgnoreQueryFilters()
-            .Where(r => r.RoleName == AppRoles.Admin)
-            .ToListAsync();
-
-        int updatedCount = 0;
-        foreach (var row in adminRows.Where(r => r.OrgUnitScope != ScopeAll))
-        {
-            row.OrgUnitScope = ScopeAll;
-            row.IsActive     = true;
-            row.IsDeleted    = false;
-            updatedCount++;
-        }
-
-        if (updatedCount > 0)
-            await db.SaveChangesAsync();
 
         // ── Load existing (roleName, areaId, actionId) keys ──────────────────
         var existingKeys = await db.RolePermissions
@@ -52,7 +30,7 @@ public static class DefaultRolePermissionsSeeder
         var now      = DateTime.UtcNow;
         var toInsert = new List<RolePermission>();
 
-        foreach (var (roleName, areaId, areaName, actionId, actionName, scope) in desired)
+        foreach (var (roleName, areaId, areaName, actionId, actionName) in desired)
         {
             var key = new RolePermissionKey(roleName, areaId, actionId);
             if (existingSet.Contains(key)) continue;
@@ -65,7 +43,6 @@ public static class DefaultRolePermissionsSeeder
                 AreaName   = areaName,
                 ActionId   = actionId,
                 ActionName = actionName,
-                OrgUnitScope = scope,
                 IsActive   = true,
                 IsDeleted  = false,
                 CreatedAt  = now,
@@ -73,27 +50,25 @@ public static class DefaultRolePermissionsSeeder
             });
         }
 
-        if (toInsert.Count == 0 && updatedCount == 0)
+        if (toInsert.Count == 0)
         {
             logger.LogInformation("DefaultRolePermissionsSeeder: all permissions already seeded, nothing to insert.");
             return;
         }
 
-        if (toInsert.Count > 0)
-            await db.RolePermissions.AddRangeAsync(toInsert);
-
+        await db.RolePermissions.AddRangeAsync(toInsert);
         await db.SaveChangesAsync();
 
         logger.LogInformation(
-            "DefaultRolePermissionsSeeder: inserted {Count} and corrected {Updated} role permission(s).",
-            toInsert.Count, updatedCount);
+            "DefaultRolePermissionsSeeder: inserted {Count} role permission(s).",
+            toInsert.Count);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Permission matrix
     // ─────────────────────────────────────────────────────────────────────────
 
-    private static IEnumerable<(string Role, Guid AreaId, string AreaName, Guid ActionId, string ActionName, int Scope)>
+    private static IEnumerable<(string Role, Guid AreaId, string AreaName, Guid ActionId, string ActionName)>
         BuildDesiredPermissions()
     {
         // ── Convenience aliases ───────────────────────────────────────────────
@@ -123,14 +98,13 @@ public static class DefaultRolePermissionsSeeder
         var allActions = new[] { view, create, edit, delete, approve, export, assign };
 
         // Local helper
-        static (string, Guid, string, Guid, string, int) P(
+        static (string, Guid, string, Guid, string) P(
             string role,
             (Guid Id, string Name) area,
-            (Guid Id, string Name) action,
-            int scope = ScopeAll)
-            => (role, area.Id, area.Name, action.Id, action.Name, scope);
+            (Guid Id, string Name) action)
+            => (role, area.Id, area.Name, action.Id, action.Name);
 
-        // ── Admin — every area × every action, scope All ──────────────────────
+        // ── Admin — every area × every action ─────────────────────────────────
         var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles };
         foreach (var area   in allAreas)
         foreach (var action in allActions)
@@ -184,9 +158,9 @@ public static class DefaultRolePermissionsSeeder
         foreach (var area in new[] { proj, dash, rep })
             yield return P(AppRoles.ProjectCoordinator, area, view);
 
-        // ── Team Member — View+Edit on ActionItems (OwnOnly), View-only on 3 ──
-        yield return P(AppRoles.TeamMember, ai, view, ScopeOwnOnly);
-        yield return P(AppRoles.TeamMember, ai, edit, ScopeOwnOnly);
+        // ── Team Member — View+Edit on ActionItems, View-only on 3 ───────────
+        yield return P(AppRoles.TeamMember, ai, view);
+        yield return P(AppRoles.TeamMember, ai, edit);
         foreach (var area in new[] { proj, mile, dash })
             yield return P(AppRoles.TeamMember, area, view);
 

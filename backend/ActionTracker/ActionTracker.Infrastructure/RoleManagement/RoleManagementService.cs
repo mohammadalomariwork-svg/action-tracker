@@ -273,19 +273,16 @@ public class RoleManagementService : IRoleManagementService
 
                 newPermissions.Add(new RolePermission
                 {
-                    Id           = Guid.NewGuid(),
-                    RoleName     = dto.RoleName,
-                    AreaId       = area.Id,
-                    AreaName     = area.Name,
-                    ActionId     = action.Id,
-                    ActionName   = action.Name,
-                    OrgUnitScope = entry.OrgUnitScope,
-                    OrgUnitId    = entry.OrgUnitId,
-                    OrgUnitName  = entry.OrgUnitName,
-                    IsActive     = true,
-                    IsDeleted    = false,
-                    CreatedAt    = now,
-                    CreatedBy    = actingUserId,
+                    Id         = Guid.NewGuid(),
+                    RoleName   = dto.RoleName,
+                    AreaId     = area.Id,
+                    AreaName   = area.Name,
+                    ActionId   = action.Id,
+                    ActionName = action.Name,
+                    IsActive   = true,
+                    IsDeleted  = false,
+                    CreatedAt  = now,
+                    CreatedBy  = actingUserId,
                 });
             }
 
@@ -354,17 +351,14 @@ public class RoleManagementService : IRoleManagementService
 
     private static RolePermissionDto MapPermissionToDto(RolePermission rp) => new()
     {
-        Id           = rp.Id,
-        RoleName     = rp.RoleName,
-        AreaId       = rp.AreaId,
-        AreaName     = rp.AreaName,
-        ActionId     = rp.ActionId,
-        ActionName   = rp.ActionName,
-        OrgUnitScope = rp.OrgUnitScope,
-        OrgUnitId    = rp.OrgUnitId,
-        OrgUnitName  = rp.OrgUnitName,
-        IsActive     = rp.IsActive,
-        CreatedAt    = rp.CreatedAt,
-        CreatedBy    = rp.CreatedBy,
+        Id         = rp.Id,
+        RoleName   = rp.RoleName,
+        AreaId     = rp.AreaId,
+        AreaName   = rp.AreaName,
+        ActionId   = rp.ActionId,
+        ActionName = rp.ActionName,
+        IsActive   = rp.IsActive,
+        CreatedAt  = rp.CreatedAt,
+        CreatedBy  = rp.CreatedBy,
     };
 }

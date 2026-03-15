@@ -58,18 +58,15 @@ public class RolePermissionService : IRolePermissionService
 
         var entity = new RolePermission
         {
-            Id          = Guid.NewGuid(),
-            RoleName    = dto.RoleName,
-            AreaId      = area.Id,
-            AreaName    = area.Name,
-            ActionId    = action.Id,
-            ActionName  = action.Name,
-            OrgUnitScope = dto.OrgUnitScope,
-            OrgUnitId   = dto.OrgUnitId,
-            OrgUnitName = dto.OrgUnitName,
-            IsActive    = true,
-            CreatedAt   = DateTime.UtcNow,
-            CreatedBy   = createdByUserId,
+            Id         = Guid.NewGuid(),
+            RoleName   = dto.RoleName,
+            AreaId     = area.Id,
+            AreaName   = area.Name,
+            ActionId   = action.Id,
+            ActionName = action.Name,
+            IsActive   = true,
+            CreatedAt  = DateTime.UtcNow,
+            CreatedBy  = createdByUserId,
         };
 
         _db.RolePermissions.Add(entity);
@@ -87,12 +84,9 @@ public class RolePermissionService : IRolePermissionService
         var entity = await _db.RolePermissions.FirstOrDefaultAsync(r => r.Id == id)
                      ?? throw new KeyNotFoundException($"RolePermission {id} not found.");
 
-        entity.OrgUnitScope = dto.OrgUnitScope;
-        entity.OrgUnitId    = dto.OrgUnitId;
-        entity.OrgUnitName  = dto.OrgUnitName;
-        entity.IsActive     = dto.IsActive;
-        entity.UpdatedAt    = DateTime.UtcNow;
-        entity.UpdatedBy    = updatedByUserId;
+        entity.IsActive  = dto.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedBy = updatedByUserId;
 
         await _db.SaveChangesAsync();
 
@@ -159,17 +153,14 @@ public class RolePermissionService : IRolePermissionService
 
     private static RolePermissionDto MapToDto(RolePermission rp) => new()
     {
-        Id           = rp.Id,
-        RoleName     = rp.RoleName,
-        AreaId       = rp.AreaId,
-        AreaName     = rp.AreaName,
-        ActionId     = rp.ActionId,
-        ActionName   = rp.ActionName,
-        OrgUnitScope = rp.OrgUnitScope,
-        OrgUnitId    = rp.OrgUnitId,
-        OrgUnitName  = rp.OrgUnitName,
-        IsActive     = rp.IsActive,
-        CreatedAt    = rp.CreatedAt,
-        CreatedBy    = rp.CreatedBy,
+        Id         = rp.Id,
+        RoleName   = rp.RoleName,
+        AreaId     = rp.AreaId,
+        AreaName   = rp.AreaName,
+        ActionId   = rp.ActionId,
+        ActionName = rp.ActionName,
+        IsActive   = rp.IsActive,
+        CreatedAt  = rp.CreatedAt,
+        CreatedBy  = rp.CreatedBy,
     };
 }

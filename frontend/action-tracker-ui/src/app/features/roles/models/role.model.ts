@@ -16,9 +16,6 @@ export interface RoleUserDto {
 export interface AssignPermissionEntryDto {
   areaId: string;
   actionId: string;
-  orgUnitScope: number;
-  orgUnitId?: string;
-  orgUnitName?: string;
 }
 
 export interface AssignRolePermissionsDto {

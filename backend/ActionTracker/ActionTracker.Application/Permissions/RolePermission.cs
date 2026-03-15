@@ -19,18 +19,6 @@ public class RolePermission
     /// <summary>Denormalized action name for fast reads (e.g. "View").</summary>
     public string ActionName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// 0 = All, 1 = SpecificOrgUnit, 2 = OwnOnly.
-    /// Stored as plain int — no enum dependency.
-    /// </summary>
-    public int OrgUnitScope { get; set; } = 0;
-
-    /// <summary>Populated when <see cref="OrgUnitScope"/> is 1 (SpecificOrgUnit).</summary>
-    public Guid? OrgUnitId { get; set; }
-
-    /// <summary>Denormalized display name of the org unit — avoids a join when reading permissions.</summary>
-    public string? OrgUnitName { get; set; }
-
     public bool IsActive { get; set; } = true;
 
     // ── Audit ──────────────────────────────────────────────────────────────

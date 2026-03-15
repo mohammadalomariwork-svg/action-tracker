@@ -72,9 +72,9 @@ public class EffectivePermissionService : IEffectivePermissionService
                     ActionName      = rp.ActionName,
                     IsAllowed       = true,
                     Source          = "Role",
-                    OrgUnitScope    = rp.OrgUnitScope,
-                    OrgUnitId       = rp.OrgUnitId,
-                    OrgUnitName     = rp.OrgUnitName,
+                    OrgUnitScope    = 0,
+                    OrgUnitId       = null,
+                    OrgUnitName     = null,
                 };
             }
         }

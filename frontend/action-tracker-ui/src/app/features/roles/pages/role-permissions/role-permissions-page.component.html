@@ -60,36 +60,12 @@
                     @if (hasMappingFor(area.id, action.id)) {
                       @let cell = getCellState(area.id, action.id);
                       @if (cell) {
-                        <div class="rp-cell-inner">
-                          <input
-                            type="checkbox"
-                            class="form-check-input rp-checkbox"
-                            [checked]="cell.checked"
-                            (change)="toggleCell(area.id, action.id)"
-                          />
-                          @if (cell.checked) {
-                            <div class="rp-scope mt-1">
-                              <select
-                                class="form-select form-select-sm"
-                                [ngModel]="cell.orgUnitScope"
-                                (ngModelChange)="setScopeForCell(area.id, action.id, +$event)"
-                              >
-                                <option [value]="0">All Org Units</option>
-                                <option [value]="1">Specific Org Unit</option>
-                                <option [value]="2">Own Only</option>
-                              </select>
-                              @if (cell.orgUnitScope === 1) {
-                                <input
-                                  type="text"
-                                  class="form-control form-control-sm mt-1"
-                                  placeholder="Org Unit ID or Name"
-                                  [ngModel]="cell.orgUnitId"
-                                  (ngModelChange)="setOrgUnitForCell(area.id, action.id, $event)"
-                                />
-                              }
-                            </div>
-                          }
-                        </div>
+                        <input
+                          type="checkbox"
+                          class="form-check-input rp-checkbox"
+                          [checked]="cell.checked"
+                          (change)="toggleCell(area.id, action.id)"
+                        />
                       }
                     } @else {
                       <span class="text-muted rp-dash">—</span>

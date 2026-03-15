@@ -14,10 +14,4 @@ public class AssignPermissionEntryDto
 {
     public Guid AreaId { get; set; }
     public Guid ActionId { get; set; }
-
-    /// <summary>0 = All, 1 = SpecificOrgUnit, 2 = OwnOnly.</summary>
-    public int OrgUnitScope { get; set; }
-
-    public Guid? OrgUnitId { get; set; }
-    public string? OrgUnitName { get; set; }
 }

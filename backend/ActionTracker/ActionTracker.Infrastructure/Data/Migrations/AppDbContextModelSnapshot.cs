@@ -1593,16 +1593,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<Guid?>("OrgUnitId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("OrgUnitName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<int>("OrgUnitScope")
-                        .HasColumnType("int");
-
                     b.Property<string>("RoleName")
                         .IsRequired()
                         .HasMaxLength(256)

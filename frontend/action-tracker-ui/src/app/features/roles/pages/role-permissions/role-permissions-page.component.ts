@@ -17,9 +17,6 @@ import { PageHeaderComponent }       from '../../../../shared/components/page-he
 
 interface CellState {
   checked: boolean;
-  orgUnitScope: number; // 0=All, 1=SpecificOrgUnit, 2=OwnOnly
-  orgUnitId: string;
-  orgUnitName: string;
 }
 
 @Component({
@@ -96,20 +93,12 @@ export class RolePermissionsPageComponent implements OnInit {
   private initCellStates(m: PermissionMatrixDto): void {
     const states: Record<string, Record<string, CellState>> = {};
 
-    // Pre-populate from existing permissions
-    const permMap = new Map<string, typeof m.permissions[0]>();
-    for (const p of m.permissions) {
-      permMap.set(`${p.areaId}|${p.actionId}`, p);
-    }
+    const permSet = new Set(m.permissions.map(p => `${p.areaId}|${p.actionId}`));
 
     for (const mp of m.availableMappings) {
       if (!states[mp.areaId]) states[mp.areaId] = {};
-      const existing = permMap.get(`${mp.areaId}|${mp.actionId}`);
       states[mp.areaId][mp.actionId] = {
-        checked:      !!existing,
-        orgUnitScope: existing?.orgUnitScope ?? 0,
-        orgUnitId:    existing?.orgUnitId   ?? '',
-        orgUnitName:  existing?.orgUnitName ?? '',
+        checked: permSet.has(`${mp.areaId}|${mp.actionId}`),
       };
     }
 
@@ -131,27 +120,7 @@ export class RolePermissionsPageComponent implements OnInit {
     if (!states[areaId]) states[areaId] = {};
     const cell = states[areaId][actionId];
     if (!cell) return;
-    states[areaId] = { ...states[areaId], [actionId]: { ...cell, checked: !cell.checked } };
-    this.cellStates.set(states);
-  }
-
-  setScopeForCell(areaId: string, actionId: string, scope: number): void {
-    const states = { ...this.cellStates() };
-    if (!states[areaId]?.[actionId]) return;
-    states[areaId] = {
-      ...states[areaId],
-      [actionId]: { ...states[areaId][actionId], orgUnitScope: scope },
-    };
-    this.cellStates.set(states);
-  }
-
-  setOrgUnitForCell(areaId: string, actionId: string, val: string): void {
-    const states = { ...this.cellStates() };
-    if (!states[areaId]?.[actionId]) return;
-    states[areaId] = {
-      ...states[areaId],
-      [actionId]: { ...states[areaId][actionId], orgUnitId: val, orgUnitName: val },
-    };
+    states[areaId] = { ...states[areaId], [actionId]: { checked: !cell.checked } };
     this.cellStates.set(states);
   }
 
@@ -162,15 +131,8 @@ export class RolePermissionsPageComponent implements OnInit {
 
     for (const areaId of Object.keys(states)) {
       for (const actionId of Object.keys(states[areaId])) {
-        const cell = states[areaId][actionId];
-        if (cell.checked) {
-          permissions.push({
-            areaId,
-            actionId,
-            orgUnitScope: cell.orgUnitScope,
-            orgUnitId:    cell.orgUnitScope === 1 ? cell.orgUnitId   : undefined,
-            orgUnitName:  cell.orgUnitScope === 1 ? cell.orgUnitName : undefined,
-          });
+        if (states[areaId][actionId].checked) {
+          permissions.push({ areaId, actionId });
         }
       }
     }
