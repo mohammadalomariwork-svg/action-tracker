@@ -9,15 +9,16 @@ public class CreateRolePermissionDto
     public string RoleName { get; set; } = string.Empty;
 
     [Required]
-    public int Area { get; set; }
+    public Guid AreaId { get; set; }
 
     [Required]
-    public int Action { get; set; }
+    public Guid ActionId { get; set; }
 
     [Required]
+    [Range(0, 2)]
     public int OrgUnitScope { get; set; }
 
-    /// <summary>Required when <see cref="OrgUnitScope"/> equals <see cref="Permissions.OrgUnitScope.SpecificOrgUnit"/>.</summary>
+    /// <summary>Required when <see cref="OrgUnitScope"/> equals 1 (Specific Org Unit).</summary>
     public Guid? OrgUnitId { get; set; }
 
     [MaxLength(256)]

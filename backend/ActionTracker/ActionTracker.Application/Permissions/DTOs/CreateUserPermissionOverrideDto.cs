@@ -13,10 +13,10 @@ public class CreateUserPermissionOverrideDto
     public string UserDisplayName { get; set; } = string.Empty;
 
     [Required]
-    public int Area { get; set; }
+    public Guid AreaId { get; set; }
 
     [Required]
-    public int Action { get; set; }
+    public Guid ActionId { get; set; }
 
     [Required]
     public int OrgUnitScope { get; set; }

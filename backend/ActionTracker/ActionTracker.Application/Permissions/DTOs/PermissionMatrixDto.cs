@@ -4,4 +4,5 @@ public class PermissionMatrixDto
 {
     public string RoleName { get; set; } = string.Empty;
     public List<RolePermissionDto> Permissions { get; set; } = new();
+    public List<AreaActionMappingDto> AvailableMappings { get; set; } = new();
 }
