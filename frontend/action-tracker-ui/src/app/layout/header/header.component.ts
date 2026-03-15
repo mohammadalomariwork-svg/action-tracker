@@ -136,6 +136,7 @@ export class HeaderComponent {
   }
 
   logout(): void {
+    this.permissionState.clearPermissions();
     this.authService.logout();
   }
 
