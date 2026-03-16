@@ -265,20 +265,22 @@ export class ProjectDetailComponent implements OnInit {
 
     this.saveEditError = null;
 
-    // Validate milestone/action-item structure when activating from a non-active status
-    const activating = this.editForm.status === ProjectStatus.Active
-      && this.project?.status !== ProjectStatus.Active;
+    // Validate milestone/action-item structure when transitioning to Active or Completed
+    const needsValidation =
+      (this.editForm.status === ProjectStatus.Active   && this.project?.status !== ProjectStatus.Active) ||
+      (this.editForm.status === ProjectStatus.Completed && this.project?.status !== ProjectStatus.Completed);
 
-    if (activating) {
+    if (needsValidation) {
       this.saving = true;
-      this.validateActivation(() => this.doSaveEdit());
+      this.validateMilestoneStructure(this.editForm.status, () => this.doSaveEdit());
       return;
     }
 
     this.doSaveEdit();
   }
 
-  private validateActivation(onValid: () => void): void {
+  private validateMilestoneStructure(targetStatus: ProjectStatus, onValid: () => void): void {
+    const label = targetStatus === ProjectStatus.Completed ? 'Completed' : 'Active';
     const actionFilter: ActionItemFilter = {
       projectId:      this.projectId,
       pageNumber:     1,
@@ -298,7 +300,7 @@ export class ProjectDetailComponent implements OnInit {
         const actionList = (actions.data as PagedResult<ActionItem>).items ?? [];
 
         if (msList.length === 0) {
-          this.saveEditError = 'Cannot set to Active: the project must have at least one milestone before activation.';
+          this.saveEditError = `Cannot set to ${label}: the project must have at least one milestone.`;
           this.saving = false;
           return;
         }
@@ -310,7 +312,7 @@ export class ProjectDetailComponent implements OnInit {
         if (emptyMilestones.length > 0) {
           const names = emptyMilestones.map(m => `"${m.name}"`).join(', ');
           this.saveEditError =
-            `Cannot set to Active: the following milestone(s) have no action items — ${names}. ` +
+            `Cannot set to ${label}: the following milestone(s) have no action items — ${names}. ` +
             `Please add at least one action item to each milestone first.`;
           this.saving = false;
           return;
