@@ -59,9 +59,10 @@ export class ActionListComponent implements OnInit, OnDestroy {
   // ── State ─────────────────────────────────────────────
   readonly items        = signal<ActionItem[]>([]);
   readonly totalCount   = signal(0);
-  readonly loading      = signal(false);
-  readonly myStats      = signal<ActionItemMyStats | null>(null);
-  readonly statsLoading = signal(false);
+  readonly loading         = signal(false);
+  readonly myStats         = signal<ActionItemMyStats | null>(null);
+  readonly statsLoading    = signal(false);
+  readonly showDeleted     = signal(false);
   readonly pendingDeleteId = signal<string | null>(null);
 
   // ── Filters (search / status / priority — assignee is always "me") ─────────
@@ -130,6 +131,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
       searchTerm:     this.searchCtrl.value?.trim() || undefined,
       status:         this.filterStatus()   ?? undefined,
       priority:       this.filterPriority() ?? undefined,
+      includeDeleted: this.showDeleted() || undefined,
     };
 
     this.actionSvc.getMyActions(filter).subscribe({
@@ -182,6 +184,12 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
   onPageSizeChange(size: number): void {
     this.pageSize.set(+size);
+    this.pageNumber.set(1);
+    this.load();
+  }
+
+  toggleShowDeleted(): void {
+    this.showDeleted.update(v => !v);
     this.pageNumber.set(1);
     this.load();
   }

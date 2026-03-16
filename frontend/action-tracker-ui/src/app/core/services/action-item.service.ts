@@ -76,6 +76,7 @@ export class ActionItemService {
     if (filter.status != null)   params = params.set('status', filter.status);
     if (filter.priority != null) params = params.set('priority', filter.priority);
     if (filter.searchTerm)       params = params.set('searchTerm', filter.searchTerm);
+    if (filter.includeDeleted)   params = params.set('includeDeleted', true);
 
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
   }

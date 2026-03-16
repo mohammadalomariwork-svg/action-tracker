@@ -7,10 +7,7 @@
     title="My Actions"
     subtitle="All action items assigned to you."
     icon="bi bi-list-check"
-  >
-    <a *appHasPermission="'ActionItems'; action: 'Create'"
-       routerLink="/actions/new" class="btn btn-primary">+ New Action</a>
-  </app-page-header>
+  />
 
   <div class="al-body">
 
@@ -124,12 +121,33 @@
 
     </div>
 
-    <!-- ── Toolbar ────────────────────────────────────── -->
+    <!-- ── Section header (workspace-style) ─────────────── -->
+    <div class="al-section-header">
+      <h5 class="mb-0">
+        <i class="bi bi-list-check me-2 text-primary"></i>My Actions
+        <span class="badge bg-secondary ms-2">{{ totalCount() }}</span>
+      </h5>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <!-- Show deleted toggle -->
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" id="showDeletedToggle"
+            [checked]="showDeleted()" (change)="toggleShowDeleted()" />
+          <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
+        </div>
+        <!-- New Action -->
+        <a *appHasPermission="'ActionItems'; action: 'Create'"
+           routerLink="/actions/new" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-circle me-1"></i>New Action
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Filter toolbar ─────────────────────────────── -->
     <div class="toolbar">
       <div class="toolbar__left">
         <!-- Search -->
         <div class="search-wrap">
-          <span class="search-icon">🔍</span>
+          <i class="bi bi-search search-icon"></i>
           <input
             type="search"
             class="search-input"
@@ -158,19 +176,13 @@
 
         <!-- Clear filters -->
         @if (hasActiveFilter()) {
-          <button class="btn btn-ghost" (click)="clearFilters()">✕ Clear Filters</button>
+          <button class="btn btn-ghost" (click)="clearFilters()">✕ Clear</button>
         }
-      </div>
-
-      <div class="toolbar__right">
-        <span class="text-muted" style="font-size:.85rem">
-          Showing <strong>{{ totalCount() }}</strong> item(s)
-        </span>
       </div>
     </div>
 
-    <!-- ── TABLE VIEW ─────────────────────────────────── -->
-    <div class="table-wrap">
+    <!-- ── TABLE VIEW (desktop) ──────────────────────── -->
+    <div class="table-wrap d-none d-md-block">
       <table class="table table-hover table-sm wa-table mb-0">
         <thead>
           <tr>
@@ -229,13 +241,17 @@
             }
 
             @for (item of items(); track trackById($index, item)) {
-              <tr [class.table-danger]="item.isOverdue || item.status === ActionStatus.Overdue">
+              <tr [class.table-danger]="item.isOverdue || item.status === ActionStatus.Overdue"
+                  [class.wa-deleted-row]="item.isDeleted">
 
                 <!-- ID -->
                 <td>
                   <span class="wa-action-id">{{ item.actionId }}</span>
                   @if (item.isEscalated) {
                     <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
+                  }
+                  @if (item.isDeleted) {
+                    <span class="badge bg-danger ms-1">Deleted</span>
                   }
                 </td>
 
@@ -328,6 +344,116 @@
           }
         </tbody>
       </table>
+    </div>
+
+    <!-- ── MOBILE CARD VIEW ─────────────────────────── -->
+    <div class="d-block d-md-none">
+      @if (loading()) {
+        @for (r of skeletonRows; track $index) {
+          <div class="wa-action-card">
+            <span class="sk-cell" style="width:60%;height:14px;margin-bottom:.5rem"></span>
+            <span class="sk-cell" style="width:40%"></span>
+          </div>
+        }
+      }
+      @if (!loading() && items().length === 0) {
+        <div class="empty-state py-4">
+          <div class="empty-state__icon">📭</div>
+          <p class="empty-state__title">No action items found</p>
+          <p class="empty-state__sub">
+            @if (hasActiveFilter()) { Try adjusting your filters. }
+            @else { You have no action items assigned to you yet. }
+          </p>
+        </div>
+      }
+      @for (item of items(); track trackById($index, item)) {
+        <div class="wa-action-card"
+             [class.wa-action-card--deleted]="item.isDeleted"
+             [class.border-danger]="item.isOverdue || item.status === ActionStatus.Overdue">
+
+          <!-- Card header: ID + badges -->
+          <div class="wa-action-card__header">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="wa-action-id">{{ item.actionId }}</span>
+              @if (item.isEscalated) {
+                <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
+              }
+              @if (item.isDeleted) {
+                <span class="badge bg-danger">Deleted</span>
+              }
+              <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+              <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <a class="wa-action-card__title text-decoration-none"
+             [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
+
+          <!-- Meta -->
+          <div class="wa-action-card__meta">
+            @if (item.projectName) {
+              <div class="wa-action-card__meta-row">
+                <span class="wa-action-card__meta-label"><i class="bi bi-kanban me-1"></i>Project</span>
+                <span class="wa-action-card__meta-value">{{ item.projectName }}</span>
+              </div>
+            }
+            @if (item.milestoneName) {
+              <div class="wa-action-card__meta-row">
+                <span class="wa-action-card__meta-label"><i class="bi bi-flag me-1"></i>Milestone</span>
+                <span class="wa-action-card__meta-value">{{ item.milestoneName }}</span>
+              </div>
+            }
+            <div class="wa-action-card__meta-row">
+              <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
+              <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
+            </div>
+            @if (item.startDate) {
+              <div class="wa-action-card__meta-row">
+                <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
+                <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
+              </div>
+            }
+            <div class="wa-action-card__meta-row">
+              <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+              <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+            </div>
+            <div class="wa-action-card__meta-row">
+              <span class="wa-action-card__meta-label"><i class="bi bi-bar-chart me-1"></i>Progress</span>
+              <span class="wa-action-card__meta-value">
+                <div class="wa-progress-cell">
+                  <div class="progress wa-progress-bar" style="width:80px">
+                    <div class="progress-bar"
+                         [class.bg-success]="item.progress >= 75"
+                         [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                         [class.bg-danger]="item.progress < 40"
+                         [style.width.%]="item.progress"></div>
+                  </div>
+                  <span class="wa-progress-label">{{ item.progress }}%</span>
+                </div>
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="wa-action-card__actions">
+            @if (!item.isDeleted) {
+              <a class="btn btn-outline-info btn-sm"
+                 [routerLink]="['/actions', item.id, 'view']"
+              ><i class="bi bi-eye me-1"></i>View</a>
+              <a *appHasPermission="'ActionItems'; action: 'Edit'"
+                 class="btn btn-outline-primary btn-sm"
+                 [routerLink]="['/actions', item.id, 'edit']"
+              ><i class="bi bi-pencil me-1"></i>Edit</a>
+              <button *appHasPermission="'ActionItems'; action: 'Delete'"
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="confirmDelete(item.id)"
+              ><i class="bi bi-trash me-1"></i>Delete</button>
+            }
+          </div>
+
+        </div>
+      }
     </div>
 
     <!-- ── Pagination ─────────────────────────────────── -->
