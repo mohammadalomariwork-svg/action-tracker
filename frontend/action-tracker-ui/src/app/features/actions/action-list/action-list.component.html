@@ -1,4 +1,4 @@
-<div class="al-page" (click)="closeStatusMenu()">
+<div class="al-page">
 
   <app-breadcrumb [items]="[{ label: 'My Actions' }]" />
 
@@ -139,7 +139,7 @@
         </div>
 
         <!-- Priority -->
-        <select class="filter-select" [ngModel]="filterPriority()"
+        <select class="filter-select" [ngModel]="filterPriority() ?? ''"
           (ngModelChange)="filterPriority.set($event === '' ? null : +$event); applyFilter()">
           <option value="">All Priorities</option>
           @for (opt of PRIORITY_OPTIONS; track opt.value) {
@@ -148,7 +148,7 @@
         </select>
 
         <!-- Status -->
-        <select class="filter-select" [ngModel]="filterStatus()"
+        <select class="filter-select" [ngModel]="filterStatus() ?? ''"
           (ngModelChange)="filterStatus.set($event === '' ? null : +$event); applyFilter()">
           <option value="">All Statuses</option>
           @for (opt of STATUS_OPTIONS; track opt.value) {
@@ -171,7 +171,7 @@
 
     <!-- ── TABLE VIEW ─────────────────────────────────── -->
     <div class="table-wrap">
-      <table class="al-table">
+      <table class="table table-hover table-sm wa-table mb-0">
         <thead>
           <tr>
             <th class="sortable" (click)="onSortChange('actionId')">
@@ -182,15 +182,17 @@
             </th>
             <th>Project</th>
             <th>Milestone</th>
+            <th>Assignee(s)</th>
             <th class="sortable" (click)="onSortChange('priority')">
               Priority <span class="sort-indicator">{{ sortBy() === 'priority' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
             </th>
             <th>Status</th>
+            <th>Start Date</th>
             <th class="sortable" (click)="onSortChange('dueDate')">
               Due Date <span class="sort-indicator">{{ sortBy() === 'dueDate' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
             </th>
             <th class="th-progress">Progress</th>
-            <th class="th-actions">Actions</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
 
@@ -199,7 +201,7 @@
           @if (loading()) {
             @for (r of skeletonRows; track $index) {
               <tr class="sk-row">
-                @for (c of [1,2,3,4,5,6,7,8,9]; track c) {
+                @for (c of [1,2,3,4,5,6,7,8,9,10,11]; track c) {
                   <td><span class="sk-cell"></span></td>
                 }
               </tr>
@@ -210,7 +212,7 @@
           @if (!loading()) {
             @if (items().length === 0) {
               <tr>
-                <td colspan="9" class="empty-cell">
+                <td colspan="11" class="empty-cell">
                   <div class="empty-state">
                     <div class="empty-state__icon">📭</div>
                     <p class="empty-state__title">No action items found</p>
@@ -227,23 +229,25 @@
             }
 
             @for (item of items(); track trackById($index, item)) {
-              <tr class="data-row" [class.row--escalated]="item.isEscalated">
+              <tr [class.table-danger]="item.isOverdue || item.status === ActionStatus.Overdue">
 
                 <!-- ID -->
-                <td class="td-id">
-                  <span class="action-id">{{ item.actionId }}</span>
-                  @if (item.isEscalated) { <span class="escalated-dot" title="Escalated">🚨</span> }
+                <td>
+                  <span class="wa-action-id">{{ item.actionId }}</span>
+                  @if (item.isEscalated) {
+                    <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
+                  }
                 </td>
 
                 <!-- Title -->
-                <td class="td-title">
-                  <span class="title-text" [title]="item.title">{{ item.title }}</span>
+                <td>
+                  <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                 </td>
 
                 <!-- Project -->
                 <td>
                   @if (item.projectName) {
-                    <a [routerLink]="['/projects', item.projectId]" class="table-link">{{ item.projectName }}</a>
+                    <a [routerLink]="['/projects', item.projectId]" class="wa-link">{{ item.projectName }}</a>
                   } @else {
                     <span class="text-muted">—</span>
                   }
@@ -252,58 +256,70 @@
                 <!-- Milestone -->
                 <td>
                   @if (item.milestoneName && item.projectId) {
-                    <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="table-link">{{ item.milestoneName }}</a>
+                    <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="wa-link">{{ item.milestoneName }}</a>
                   } @else {
                     <span class="text-muted">—</span>
                   }
                 </td>
 
-                <!-- Priority -->
-                <td><app-priority-badge [priority]="item.priority" /></td>
-
-                <!-- Status (inline change) -->
-                <td class="td-status" (click)="$event.stopPropagation()">
-                  <div class="status-cell">
-                    <button class="status-btn" (click)="toggleStatusMenu(item.id, $event)">
-                      <app-status-badge [status]="item.status" />
-                      <span class="status-chevron">▾</span>
-                    </button>
-
-                    @if (openStatusRowId() === item.id) {
-                      <div class="status-dropdown">
-                        @for (opt of STATUS_OPTIONS; track opt.value) {
-                          <button
-                            class="status-option"
-                            [class.status-option--active]="item.status === opt.value"
-                            (click)="changeStatus(item, opt.value, $event)"
-                          >{{ opt.label }}</button>
-                        }
-                      </div>
-                    }
+                <!-- Assignee(s) -->
+                <td>
+                  <div class="wa-assignees">
+                    <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
+                    <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
                   </div>
+                </td>
+
+                <!-- Priority -->
+                <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
+
+                <!-- Status -->
+                <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
+
+                <!-- Start Date -->
+                <td>
+                  <span class="text-muted">{{ item.startDate ? (item.startDate | date:'MMM d, y') : '—' }}</span>
                 </td>
 
                 <!-- Due Date -->
-                <td class="td-due">
-                  <div class="due-cell" [class]="dueDateClass(item)">
-                    <span class="due-date">{{ item.dueDate | date:'MMM d, y' }}</span>
-                    <span class="due-badge">{{ dueDateLabel(item) }}</span>
-                  </div>
+                <td>
+                  <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                 </td>
 
                 <!-- Progress -->
-                <td class="td-progress">
-                  <app-progress-bar [value]="item.progress" />
+                <td class="th-progress">
+                  <div class="wa-progress-cell">
+                    <div class="progress wa-progress-bar">
+                      <div
+                        class="progress-bar"
+                        [class.bg-success]="item.progress >= 75"
+                        [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                        [class.bg-danger]="item.progress < 40"
+                        [style.width.%]="item.progress"
+                      ></div>
+                    </div>
+                    <span class="wa-progress-label">{{ item.progress }}%</span>
+                  </div>
                 </td>
 
                 <!-- Actions -->
-                <td class="td-actions">
-                  <div class="row-actions">
-                    <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view" title="View">👁️</a>
+                <td class="text-end">
+                  <div class="wa-row-actions">
+                    <a
+                      class="btn btn-outline-info btn-sm wa-action-btn"
+                      [routerLink]="['/actions', item.id, 'view']"
+                      title="View"
+                    ><i class="bi bi-eye"></i></a>
                     <a *appHasPermission="'ActionItems'; action: 'Edit'"
-                       [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit" title="Edit">✏️</a>
+                       class="btn btn-outline-primary btn-sm wa-action-btn"
+                       [routerLink]="['/actions', item.id, 'edit']"
+                       title="Edit"
+                    ><i class="bi bi-pencil"></i></a>
                     <button *appHasPermission="'ActionItems'; action: 'Delete'"
-                            class="row-btn row-btn--delete" title="Delete" (click)="confirmDelete(item.id)">🗑️</button>
+                            class="btn btn-outline-danger btn-sm wa-action-btn"
+                            title="Delete"
+                            (click)="confirmDelete(item.id)"
+                    ><i class="bi bi-trash"></i></button>
                   </div>
                 </td>
 

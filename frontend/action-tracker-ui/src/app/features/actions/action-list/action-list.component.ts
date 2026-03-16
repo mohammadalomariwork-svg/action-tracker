@@ -16,9 +16,6 @@ import {
 } from '../../../core/models/action-item.model';
 import { PagedResult }       from '../../../core/models/api-response.model';
 
-import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
-import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
-import { ProgressBarComponent }   from '../../../shared/components/progress-bar/progress-bar.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
@@ -45,8 +42,7 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule, ReactiveFormsModule, RouterLink, DatePipe,
-    StatusBadgeComponent, PriorityBadgeComponent,
-    ProgressBarComponent, ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
+    ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
     HasPermissionDirective,
   ],
   templateUrl: './action-list.component.html',
@@ -66,7 +62,6 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly loading      = signal(false);
   readonly myStats      = signal<ActionItemMyStats | null>(null);
   readonly statsLoading = signal(false);
-  readonly openStatusRowId = signal<string | null>(null);
   readonly pendingDeleteId = signal<string | null>(null);
 
   // ── Filters (search / status / priority — assignee is always "me") ─────────
@@ -191,29 +186,6 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.load();
   }
 
-  // ── Inline status ─────────────────────────────────────
-  toggleStatusMenu(id: string, event: Event): void {
-    event.stopPropagation();
-    this.openStatusRowId.update(cur => cur === id ? null : id);
-  }
-
-  changeStatus(item: ActionItem, status: ActionStatus, event: Event): void {
-    event.stopPropagation();
-    this.openStatusRowId.set(null);
-    if (item.status === status) return;
-
-    this.actionSvc.updateStatus(item.id, status).subscribe({
-      next: r => {
-        this.items.update(list => list.map(i => i.id === item.id ? r.data : i));
-        this.toastSvc.success('Status updated.');
-        this.loadStats(); // refresh stats after status change
-      },
-      error: () => this.toastSvc.error('Failed to update status.'),
-    });
-  }
-
-  closeStatusMenu(): void { this.openStatusRowId.set(null); }
-
   // ── Delete ────────────────────────────────────────────
   confirmDelete(id: string): void {
     this.pendingDeleteId.set(id);
@@ -236,18 +208,33 @@ export class ActionListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Due-date helpers ──────────────────────────────────
-  dueDateClass(item: ActionItem): string {
-    if (item.isOverdue || item.status === ActionStatus.Overdue) return 'due--overdue';
-    if (item.daysUntilDue <= 3) return 'due--warning';
-    return 'due--ok';
+  // ── Badge helpers (same as workspace-detail) ──────────
+  priorityClass(p: ActionPriority): string {
+    switch (+p) {
+      case ActionPriority.Critical: return 'badge bg-danger';
+      case ActionPriority.High:     return 'badge bg-warning text-dark';
+      case ActionPriority.Medium:   return 'badge bg-info text-dark';
+      case ActionPriority.Low:      return 'badge bg-secondary';
+      default:                      return 'badge bg-light text-dark';
+    }
   }
 
-  dueDateLabel(item: ActionItem): string {
-    if (item.isOverdue) return `${Math.abs(item.daysUntilDue)}d overdue`;
-    if (item.daysUntilDue === 0) return 'Due today';
-    if (item.daysUntilDue === 1) return 'Due tomorrow';
-    return `${item.daysUntilDue}d left`;
+  statusClass(s: ActionStatus): string {
+    switch (+s) {
+      case ActionStatus.ToDo:       return 'badge bg-secondary';
+      case ActionStatus.InProgress: return 'badge bg-primary';
+      case ActionStatus.InReview:   return 'badge bg-warning text-dark';
+      case ActionStatus.Done:       return 'badge bg-success';
+      case ActionStatus.Overdue:    return 'badge bg-danger';
+      default:                      return 'badge bg-light text-dark';
+    }
+  }
+
+  // ── Due-date helpers ──────────────────────────────────
+  dueDateClass(item: ActionItem): string {
+    if (item.isOverdue || item.status === ActionStatus.Overdue) return 'text-danger fw-semibold';
+    if (item.daysUntilDue <= 3) return 'text-warning fw-semibold';
+    return '';
   }
 
   /** Helper to get a comma-separated assignee names string */

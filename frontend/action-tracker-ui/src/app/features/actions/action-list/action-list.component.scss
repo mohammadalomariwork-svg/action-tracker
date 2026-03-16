@@ -225,22 +225,8 @@ app-page-header {
   box-shadow: var(--shadow-sm);
 }
 
-.al-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-  min-width: 900px;
-}
-
-// Header
-thead tr {
-  background: var(--bg-main);
-  border-bottom: 2px solid var(--border-color);
-}
-
-th {
-  padding: 0.7rem 0.9rem;
-  text-align: left;
+// Bootstrap table header tweaks
+.table th {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -254,197 +240,95 @@ th {
     &:hover { color: var(--primary); }
   }
 
-  &.th-title   { min-width: 220px; }
-  &.th-progress{ width: 140px; }
-  &.th-actions { width: 120px; text-align: center; }
+  &.th-title   { min-width: 200px; }
+  &.th-progress{ width: 120px; }
 }
 
 .sort-indicator { font-size: 0.7rem; opacity: 0.6; margin-left: 2px; }
 
-// Rows
-.data-row {
-  border-bottom: 1px solid var(--border-color);
-  transition: background 0.12s;
-
-  &:last-child { border-bottom: none; }
-  &:hover { background: rgba(79, 70, 229, 0.03); }
-  &:hover .row-actions { opacity: 1; }
-  &.row--escalated { background: rgba(220, 38, 38, 0.02); }
+// ── wa-* table helpers (same as workspace) ─────────────
+.wa-action-id {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0d6efd;
 }
 
-td {
-  padding: 0.75rem 0.9rem;
-  vertical-align: middle;
-  color: var(--text-primary);
-}
-
-// Column-specific styles
-.td-id { white-space: nowrap; }
-
-.action-id {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  font-family: monospace;
-}
-
-.escalated-dot { margin-left: 4px; font-size: 0.75rem; }
-
-.td-title { max-width: 260px; }
-
-.title-text {
-  display: block;
+.wa-title {
+  display: inline-block;
+  max-width: 220px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   font-weight: 500;
+  color: var(--text-primary);
+  &:hover { color: var(--primary); }
 }
 
-.assignee {
+.wa-link {
+  color: #0d6efd;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+.wa-assignees {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
+  gap: 0.4rem;
 }
 
-.assignee-avatar {
-  width: 26px; height: 26px;
+.wa-avatar-sm {
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 50%;
-  background: var(--primary);
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
   color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
-.assignee-name { font-size: 0.83rem; }
-
-.cat-tag {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  background: rgba(79, 70, 229, 0.08);
-  color: var(--primary);
+.wa-assignee-text {
+  font-size: 0.82rem;
+  color: #495057;
+  max-width: 140px;
   white-space: nowrap;
-}
-
-.td-progress { min-width: 130px; }
-
-// ── Inline status dropdown ─────────────────────────────
-.td-status { position: relative; }
-
-.status-cell { position: relative; display: inline-block; }
-
-.status-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.status-chevron {
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  opacity: 0.7;
-}
-
-.status-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 200;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  box-shadow: var(--shadow-md);
   overflow: hidden;
-  min-width: 140px;
+  text-overflow: ellipsis;
 }
 
-.status-option {
-  display: block;
-  width: 100%;
-  padding: 0.55rem 0.9rem;
-  background: none;
-  border: none;
-  text-align: left;
-  font-size: 0.83rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background 0.12s;
-
-  &:hover { background: var(--bg-main); }
-  &--active { font-weight: 600; color: var(--primary); background: rgba(79,70,229,0.06); }
-}
-
-// ── Due date ──────────────────────────────────────────
-.due-cell {
-  display: flex; flex-direction: column; gap: 2px;
-}
-
-.due-date { font-size: 0.83rem; }
-
-.due-badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  display: inline-block;
-  width: fit-content;
-}
-
-.due--overdue {
-  .due-date { color: var(--danger); }
-  .due-badge { background: rgba(220,38,38,0.1); color: var(--danger); }
-}
-
-.due--warning {
-  .due-date { color: var(--warning); }
-  .due-badge { background: rgba(217,119,6,0.1); color: var(--warning); }
-}
-
-.due--ok {
-  .due-date { color: var(--text-primary); }
-  .due-badge { background: rgba(5,150,105,0.08); color: var(--success); }
-}
-
-// ── Row actions ───────────────────────────────────────
-.td-actions { text-align: center; }
-
-.row-actions {
+.wa-progress-cell {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s;
+  gap: 0.5rem;
 }
 
-.row-btn {
-  padding: 0.3rem 0.55rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  transition: background 0.12s, border-color 0.12s;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--text-primary);
+.wa-progress-bar {
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+}
 
-  &--view:hover  { border-color: var(--info, #3b82f6); background: rgba(59,130,246,0.06); color: var(--info, #3b82f6); }
-  &--edit:hover  { border-color: var(--primary); background: rgba(79,70,229,0.06); }
-  &--delete:hover{ border-color: var(--danger);  background: rgba(220,38,38,0.06); color: var(--danger); }
+.wa-progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c757d;
+  min-width: 32px;
+}
+
+.wa-row-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.wa-action-btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1;
 }
 
 // ── Skeleton ──────────────────────────────────────────
