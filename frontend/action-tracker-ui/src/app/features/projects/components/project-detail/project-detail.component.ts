@@ -492,7 +492,15 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   ganttActionBarClass(item: ActionItem): string {
-    switch (+item.status) {
+    const STATUS_MAP: Record<string, ActionStatus> = {
+      todo: ActionStatus.ToDo, inprogress: ActionStatus.InProgress,
+      inreview: ActionStatus.InReview, done: ActionStatus.Done,
+      overdue: ActionStatus.Overdue,
+    };
+    const st = typeof item.status === 'number'
+      ? item.status
+      : STATUS_MAP[String(item.status).toLowerCase()] ?? ActionStatus.ToDo;
+    switch (st) {
       case ActionStatus.Done:       return 'gantt-bar--done';
       case ActionStatus.Overdue:    return 'gantt-bar--overdue';
       case ActionStatus.InProgress: return 'gantt-bar--inprogress';
