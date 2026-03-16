@@ -362,3 +362,35 @@ select.form-control { appearance: auto; }
   .detail-body { padding: 0 1rem 1.5rem; }
   .form-row { flex-direction: column; gap: 0; }
 }
+
+// ── Print / PDF styles ────────────────────────────────────────────────────────
+@media print {
+  app-breadcrumb,
+  .wd-merged-header__actions,
+  .action-items-header .btn,
+  .action-items-header .form-check,
+  app-comments-section,
+  app-documents-section {
+    display: none !important;
+  }
+
+  .wd-page {
+    padding: 0;
+    background: #fff;
+  }
+
+  .wd-merged-header {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0;
+    break-inside: avoid;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .stat-card {
+    break-inside: avoid;
+  }
+}

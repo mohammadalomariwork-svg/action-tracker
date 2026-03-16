@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import * as XLSX from 'xlsx';
 
 import { MilestoneService } from '../../services/milestone.service';
 import { ProjectService } from '../../services/project.service';
@@ -473,6 +474,66 @@ export class MilestoneDetailComponent implements OnInit {
           this.errorMessage = err?.error?.message ?? 'Failed to update milestone.';
         },
       });
+  }
+
+  // ── Export ─────────────────────────────────────────────
+  exportToExcel(): void {
+    const ms = this.milestone;
+    if (!ms) return;
+
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Milestone Info
+    const infoRows: Record<string, unknown>[] = [
+      { Field: 'Code',                   Value: ms.milestoneCode },
+      { Field: 'Name',                   Value: ms.name },
+      { Field: 'Project',                Value: this.projectName ?? '' },
+      { Field: 'Workspace',              Value: this.workspaceTitle ?? '' },
+      { Field: 'Status',                 Value: ms.statusLabel },
+      { Field: 'Sequence Order',         Value: ms.sequenceOrder },
+      { Field: 'Completion %',           Value: `${ms.completionPercentage}%` },
+      { Field: 'Planned Start',          Value: ms.plannedStartDate          ? new Date(ms.plannedStartDate).toLocaleDateString()          : '' },
+      { Field: 'Planned Due',            Value: ms.plannedDueDate            ? new Date(ms.plannedDueDate).toLocaleDateString()            : '' },
+      { Field: 'Actual Completion',      Value: ms.actualCompletionDate      ? new Date(ms.actualCompletionDate).toLocaleDateString()      : '' },
+      { Field: 'Baseline Start',         Value: ms.baselinePlannedStartDate  ? new Date(ms.baselinePlannedStartDate).toLocaleDateString()  : '' },
+      { Field: 'Baseline Due',           Value: ms.baselinePlannedDueDate    ? new Date(ms.baselinePlannedDueDate).toLocaleDateString()    : '' },
+      { Field: 'Schedule Variance',      Value: ms.scheduleVarianceDays != null ? this.varianceLabel(ms.scheduleVarianceDays) : '' },
+      { Field: 'Fixed Deadline',         Value: ms.isDeadlineFixed ? 'Yes' : 'No' },
+      { Field: 'Approver',               Value: ms.approverName ?? '' },
+      { Field: 'Description',            Value: ms.description ?? '' },
+      { Field: 'Created',                Value: ms.createdAt  ? new Date(ms.createdAt).toLocaleDateString()  : '' },
+      { Field: 'Last Updated',           Value: ms.updatedAt  ? new Date(ms.updatedAt).toLocaleDateString()  : '' },
+    ];
+    if (this.milestoneStats) {
+      infoRows.push(
+        { Field: 'Total Action Items',   Value: this.milestoneStats.totalActionItems },
+        { Field: 'Completion Rate',      Value: `${this.milestoneStats.completionRate}%` },
+        { Field: 'On-Time Delivery',     Value: `${this.milestoneStats.onTimeDeliveryRate}%` },
+        { Field: 'Escalated Actions',    Value: this.milestoneStats.escalatedActionItems },
+      );
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(infoRows), 'Milestone Info');
+
+    // Sheet 2: Action Items
+    const actionRows = this.actionItems.map(a => ({
+      'ID':         a.actionId,
+      'Title':      a.title,
+      'Assignees':  a.assignees.map(x => x.fullName).join(', '),
+      'Status':     a.statusLabel,
+      'Priority':   a.priorityLabel,
+      'Start Date': a.startDate ? new Date(a.startDate).toLocaleDateString() : '',
+      'Due Date':   new Date(a.dueDate).toLocaleDateString(),
+      'Progress':   `${a.progress}%`,
+      'Escalated':  a.isEscalated ? 'Yes' : 'No',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(actionRows.length ? actionRows : [{}]), 'Action Items');
+
+    const filename = `milestone-${ms.milestoneCode}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  printToPDF(): void {
+    window.print();
   }
 
   // ── Milestone helpers ──────────────────────────────────

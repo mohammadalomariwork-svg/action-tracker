@@ -30,6 +30,12 @@
           <a [routerLink]="['/projects', projectId]" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back to Project
           </a>
+          <button class="btn btn-outline-success btn-sm" (click)="exportToExcel()" title="Export to Excel">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" (click)="printToPDF()" title="Print / Save as PDF">
+            <i class="bi bi-printer me-1"></i>Print
+          </button>
           <button class="btn btn-primary btn-sm" (click)="openEditMilestoneForm()" [disabled]="showEditMilestoneForm">
             <i class="bi bi-pencil me-1"></i>Edit
           </button>
