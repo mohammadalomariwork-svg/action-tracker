@@ -1,20 +1,22 @@
 import {
-  Component, OnInit, OnDestroy, ChangeDetectionStrategy,
-  inject, signal, computed, ViewChild,
+  Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
+  inject, signal, computed, ViewChild, HostListener,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { ToastService }      from '../../../core/services/toast.service';
+import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 
 import {
-  ActionItem, ActionItemMyStats,
-  ActionStatus, ActionPriority,
+  ActionItem, ActionItemMyStats, ActionItemCreate,
+  ActionStatus, ActionPriority, AssignableUser, EscalationInfo,
 } from '../../../core/models/action-item.model';
-import { PagedResult }       from '../../../core/models/api-response.model';
+import { PagedResult }    from '../../../core/models/api-response.model';
+import { WorkspaceList }  from '../../workspaces/models/workspace.model';
 
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
@@ -36,6 +38,20 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
   { value: ActionPriority.Low,      label: 'Low'      },
 ];
 
+interface ActionItemFormData {
+  workspaceId: string;
+  title: string;
+  description: string;
+  assigneeIds: string[];
+  priority: ActionPriority;
+  status: ActionStatus;
+  startDate: string;
+  dueDate: string;
+  progress: number;
+  isEscalated: boolean;
+  escalationExplanation: string;
+}
+
 @Component({
   selector: 'app-action-list',
   standalone: true,
@@ -49,14 +65,15 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
   styleUrl:    './action-list.component.scss',
 })
 export class ActionListComponent implements OnInit, OnDestroy {
-  private readonly actionSvc = inject(ActionItemService);
-  private readonly toastSvc  = inject(ToastService);
-  readonly router             = inject(Router);
-  private readonly destroy$  = new Subject<void>();
+  private readonly actionSvc    = inject(ActionItemService);
+  private readonly toastSvc     = inject(ToastService);
+  private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly cdr          = inject(ChangeDetectorRef);
+  private readonly destroy$     = new Subject<void>();
 
   @ViewChild('deleteDialog') deleteDialog!: ConfirmDialogComponent;
 
-  // ── State ─────────────────────────────────────────────
+  // ── List state ────────────────────────────────────────
   readonly items        = signal<ActionItem[]>([]);
   readonly totalCount   = signal(0);
   readonly loading         = signal(false);
@@ -65,7 +82,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly showDeleted     = signal(false);
   readonly pendingDeleteId = signal<string | null>(null);
 
-  // ── Filters (search / status / priority — assignee is always "me") ─────────
+  // ── Filters ───────────────────────────────────────────
   readonly searchCtrl     = new FormControl<string>('');
   readonly filterStatus   = signal<ActionStatus   | null>(null);
   readonly filterPriority = signal<ActionPriority | null>(null);
@@ -86,12 +103,37 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly showingTo   = computed(() => Math.min(this.pageNumber() * this.pageSize(), this.totalCount()));
   readonly skeletonRows = Array.from({ length: 8 });
 
+  // ── Offcanvas form state ──────────────────────────────
+  showActionForm    = false;
+  editingActionId: string | null = null;
+  actionSaving      = false;
+  actionForm: ActionItemFormData = this.emptyActionForm();
+  assigneeDropdownOpen  = false;
+  assigneeSearchTerm    = '';
+  editingEscalations: EscalationInfo[] = [];
+  private originalEscalated     = false;
+  private originalEscalationText = '';
+
+  allUsers:      AssignableUser[] = [];
+  allWorkspaces: WorkspaceList[]  = [];
+
   // ── Expose constants to template ──────────────────────
   readonly ActionStatus     = ActionStatus;
   readonly ActionPriority   = ActionPriority;
   readonly STATUS_OPTIONS   = STATUS_OPTIONS;
   readonly PRIORITY_OPTIONS = PRIORITY_OPTIONS;
   readonly PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+  // ── Claim maps (same as workspace-detail) ─────────────
+  private readonly STATUS_MAP: Record<string, ActionStatus> = {
+    todo: ActionStatus.ToDo, inprogress: ActionStatus.InProgress,
+    inreview: ActionStatus.InReview, done: ActionStatus.Done,
+    overdue: ActionStatus.Overdue,
+  };
+  private readonly PRIORITY_MAP: Record<string, ActionPriority> = {
+    low: ActionPriority.Low, medium: ActionPriority.Medium,
+    high: ActionPriority.High, critical: ActionPriority.Critical,
+  };
 
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
@@ -105,6 +147,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
     this.loadStats();
     this.load();
+    this.loadAllUsers();
+    this.loadAllWorkspaces();
   }
 
   ngOnDestroy(): void {
@@ -146,6 +190,18 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.toastSvc.error('Failed to load action items.');
       },
     });
+  }
+
+  private loadAllUsers(): void {
+    this.actionSvc.getAssignableUsers()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: r => { this.allUsers = r.data ?? []; this.cdr.markForCheck(); } });
+  }
+
+  private loadAllWorkspaces(): void {
+    this.workspaceSvc.getWorkspaces()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: r => { this.allWorkspaces = r.data ?? []; this.cdr.markForCheck(); } });
   }
 
   // ── Filter helpers ────────────────────────────────────
@@ -192,6 +248,176 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.showDeleted.update(v => !v);
     this.pageNumber.set(1);
     this.load();
+  }
+
+  // ── Offcanvas form ────────────────────────────────────
+  private emptyActionForm(): ActionItemFormData {
+    return {
+      workspaceId: '',
+      title: '',
+      description: '',
+      assigneeIds: [],
+      priority: ActionPriority.Medium,
+      status: ActionStatus.ToDo,
+      startDate: '',
+      dueDate: '',
+      progress: 0,
+      isEscalated: false,
+      escalationExplanation: '',
+    };
+  }
+
+  private resolveStatus(val: unknown): ActionStatus {
+    if (typeof val === 'number') return val;
+    return this.STATUS_MAP[String(val).toLowerCase()] ?? ActionStatus.ToDo;
+  }
+
+  private resolvePriority(val: unknown): ActionPriority {
+    if (typeof val === 'number') return val;
+    return this.PRIORITY_MAP[String(val).toLowerCase()] ?? ActionPriority.Medium;
+  }
+
+  onStatusChange(): void {
+    if (+this.actionForm.status === ActionStatus.Done) {
+      this.actionForm.progress = 100;
+    }
+  }
+
+  openNewActionForm(): void {
+    this.editingActionId = null;
+    this.actionForm = this.emptyActionForm();
+    this.editingEscalations = [];
+    this.originalEscalated = false;
+    this.originalEscalationText = '';
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
+    this.showActionForm = true;
+    this.cdr.markForCheck();
+  }
+
+  openEditActionForm(item: ActionItem): void {
+    this.editingActionId = item.id;
+    this.editingEscalations = [...(item.escalations ?? [])]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    let latestExplanation = '';
+    if (item.isEscalated && this.editingEscalations.length > 0) {
+      latestExplanation = this.editingEscalations[this.editingEscalations.length - 1].explanation ?? '';
+    }
+
+    this.actionForm = {
+      workspaceId: (item as any).workspaceId ?? '',
+      title:       item.title,
+      description: item.description,
+      assigneeIds: item.assignees.map(a => a.userId),
+      priority:    this.resolvePriority(item.priority),
+      status:      this.resolveStatus(item.status),
+      startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
+      dueDate:     item.dueDate.slice(0, 10),
+      progress:    item.progress,
+      isEscalated: !!item.isEscalated,
+      escalationExplanation: latestExplanation,
+    };
+
+    this.originalEscalated = !!item.isEscalated;
+    this.originalEscalationText = latestExplanation;
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
+    this.showActionForm = true;
+    this.cdr.markForCheck();
+  }
+
+  cancelActionForm(): void {
+    this.showActionForm = false;
+    this.editingActionId = null;
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
+    this.cdr.markForCheck();
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.assigneeDropdownOpen) {
+      this.assigneeDropdownOpen = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  get latestEscalation(): EscalationInfo | null {
+    return this.editingEscalations.length > 0
+      ? this.editingEscalations[this.editingEscalations.length - 1]
+      : null;
+  }
+
+  get filteredUsers(): AssignableUser[] {
+    if (!this.assigneeSearchTerm.trim()) return this.allUsers;
+    const term = this.assigneeSearchTerm.toLowerCase();
+    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+  }
+
+  getAssigneeName(userId: string): string {
+    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  toggleAssignee(userId: string): void {
+    const idx = this.actionForm.assigneeIds.indexOf(userId);
+    if (idx >= 0) this.actionForm.assigneeIds.splice(idx, 1);
+    else          this.actionForm.assigneeIds.push(userId);
+  }
+
+  isAssigneeSelected(userId: string): boolean {
+    return this.actionForm.assigneeIds.includes(userId);
+  }
+
+  saveAction(): void {
+    if (!this.actionForm.title.trim() || !this.actionForm.workspaceId ||
+        this.actionForm.assigneeIds.length === 0 || !this.actionForm.dueDate) return;
+    if (this.actionForm.isEscalated && !this.actionForm.escalationExplanation?.trim()) return;
+
+    this.actionSaving = true;
+    this.cdr.markForCheck();
+
+    const escalatedChanged    = this.actionForm.isEscalated !== this.originalEscalated;
+    const explanationChanged  = this.actionForm.escalationExplanation?.trim() !== this.originalEscalationText.trim();
+    const shouldSendEscalation = escalatedChanged || explanationChanged;
+
+    const payload: ActionItemCreate = {
+      title:       this.actionForm.title.trim(),
+      description: this.actionForm.description?.trim() ?? '',
+      workspaceId: this.actionForm.workspaceId,
+      isStandalone: true,
+      assigneeIds: this.actionForm.assigneeIds,
+      priority:    +this.actionForm.priority as ActionPriority,
+      status:      +this.actionForm.status as ActionStatus,
+      startDate:   this.actionForm.startDate || null,
+      dueDate:     this.actionForm.dueDate,
+      progress:    +this.actionForm.progress,
+      isEscalated: !!this.actionForm.isEscalated,
+      escalationExplanation: (this.actionForm.isEscalated && shouldSendEscalation)
+        ? this.actionForm.escalationExplanation?.trim()
+        : undefined,
+    };
+
+    const obs$ = this.editingActionId
+      ? this.actionSvc.update(this.editingActionId, payload)
+      : this.actionSvc.create(payload);
+
+    obs$.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.actionSaving = false;
+        this.showActionForm = false;
+        this.editingActionId = null;
+        this.toastSvc.success(this.editingActionId ? 'Action item updated.' : 'Action item created.');
+        this.load();
+        this.loadStats();
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.actionSaving = false;
+        this.toastSvc.error(err?.error?.message ?? 'Failed to save action item.');
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // ── Delete ────────────────────────────────────────────
@@ -245,12 +471,10 @@ export class ActionListComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  /** Helper to get a comma-separated assignee names string */
   assigneeNames(item: ActionItem): string {
     return item.assignees?.map(a => a.fullName).join(', ') || '—';
   }
 
-  /** First letter of first assignee for avatar */
   assigneeInitial(item: ActionItem): string {
     return item.assignees?.[0]?.fullName?.charAt(0)?.toUpperCase() || '?';
   }
