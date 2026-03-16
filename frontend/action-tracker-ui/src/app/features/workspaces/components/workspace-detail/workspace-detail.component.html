@@ -1216,6 +1216,11 @@
         </div>
       }
 
+      <!-- Milestone validation error -->
+      @if (projectFormError) {
+        <div class="alert alert-danger py-2 mt-2">{{ projectFormError }}</div>
+      }
+
       <!-- Actions -->
       <div class="d-flex gap-2 justify-content-end border-top pt-3">
         <button type="button" class="btn btn-outline-secondary"

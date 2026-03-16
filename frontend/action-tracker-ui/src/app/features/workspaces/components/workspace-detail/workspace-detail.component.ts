@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import { WorkspaceService } from '../../services/workspace.service';
@@ -11,11 +12,13 @@ import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/br
 import { HasPermissionDirective } from '../../../../shared';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { ProjectService } from '../../../projects/services/project.service';
+import { MilestoneService } from '../../../projects/services/milestone.service';
 import { Workspace, WorkspaceAdmin, WorkspaceStats, UserDropdownItem } from '../../models/workspace.model';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
   ActionStatus, ActionPriority, AssignableUser, EscalationInfo,
 } from '../../../../core/models/action-item.model';
+import { MilestoneResponse } from '../../../projects/models/milestone.models';
 import {
   ProjectResponse, ProjectStatus, ProjectPriority, ProjectFilter,
   ProjectType, StrategicObjectiveOption,
@@ -34,6 +37,7 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly authService      = inject(AuthService);
   private readonly actionService    = inject(ActionItemService);
   private readonly projectService   = inject(ProjectService);
+  private readonly milestoneService = inject(MilestoneService);
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
 
@@ -90,7 +94,9 @@ export class WorkspaceDetailComponent implements OnInit {
   // Project drawer form
   showProjectForm = false;
   editingProjectId: string | null = null;
+  editingProjectOriginalStatus: ProjectStatus | null = null;
   projectSaving = false;
+  projectFormError: string | null = null;
   projectForm: ProjectFormData = this.emptyProjectForm();
   strategicObjectives: StrategicObjectiveOption[] = [];
   strategicObjectivesLoaded = false;
@@ -677,6 +683,8 @@ export class WorkspaceDetailComponent implements OnInit {
 
   openNewProjectForm(): void {
     this.editingProjectId = null;
+    this.editingProjectOriginalStatus = null;
+    this.projectFormError = null;
     this.projectForm = this.emptyProjectForm();
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';
@@ -687,6 +695,8 @@ export class WorkspaceDetailComponent implements OnInit {
 
   openEditProjectForm(prj: ProjectResponse): void {
     this.editingProjectId = prj.id;
+    this.editingProjectOriginalStatus = prj.status;
+    this.projectFormError = null;
     this.projectForm = {
       name: prj.name,
       description: prj.description ?? '',
@@ -786,8 +796,26 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
 
-    this.projectSaving = true;
+    this.projectFormError = null;
 
+    // Validate milestone structure when transitioning to Active or Completed
+    if (this.editingProjectId) {
+      const needsValidation =
+        (this.projectForm.status === ProjectStatus.Active    && this.editingProjectOriginalStatus !== ProjectStatus.Active) ||
+        (this.projectForm.status === ProjectStatus.Completed && this.editingProjectOriginalStatus !== ProjectStatus.Completed);
+
+      if (needsValidation) {
+        this.projectSaving = true;
+        this.validateProjectMilestones(this.editingProjectId, this.projectForm.status, () => this.doSaveProject());
+        return;
+      }
+    }
+
+    this.projectSaving = true;
+    this.doSaveProject();
+  }
+
+  private doSaveProject(): void {
     if (this.editingProjectId) {
       this.projectService.update(this.editingProjectId, {
         name: this.projectForm.name.trim(),
@@ -842,6 +870,54 @@ export class WorkspaceDetailComponent implements OnInit {
         },
       });
     }
+  }
+
+  private validateProjectMilestones(projectId: string, targetStatus: ProjectStatus, onValid: () => void): void {
+    const label = targetStatus === ProjectStatus.Completed ? 'Completed' : 'Active';
+    const actionFilter: ActionItemFilter = {
+      projectId,
+      pageNumber:     1,
+      pageSize:       500,
+      sortBy:         'dueDate',
+      sortDescending: false,
+    };
+
+    forkJoin({
+      milestones: this.milestoneService.getByProject(projectId),
+      actions:    this.actionService.getAll(actionFilter),
+    })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: ({ milestones, actions }) => {
+        const msList     = milestones.data ?? [];
+        const actionList = (actions.data as PagedResult<ActionItem>).items ?? [];
+
+        if (msList.length === 0) {
+          this.projectFormError = `Cannot set to ${label}: the project must have at least one milestone.`;
+          this.projectSaving = false;
+          return;
+        }
+
+        const emptyMilestones = msList.filter((ms: MilestoneResponse) =>
+          !actionList.some(a => a.milestoneId === ms.id)
+        );
+
+        if (emptyMilestones.length > 0) {
+          const names = emptyMilestones.map((m: MilestoneResponse) => `"${m.name}"`).join(', ');
+          this.projectFormError =
+            `Cannot set to ${label}: the following milestone(s) have no action items — ${names}. ` +
+            `Please add at least one action item to each milestone first.`;
+          this.projectSaving = false;
+          return;
+        }
+
+        onValid();
+      },
+      error: () => {
+        this.projectFormError = 'Could not validate milestones. Please try again.';
+        this.projectSaving = false;
+      },
+    });
   }
 
   projectPriorityClass(p: ProjectPriority): string {
