@@ -100,26 +100,6 @@ export class TeamDashboardComponent implements OnInit {
   readonly projectCompletionPct     = computed(() => Math.round(this.workspaceSummary()?.projectCompletionRate     ?? 0));
   readonly projectDeliveryPct       = computed(() => Math.round(this.workspaceSummary()?.projectOnTimeDeliveryRate ?? 0));
 
-  // ── Project pie charts ────────────────────────────────
-  readonly doughnutType = 'doughnut' as const;
-  projectCompletionPieData: ChartData<'doughnut'> = {
-    labels: ['Completed', 'Remaining'],
-    datasets: [{ data: [0, 100], backgroundColor: ['#059669', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
-  };
-  projectDeliveryPieData: ChartData<'doughnut'> = {
-    labels: ['On-Time', 'Delayed'],
-    datasets: [{ data: [0, 100], backgroundColor: ['#0284c7', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
-  };
-
-  readonly pieOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: false,   // fixed canvas size via width/height attrs; avoids 0-dim on OnPush init
-    cutout: '68%',
-    plugins: {
-      legend: { display: false },
-      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` } },
-    },
-  };
-
   // ── Status breakdown derived stats ───────────────────
   readonly doneCount = computed(() =>
     this.statusBreakdown().find(s => s.status.replace(/\s/g, '') === 'Done')?.count ?? 0);
@@ -190,25 +170,10 @@ export class TeamDashboardComponent implements OnInit {
     this.workspaceSvc.getSummary().subscribe({
       next: r => {
         this.workspaceSummary.set(r.data);
-        this.buildProjectPieCharts(r.data);
         this.loadingWorkspaceSummary.set(false);
       },
       error: () => this.loadingWorkspaceSummary.set(false),
     });
-  }
-
-  private buildProjectPieCharts(s: WorkspaceSummary): void {
-    const comp  = Math.round(s.projectCompletionRate     ?? 0);
-    const deliv = Math.round(s.projectOnTimeDeliveryRate ?? 0);
-    this.projectCompletionPieData = {
-      labels: ['Completed', 'Remaining'],
-      datasets: [{ data: [comp, 100 - comp], backgroundColor: ['#059669', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
-    };
-    this.projectDeliveryPieData = {
-      labels: ['On-Time', 'Delayed'],
-      datasets: [{ data: [deliv, 100 - deliv], backgroundColor: ['#0284c7', '#e2e8f0'], borderWidth: 0, hoverOffset: 4 }],
-    };
-    this.cdr.markForCheck();
   }
 
   private loadMyActions(): void {

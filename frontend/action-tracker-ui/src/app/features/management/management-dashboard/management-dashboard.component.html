@@ -67,46 +67,24 @@
             colorClass="warning"
             [trend]="null"
           />
+          <app-kpi-card
+            title="Project Completion Rate"
+            [value]="projectCompletionPct() + '%'"
+            subtitle="projects completed"
+            icon="✅"
+            colorClass="success"
+            [trend]="null"
+          />
+          <app-kpi-card
+            title="Project On-Time Delivery"
+            [value]="projectDeliveryPct() + '%'"
+            subtitle="delivered on time"
+            icon="🕐"
+            colorClass="info"
+            [trend]="null"
+          />
         </section>
       }
-
-      <!-- Project rate pie charts: always present once dashboard loads so
-           Chart.js can read container dimensions on first paint -->
-      <section class="charts-row charts-row--pie">
-        <div class="chart-card">
-          <div class="chart-card__header">
-            <h3 class="chart-title">Project Completion Rate</h3>
-          </div>
-          <div class="pie-canvas-wrap">
-            <canvas baseChart width="240" height="240"
-              [data]="projectCompletionPieData"
-              [type]="doughnutType"
-              [options]="pieOptions"
-            ></canvas>
-            <div class="pie-overlay">
-              <span class="pie-overlay__num">{{ projectCompletionPct() }}%</span>
-              <span class="pie-overlay__lbl">completed</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="chart-card">
-          <div class="chart-card__header">
-            <h3 class="chart-title">Project On-Time Delivery</h3>
-          </div>
-          <div class="pie-canvas-wrap">
-            <canvas baseChart width="240" height="240"
-              [data]="projectDeliveryPieData"
-              [type]="doughnutType"
-              [options]="pieOptions"
-            ></canvas>
-            <div class="pie-overlay">
-              <span class="pie-overlay__num">{{ projectDeliveryPct() }}%</span>
-              <span class="pie-overlay__lbl">on-time</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <!-- ── Section 2: Action KPI Cards ──────────────── -->
       <section class="kpi-row">
