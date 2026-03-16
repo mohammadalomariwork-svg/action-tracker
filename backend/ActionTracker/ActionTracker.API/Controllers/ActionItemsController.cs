@@ -64,14 +64,10 @@ public class ActionItemsController : ControllerBase
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
 
         // Force the assignee to the caller — ignore any assigneeId from the query string.
-        filter.AssigneeId = userId;
-
-        if (!string.IsNullOrEmpty(userId))
-        {
-            var visibleIds = await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
-            if (visibleIds.Count > 0)
-                filter.VisibleOrgUnitIds = visibleIds;
-        }
+        // Do NOT apply org-unit scoping: the user must see every item assigned to them
+        // regardless of which workspace/org-unit it belongs to.
+        filter.AssigneeId        = userId;
+        filter.VisibleOrgUnitIds = null;
 
         _logger.LogInformation("GET /api/action-items/my-actions userId={UserId}", userId);
 
