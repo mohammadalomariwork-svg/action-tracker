@@ -199,6 +199,7 @@ export class AuthService {
    */
   private persistSession(response: AuthResponse): void {
     const user: AuthUser = {
+      userId:        response.userId,
       email:         response.email,
       displayName:   response.displayName,
       loginProvider: response.loginProvider,

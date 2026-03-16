@@ -378,6 +378,41 @@ public class ActionItemService : IActionItemService
     }
 
     // -------------------------------------------------------------------------
+    // My Stats
+    // -------------------------------------------------------------------------
+
+    public async Task<ActionItemMyStatsDto> GetMyStatsAsync(string userId, CancellationToken ct)
+    {
+        var baseQuery = _dbContext.ActionItems
+            .Where(a => !a.IsDeleted && a.Assignees.Any(aa => aa.UserId == userId));
+
+        var total      = await baseQuery.CountAsync(ct);
+        var critical   = await baseQuery.CountAsync(a => a.Priority == ActionPriority.Critical, ct);
+        var inProgress = await baseQuery.CountAsync(a => a.Status == ActionStatus.InProgress, ct);
+        var completed  = await baseQuery.CountAsync(a => a.Status == ActionStatus.Done, ct);
+        var overdue    = await baseQuery.CountAsync(a => a.Status == ActionStatus.Overdue, ct);
+
+        decimal completionRate = total > 0
+            ? Math.Round((decimal)completed / total * 100, 1) : 0;
+
+        var completedOnTime = await baseQuery
+            .CountAsync(a => a.Status == ActionStatus.Done && a.UpdatedAt <= a.DueDate, ct);
+        decimal onTimeRate = completed > 0
+            ? Math.Round((decimal)completedOnTime / completed * 100, 1) : 0;
+
+        return new ActionItemMyStatsDto
+        {
+            TotalCount          = total,
+            CriticalCount       = critical,
+            InProgressCount     = inProgress,
+            CompletedCount      = completed,
+            OverdueCount        = overdue,
+            CompletionRate      = completionRate,
+            OnTimeCompletionRate = onTimeRate,
+        };
+    }
+
+    // -------------------------------------------------------------------------
     // Comments
     // -------------------------------------------------------------------------
 

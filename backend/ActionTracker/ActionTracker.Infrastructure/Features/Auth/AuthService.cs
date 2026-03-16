@@ -395,6 +395,7 @@ public sealed class AuthService : IAuthService
             AccessToken       = accessToken,
             RefreshToken      = refreshToken,
             AccessTokenExpiry = DateTime.UtcNow.AddMinutes(expiryMinutes),
+            UserId            = user.Id,
             Email             = user.Email!,
             DisplayName       = user.DisplayName ?? user.FullName,
             LoginProvider     = user.LoginProvider,

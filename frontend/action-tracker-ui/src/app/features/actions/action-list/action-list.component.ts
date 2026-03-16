@@ -6,17 +6,16 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
-import { UserService }       from '../../../core/services/user.service';
+import { AuthService }       from '../../../core/services/auth.service';
 import { ToastService }      from '../../../core/services/toast.service';
-import { ReportService }     from '../../../core/services/report.service';
 
 import {
-  ActionItem, ActionItemFilter,
+  ActionItem, ActionItemFilter, ActionItemMyStats,
   ActionStatus, ActionPriority,
 } from '../../../core/models/action-item.model';
-import { TeamMember }        from '../../../core/models/user.model';
 import { PagedResult }       from '../../../core/models/api-response.model';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
@@ -56,30 +55,30 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
   styleUrl:    './action-list.component.scss',
 })
 export class ActionListComponent implements OnInit, OnDestroy {
-  private readonly actionSvc          = inject(ActionItemService);
-  private readonly userSvc            = inject(UserService);
-  private readonly toastSvc           = inject(ToastService);
-  private readonly reportSvc          = inject(ReportService);
-  readonly router                     = inject(Router);
-  private readonly destroy$   = new Subject<void>();
+  private readonly actionSvc = inject(ActionItemService);
+  private readonly authSvc   = inject(AuthService);
+  private readonly toastSvc  = inject(ToastService);
+  readonly router             = inject(Router);
+  private readonly destroy$  = new Subject<void>();
 
   @ViewChild('deleteDialog') deleteDialog!: ConfirmDialogComponent;
+
+  // Current user (resolved from auth service)
+  readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
 
   // ── State ─────────────────────────────────────────────
   readonly items        = signal<ActionItem[]>([]);
   readonly totalCount   = signal(0);
   readonly loading      = signal(false);
-  readonly teamMembers  = signal<TeamMember[]>([]);
-  readonly cardView     = signal(false);
-  readonly exportingCsv = signal(false);
-  readonly openStatusRowId  = signal<string | null>(null);
-  readonly pendingDeleteId  = signal<string | null>(null);
+  readonly myStats      = signal<ActionItemMyStats | null>(null);
+  readonly statsLoading = signal(false);
+  readonly openStatusRowId = signal<string | null>(null);
+  readonly pendingDeleteId = signal<string | null>(null);
 
-  // ── Filters ───────────────────────────────────────────
+  // ── Filters (search / status / priority — assignee is always "me") ─────────
   readonly searchCtrl     = new FormControl<string>('');
   readonly filterStatus   = signal<ActionStatus   | null>(null);
   readonly filterPriority = signal<ActionPriority | null>(null);
-  readonly filterAssignee = signal<string | null>(null);
   readonly pageNumber     = signal(1);
   readonly pageSize       = signal(10);
   readonly sortBy         = signal('dueDate');
@@ -88,20 +87,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly hasActiveFilter = computed(() =>
     !!(this.searchCtrl.value?.trim() ||
        this.filterStatus()   !== null ||
-       this.filterPriority() !== null ||
-       this.filterAssignee() !== null)
+       this.filterPriority() !== null)
   );
-
-  // ── Derived stats ─────────────────────────────────────
-  readonly statTotal      = computed(() => this.totalCount());
-  readonly statCritHigh   = computed(() =>
-    this.items().filter(i => i.priority === ActionPriority.Critical || i.priority === ActionPriority.High).length);
-  readonly statInProgress = computed(() =>
-    this.items().filter(i => i.status === ActionStatus.InProgress).length);
-  readonly statDone       = computed(() =>
-    this.items().filter(i => i.status === ActionStatus.Done).length);
-  readonly statOverdue    = computed(() =>
-    this.items().filter(i => i.isOverdue || i.status === ActionStatus.Overdue).length);
 
   // ── Pagination ────────────────────────────────────────
   readonly totalPages  = computed(() => Math.ceil(this.totalCount() / this.pageSize()) || 1);
@@ -126,11 +113,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
       this.load();
     });
 
-    this.userSvc.getTeamMembers().subscribe({
-      next: r => this.teamMembers.set(r.data ?? []),
-      error: () => {},
-    });
-
+    this.loadStats();
     this.load();
   }
 
@@ -140,8 +123,17 @@ export class ActionListComponent implements OnInit, OnDestroy {
   }
 
   // ── Data loading ──────────────────────────────────────
+  loadStats(): void {
+    this.statsLoading.set(true);
+    this.actionSvc.getMyStats().subscribe({
+      next: r => { this.myStats.set(r.data ?? null); this.statsLoading.set(false); },
+      error: () => this.statsLoading.set(false),
+    });
+  }
+
   load(): void {
     this.loading.set(true);
+    const userId = this.currentUser()?.userId;
     const filter: ActionItemFilter = {
       pageNumber:     this.pageNumber(),
       pageSize:       this.pageSize(),
@@ -150,7 +142,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
       searchTerm:     this.searchCtrl.value?.trim() || undefined,
       status:         this.filterStatus()   ?? undefined,
       priority:       this.filterPriority() ?? undefined,
-      assigneeId:     this.filterAssignee() ?? undefined,
+      assigneeId:     userId,
     };
 
     this.actionSvc.getAll(filter).subscribe({
@@ -177,7 +169,6 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.searchCtrl.setValue('', { emitEvent: false });
     this.filterStatus.set(null);
     this.filterPriority.set(null);
-    this.filterAssignee.set(null);
     this.pageNumber.set(1);
     this.load();
   }
@@ -223,6 +214,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
       next: r => {
         this.items.update(list => list.map(i => i.id === item.id ? r.data : i));
         this.toastSvc.success('Status updated.');
+        this.loadStats(); // refresh stats after status change
       },
       error: () => this.toastSvc.error('Failed to update status.'),
     });
@@ -246,37 +238,9 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.items.update(list => list.filter(i => i.id !== id));
         this.totalCount.update(c => c - 1);
         this.toastSvc.success('Action item deleted.');
+        this.loadStats();
       },
       error: () => this.toastSvc.error('Failed to delete action item.'),
-    });
-  }
-
-  // ── CSV export ────────────────────────────────────────
-  exportCsv(): void {
-    this.exportingCsv.set(true);
-    const filter = {
-      searchTerm:     this.searchCtrl.value?.trim(),
-      status:         this.filterStatus(),
-      priority:       this.filterPriority(),
-      assigneeId:     this.filterAssignee(),
-      sortBy:         this.sortBy(),
-      sortDescending: this.sortDesc(),
-    };
-
-    this.reportSvc.exportCsv(filter).subscribe({
-      next: blob => {
-        this.exportingCsv.set(false);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `action-items-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => {
-        this.exportingCsv.set(false);
-        this.toastSvc.error('Export failed. Please try again.');
-      },
     });
   }
 
@@ -293,8 +257,6 @@ export class ActionListComponent implements OnInit, OnDestroy {
     if (item.daysUntilDue === 1) return 'Due tomorrow';
     return `${item.daysUntilDue}d left`;
   }
-
-  toggleCardView(): void { this.cardView.update(v => !v); }
 
   /** Helper to get a comma-separated assignee names string */
   assigneeNames(item: ActionItem): string {

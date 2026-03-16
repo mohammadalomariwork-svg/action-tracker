@@ -3,55 +3,125 @@
   <app-breadcrumb [items]="[{ label: 'My Actions' }]" />
 
   <!-- Page header -->
-  <app-page-header title="Action Items" subtitle="Manage and track all action items" icon="bi bi-list-check">
-    <button *appHasPermission="'ActionItems'; action: 'Export'"
-            class="btn btn-outline" (click)="exportCsv()" [disabled]="exportingCsv()">
-      @if (exportingCsv()) { <span class="spin-sm"></span> } @else { ⬇ }
-      Export CSV
-    </button>
+  <app-page-header
+    title="My Actions"
+    subtitle="All action items assigned to you."
+    icon="bi bi-list-check"
+  >
     <a *appHasPermission="'ActionItems'; action: 'Create'"
        routerLink="/actions/new" class="btn btn-primary">+ New Action</a>
   </app-page-header>
 
   <div class="al-body">
 
-    <!-- ── Stats bar ──────────────────────────────────── -->
+    <!-- ── Stats Cards ────────────────────────────────── -->
     <div class="stats-bar">
+
+      <!-- Total -->
       <div class="stat-card stat-card--total">
-        <span class="stat-icon">📋</span>
+        <div class="stat-icon-wrap stat-icon-wrap--blue">
+          <i class="bi bi-list-check"></i>
+        </div>
         <div class="stat-text">
-          <span class="stat-value">{{ statTotal() }}</span>
-          <span class="stat-label">Total</span>
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.totalCount ?? 0 }}</span>
+          }
+          <span class="stat-label">Total Assigned</span>
         </div>
       </div>
+
+      <!-- Critical -->
       <div class="stat-card stat-card--danger">
-        <span class="stat-icon">🔴</span>
+        <div class="stat-icon-wrap stat-icon-wrap--red">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
         <div class="stat-text">
-          <span class="stat-value">{{ statCritHigh() }}</span>
-          <span class="stat-label">Critical / High</span>
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.criticalCount ?? 0 }}</span>
+          }
+          <span class="stat-label">Critical</span>
         </div>
       </div>
+
+      <!-- In Progress -->
       <div class="stat-card stat-card--blue">
-        <span class="stat-icon">⚙️</span>
+        <div class="stat-icon-wrap stat-icon-wrap--indigo">
+          <i class="bi bi-arrow-repeat"></i>
+        </div>
         <div class="stat-text">
-          <span class="stat-value">{{ statInProgress() }}</span>
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.inProgressCount ?? 0 }}</span>
+          }
           <span class="stat-label">In Progress</span>
         </div>
       </div>
+
+      <!-- Completed -->
       <div class="stat-card stat-card--green">
-        <span class="stat-icon">✅</span>
+        <div class="stat-icon-wrap stat-icon-wrap--green">
+          <i class="bi bi-check-circle"></i>
+        </div>
         <div class="stat-text">
-          <span class="stat-value">{{ statDone() }}</span>
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.completedCount ?? 0 }}</span>
+          }
           <span class="stat-label">Completed</span>
         </div>
       </div>
+
+      <!-- Overdue -->
       <div class="stat-card stat-card--overdue">
-        <span class="stat-icon">⏰</span>
+        <div class="stat-icon-wrap stat-icon-wrap--orange">
+          <i class="bi bi-clock-history"></i>
+        </div>
         <div class="stat-text">
-          <span class="stat-value">{{ statOverdue() }}</span>
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.overdueCount ?? 0 }}</span>
+          }
           <span class="stat-label">Overdue</span>
         </div>
       </div>
+
+      <!-- Completion Rate % -->
+      <div class="stat-card stat-card--teal">
+        <div class="stat-icon-wrap stat-icon-wrap--teal">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div class="stat-text">
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.completionRate ?? 0 }}%</span>
+          }
+          <span class="stat-label">Completion Rate</span>
+        </div>
+      </div>
+
+      <!-- On-Time Completion Rate % -->
+      <div class="stat-card stat-card--purple">
+        <div class="stat-icon-wrap stat-icon-wrap--purple">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <div class="stat-text">
+          @if (statsLoading()) {
+            <span class="stat-value stat-value--loading">—</span>
+          } @else {
+            <span class="stat-value">{{ myStats()?.onTimeCompletionRate ?? 0 }}%</span>
+          }
+          <span class="stat-label">On-Time Rate</span>
+        </div>
+      </div>
+
     </div>
 
     <!-- ── Toolbar ────────────────────────────────────── -->
@@ -63,7 +133,7 @@
           <input
             type="search"
             class="search-input"
-            placeholder="Search by title, ID, assignee…"
+            placeholder="Search by title, ID…"
             [formControl]="searchCtrl"
           />
         </div>
@@ -86,15 +156,6 @@
           }
         </select>
 
-        <!-- Assignee -->
-        <select class="filter-select" [ngModel]="filterAssignee()"
-          (ngModelChange)="filterAssignee.set($event === '' ? null : $event); applyFilter()">
-          <option value="">All Assignees</option>
-          @for (m of teamMembers(); track m.id) {
-            <option [value]="m.id">{{ m.fullName }}</option>
-          }
-        </select>
-
         <!-- Clear filters -->
         @if (hasActiveFilter()) {
           <button class="btn btn-ghost" (click)="clearFilters()">✕ Clear Filters</button>
@@ -102,229 +163,156 @@
       </div>
 
       <div class="toolbar__right">
-        <!-- Card/Table toggle (mobile) -->
-        <button class="btn btn-icon" (click)="toggleCardView()" [title]="cardView() ? 'Table view' : 'Card view'">
-          {{ cardView() ? '☰' : '⊞' }}
-        </button>
+        <span class="text-muted" style="font-size:.85rem">
+          Showing <strong>{{ totalCount() }}</strong> item(s)
+        </span>
       </div>
     </div>
 
     <!-- ── TABLE VIEW ─────────────────────────────────── -->
-    @if (!cardView()) {
-      <div class="table-wrap">
-        <table class="al-table">
-          <thead>
-            <tr>
-              <th class="sortable" (click)="onSortChange('actionId')">
-                ID <span class="sort-indicator">{{ sortBy() === 'actionId' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
-              </th>
-              <th class="sortable th-title" (click)="onSortChange('title')">
-                Title <span class="sort-indicator">{{ sortBy() === 'title' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
-              </th>
-              <th>Project</th>
-              <th>Milestone</th>
-              <th>Assignee(s)</th>
-              <th class="sortable" (click)="onSortChange('priority')">
-                Priority <span class="sort-indicator">{{ sortBy() === 'priority' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
-              </th>
-              <th>Status</th>
-              <th class="sortable" (click)="onSortChange('dueDate')">
-                Due Date <span class="sort-indicator">{{ sortBy() === 'dueDate' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
-              </th>
-              <th class="th-progress">Progress</th>
-              <th class="th-actions">Actions</th>
-            </tr>
-          </thead>
+    <div class="table-wrap">
+      <table class="al-table">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="onSortChange('actionId')">
+              ID <span class="sort-indicator">{{ sortBy() === 'actionId' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
+            </th>
+            <th class="sortable th-title" (click)="onSortChange('title')">
+              Title <span class="sort-indicator">{{ sortBy() === 'title' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
+            </th>
+            <th>Project</th>
+            <th>Milestone</th>
+            <th class="sortable" (click)="onSortChange('priority')">
+              Priority <span class="sort-indicator">{{ sortBy() === 'priority' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
+            </th>
+            <th>Status</th>
+            <th class="sortable" (click)="onSortChange('dueDate')">
+              Due Date <span class="sort-indicator">{{ sortBy() === 'dueDate' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
+            </th>
+            <th class="th-progress">Progress</th>
+            <th class="th-actions">Actions</th>
+          </tr>
+        </thead>
 
-          <tbody>
-            <!-- Loading skeleton -->
-            @if (loading()) {
-              @for (r of skeletonRows; track $index) {
-                <tr class="sk-row">
-                  @for (c of [1,2,3,4,5,6,7,8,9,10]; track c) {
-                    <td><span class="sk-cell"></span></td>
+        <tbody>
+          <!-- Loading skeleton -->
+          @if (loading()) {
+            @for (r of skeletonRows; track $index) {
+              <tr class="sk-row">
+                @for (c of [1,2,3,4,5,6,7,8,9]; track c) {
+                  <td><span class="sk-cell"></span></td>
+                }
+              </tr>
+            }
+          }
+
+          <!-- Data rows -->
+          @if (!loading()) {
+            @if (items().length === 0) {
+              <tr>
+                <td colspan="9" class="empty-cell">
+                  <div class="empty-state">
+                    <div class="empty-state__icon">📭</div>
+                    <p class="empty-state__title">No action items found</p>
+                    <p class="empty-state__sub">
+                      @if (hasActiveFilter()) {
+                        Try adjusting your filters or clearing the search term.
+                      } @else {
+                        You have no action items assigned to you yet.
+                      }
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            }
+
+            @for (item of items(); track trackById($index, item)) {
+              <tr class="data-row" [class.row--escalated]="item.isEscalated">
+
+                <!-- ID -->
+                <td class="td-id">
+                  <span class="action-id">{{ item.actionId }}</span>
+                  @if (item.isEscalated) { <span class="escalated-dot" title="Escalated">🚨</span> }
+                </td>
+
+                <!-- Title -->
+                <td class="td-title">
+                  <span class="title-text" [title]="item.title">{{ item.title }}</span>
+                </td>
+
+                <!-- Project -->
+                <td>
+                  @if (item.projectName) {
+                    <a [routerLink]="['/projects', item.projectId]" class="table-link">{{ item.projectName }}</a>
+                  } @else {
+                    <span class="text-muted">—</span>
                   }
-                </tr>
-              }
-            }
+                </td>
 
-            <!-- Data rows -->
-            @if (!loading()) {
-              @if (items().length === 0) {
-                <tr>
-                  <td colspan="10" class="empty-cell">
-                    <div class="empty-state">
-                      <div class="empty-state__icon">📭</div>
-                      <p class="empty-state__title">No action items found</p>
-                      <p class="empty-state__sub">
-                        @if (hasActiveFilter()) {
-                          Try adjusting your filters or clearing the search term.
-                        } @else {
-                          Get started by creating your first action item.
+                <!-- Milestone -->
+                <td>
+                  @if (item.milestoneName && item.projectId) {
+                    <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="table-link">{{ item.milestoneName }}</a>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+
+                <!-- Priority -->
+                <td><app-priority-badge [priority]="item.priority" /></td>
+
+                <!-- Status (inline change) -->
+                <td class="td-status" (click)="$event.stopPropagation()">
+                  <div class="status-cell">
+                    <button class="status-btn" (click)="toggleStatusMenu(item.id, $event)">
+                      <app-status-badge [status]="item.status" />
+                      <span class="status-chevron">▾</span>
+                    </button>
+
+                    @if (openStatusRowId() === item.id) {
+                      <div class="status-dropdown">
+                        @for (opt of STATUS_OPTIONS; track opt.value) {
+                          <button
+                            class="status-option"
+                            [class.status-option--active]="item.status === opt.value"
+                            (click)="changeStatus(item, opt.value, $event)"
+                          >{{ opt.label }}</button>
                         }
-                      </p>
-                      @if (!hasActiveFilter()) {
-                        <a *appHasPermission="'ActionItems'; action: 'Create'"
-                           routerLink="/actions/new" class="btn btn-primary" style="margin-top:1rem">+ New Action</a>
-                      }
-                    </div>
-                  </td>
-                </tr>
-              }
-
-              @for (item of items(); track trackById($index, item)) {
-                <tr class="data-row" [class.row--escalated]="item.isEscalated">
-
-                  <!-- ID -->
-                  <td class="td-id">
-                    <span class="action-id">{{ item.actionId }}</span>
-                    @if (item.isEscalated) { <span class="escalated-dot" title="Escalated">🚨</span> }
-                  </td>
-
-                  <!-- Title -->
-                  <td class="td-title">
-                    <span class="title-text" [title]="item.title">{{ item.title }}</span>
-                  </td>
-
-                  <!-- Project -->
-                  <td>
-                    @if (item.projectName) {
-                      <a [routerLink]="['/projects', item.projectId]" class="table-link">{{ item.projectName }}</a>
-                    } @else {
-                      <span class="text-muted">—</span>
+                      </div>
                     }
-                  </td>
+                  </div>
+                </td>
 
-                  <!-- Milestone -->
-                  <td>
-                    @if (item.milestoneName && item.projectId) {
-                      <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="table-link">{{ item.milestoneName }}</a>
-                    } @else {
-                      <span class="text-muted">—</span>
-                    }
-                  </td>
+                <!-- Due Date -->
+                <td class="td-due">
+                  <div class="due-cell" [class]="dueDateClass(item)">
+                    <span class="due-date">{{ item.dueDate | date:'MMM d, y' }}</span>
+                    <span class="due-badge">{{ dueDateLabel(item) }}</span>
+                  </div>
+                </td>
 
-                  <!-- Assignee(s) -->
-                  <td class="td-assignee">
-                    <div class="assignee">
-                      <span class="assignee-avatar">{{ assigneeInitial(item) }}</span>
-                      <span class="assignee-name">{{ assigneeNames(item) }}</span>
-                    </div>
-                  </td>
+                <!-- Progress -->
+                <td class="td-progress">
+                  <app-progress-bar [value]="item.progress" />
+                </td>
 
-                  <!-- Priority -->
-                  <td><app-priority-badge [priority]="item.priority" /></td>
+                <!-- Actions -->
+                <td class="td-actions">
+                  <div class="row-actions">
+                    <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view" title="View">👁️</a>
+                    <a *appHasPermission="'ActionItems'; action: 'Edit'"
+                       [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit" title="Edit">✏️</a>
+                    <button *appHasPermission="'ActionItems'; action: 'Delete'"
+                            class="row-btn row-btn--delete" title="Delete" (click)="confirmDelete(item.id)">🗑️</button>
+                  </div>
+                </td>
 
-                  <!-- Status (inline change) -->
-                  <td class="td-status" (click)="$event.stopPropagation()">
-                    <div class="status-cell">
-                      <button class="status-btn" (click)="toggleStatusMenu(item.id, $event)">
-                        <app-status-badge [status]="item.status" />
-                        <span class="status-chevron">▾</span>
-                      </button>
-
-                      @if (openStatusRowId() === item.id) {
-                        <div class="status-dropdown">
-                          @for (opt of STATUS_OPTIONS; track opt.value) {
-                            <button
-                              class="status-option"
-                              [class.status-option--active]="item.status === opt.value"
-                              (click)="changeStatus(item, opt.value, $event)"
-                            >{{ opt.label }}</button>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </td>
-
-                  <!-- Due Date -->
-                  <td class="td-due">
-                    <div class="due-cell" [class]="dueDateClass(item)">
-                      <span class="due-date">{{ item.dueDate | date:'MMM d, y' }}</span>
-                      <span class="due-badge">{{ dueDateLabel(item) }}</span>
-                    </div>
-                  </td>
-
-                  <!-- Progress -->
-                  <td class="td-progress">
-                    <app-progress-bar [value]="item.progress" />
-                  </td>
-
-                  <!-- Actions -->
-                  <td class="td-actions">
-                    <div class="row-actions">
-                      <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view" title="View">👁️</a>
-                      <a *appHasPermission="'ActionItems'; action: 'Edit'"
-                         [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit" title="Edit">✏️</a>
-                      <button *appHasPermission="'ActionItems'; action: 'Delete'"
-                              class="row-btn row-btn--delete" title="Delete" (click)="confirmDelete(item.id)">🗑️</button>
-                    </div>
-                  </td>
-
-                </tr>
-              }
+              </tr>
             }
-          </tbody>
-        </table>
-      </div>
-    }
-
-    <!-- ── CARD VIEW (mobile / toggle) ───────────────── -->
-    @if (cardView()) {
-      <div class="card-grid">
-        @if (loading()) {
-          @for (r of skeletonRows; track $index) {
-            <div class="action-card action-card--skeleton">
-              <span class="sk-cell" style="width:60%;height:14px;display:block;margin-bottom:.5rem"></span>
-              <span class="sk-cell" style="width:40%;height:12px;display:block"></span>
-            </div>
           }
-        }
-        @if (!loading()) {
-          @if (items().length === 0) {
-            <div class="empty-state" style="grid-column:1/-1">
-              <div class="empty-state__icon">📭</div>
-              <p class="empty-state__title">No action items found</p>
-            </div>
-          }
-          @for (item of items(); track trackById($index, item)) {
-            <div class="action-card" [class.action-card--escalated]="item.isEscalated">
-              <div class="action-card__header">
-                <span class="action-id">{{ item.actionId }}</span>
-                <app-priority-badge [priority]="item.priority" />
-              </div>
-              <p class="action-card__title">{{ item.title }}</p>
-              <div class="action-card__meta">
-                @if (item.projectName) {
-                  <span class="card-meta-tag">{{ item.projectName }}</span>
-                }
-                @if (item.milestoneName) {
-                  <span class="card-meta-tag">{{ item.milestoneName }}</span>
-                }
-                <span class="assignee">
-                  <span class="assignee-avatar">{{ assigneeInitial(item) }}</span>
-                  {{ assigneeNames(item) }}
-                </span>
-              </div>
-              <div class="action-card__footer">
-                <app-status-badge [status]="item.status" />
-                <div class="due-cell" [class]="dueDateClass(item)">
-                  <span class="due-badge">{{ dueDateLabel(item) }}</span>
-                </div>
-              </div>
-              <app-progress-bar [value]="item.progress" />
-              <div class="row-actions" style="margin-top:.75rem">
-                <a [routerLink]="['/actions', item.id, 'view']" class="row-btn row-btn--view">👁️ View</a>
-                <a *appHasPermission="'ActionItems'; action: 'Edit'"
-                   [routerLink]="['/actions', item.id, 'edit']" class="row-btn row-btn--edit">✏️ Edit</a>
-                <button *appHasPermission="'ActionItems'; action: 'Delete'"
-                        class="row-btn row-btn--delete" (click)="confirmDelete(item.id)">🗑️ Delete</button>
-              </div>
-            </div>
-          }
-        }
-      </div>
-    }
+        </tbody>
+      </table>
+    </div>
 
     <!-- ── Pagination ─────────────────────────────────── -->
     @if (totalCount() > 0) {

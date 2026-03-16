@@ -27,6 +27,12 @@ public class AuthResponseDto
     public DateTime AccessTokenExpiry { get; set; }
 
     /// <summary>
+    /// The authenticated user's unique identifier (AspNetUsers.Id).
+    /// Used by the frontend to identify "me" when filtering action items.
+    /// </summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>
     /// The authenticated user's email address.
     /// </summary>
     public string Email { get; set; } = string.Empty;

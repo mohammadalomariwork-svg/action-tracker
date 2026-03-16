@@ -16,6 +16,11 @@ public interface IActionItemService
     Task<int>                                ProcessOverdueItemsAsync(CancellationToken ct);
     Task<List<AssignableUserDto>>             GetAssignableUsersAsync(CancellationToken ct);
 
+    /// <summary>
+    /// Returns aggregate statistics for all action items assigned to the specified user.
+    /// </summary>
+    Task<ActionItemMyStatsDto> GetMyStatsAsync(string userId, CancellationToken ct);
+
     // Comments
     Task<List<ActionItemCommentResponseDto>> GetCommentsAsync(Guid actionItemId, CancellationToken ct);
     Task<ActionItemCommentResponseDto>       AddCommentAsync(Guid actionItemId, CreateCommentDto dto, string userId, CancellationToken ct);

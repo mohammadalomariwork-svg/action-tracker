@@ -90,6 +90,16 @@ export interface AssignableUser {
   email: string;
 }
 
+export interface ActionItemMyStats {
+  totalCount: number;
+  criticalCount: number;
+  inProgressCount: number;
+  completedCount: number;
+  overdueCount: number;
+  completionRate: number;
+  onTimeCompletionRate: number;
+}
+
 export interface ActionItemFilter {
   status?: ActionStatus;
   priority?: ActionPriority;

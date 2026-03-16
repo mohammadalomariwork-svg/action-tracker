@@ -191,6 +191,25 @@ public class ActionItemsController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/action-items/my-stats
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns aggregate statistics for action items assigned to the currently
+    /// authenticated user.
+    /// </summary>
+    [HttpGet("my-stats")]
+    [ProducesResponseType(typeof(ApiResponse<ActionItemMyStatsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyStats(CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        _logger.LogInformation("GET /api/action-items/my-stats userId={UserId}", userId);
+
+        var stats = await _service.GetMyStatsAsync(userId, ct);
+        return Ok(ApiResponse<ActionItemMyStatsDto>.Ok(stats));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/action-items/assignable-users
     // -------------------------------------------------------------------------
 

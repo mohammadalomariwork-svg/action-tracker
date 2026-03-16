@@ -37,6 +37,9 @@ export interface AuthResponse {
   /** ISO 8601 UTC timestamp at which the access token expires. */
   accessTokenExpiry: string;
 
+  /** The authenticated user's unique identifier (AspNetUsers.Id). */
+  userId: string;
+
   /** The authenticated user's email address. */
   email: string;
 
@@ -80,6 +83,9 @@ export interface RefreshTokenRequest {
  * Derived from the `AuthResponse` received after a successful login.
  */
 export interface AuthUser {
+  /** The user's unique identifier (AspNetUsers.Id). */
+  userId: string;
+
   /** The user's email address. */
   email: string;
 
