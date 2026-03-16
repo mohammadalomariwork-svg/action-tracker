@@ -85,7 +85,7 @@ export class ActionItemService {
   getAllMyActions(): Observable<ApiResponse<PagedResult<ActionItem>>> {
     const params = new HttpParams()
       .set('pageNumber', 1)
-      .set('pageSize', 9999)
+      .set('pageSize', 100)   // backend clamps at 100
       .set('sortBy', 'dueDate')
       .set('sortDescending', false);
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
