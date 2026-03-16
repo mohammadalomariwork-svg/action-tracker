@@ -10,6 +10,7 @@ import { HasPermissionDirective } from '../../../../shared';
 import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ProjectService } from '../../services/project.service';
+import { ActionItemService } from '../../../../core/services/action-item.service';
 import {
   MilestoneResponse,
   MilestoneCreate,
@@ -17,7 +18,10 @@ import {
   MilestoneStatus,
   MilestoneStatusLabels,
 } from '../../models/milestone.models';
-import { AssignableUser } from '../../../../core/models/action-item.model';
+import {
+  AssignableUser, ActionItem, ActionStatus,
+} from '../../../../core/models/action-item.model';
+import { PagedResult } from '../../../../core/models/api-response.model';
 
 @Component({
   selector: 'app-milestone-section',
@@ -34,6 +38,7 @@ export class MilestoneSectionComponent implements OnInit {
   private readonly milestoneSvc       = inject(MilestoneService);
   private readonly projectSvc         = inject(ProjectService);
   private readonly toastSvc           = inject(ToastService);
+  private readonly actionItemSvc      = inject(ActionItemService);
 
   readonly milestones = signal<MilestoneResponse[]>([]);
   readonly loading = signal(false);
@@ -44,8 +49,10 @@ export class MilestoneSectionComponent implements OnInit {
   readonly editingId = signal<string | null>(null);
   readonly submitting = signal(false);
 
-  // Expanded milestone (for comments/documents)
-  readonly expandedId = signal<string | null>(null);
+  // Expand / action-item state
+  readonly expandedIds        = signal<Set<string>>(new Set());
+  readonly actionsByMilestone = signal<Record<string, ActionItem[]>>({});
+  readonly loadingActionIds   = signal<Set<string>>(new Set());
 
   // Form model
   readonly formName = signal('');
@@ -321,8 +328,120 @@ export class MilestoneSectionComponent implements OnInit {
     });
   }
 
+  // ── Expand / collapse ───────────────────────────────────────────────────────
+
+  isExpanded(id: string): boolean {
+    return this.expandedIds().has(id);
+  }
+
+  get isAllExpanded(): boolean {
+    return this.pagedMilestones.length > 0 &&
+      this.pagedMilestones.every(m => this.expandedIds().has(m.id));
+  }
+
   toggleExpand(id: string): void {
-    this.expandedId.set(this.expandedId() === id ? null : id);
+    const next = new Set(this.expandedIds());
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+      this.ensureActionsLoaded(id);
+    }
+    this.expandedIds.set(next);
+  }
+
+  expandAll(): void {
+    const next = new Set(this.pagedMilestones.map(m => m.id));
+    this.expandedIds.set(next);
+    this.loadAllProjectActions();
+  }
+
+  collapseAll(): void {
+    this.expandedIds.set(new Set());
+  }
+
+  isLoadingActions(id: string): boolean {
+    return this.loadingActionIds().has(id);
+  }
+
+  actionsForMilestone(id: string): ActionItem[] {
+    return this.actionsByMilestone()[id] ?? [];
+  }
+
+  private ensureActionsLoaded(milestoneId: string): void {
+    if (this.actionsByMilestone()[milestoneId] !== undefined) return;
+
+    const loading = new Set(this.loadingActionIds());
+    loading.add(milestoneId);
+    this.loadingActionIds.set(loading);
+
+    this.actionItemSvc.getAll({
+      milestoneId,
+      pageNumber: 1, pageSize: 200,
+      sortBy: 'dueDate', sortDescending: false,
+    }).subscribe({
+      next: res => {
+        const items = (res.data as PagedResult<ActionItem>).items ?? [];
+        this.actionsByMilestone.update(m => ({ ...m, [milestoneId]: items }));
+        const l = new Set(this.loadingActionIds()); l.delete(milestoneId);
+        this.loadingActionIds.set(l);
+      },
+      error: () => {
+        this.actionsByMilestone.update(m => ({ ...m, [milestoneId]: [] }));
+        const l = new Set(this.loadingActionIds()); l.delete(milestoneId);
+        this.loadingActionIds.set(l);
+      },
+    });
+  }
+
+  private loadAllProjectActions(): void {
+    const loaded = this.actionsByMilestone();
+    const missing = this.pagedMilestones.filter(m => loaded[m.id] === undefined);
+    if (missing.length === 0) return;
+
+    const loading = new Set(this.loadingActionIds());
+    missing.forEach(m => loading.add(m.id));
+    this.loadingActionIds.set(loading);
+
+    this.actionItemSvc.getAll({
+      projectId: this.projectId(),
+      pageNumber: 1, pageSize: 500,
+      sortBy: 'dueDate', sortDescending: false,
+    }).subscribe({
+      next: res => {
+        const items = (res.data as PagedResult<ActionItem>).items ?? [];
+        const grouped: Record<string, ActionItem[]> = {};
+        missing.forEach(m => { grouped[m.id] = items.filter(a => a.milestoneId === m.id); });
+        this.actionsByMilestone.update(map => ({ ...map, ...grouped }));
+        const l = new Set(this.loadingActionIds());
+        missing.forEach(m => l.delete(m.id));
+        this.loadingActionIds.set(l);
+      },
+      error: () => {
+        const grouped: Record<string, ActionItem[]> = {};
+        missing.forEach(m => { grouped[m.id] = []; });
+        this.actionsByMilestone.update(map => ({ ...map, ...grouped }));
+        const l = new Set(this.loadingActionIds());
+        missing.forEach(m => l.delete(m.id));
+        this.loadingActionIds.set(l);
+      },
+    });
+  }
+
+  actionStatusClass(s: ActionStatus): string {
+    const STATUS_MAP: Record<string, ActionStatus> = {
+      todo: ActionStatus.ToDo, inprogress: ActionStatus.InProgress,
+      inreview: ActionStatus.InReview, done: ActionStatus.Done, overdue: ActionStatus.Overdue,
+    };
+    const st = typeof s === 'number' ? s
+      : STATUS_MAP[String(s).toLowerCase()] ?? ActionStatus.ToDo;
+    switch (st) {
+      case ActionStatus.InProgress: return 'ms-ai-status ms-ai-status--inprogress';
+      case ActionStatus.InReview:   return 'ms-ai-status ms-ai-status--inreview';
+      case ActionStatus.Done:       return 'ms-ai-status ms-ai-status--done';
+      case ActionStatus.Overdue:    return 'ms-ai-status ms-ai-status--overdue';
+      default:                      return 'ms-ai-status ms-ai-status--todo';
+    }
   }
 
   milestoneStatusClass(s: MilestoneStatus): string {

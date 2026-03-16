@@ -417,6 +417,167 @@
   }
 }
 
+// ── Expand toggle button ──────────────────────────────────────────────────────
+.ms-expand-btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+  }
+}
+
+// ── Expanded row & row highlight ──────────────────────────────────────────────
+.ms-row--expanded td {
+  background: #f8fafc;
+}
+
+.ms-expand-row td {
+  padding: 0 !important;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.ms-expand-cell {
+  padding: 0 !important;
+}
+
+.ms-expand-loading,
+.ms-expand-empty {
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+// ── Action items mini-table ───────────────────────────────────────────────────
+.ms-ai-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  background: #f8fafc;
+
+  thead th {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    padding: 0.5rem 1rem;
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #e9edf2;
+    transition: background 0.1s;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: #eff4fb; }
+
+    td {
+      padding: 0.6rem 1rem;
+      vertical-align: middle;
+    }
+  }
+}
+
+.ms-ai-id {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.ms-ai-title {
+  font-weight: 500;
+  color: #1e293b;
+  text-decoration: none;
+  font-size: 0.84rem;
+
+  &:hover { color: #3b82f6; text-decoration: underline; }
+}
+
+.ms-ai-more {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-left: 3px;
+}
+
+.ms-ai-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ── Action status badges ───────────────────────────────────────────────────────
+.ms-ai-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--todo       { background: #f1f5f9; color: #64748b; }
+  &--inprogress { background: #dbeafe; color: #2563eb; }
+  &--inreview   { background: #fef3c7; color: #d97706; }
+  &--done       { background: #d1fae5; color: #059669; }
+  &--overdue    { background: #fee2e2; color: #dc2626; }
+}
+
+// ── Mobile expanded action items ──────────────────────────────────────────────
+.ms-card-actions {
+  margin-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ms-card-action-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    margin-top: 0.15rem;
+  }
+}
+
 // ── Mobile cards ──────────────────────────────────────────────────────────────
 .ms-card {
   background: #fff;

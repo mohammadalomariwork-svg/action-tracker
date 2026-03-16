@@ -46,6 +46,13 @@
               (ngModelChange)="onSearchChange()"
             />
           </div>
+          @if (filteredMilestones.length > 0) {
+            <button class="ms-action-btn" (click)="isAllExpanded ? collapseAll() : expandAll()"
+                    title="{{ isAllExpanded ? 'Collapse all action items' : 'Expand all action items' }}">
+              <i class="bi" [ngClass]="isAllExpanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+              {{ isAllExpanded ? 'Collapse All' : 'Expand All' }}
+            </button>
+          }
         </div>
         <div class="ms-toolbar-right">
           <span class="text-muted">Showing <strong>{{ filteredMilestones.length }}</strong> milestones</span>
@@ -60,6 +67,7 @@
         <table class="table table-hover align-middle mb-0">
           <thead>
             <tr>
+              <th style="width:36px"></th>
               <th class="ms-th-sortable" (click)="toggleSort('sequenceOrder')">
                 #
                 @if (sortField === 'sequenceOrder') {
@@ -100,7 +108,14 @@
           </thead>
           <tbody>
             @for (m of pagedMilestones; track m.id) {
-              <tr>
+              <tr [class.ms-row--expanded]="isExpanded(m.id)">
+                <!-- Expand toggle -->
+                <td>
+                  <button class="ms-expand-btn" (click)="toggleExpand(m.id)"
+                          [title]="isExpanded(m.id) ? 'Collapse action items' : 'Expand action items'">
+                    <i class="bi" [ngClass]="isExpanded(m.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </button>
+                </td>
                 <!-- Sequence -->
                 <td>
                   <span class="ms-seq-badge">{{ m.sequenceOrder }}</span>
@@ -171,6 +186,66 @@
                   </div>
                 </td>
               </tr>
+
+              <!-- ── Expanded action items sub-row ── -->
+              @if (isExpanded(m.id)) {
+                <tr class="ms-expand-row">
+                  <td colspan="9" class="ms-expand-cell">
+                    @if (isLoadingActions(m.id)) {
+                      <div class="ms-expand-loading">
+                        <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+                        Loading action items…
+                      </div>
+                    } @else if (actionsForMilestone(m.id).length === 0) {
+                      <div class="ms-expand-empty">
+                        <i class="bi bi-inbox me-1"></i> No action items for this milestone.
+                      </div>
+                    } @else {
+                      <table class="ms-ai-table">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Assignees</th>
+                            <th>Due Date</th>
+                            <th>Progress</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (a of actionsForMilestone(m.id); track a.id) {
+                            <tr>
+                              <td><span class="ms-ai-id">{{ a.actionId }}</span></td>
+                              <td>
+                                <a class="ms-ai-title" [routerLink]="['/actions', a.id]">{{ a.title }}</a>
+                              </td>
+                              <td><span [ngClass]="actionStatusClass(a.status)">{{ a.statusLabel }}</span></td>
+                              <td class="text-muted">{{ a.priorityLabel }}</td>
+                              <td class="text-muted">
+                                @if (a.assignees.length > 0) {
+                                  {{ a.assignees[0].fullName }}@if (a.assignees.length > 1) { <span class="ms-ai-more">+{{ a.assignees.length - 1 }}</span> }
+                                } @else {
+                                  <span class="text-muted">—</span>
+                                }
+                              </td>
+                              <td class="text-muted">{{ a.dueDate | date:'MMM d, y' }}</td>
+                              <td>
+                                <div class="ms-ai-progress">
+                                  <div class="ms-progress-bar" style="min-width:60px">
+                                    <div class="ms-progress-fill" [style.width.%]="a.progress"></div>
+                                  </div>
+                                  <span class="ms-progress-text">{{ a.progress }}%</span>
+                                </div>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>
@@ -229,7 +304,47 @@
                       class="ms-action-btn ms-action-btn--danger" (click)="deleteMilestone(m)">
                 <i class="bi bi-trash"></i> Delete
               </button>
+              <button class="ms-action-btn" (click)="toggleExpand(m.id)">
+                <i class="bi" [ngClass]="isExpanded(m.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                {{ isExpanded(m.id) ? 'Hide Actions' : 'Show Actions' }}
+              </button>
             </div>
+
+            <!-- Mobile expanded action items -->
+            @if (isExpanded(m.id)) {
+              <div class="ms-card-actions">
+                @if (isLoadingActions(m.id)) {
+                  <div class="ms-expand-loading">
+                    <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+                    Loading action items…
+                  </div>
+                } @else if (actionsForMilestone(m.id).length === 0) {
+                  <div class="ms-expand-empty">
+                    <i class="bi bi-inbox me-1"></i> No action items.
+                  </div>
+                } @else {
+                  @for (a of actionsForMilestone(m.id); track a.id) {
+                    <div class="ms-card-action-item">
+                      <div class="ms-card-action-item__header">
+                        <span class="ms-ai-id">{{ a.actionId }}</span>
+                        <span [ngClass]="actionStatusClass(a.status)">{{ a.statusLabel }}</span>
+                      </div>
+                      <a class="ms-ai-title" [routerLink]="['/actions', a.id]">{{ a.title }}</a>
+                      <div class="ms-card-action-item__meta">
+                        <span class="text-muted">{{ a.priorityLabel }}</span>
+                        <span class="text-muted">Due {{ a.dueDate | date:'MMM d, y' }}</span>
+                        <div class="ms-ai-progress">
+                          <div class="ms-progress-bar" style="min-width:50px">
+                            <div class="ms-progress-fill" [style.width.%]="a.progress"></div>
+                          </div>
+                          <span class="ms-progress-text">{{ a.progress }}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            }
           </div>
         }
       </div>
