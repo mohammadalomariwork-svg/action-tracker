@@ -70,6 +70,10 @@ try
     })
     .AddJwtBearer("LocalBearer", options =>
     {
+        // Keep classic sub → ClaimTypes.NameIdentifier remapping.
+        // .NET 9's JsonWebTokenHandler no longer does this by default.
+        options.MapInboundClaims = true;
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
