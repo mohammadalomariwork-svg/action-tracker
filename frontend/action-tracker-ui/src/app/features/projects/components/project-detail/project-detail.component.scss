@@ -657,6 +657,69 @@ $gantt-bar-h:   1.35rem;
   }
 }
 
+// ── Gantt tooltip ─────────────────────────────────────────────────────────────
+.gantt-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: #1e293b;
+  color: #f1f5f9;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  min-width: 220px;
+  max-width: 300px;
+  font-size: 0.78rem;
+  overflow: hidden;
+  animation: gantt-tooltip-in 0.12s ease-out;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.55rem 0.75rem;
+    background: rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 600;
+    font-size: 0.8rem;
+    line-height: 1.35;
+
+    i { flex-shrink: 0; margin-top: 2px; color: #94a3b8; font-size: 0.9rem; }
+    span { word-break: break-word; }
+  }
+
+  &__body {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  &__label {
+    color: #94a3b8;
+    flex-shrink: 0;
+    font-size: 0.73rem;
+  }
+
+  &__value {
+    color: #e2e8f0;
+    text-align: right;
+    font-size: 0.75rem;
+    word-break: break-word;
+  }
+}
+
+@keyframes gantt-tooltip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 // ── Print / PDF styles ────────────────────────────────────────────────────────
 @media print {
   app-breadcrumb,

@@ -73,6 +73,20 @@ export class ProjectDetailComponent implements OnInit {
   ganttMilestones: MilestoneResponse[] = [];
   ganttActions:    ActionItem[]        = [];
 
+  // Gantt tooltip
+  ganttTooltip: {
+    type: 'project' | 'milestone' | 'action';
+    title: string;
+    status: string;
+    startDate: string | null;
+    endDate: string | null;
+    progress?: number;
+    priority?: string;
+    assignees?: string[];
+    x: number;
+    y: number;
+  } | null = null;
+
   readonly ProjectType = ProjectType;
   readonly ProjectStatus = ProjectStatus;
   readonly ProjectPriority = ProjectPriority;
@@ -417,6 +431,45 @@ export class ProjectDetailComponent implements OnInit {
       case ActionStatus.InReview:   return 'gantt-bar--inreview';
       default:                      return 'gantt-bar--todo';
     }
+  }
+
+  showGanttTooltip(
+    event: MouseEvent,
+    type: 'project' | 'milestone' | 'action',
+    title: string,
+    status: string,
+    startDate: string | null,
+    endDate: string | null,
+    extra?: { progress?: number; priority?: string; assignees?: string[] },
+  ): void {
+    this.ganttTooltip = { type, title, status, startDate, endDate, ...extra, ...this.tooltipPos(event) };
+  }
+
+  moveGanttTooltip(event: MouseEvent): void {
+    if (this.ganttTooltip) {
+      Object.assign(this.ganttTooltip, this.tooltipPos(event));
+    }
+  }
+
+  hideGanttTooltip(): void {
+    this.ganttTooltip = null;
+  }
+
+  actionAssigneeNames(action: ActionItem): string[] {
+    return action.assignees.map(a => a.fullName);
+  }
+
+  private tooltipPos(event: MouseEvent): { x: number; y: number } {
+    const offset = 14;
+    const tw = 280; // approx tooltip width
+    const th = 200; // approx tooltip height
+    const x = (event.clientX + offset + tw > window.innerWidth)
+      ? event.clientX - tw - offset
+      : event.clientX + offset;
+    const y = (event.clientY + offset + th > window.innerHeight)
+      ? event.clientY - th - offset
+      : event.clientY + offset;
+    return { x, y };
   }
 
   // ── Export ─────────────────────────────────────────────

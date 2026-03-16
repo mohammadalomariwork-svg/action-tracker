@@ -161,7 +161,10 @@
                   <i class="bi bi-kanban me-1"></i>{{ project.name }}
                 </div>
                 <div class="gantt-track-col">
-                  <div class="gantt-bar gantt-bar--project" [ngStyle]="ganttBarStyle(project.plannedStartDate, project.plannedEndDate)">
+                  <div class="gantt-bar gantt-bar--project" [ngStyle]="ganttBarStyle(project.plannedStartDate, project.plannedEndDate)"
+                       (mouseenter)="showGanttTooltip($event, 'project', project.name, project.statusLabel, project.plannedStartDate, project.plannedEndDate, { progress: stats?.completionRate })"
+                       (mousemove)="moveGanttTooltip($event)"
+                       (mouseleave)="hideGanttTooltip()">
                     <span class="gantt-bar__label">{{ project.statusLabel }}</span>
                   </div>
                   <div class="gantt-today" [style.left.%]="todayLeft"></div>
@@ -176,7 +179,10 @@
                     <a [routerLink]="['/projects', projectId, 'milestones', ms.id]" class="gantt-link">{{ ms.name }}</a>
                   </div>
                   <div class="gantt-track-col">
-                    <div class="gantt-bar gantt-bar--milestone" [ngStyle]="ganttBarStyle(ms.plannedStartDate, ms.plannedDueDate)">
+                    <div class="gantt-bar gantt-bar--milestone" [ngStyle]="ganttBarStyle(ms.plannedStartDate, ms.plannedDueDate)"
+                         (mouseenter)="showGanttTooltip($event, 'milestone', ms.name, ms.statusLabel, ms.plannedStartDate, ms.plannedDueDate, { progress: ms.completionPercentage })"
+                         (mousemove)="moveGanttTooltip($event)"
+                         (mouseleave)="hideGanttTooltip()">
                       <span class="gantt-bar__label">{{ ms.statusLabel }} · {{ ms.completionPercentage }}%</span>
                     </div>
                     <div class="gantt-today" [style.left.%]="todayLeft"></div>
@@ -190,7 +196,10 @@
                       <span class="gantt-action-title">{{ action.title }}</span>
                     </div>
                     <div class="gantt-track-col">
-                      <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)">
+                      <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)"
+                           (mouseenter)="showGanttTooltip($event, 'action', action.title, action.statusLabel, action.startDate, action.dueDate, { progress: action.progress, priority: action.priorityLabel, assignees: actionAssigneeNames(action) })"
+                           (mousemove)="moveGanttTooltip($event)"
+                           (mouseleave)="hideGanttTooltip()">
                         <span class="gantt-bar__label">{{ action.progress }}%</span>
                       </div>
                       <div class="gantt-today" [style.left.%]="todayLeft"></div>
@@ -214,7 +223,10 @@
                       <span class="gantt-action-title">{{ action.title }}</span>
                     </div>
                     <div class="gantt-track-col">
-                      <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)">
+                      <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)"
+                           (mouseenter)="showGanttTooltip($event, 'action', action.title, action.statusLabel, action.startDate, action.dueDate, { progress: action.progress, priority: action.priorityLabel, assignees: actionAssigneeNames(action) })"
+                           (mousemove)="moveGanttTooltip($event)"
+                           (mouseleave)="hideGanttTooltip()">
                         <span class="gantt-bar__label">{{ action.progress }}%</span>
                       </div>
                       <div class="gantt-today" [style.left.%]="todayLeft"></div>
@@ -634,4 +646,52 @@
 <!-- Backdrop -->
 @if (showEditForm) {
   <div class="offcanvas-backdrop fade show" (click)="cancelEditForm()"></div>
+}
+
+<!-- ── Gantt tooltip ──────────────────────────────────────── -->
+@if (ganttTooltip) {
+  <div class="gantt-tooltip" [style.left.px]="ganttTooltip.x" [style.top.px]="ganttTooltip.y">
+    <div class="gantt-tooltip__header">
+      @if (ganttTooltip.type === 'project')   { <i class="bi bi-kanban"></i> }
+      @if (ganttTooltip.type === 'milestone') { <i class="bi bi-flag-fill"></i> }
+      @if (ganttTooltip.type === 'action')    { <i class="bi bi-check2-square"></i> }
+      <span>{{ ganttTooltip.title }}</span>
+    </div>
+    <div class="gantt-tooltip__body">
+      <div class="gantt-tooltip__row">
+        <span class="gantt-tooltip__label">Status</span>
+        <span class="gantt-tooltip__value">{{ ganttTooltip.status }}</span>
+      </div>
+      @if (ganttTooltip.startDate) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Start</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.startDate | date:'mediumDate' }}</span>
+        </div>
+      }
+      @if (ganttTooltip.endDate) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">End</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.endDate | date:'mediumDate' }}</span>
+        </div>
+      }
+      @if (ganttTooltip.progress != null) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Progress</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.progress }}%</span>
+        </div>
+      }
+      @if (ganttTooltip.priority) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Priority</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.priority }}</span>
+        </div>
+      }
+      @if (ganttTooltip.assignees?.length) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Assignees</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.assignees!.join(', ') }}</span>
+        </div>
+      }
+    </div>
+  </div>
 }
