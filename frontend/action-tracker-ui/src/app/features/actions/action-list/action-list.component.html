@@ -134,6 +134,26 @@
             [checked]="showDeleted()" (change)="toggleShowDeleted()" />
           <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
         </div>
+        <!-- Export to Excel -->
+        <button class="btn btn-outline-success btn-sm" (click)="exportToExcel()"
+                [disabled]="exporting() || printingPdf()" title="Export all my actions to Excel">
+          @if (exporting()) {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>Exporting…
+          } @else {
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+          }
+        </button>
+
+        <!-- Print as PDF -->
+        <button class="btn btn-outline-secondary btn-sm" (click)="printAsPdf()"
+                [disabled]="exporting() || printingPdf()" title="Print all my actions as PDF">
+          @if (printingPdf()) {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>Preparing…
+          } @else {
+            <i class="bi bi-printer me-1"></i>Print PDF
+          }
+        </button>
+
         <!-- New Action -->
         <button *appHasPermission="'ActionItems'; action: 'Create'"
                 class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">

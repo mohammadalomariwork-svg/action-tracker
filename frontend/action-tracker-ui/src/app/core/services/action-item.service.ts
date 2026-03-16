@@ -81,6 +81,16 @@ export class ActionItemService {
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
   }
 
+  /** Fetches every action item assigned to the current user (no pagination). */
+  getAllMyActions(): Observable<ApiResponse<PagedResult<ActionItem>>> {
+    const params = new HttpParams()
+      .set('pageNumber', 1)
+      .set('pageSize', 9999)
+      .set('sortBy', 'dueDate')
+      .set('sortDescending', false);
+    return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
+  }
+
   // Comments
   getComments(actionItemId: string): Observable<ApiResponse<CommentInfo[]>> {
     return this.http.get<ApiResponse<CommentInfo[]>>(`${this.apiUrl}/${actionItemId}/comments`);

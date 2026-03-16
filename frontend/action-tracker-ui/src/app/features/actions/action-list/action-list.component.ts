@@ -5,6 +5,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import * as XLSX from 'xlsx';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
@@ -81,6 +82,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly statsLoading    = signal(false);
   readonly showDeleted     = signal(false);
   readonly pendingDeleteId = signal<string | null>(null);
+  readonly exporting   = signal(false);
+  readonly printingPdf = signal(false);
 
   // ── Filters ───────────────────────────────────────────
   readonly searchCtrl     = new FormControl<string>('');
@@ -477,6 +480,186 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
   assigneeInitial(item: ActionItem): string {
     return item.assignees?.[0]?.fullName?.charAt(0)?.toUpperCase() || '?';
+  }
+
+  // ── Export to Excel ───────────────────────────────────
+  exportToExcel(): void {
+    this.exporting.set(true);
+    this.cdr.markForCheck();
+
+    this.actionSvc.getAllMyActions().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => {
+        const items = r.data?.items ?? [];
+        const stats = this.myStats();
+
+        const wb = XLSX.utils.book_new();
+
+        // ── Sheet 1: Summary ──────────────────────────
+        const summaryRows = [
+          ['My Action Items – Summary', ''],
+          ['Generated', new Date().toLocaleString()],
+          [''],
+          ['Metric', 'Value'],
+          ['Total Actions',      stats?.totalCount          ?? 0],
+          ['Critical',           stats?.criticalCount       ?? 0],
+          ['In Progress',        stats?.inProgressCount     ?? 0],
+          ['Completed',          stats?.completedCount      ?? 0],
+          ['Overdue',            stats?.overdueCount        ?? 0],
+          ['Completion Rate',    `${stats?.completionRate   ?? 0}%`],
+          ['On-Time Completion', `${stats?.onTimeCompletionRate ?? 0}%`],
+        ];
+        const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+        ws1['!cols'] = [{ wch: 24 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+        // ── Sheet 2: Actions ──────────────────────────
+        const header = [
+          'ID', 'Title', 'Workspace', 'Project', 'Milestone',
+          'Priority', 'Status', 'Assignees',
+          'Start Date', 'Due Date', 'Progress (%)',
+          'Escalated', 'Created', 'Updated',
+        ];
+        const rows = items.map(i => [
+          i.actionId,
+          i.title,
+          i.workspaceTitle ?? '',
+          i.projectName   ?? '',
+          i.milestoneName ?? '',
+          i.priorityLabel ?? this.priorityLabel(i.priority),
+          i.statusLabel   ?? this.statusLabel(i.status),
+          (i.assignees ?? []).map(a => a.fullName).join(', '),
+          i.startDate ? i.startDate.slice(0, 10) : '',
+          i.dueDate.slice(0, 10),
+          i.progress,
+          i.isEscalated ? 'Yes' : 'No',
+          i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '',
+          i.updatedAt ? new Date(i.updatedAt).toLocaleDateString() : '',
+        ]);
+        const ws2 = XLSX.utils.aoa_to_sheet([header, ...rows]);
+        ws2['!cols'] = [
+          { wch: 10 }, { wch: 40 }, { wch: 24 }, { wch: 20 }, { wch: 20 },
+          { wch: 12 }, { wch: 14 }, { wch: 30 },
+          { wch: 14 }, { wch: 14 }, { wch: 14 },
+          { wch: 10 }, { wch: 16 }, { wch: 16 },
+        ];
+        XLSX.utils.book_append_sheet(wb, ws2, 'My Actions');
+
+        XLSX.writeFile(wb, `my-actions-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        this.exporting.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.toastSvc.error('Excel export failed.');
+        this.exporting.set(false);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  // ── Print as PDF ──────────────────────────────────────
+  printAsPdf(): void {
+    this.printingPdf.set(true);
+    this.cdr.markForCheck();
+
+    this.actionSvc.getAllMyActions().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => {
+        const items = r.data?.items ?? [];
+        const stats = this.myStats();
+        const now   = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        const priorityBadge = (p: number): string => {
+          const map: Record<number, string> = { 4: '#dc3545', 3: '#fd7e14', 2: '#0dcaf0', 1: '#6c757d' };
+          const labels: Record<number, string> = { 4: 'Critical', 3: 'High', 2: 'Medium', 1: 'Low' };
+          return `<span style="background:${map[p]??'#6c757d'};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">${labels[p]??p}</span>`;
+        };
+        const statusBadge = (s: number): string => {
+          const map: Record<number, string> = { 1: '#6c757d', 2: '#0d6efd', 3: '#ffc107', 4: '#198754', 5: '#dc3545' };
+          const labels: Record<number, string> = { 1: 'To Do', 2: 'In Progress', 3: 'In Review', 4: 'Done', 5: 'Overdue' };
+          const fg = s === 3 ? '#000' : '#fff';
+          return `<span style="background:${map[s]??'#6c757d'};color:${fg};padding:2px 8px;border-radius:4px;font-size:11px;">${labels[s]??s}</span>`;
+        };
+
+        const rows = items.map(i => `
+          <tr>
+            <td>${i.actionId}</td>
+            <td><strong>${i.title}</strong>${i.description ? `<br><small style="color:#666">${i.description.slice(0,80)}${i.description.length>80?'…':''}</small>` : ''}</td>
+            <td>${i.workspaceTitle ?? ''}</td>
+            <td>${(i.assignees ?? []).map(a => a.fullName).join(', ')}</td>
+            <td>${priorityBadge(+i.priority)}</td>
+            <td>${statusBadge(+i.status)}</td>
+            <td style="text-align:center">${i.progress}%</td>
+            <td>${i.dueDate.slice(0,10)}</td>
+            <td style="text-align:center">${i.isEscalated ? '🚨' : ''}</td>
+          </tr>`).join('');
+
+        const html = `<!DOCTYPE html><html lang="en"><head>
+          <meta charset="UTF-8"/>
+          <title>My Action Items – ${now}</title>
+          <style>
+            @page { size: A4 landscape; margin: 15mm; }
+            * { box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; font-size: 12px; color: #212529; margin: 0; }
+            h1 { font-size: 20px; margin: 0 0 4px; color: #0d6efd; }
+            .subtitle { color: #666; margin: 0 0 16px; font-size: 12px; }
+            .stats { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 20px; }
+            .stat-card { border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 12px; text-align: center; }
+            .stat-card .val { font-size: 22px; font-weight: 700; color: #0d6efd; }
+            .stat-card .lbl { font-size: 10px; color: #666; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th { background: #0d6efd; color: #fff; padding: 6px 8px; text-align: left; }
+            td { padding: 5px 8px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
+            tr:nth-child(even) td { background: #f8f9fa; }
+            .footer { margin-top: 12px; text-align: right; font-size: 10px; color: #999; }
+          </style>
+        </head><body>
+          <h1>My Action Items</h1>
+          <p class="subtitle">Printed on ${now} &nbsp;|&nbsp; Total: ${items.length} items</p>
+          <div class="stats">
+            <div class="stat-card"><div class="val">${stats?.totalCount??0}</div><div class="lbl">Total</div></div>
+            <div class="stat-card"><div class="val">${stats?.criticalCount??0}</div><div class="lbl">Critical</div></div>
+            <div class="stat-card"><div class="val">${stats?.inProgressCount??0}</div><div class="lbl">In Progress</div></div>
+            <div class="stat-card"><div class="val">${stats?.completedCount??0}</div><div class="lbl">Completed</div></div>
+            <div class="stat-card"><div class="val">${stats?.overdueCount??0}</div><div class="lbl">Overdue</div></div>
+            <div class="stat-card"><div class="val">${stats?.completionRate??0}%</div><div class="lbl">Completion Rate</div></div>
+            <div class="stat-card"><div class="val">${stats?.onTimeCompletionRate??0}%</div><div class="lbl">On-Time Rate</div></div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Title</th><th>Workspace</th><th>Assignees</th>
+              <th>Priority</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Esc.</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="footer">Action Tracker &nbsp;|&nbsp; ${now}</div>
+          <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};}<\/script>
+        </body></html>`;
+
+        const win = window.open('', '_blank', 'width=1200,height=800');
+        if (win) {
+          win.document.write(html);
+          win.document.close();
+        }
+        this.printingPdf.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.toastSvc.error('Failed to prepare print view.');
+        this.printingPdf.set(false);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  // ── Label helpers for export ──────────────────────────
+  private priorityLabel(p: ActionPriority): string {
+    return ({ [ActionPriority.Critical]: 'Critical', [ActionPriority.High]: 'High',
+              [ActionPriority.Medium]: 'Medium', [ActionPriority.Low]: 'Low' } as Record<number, string>)[+p] ?? String(p);
+  }
+
+  private statusLabel(s: ActionStatus): string {
+    return ({ [ActionStatus.ToDo]: 'To Do', [ActionStatus.InProgress]: 'In Progress',
+              [ActionStatus.InReview]: 'In Review', [ActionStatus.Done]: 'Done',
+              [ActionStatus.Overdue]: 'Overdue' } as Record<number, string>)[+s] ?? String(s);
   }
 
   trackById(_: number, item: ActionItem): string { return item.id; }
