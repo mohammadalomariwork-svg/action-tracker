@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import * as XLSX from 'xlsx';
 
 import { ProjectService } from '../../services/project.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -288,6 +289,53 @@ export class ProjectDetailComponent implements OnInit {
 
   getSponsorName(userId: string): string {
     return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  // ── Export ─────────────────────────────────────────────
+  exportToExcel(): void {
+    const prj = this.project;
+    if (!prj) return;
+
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Project Info
+    const infoRows: Record<string, unknown>[] = [
+      { Field: 'Code',                    Value: prj.projectCode },
+      { Field: 'Name',                    Value: prj.name },
+      { Field: 'Workspace',               Value: prj.workspaceTitle },
+      { Field: 'Type',                    Value: prj.projectTypeLabel },
+      { Field: 'Status',                  Value: prj.statusLabel },
+      { Field: 'Priority',                Value: prj.priorityLabel },
+      { Field: 'Manager',                 Value: prj.projectManagerName },
+      { Field: 'Sponsors',                Value: prj.sponsors.map(s => s.fullName).join(', ') },
+      { Field: 'Org Unit',                Value: prj.ownerOrgUnitName ?? '' },
+      { Field: 'Planned Start',           Value: prj.plannedStartDate  ? new Date(prj.plannedStartDate).toLocaleDateString()  : '' },
+      { Field: 'Planned End',             Value: prj.plannedEndDate    ? new Date(prj.plannedEndDate).toLocaleDateString()    : '' },
+      { Field: 'Actual Start',            Value: prj.actualStartDate   ? new Date(prj.actualStartDate).toLocaleDateString()   : '' },
+      { Field: 'Approved Budget',         Value: prj.approvedBudget != null ? `${prj.approvedBudget} ${prj.currency}` : '' },
+      { Field: 'Baselined',               Value: prj.isBaselined ? 'Yes' : 'No' },
+      { Field: 'Strategic Objective',     Value: prj.strategicObjectiveStatement ?? '' },
+      { Field: 'Description',             Value: prj.description ?? '' },
+      { Field: 'Created',                 Value: prj.createdAt ? new Date(prj.createdAt).toLocaleDateString() : '' },
+      { Field: 'Last Updated',            Value: prj.updatedAt ? new Date(prj.updatedAt).toLocaleDateString() : '' },
+    ];
+    if (this.stats) {
+      infoRows.push(
+        { Field: 'Milestones',      Value: this.stats.milestoneCount },
+        { Field: 'Action Items',    Value: this.stats.actionItemCount },
+        { Field: 'Completion Rate', Value: `${this.stats.completionRate}%` },
+        { Field: 'On-Time Rate',    Value: `${this.stats.onTimeRate}%` },
+        { Field: 'Escalated',       Value: this.stats.escalatedCount },
+      );
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(infoRows), 'Project Info');
+
+    const filename = `project-${prj.projectCode}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  printToPDF(): void {
+    window.print();
   }
 
   // ── Display helpers ────────────────────────────────────

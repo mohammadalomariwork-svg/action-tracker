@@ -407,3 +407,33 @@ $stat-danger:  #dc2626;
     grid-column: span 1;
   }
 }
+
+// ── Print / PDF styles ────────────────────────────────────────────────────────
+@media print {
+  app-breadcrumb,
+  .wd-merged-header__actions,
+  app-comments-section,
+  app-documents-section {
+    display: none !important;
+  }
+
+  .wd-page {
+    padding: 0;
+    background: #fff;
+  }
+
+  .wd-merged-header {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0;
+    break-inside: avoid;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-card {
+    break-inside: avoid;
+  }
+}
