@@ -42,6 +42,14 @@
             <h1 class="wd-merged-header__title">{{ workspace.title }}</h1>
           </div>
         </div>
+        <div class="wd-export-btns">
+          <button class="btn btn-sm btn-outline-success" (click)="exportToExcel()" title="Export to Excel">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" (click)="printToPDF()" title="Print / Save as PDF">
+            <i class="bi bi-printer me-1"></i>Print
+          </button>
+        </div>
       </div>
 
       <div class="wd-details-grid">

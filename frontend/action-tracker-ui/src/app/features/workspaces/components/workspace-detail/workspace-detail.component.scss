@@ -667,3 +667,51 @@
     color: #495057;
   }
 }
+
+// ── Export buttons ────────────────────────────────────────────────────────────
+.wd-export-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+// ── Print / PDF styles ────────────────────────────────────────────────────────
+@media print {
+  app-breadcrumb,
+  .wd-export-btns,
+  .wd-add-admin,
+  .wd-admin-remove-btn,
+  .wd-section-header .btn,
+  .wd-section-header .form-check,
+  .wa-offcanvas,
+  .wp-offcanvas,
+  .offcanvas-backdrop,
+  .alert .btn-close {
+    display: none !important;
+  }
+
+  .wd-page {
+    padding: 0;
+    background: #fff;
+  }
+
+  .wd-merged-header {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 0;
+    break-inside: avoid;
+  }
+
+  .wd-stats-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .wd-stat-card {
+    break-inside: avoid;
+  }
+
+  .wd-section {
+    break-inside: avoid;
+  }
+}

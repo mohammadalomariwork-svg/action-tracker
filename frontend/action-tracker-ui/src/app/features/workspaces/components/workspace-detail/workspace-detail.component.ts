@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import * as XLSX from 'xlsx';
 
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -862,6 +863,72 @@ export class WorkspaceDetailComponent implements OnInit {
       case ProjectStatus.Cancelled: return 'badge bg-danger';
       default:                      return 'badge bg-light text-dark';
     }
+  }
+
+  // ── Export ──────────────────────────────────────────────
+  exportToExcel(): void {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Workspace Info
+    const infoRows: Record<string, unknown>[] = [
+      { Field: 'Title',             Value: this.workspace?.title ?? '' },
+      { Field: 'Organization Unit', Value: this.workspace?.organizationUnit ?? '' },
+      { Field: 'Status',            Value: this.workspace?.isActive ? 'Active' : 'Inactive' },
+      { Field: 'Created',           Value: this.workspace?.createdAt ? new Date(this.workspace.createdAt).toLocaleDateString() : '' },
+      { Field: 'Last Updated',      Value: this.workspace?.updatedAt  ? new Date(this.workspace.updatedAt).toLocaleDateString()  : '' },
+      { Field: 'Admins',            Value: (this.workspace?.admins ?? []).map(a => a.userName).join(', ') },
+    ];
+    if (this.workspaceStats) {
+      infoRows.push(
+        { Field: 'Total Projects',              Value: this.workspaceStats.totalProjects },
+        { Field: 'Strategic Projects',          Value: this.workspaceStats.strategicProjects },
+        { Field: 'Project Completion Rate',     Value: `${this.workspaceStats.projectCompletionRate}%` },
+        { Field: 'Project On-Time Delivery',    Value: `${this.workspaceStats.projectOnTimeDeliveryRate}%` },
+        { Field: 'Total Action Items',          Value: this.workspaceStats.totalActionItems },
+        { Field: 'Standalone Actions',          Value: this.workspaceStats.standaloneActionItems },
+        { Field: 'Escalated Actions',           Value: this.workspaceStats.escalatedActionItems },
+        { Field: 'Standalone Completion Rate',  Value: `${this.workspaceStats.standaloneCompletionRate}%` },
+        { Field: 'Standalone On-Time Delivery', Value: `${this.workspaceStats.standaloneOnTimeDeliveryRate}%` },
+      );
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(infoRows), 'Workspace Info');
+
+    // Sheet 2: Projects
+    const projectRows = this.projects.map(p => ({
+      'Code':          p.projectCode,
+      'Name':          p.name,
+      'Type':          p.projectTypeLabel,
+      'Status':        p.statusLabel,
+      'Priority':      p.priorityLabel,
+      'Manager':       p.projectManagerName,
+      'Sponsors':      p.sponsors.map(s => s.fullName).join(', '),
+      'Planned Start': p.plannedStartDate ? new Date(p.plannedStartDate).toLocaleDateString() : '',
+      'Planned End':   p.plannedEndDate   ? new Date(p.plannedEndDate).toLocaleDateString()   : '',
+      'Baselined':     p.isBaselined ? 'Yes' : 'No',
+      'Action Items':  p.actionItemCount,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(projectRows.length ? projectRows : [{}]), 'Projects');
+
+    // Sheet 3: Action Items
+    const actionRows = this.actionItems.map(a => ({
+      'ID':         a.actionId,
+      'Title':      a.title,
+      'Assignees':  a.assignees.map(x => x.fullName).join(', '),
+      'Status':     a.statusLabel,
+      'Priority':   a.priorityLabel,
+      'Start Date': a.startDate ? new Date(a.startDate).toLocaleDateString() : '',
+      'Due Date':   new Date(a.dueDate).toLocaleDateString(),
+      'Progress':   `${a.progress}%`,
+      'Escalated':  a.isEscalated ? 'Yes' : 'No',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(actionRows.length ? actionRows : [{}]), 'Action Items');
+
+    const filename = `workspace-${this.workspace?.title ?? this.workspaceId}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  printToPDF(): void {
+    window.print();
   }
 
   // ── Helpers ─────────────────────────────────────────────
