@@ -3,16 +3,23 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import { ProjectService } from '../../services/project.service';
+import { MilestoneService } from '../../services/milestone.service';
+import { ActionItemService } from '../../../../core/services/action-item.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
   ProjectResponse, ProjectUpdate, ProjectStats,
   ProjectType, ProjectStatus, ProjectPriority,
   StrategicObjectiveOption,
 } from '../../models/project.models';
-import { AssignableUser } from '../../../../core/models/action-item.model';
+import { MilestoneResponse } from '../../models/milestone.models';
+import {
+  ActionItem, ActionItemFilter, ActionStatus, AssignableUser,
+} from '../../../../core/models/action-item.model';
+import { PagedResult } from '../../../../core/models/api-response.model';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
@@ -46,16 +53,25 @@ interface EditFormData {
   styleUrl: './project-detail.component.scss',
 })
 export class ProjectDetailComponent implements OnInit {
-  private readonly projectService = inject(ProjectService);
-  private readonly route = inject(ActivatedRoute);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly toastSvc = inject(ToastService);
+  private readonly projectService     = inject(ProjectService);
+  private readonly milestoneService   = inject(MilestoneService);
+  private readonly actionService      = inject(ActionItemService);
+  private readonly route              = inject(ActivatedRoute);
+  private readonly destroyRef         = inject(DestroyRef);
+  private readonly toastSvc           = inject(ToastService);
 
   projectId!: string;
   project: ProjectResponse | null = null;
   stats: ProjectStats | null = null;
   isLoading = false;
   errorMessage: string | null = null;
+
+  // ── Gantt ───────────────────────────────────────────────
+  showGantt      = false;
+  ganttLoading   = false;
+  ganttLoaded    = false;
+  ganttMilestones: MilestoneResponse[] = [];
+  ganttActions:    ActionItem[]        = [];
 
   readonly ProjectType = ProjectType;
   readonly ProjectStatus = ProjectStatus;
@@ -289,6 +305,118 @@ export class ProjectDetailComponent implements OnInit {
 
   getSponsorName(userId: string): string {
     return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  // ── Gantt ───────────────────────────────────────────────
+  toggleGantt(): void {
+    this.showGantt = !this.showGantt;
+    if (this.showGantt && !this.ganttLoaded) {
+      this.loadGanttData();
+    }
+  }
+
+  private loadGanttData(): void {
+    this.ganttLoading = true;
+    const actionFilter: ActionItemFilter = {
+      projectId: this.projectId,
+      pageNumber: 1,
+      pageSize: 500,
+      sortBy: 'dueDate',
+      sortDescending: false,
+    };
+    forkJoin({
+      milestones: this.milestoneService.getByProject(this.projectId),
+      actions:    this.actionService.getAll(actionFilter),
+    })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: ({ milestones, actions }) => {
+        this.ganttMilestones = (milestones.data ?? [])
+          .sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+        this.ganttActions = (actions.data as PagedResult<ActionItem>).items ?? [];
+        this.ganttLoaded  = true;
+        this.ganttLoading = false;
+      },
+      error: () => { this.ganttLoading = false; },
+    });
+  }
+
+  get ganttRange(): { start: Date; end: Date; totalMs: number } {
+    const prj = this.project!;
+    let start = new Date(prj.plannedStartDate);
+    let end   = new Date(prj.plannedEndDate);
+
+    for (const ms of this.ganttMilestones) {
+      if (ms.plannedStartDate) { const d = new Date(ms.plannedStartDate); if (d < start) start = d; }
+      if (ms.plannedDueDate)   { const d = new Date(ms.plannedDueDate);   if (d > end)   end   = d; }
+    }
+    for (const a of this.ganttActions) {
+      if (a.startDate) { const d = new Date(a.startDate); if (d < start) start = d; }
+      if (a.dueDate)   { const d = new Date(a.dueDate);   if (d > end)   end   = d; }
+    }
+    // 5-day padding on each side
+    start = new Date(start.getTime() - 5 * 86_400_000);
+    end   = new Date(end.getTime()   + 5 * 86_400_000);
+    return { start, end, totalMs: end.getTime() - start.getTime() };
+  }
+
+  ganttBarStyle(startStr: string | null, endStr: string | null): Record<string, string> {
+    if (!endStr) return { display: 'none' };
+    const { start, totalMs } = this.ganttRange;
+    const s = startStr ? new Date(startStr) : new Date(endStr);
+    const e = new Date(endStr);
+    const leftMs  = Math.max(0, s.getTime() - start.getTime());
+    const widthMs = Math.max(86_400_000, e.getTime() - s.getTime()); // min 1 day
+    return {
+      left:  `${(leftMs  / totalMs * 100).toFixed(2)}%`,
+      width: `${(widthMs / totalMs * 100).toFixed(2)}%`,
+    };
+  }
+
+  get ganttMonths(): { label: string; left: number; width: number }[] {
+    const { start, end, totalMs } = this.ganttRange;
+    const months: { label: string; left: number; width: number }[] = [];
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cur <= end) {
+      const mStart = new Date(cur);
+      const mEnd   = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+      const left   = Math.max(0,   (mStart.getTime() - start.getTime()) / totalMs * 100);
+      const right  = Math.min(100, (mEnd.getTime()   - start.getTime()) / totalMs * 100);
+      if (right > left) {
+        months.push({
+          label: mStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          left,
+          width: right - left,
+        });
+      }
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return months;
+  }
+
+  get todayLeft(): number {
+    const { start, totalMs } = this.ganttRange;
+    return Math.max(0, Math.min(100,
+      (Date.now() - start.getTime()) / totalMs * 100
+    ));
+  }
+
+  ganttActionsForMilestone(milestoneId: string): ActionItem[] {
+    return this.ganttActions.filter(a => a.milestoneId === milestoneId);
+  }
+
+  get ganttStandaloneActions(): ActionItem[] {
+    return this.ganttActions.filter(a => !a.milestoneId);
+  }
+
+  ganttActionBarClass(item: ActionItem): string {
+    switch (+item.status) {
+      case ActionStatus.Done:       return 'gantt-bar--done';
+      case ActionStatus.Overdue:    return 'gantt-bar--overdue';
+      case ActionStatus.InProgress: return 'gantt-bar--inprogress';
+      case ActionStatus.InReview:   return 'gantt-bar--inreview';
+      default:                      return 'gantt-bar--todo';
+    }
   }
 
   // ── Export ─────────────────────────────────────────────

@@ -50,6 +50,10 @@
           <a [routerLink]="['/workspaces', project.workspaceId]" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back to Workspace
           </a>
+          <button class="btn btn-sm" [class.btn-primary]="showGantt" [class.btn-outline-primary]="!showGantt"
+                  (click)="toggleGantt()" title="Toggle Gantt chart">
+            <i class="bi bi-bar-chart-steps me-1"></i>Gantt
+          </button>
           <button class="btn btn-outline-success btn-sm" (click)="exportToExcel()" title="Export to Excel">
             <i class="bi bi-file-earmark-excel me-1"></i>Excel
           </button>
@@ -115,6 +119,129 @@
             <span class="stat-card__label">Escalated Items</span>
           </div>
         </div>
+      </div>
+    }
+
+    <!-- ── Gantt Chart ────────────────────────────────── -->
+    @if (showGantt) {
+      <div class="wd-section mb-4">
+        <div class="wd-section-header">
+          <h5 class="mb-0"><i class="bi bi-bar-chart-steps me-2 text-primary"></i>Gantt Chart</h5>
+          <button class="btn btn-sm btn-outline-secondary" (click)="toggleGantt()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        @if (ganttLoading) {
+          <div class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span class="ms-2 text-muted">Loading chart data…</span>
+          </div>
+        } @else {
+          <div class="gantt-scroll-wrapper">
+            <div class="gantt-inner">
+
+              <!-- ── Month header ── -->
+              <div class="gantt-row gantt-row--header">
+                <div class="gantt-label-col"></div>
+                <div class="gantt-track-col">
+                  @for (m of ganttMonths; track m.label) {
+                    <div class="gantt-month" [style.left.%]="m.left" [style.width.%]="m.width">
+                      {{ m.label }}
+                    </div>
+                  }
+                  <!-- Today line -->
+                  <div class="gantt-today" [style.left.%]="todayLeft" title="Today"></div>
+                </div>
+              </div>
+
+              <!-- ── Project bar ── -->
+              <div class="gantt-row gantt-row--project">
+                <div class="gantt-label-col gantt-label-col--project">
+                  <i class="bi bi-kanban me-1"></i>{{ project.name }}
+                </div>
+                <div class="gantt-track-col">
+                  <div class="gantt-bar gantt-bar--project" [ngStyle]="ganttBarStyle(project.plannedStartDate, project.plannedEndDate)">
+                    <span class="gantt-bar__label">{{ project.statusLabel }}</span>
+                  </div>
+                  <div class="gantt-today" [style.left.%]="todayLeft"></div>
+                </div>
+              </div>
+
+              <!-- ── Milestones & their actions ── -->
+              @for (ms of ganttMilestones; track ms.id) {
+                <div class="gantt-row gantt-row--milestone">
+                  <div class="gantt-label-col gantt-label-col--milestone">
+                    <i class="bi bi-flag-fill me-1"></i>
+                    <a [routerLink]="['/projects', projectId, 'milestones', ms.id]" class="gantt-link">{{ ms.name }}</a>
+                  </div>
+                  <div class="gantt-track-col">
+                    <div class="gantt-bar gantt-bar--milestone" [ngStyle]="ganttBarStyle(ms.plannedStartDate, ms.plannedDueDate)">
+                      <span class="gantt-bar__label">{{ ms.statusLabel }} · {{ ms.completionPercentage }}%</span>
+                    </div>
+                    <div class="gantt-today" [style.left.%]="todayLeft"></div>
+                  </div>
+                </div>
+
+                @for (action of ganttActionsForMilestone(ms.id); track action.id) {
+                  <div class="gantt-row gantt-row--action">
+                    <div class="gantt-label-col gantt-label-col--action">
+                      <span class="gantt-action-id">{{ action.actionId }}</span>
+                      <span class="gantt-action-title">{{ action.title }}</span>
+                    </div>
+                    <div class="gantt-track-col">
+                      <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)">
+                        <span class="gantt-bar__label">{{ action.progress }}%</span>
+                      </div>
+                      <div class="gantt-today" [style.left.%]="todayLeft"></div>
+                    </div>
+                  </div>
+                }
+              }
+
+              <!-- ── Standalone actions ── -->
+              @if (ganttStandaloneActions.length > 0) {
+                <div class="gantt-row gantt-row--section-label">
+                  <div class="gantt-label-col">Standalone Actions</div>
+                  <div class="gantt-track-col">
+                    <div class="gantt-today" [style.left.%]="todayLeft"></div>
+                  </div>
+                </div>
+                @for (action of ganttStandaloneActions; track action.id) {
+                  <div class="gantt-row gantt-row--action">
+                    <div class="gantt-label-col gantt-label-col--action">
+                      <span class="gantt-action-id">{{ action.actionId }}</span>
+                      <span class="gantt-action-title">{{ action.title }}</span>
+                    </div>
+                    <div class="gantt-track-col">
+                      <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)">
+                        <span class="gantt-bar__label">{{ action.progress }}%</span>
+                      </div>
+                      <div class="gantt-today" [style.left.%]="todayLeft"></div>
+                    </div>
+                  </div>
+                }
+              }
+
+              @if (ganttMilestones.length === 0 && ganttActions.length === 0) {
+                <div class="text-center py-4 text-muted">No milestones or action items found.</div>
+              }
+
+            </div><!-- /gantt-inner -->
+          </div><!-- /gantt-scroll-wrapper -->
+
+          <!-- Legend -->
+          <div class="gantt-legend">
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--project"></span>Project</span>
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--milestone"></span>Milestone</span>
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--inprogress"></span>In Progress</span>
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--inreview"></span>In Review</span>
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--done"></span>Done</span>
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--overdue"></span>Overdue</span>
+            <span class="gantt-legend__item"><span class="gantt-legend__swatch gantt-legend__swatch--todo"></span>To Do / Other</span>
+            <span class="gantt-legend__item gantt-legend__item--today"><span class="gantt-legend__today-line"></span>Today</span>
+          </div>
+        }
       </div>
     }
 
