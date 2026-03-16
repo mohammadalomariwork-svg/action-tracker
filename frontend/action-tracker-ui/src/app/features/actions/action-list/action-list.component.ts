@@ -6,14 +6,12 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
-import { toSignal } from '@angular/core/rxjs-interop';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
-import { AuthService }       from '../../../core/services/auth.service';
 import { ToastService }      from '../../../core/services/toast.service';
 
 import {
-  ActionItem, ActionItemFilter, ActionItemMyStats,
+  ActionItem, ActionItemMyStats,
   ActionStatus, ActionPriority,
 } from '../../../core/models/action-item.model';
 import { PagedResult }       from '../../../core/models/api-response.model';
@@ -56,15 +54,11 @@ export const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
 })
 export class ActionListComponent implements OnInit, OnDestroy {
   private readonly actionSvc = inject(ActionItemService);
-  private readonly authSvc   = inject(AuthService);
   private readonly toastSvc  = inject(ToastService);
   readonly router             = inject(Router);
   private readonly destroy$  = new Subject<void>();
 
   @ViewChild('deleteDialog') deleteDialog!: ConfirmDialogComponent;
-
-  // Current user (resolved from auth service)
-  readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
 
   // ── State ─────────────────────────────────────────────
   readonly items        = signal<ActionItem[]>([]);
@@ -133,8 +127,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
   load(): void {
     this.loading.set(true);
-    const userId = this.currentUser()?.userId;
-    const filter: ActionItemFilter = {
+    const filter = {
       pageNumber:     this.pageNumber(),
       pageSize:       this.pageSize(),
       sortBy:         this.sortBy(),
@@ -142,10 +135,9 @@ export class ActionListComponent implements OnInit, OnDestroy {
       searchTerm:     this.searchCtrl.value?.trim() || undefined,
       status:         this.filterStatus()   ?? undefined,
       priority:       this.filterPriority() ?? undefined,
-      assigneeId:     userId,
     };
 
-    this.actionSvc.getAll(filter).subscribe({
+    this.actionSvc.getMyActions(filter).subscribe({
       next: r => {
         const paged: PagedResult<ActionItem> = r.data;
         this.items.set(paged.items);

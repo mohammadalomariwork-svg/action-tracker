@@ -66,6 +66,20 @@ export class ActionItemService {
     return this.http.get<ApiResponse<ActionItemMyStats>>(`${this.apiUrl}/my-stats`);
   }
 
+  getMyActions(filter: Omit<ActionItemFilter, 'assigneeId'>): Observable<ApiResponse<PagedResult<ActionItem>>> {
+    let params = new HttpParams()
+      .set('pageNumber', filter.pageNumber)
+      .set('pageSize', filter.pageSize)
+      .set('sortBy', filter.sortBy)
+      .set('sortDescending', filter.sortDescending);
+
+    if (filter.status != null)   params = params.set('status', filter.status);
+    if (filter.priority != null) params = params.set('priority', filter.priority);
+    if (filter.searchTerm)       params = params.set('searchTerm', filter.searchTerm);
+
+    return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
+  }
+
   // Comments
   getComments(actionItemId: string): Observable<ApiResponse<CommentInfo[]>> {
     return this.http.get<ApiResponse<CommentInfo[]>>(`${this.apiUrl}/${actionItemId}/comments`);

@@ -48,6 +48,38 @@ public class ActionItemsController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/action-items/my-actions
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns a paginated, filtered list of action items assigned to the
+    /// currently authenticated user. AssigneeId is set from JWT claims —
+    /// it cannot be overridden by the caller.
+    /// </summary>
+    [HttpGet("my-actions")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ActionItemResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ActionItemResponseDto>>>> GetMyActions(
+        [FromQuery] ActionItemFilterDto filter, CancellationToken ct)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        // Force the assignee to the caller — ignore any assigneeId from the query string.
+        filter.AssigneeId = userId;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var visibleIds = await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+            if (visibleIds.Count > 0)
+                filter.VisibleOrgUnitIds = visibleIds;
+        }
+
+        _logger.LogInformation("GET /api/action-items/my-actions userId={UserId}", userId);
+
+        var result = await _service.GetAllAsync(filter, ct);
+        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/action-items/{id}
     // -------------------------------------------------------------------------
 
