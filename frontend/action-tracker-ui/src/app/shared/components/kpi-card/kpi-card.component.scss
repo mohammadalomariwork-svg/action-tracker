@@ -9,8 +9,14 @@ $color-map: (
   'purple':   #7c3aed,
 );
 
+:host {
+  display: block;
+  height: 100%;
+}
+
 .kpi-card {
   position: relative;
+  height: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);

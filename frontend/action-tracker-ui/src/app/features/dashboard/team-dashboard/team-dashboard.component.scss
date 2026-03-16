@@ -131,6 +131,7 @@ app-page-header {
   padding: 1rem 1.1rem;
   display: flex;
   align-items: center;
+  align-self: stretch;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
   border-left: 4px solid transparent;
