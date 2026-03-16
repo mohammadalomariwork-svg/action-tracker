@@ -613,7 +613,7 @@
       <div class="row mb-3">
         <div class="col-6">
           <label class="form-label">Status</label>
-          <select class="form-select" [(ngModel)]="editForm.status">
+          <select class="form-select" [(ngModel)]="editForm.status" (ngModelChange)="saveEditError = null">
             @for (opt of PROJECT_STATUS_OPTIONS; track opt.value) {
               <option [ngValue]="opt.value">{{ opt.label }}</option>
             }
@@ -624,6 +624,14 @@
           <input type="date" class="form-control" [(ngModel)]="editForm.actualStartDate" />
         </div>
       </div>
+
+      <!-- Activation validation error -->
+      @if (saveEditError) {
+        <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+          <span>{{ saveEditError }}</span>
+        </div>
+      }
 
       <!-- Actions -->
       <div class="d-flex gap-2 justify-content-end border-top pt-3">

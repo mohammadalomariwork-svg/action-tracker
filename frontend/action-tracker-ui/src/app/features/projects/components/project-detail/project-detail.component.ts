@@ -92,8 +92,9 @@ export class ProjectDetailComponent implements OnInit {
   readonly ProjectPriority = ProjectPriority;
 
   // ── Edit form state ──────────────────────────────────
-  showEditForm = false;
-  saving = false;
+  showEditForm    = false;
+  saving          = false;
+  saveEditError: string | null = null;
   allUsers: AssignableUser[] = [];
   strategicObjectives: StrategicObjectiveOption[] = [];
   strategicObjectivesLoaded = false;
@@ -211,6 +212,7 @@ export class ProjectDetailComponent implements OnInit {
 
   cancelEditForm(): void {
     this.showEditForm = false;
+    this.saveEditError = null;
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';
   }
@@ -261,21 +263,84 @@ export class ProjectDetailComponent implements OnInit {
       return;
     }
 
+    this.saveEditError = null;
+
+    // Validate milestone/action-item structure when activating from a non-active status
+    const activating = this.editForm.status === ProjectStatus.Active
+      && this.project?.status !== ProjectStatus.Active;
+
+    if (activating) {
+      this.saving = true;
+      this.validateActivation(() => this.doSaveEdit());
+      return;
+    }
+
+    this.doSaveEdit();
+  }
+
+  private validateActivation(onValid: () => void): void {
+    const actionFilter: ActionItemFilter = {
+      projectId:      this.projectId,
+      pageNumber:     1,
+      pageSize:       500,
+      sortBy:         'dueDate',
+      sortDescending: false,
+    };
+
+    forkJoin({
+      milestones: this.milestoneService.getByProject(this.projectId),
+      actions:    this.actionService.getAll(actionFilter),
+    })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: ({ milestones, actions }) => {
+        const msList     = milestones.data ?? [];
+        const actionList = (actions.data as PagedResult<ActionItem>).items ?? [];
+
+        if (msList.length === 0) {
+          this.saveEditError = 'Cannot set to Active: the project must have at least one milestone before activation.';
+          this.saving = false;
+          return;
+        }
+
+        const emptyMilestones = msList.filter(ms =>
+          !actionList.some(a => a.milestoneId === ms.id)
+        );
+
+        if (emptyMilestones.length > 0) {
+          const names = emptyMilestones.map(m => `"${m.name}"`).join(', ');
+          this.saveEditError =
+            `Cannot set to Active: the following milestone(s) have no action items — ${names}. ` +
+            `Please add at least one action item to each milestone first.`;
+          this.saving = false;
+          return;
+        }
+
+        onValid();
+      },
+      error: () => {
+        this.saveEditError = 'Could not validate milestones. Please try again.';
+        this.saving = false;
+      },
+    });
+  }
+
+  private doSaveEdit(): void {
     this.saving = true;
 
     const payload: ProjectUpdate = {
-      name: this.editForm.name.trim(),
-      description: this.editForm.description?.trim() || undefined,
-      projectType: this.editForm.projectType,
-      status: this.editForm.status,
-      strategicObjectiveId: this.editForm.strategicObjectiveId || undefined,
-      priority: this.editForm.priority,
-      projectManagerUserId: this.editForm.projectManagerUserId,
-      sponsorUserIds: this.editForm.sponsorUserIds,
-      plannedStartDate: this.editForm.plannedStartDate,
-      plannedEndDate: this.editForm.plannedEndDate,
-      actualStartDate: this.editForm.actualStartDate || undefined,
-      approvedBudget: this.editForm.approvedBudget ? +this.editForm.approvedBudget : undefined,
+      name:                   this.editForm.name.trim(),
+      description:            this.editForm.description?.trim() || undefined,
+      projectType:            this.editForm.projectType,
+      status:                 this.editForm.status,
+      strategicObjectiveId:   this.editForm.strategicObjectiveId || undefined,
+      priority:               this.editForm.priority,
+      projectManagerUserId:   this.editForm.projectManagerUserId,
+      sponsorUserIds:         this.editForm.sponsorUserIds,
+      plannedStartDate:       this.editForm.plannedStartDate,
+      plannedEndDate:         this.editForm.plannedEndDate,
+      actualStartDate:        this.editForm.actualStartDate || undefined,
+      approvedBudget:         this.editForm.approvedBudget ? +this.editForm.approvedBudget : undefined,
     };
 
     this.projectService.update(this.projectId, payload)
@@ -284,6 +349,7 @@ export class ProjectDetailComponent implements OnInit {
         next: () => {
           this.saving = false;
           this.showEditForm = false;
+          this.saveEditError = null;
           this.toastSvc.success('Project updated.');
           this.loadProject();
           this.loadStats();
