@@ -163,7 +163,15 @@
         }
       </div>
       <div class="wl-toolbar-right">
-        <span class="text-muted">Showing <strong>{{ filteredWorkspaces.length }}</strong> workspaces</span>
+        <span class="text-muted me-3">Showing <strong>{{ filteredWorkspaces.length }}</strong> workspaces</span>
+        <div class="wl-export-btns">
+          <button class="wl-action-btn" (click)="exportToExcel()" title="Export to Excel">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </button>
+          <button class="wl-action-btn" (click)="printToPDF()" title="Print / Save as PDF">
+            <i class="bi bi-printer"></i> Print
+          </button>
+        </div>
       </div>
     </div>
 

@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
+import * as XLSX from 'xlsx';
 
 import { WorkspaceService } from '../../services/workspace.service';
 import { WorkspaceList, WorkspaceSummary, OrgUnitDropdownItem, UserDropdownItem, WorkspaceAdmin } from '../../models/workspace.model';
@@ -276,6 +277,27 @@ export class WorkspaceListComponent implements OnInit {
           this.errorMessage = err?.error?.message ?? 'Failed to restore workspace.';
         },
       });
+  }
+
+  exportToExcel(): void {
+    const rows = this.filteredWorkspaces.map(w => ({
+      'Title': w.title,
+      'Organization Unit': w.organizationUnit,
+      'Admins': w.adminUserNames,
+      'Status': w.isActive ? 'Active' : 'Inactive',
+      'Projects': w.projectCount,
+      'Open Actions': w.openActionItemCount,
+      'Created': this.formatDate(w.createdAt),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Workspaces');
+    XLSX.writeFile(wb, `workspaces-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  printToPDF(): void {
+    window.print();
   }
 
   onCreateNew(): void {
