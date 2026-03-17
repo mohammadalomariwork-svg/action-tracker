@@ -1,86 +1,63 @@
 // ── Page shell ────────────────────────────────────────────────────────────────
 .mp-page {
-  padding: 1.5rem 2rem;
+  padding: 1.5rem;
   min-height: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  background: #f8f9fb;
 }
 
-// ── Page header ───────────────────────────────────────────────────────────────
-.mp-page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
+// ── Summary Stat Cards ────────────────────────────────────────────────────────
+.mp-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
+
+  @media (max-width: 1199px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 479px)  { grid-template-columns: 1fr; }
 }
 
-.mp-page-icon {
+.mp-stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.mp-stat-icon {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #e8f0fe;
-  color: #3b82f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
+
+  &--blue   { background: #dbeafe; color: #3b82f6; }
+  &--green  { background: #d1fae5; color: #10b981; }
+  &--teal   { background: #ccfbf1; color: #0d9488; }
+  &--indigo { background: #e0e7ff; color: #4f46e5; }
 }
 
-.mp-page-title {
-  font-size: 1.5rem;
+.mp-stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-stat-value {
+  font-size: 1.75rem;
   font-weight: 700;
-  margin: 0;
   color: #1e293b;
+  line-height: 1;
 }
 
-.mp-page-subtitle {
-  font-size: 0.875rem;
+.mp-stat-label {
+  font-size: 0.8rem;
   color: #64748b;
-  margin: 0.2rem 0 0;
-}
-
-.mp-page-stats {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.mp-stat-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.9rem;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border: 1px solid;
-
-  &--manager {
-    background: #eff6ff;
-    color: #2563eb;
-    border-color: #bfdbfe;
-  }
-
-  &--sponsor {
-    background: #f0fdf4;
-    color: #16a34a;
-    border-color: #bbf7d0;
-  }
-}
-
-// ── Loading ───────────────────────────────────────────────────────────────────
-.mp-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 3rem 1rem;
-  justify-content: center;
-  color: #64748b;
-  font-size: 0.9rem;
+  margin-top: 0.25rem;
 }
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
@@ -103,9 +80,7 @@
   flex-wrap: wrap;
 }
 
-.mp-toolbar-right {
-  font-size: 0.85rem;
-}
+.mp-toolbar-right { font-size: 0.85rem; }
 
 .mp-search-box {
   position: relative;
@@ -139,19 +114,10 @@
 }
 
 .mp-filter-select {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 0.42rem 2rem 0.42rem 0.75rem;
+  min-width: 160px;
   font-size: 0.85rem;
-  font-family: inherit;
-  color: #374151;
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 0.6rem center;
-  appearance: none;
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.15s;
-
-  &:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+  border-radius: 8px;
+  border-color: #e2e8f0;
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
@@ -176,7 +142,7 @@
   }
 
   tbody tr {
-    transition: background-color 0.12s;
+    transition: background-color 0.12s ease;
 
     &:hover { background-color: #f8fafc; }
 
@@ -202,22 +168,22 @@
   }
 }
 
-// ── Code chip ─────────────────────────────────────────────────────────────────
-.mp-code {
-  display: inline-flex;
+// ── Avatar ────────────────────────────────────────────────────────────────────
+.mp-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: #fff;
+  display: flex;
   align-items: center;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.78rem;
-  color: #475569;
+  justify-content: center;
   font-weight: 600;
-  white-space: nowrap;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
-// ── Name link ─────────────────────────────────────────────────────────────────
-.mp-name-link {
+// ── Project name & meta ───────────────────────────────────────────────────────
+.mp-project-name {
   font-weight: 600;
   color: #1e293b;
   font-size: 0.9rem;
@@ -226,39 +192,38 @@
   &:hover { color: #3b82f6; text-decoration: underline; }
 }
 
-.mp-name-meta {
+.mp-project-meta {
   font-size: 0.78rem;
   color: #94a3b8;
-  margin-top: 0.1rem;
+  margin-top: 0.125rem;
 }
+
+.mp-meta-sep { margin: 0 0.25rem; }
 
 // ── Role badges ───────────────────────────────────────────────────────────────
 .mp-role-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.25rem 0.65rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
-  border: 1px solid;
 
   &--manager {
-    background: #eff6ff;
-    color: #2563eb;
-    border-color: #bfdbfe;
+    background: #e0e7ff;
+    color: #4338ca;
   }
 
   &--sponsor {
-    background: #f0fdf4;
-    color: #16a34a;
-    border-color: #bbf7d0;
+    background: #d1fae5;
+    color: #059669;
   }
 }
 
 // ── Status badges ─────────────────────────────────────────────────────────────
-.mp-badge {
+.mp-status-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -275,18 +240,18 @@
   &--cancelled { background: #fee2e2; color: #dc2626; }
 }
 
-.mp-badge-dot {
+.mp-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
   display: inline-block;
+  background: currentColor;
 }
 
 // ── Priority badges ───────────────────────────────────────────────────────────
-.mp-pri {
+.mp-pri-badge {
   display: inline-flex;
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.65rem;
   border-radius: 12px;
   font-size: 0.73rem;
   font-weight: 600;
@@ -302,7 +267,7 @@
 .mp-action-btns {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.125rem;
   justify-content: flex-end;
 }
 
@@ -400,34 +365,10 @@
   border-radius: 12px;
   padding: 1rem 1.25rem;
   margin-bottom: 0.75rem;
-
-  &--sponsor {
-    border-left: 3px solid #16a34a;
-  }
 }
 
-.mp-card-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.mp-card-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.mp-card-meta-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-.mp-card-meta-value {
+.mp-card-dates {
   font-size: 0.82rem;
-  color: #334155;
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
@@ -438,14 +379,12 @@
   border-radius: 12px;
   background: #fff;
   margin-top: 1rem;
-
-  h4 { color: #1e293b; margin: 0.75rem 0 0.5rem; font-size: 1.05rem; }
 }
 
 .mp-empty-icon {
   font-size: 3rem;
   display: block;
-  color: #94a3b8;
 }
 
+// ── Utility ───────────────────────────────────────────────────────────────────
 .text-muted { color: #64748b; font-size: 0.82rem; }

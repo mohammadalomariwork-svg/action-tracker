@@ -15,6 +15,8 @@ import {
 } from '../../models/project.models';
 import { PagedResult } from '../../../../core/models/api-response.model';
 import { HasPermissionDirective } from '../../../../shared';
+import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 export type MyProjectRole = 'manager' | 'sponsor';
 
@@ -23,11 +25,18 @@ export interface MyProjectEntry {
   role: MyProjectRole;
 }
 
+// Palette used for generated avatar colours (matches workspace list)
+const AVATAR_COLORS = [
+  '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
+  '#06b6d4','#f97316','#ec4899','#14b8a6','#6366f1',
+];
+
 @Component({
   selector: 'app-my-projects',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective,
+            BreadcrumbComponent, PageHeaderComponent],
   templateUrl: './my-projects.component.html',
   styleUrl: './my-projects.component.scss',
 })
@@ -57,7 +66,7 @@ export class MyProjectsComponent implements OnInit {
   filteredEntries: MyProjectEntry[] = [];
   pagedEntries:    MyProjectEntry[] = [];
 
-  readonly ProjectStatus  = ProjectStatus;
+  readonly ProjectStatus   = ProjectStatus;
   readonly ProjectPriority = ProjectPriority;
 
   readonly statusOptions: Array<{ value: ProjectStatus; label: string }> = [
@@ -182,29 +191,45 @@ export class MyProjectsComponent implements OnInit {
     return p;
   }
 
-  // ── Badge helpers ────────────────────────────────────────────────────────────
+  // ── Stat getters ─────────────────────────────────────────────────────────────
+
+  get managerCount(): number { return this.allEntries().filter(e => e.role === 'manager').length; }
+  get sponsorCount(): number { return this.allEntries().filter(e => e.role === 'sponsor').length; }
+  get activeCount():  number { return this.allEntries().filter(e => e.project.status === ProjectStatus.Active).length; }
+
+  // ── Avatar helpers ────────────────────────────────────────────────────────────
+
+  getInitials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2)
+      .map(w => w[0].toUpperCase()).join('');
+  }
+
+  getAvatarColor(name: string): string {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  }
+
+  // ── Badge helpers ─────────────────────────────────────────────────────────────
 
   statusBadgeClass(status: ProjectStatus): string {
     switch (status) {
-      case ProjectStatus.Draft:      return 'mp-badge mp-badge--draft';
-      case ProjectStatus.Active:     return 'mp-badge mp-badge--active';
-      case ProjectStatus.OnHold:     return 'mp-badge mp-badge--onhold';
-      case ProjectStatus.Completed:  return 'mp-badge mp-badge--completed';
-      case ProjectStatus.Cancelled:  return 'mp-badge mp-badge--cancelled';
-      default:                       return 'mp-badge mp-badge--draft';
+      case ProjectStatus.Draft:      return 'mp-status-badge mp-status-badge--draft';
+      case ProjectStatus.Active:     return 'mp-status-badge mp-status-badge--active';
+      case ProjectStatus.OnHold:     return 'mp-status-badge mp-status-badge--onhold';
+      case ProjectStatus.Completed:  return 'mp-status-badge mp-status-badge--completed';
+      case ProjectStatus.Cancelled:  return 'mp-status-badge mp-status-badge--cancelled';
+      default:                       return 'mp-status-badge mp-status-badge--draft';
     }
   }
 
   priorityBadgeClass(priority: ProjectPriority): string {
     switch (priority) {
-      case ProjectPriority.Low:      return 'mp-pri mp-pri--low';
-      case ProjectPriority.Medium:   return 'mp-pri mp-pri--medium';
-      case ProjectPriority.High:     return 'mp-pri mp-pri--high';
-      case ProjectPriority.Critical: return 'mp-pri mp-pri--critical';
-      default:                       return 'mp-pri mp-pri--low';
+      case ProjectPriority.Low:      return 'mp-pri-badge mp-pri-badge--low';
+      case ProjectPriority.Medium:   return 'mp-pri-badge mp-pri-badge--medium';
+      case ProjectPriority.High:     return 'mp-pri-badge mp-pri-badge--high';
+      case ProjectPriority.Critical: return 'mp-pri-badge mp-pri-badge--critical';
+      default:                       return 'mp-pri-badge mp-pri-badge--low';
     }
   }
-
-  get managerCount():  number { return this.allEntries().filter(e => e.role === 'manager').length; }
-  get sponsorCount():  number { return this.allEntries().filter(e => e.role === 'sponsor').length; }
 }
