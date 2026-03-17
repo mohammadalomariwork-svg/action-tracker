@@ -67,6 +67,9 @@ public class ActionItemConfiguration : IEntityTypeConfiguration<ActionItem>
 
         builder.Property(a => a.IsStandalone)
             .HasDefaultValue(true);
+
+        builder.Property(a => a.CreatedByUserId)
+            .HasMaxLength(450);
     }
 }
 
