@@ -44,6 +44,9 @@ public class ActionItem
 
     public bool IsEscalated { get; set; }
 
+    /// <summary>The user who created this action item.</summary>
+    public string? CreatedByUserId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }

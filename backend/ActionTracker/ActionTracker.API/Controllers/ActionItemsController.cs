@@ -76,6 +76,31 @@ public class ActionItemsController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/action-items/created-by-me
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns a paginated, filtered list of action items created by the
+    /// currently authenticated user. CreatedById is set from JWT claims —
+    /// it cannot be overridden by the caller.
+    /// </summary>
+    [HttpGet("created-by-me")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ActionItemResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ActionItemResponseDto>>>> GetCreatedByMe(
+        [FromQuery] ActionItemFilterDto filter, CancellationToken ct)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        filter.CreatedById       = userId;
+        filter.VisibleOrgUnitIds = null;
+
+        _logger.LogInformation("GET /api/action-items/created-by-me userId={UserId}", userId);
+
+        var result = await _service.GetAllAsync(filter, ct);
+        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/action-items/{id}
     // -------------------------------------------------------------------------
 

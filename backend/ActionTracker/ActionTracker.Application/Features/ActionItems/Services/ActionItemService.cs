@@ -61,6 +61,9 @@ public class ActionItemService : IActionItemService
         if (!string.IsNullOrWhiteSpace(filter.AssigneeId))
             query = query.Where(a => a.Assignees.Any(aa => aa.UserId == filter.AssigneeId));
 
+        if (!string.IsNullOrWhiteSpace(filter.CreatedById))
+            query = query.Where(a => a.CreatedByUserId == filter.CreatedById);
+
         // Filter action items whose workspace belongs to a visible org unit.
         if (filter.VisibleOrgUnitIds != null && filter.VisibleOrgUnitIds.Count > 0)
         {
@@ -158,8 +161,9 @@ public class ActionItemService : IActionItemService
             StartDate   = dto.StartDate,
             DueDate     = dto.DueDate,
             Progress    = dto.Progress,
-            IsEscalated = dto.IsEscalated,
-            CreatedAt   = DateTime.UtcNow,
+            IsEscalated      = dto.IsEscalated,
+            CreatedByUserId  = createdByUserId,
+            CreatedAt        = DateTime.UtcNow,
         };
 
         // Auto-set progress to 100 when status is Done

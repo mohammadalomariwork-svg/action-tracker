@@ -7,10 +7,12 @@ import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import * as XLSX from 'xlsx';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { ToastService }      from '../../../core/services/toast.service';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
+import { AuthService }       from '../../../core/services/auth.service';
 
 import {
   ActionItem, ActionItemMyStats, ActionItemCreate,
@@ -69,12 +71,15 @@ export class ActionListComponent implements OnInit, OnDestroy {
   private readonly actionSvc    = inject(ActionItemService);
   private readonly toastSvc     = inject(ToastService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly authSvc      = inject(AuthService);
   private readonly cdr          = inject(ChangeDetectorRef);
   private readonly destroy$     = new Subject<void>();
 
+  readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
+
   @ViewChild('deleteDialog') deleteDialog!: ConfirmDialogComponent;
 
-  // ── List state ────────────────────────────────────────
+  // ── List state (assigned to me) ───────────────────────
   readonly items        = signal<ActionItem[]>([]);
   readonly totalCount   = signal(0);
   readonly loading         = signal(false);
@@ -84,6 +89,19 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly pendingDeleteId = signal<string | null>(null);
   readonly exporting   = signal(false);
   readonly printingPdf = signal(false);
+
+  // ── Created by me state ───────────────────────────────
+  readonly createdByItems      = signal<ActionItem[]>([]);
+  readonly createdByTotalCount = signal(0);
+  readonly createdByLoading    = signal(false);
+  readonly createdByPageNumber = signal(1);
+  readonly createdByPageSize   = signal(10);
+  readonly createdByTotalPages = computed(() =>
+    Math.ceil(this.createdByTotalCount() / this.createdByPageSize()) || 1);
+  readonly createdByShowingFrom = computed(() =>
+    (this.createdByPageNumber() - 1) * this.createdByPageSize() + 1);
+  readonly createdByShowingTo = computed(() =>
+    Math.min(this.createdByPageNumber() * this.createdByPageSize(), this.createdByTotalCount()));
 
   // ── Filters ───────────────────────────────────────────
   readonly searchCtrl     = new FormControl<string>('');
@@ -150,6 +168,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
     this.loadStats();
     this.load();
+    this.loadCreatedByMe();
     this.loadAllUsers();
     this.loadAllWorkspaces();
   }
@@ -193,6 +212,47 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.toastSvc.error('Failed to load action items.');
       },
     });
+  }
+
+  loadCreatedByMe(): void {
+    this.createdByLoading.set(true);
+    this.actionSvc.getCreatedByMe({
+      pageNumber:     this.createdByPageNumber(),
+      pageSize:       this.createdByPageSize(),
+      sortBy:         'dueDate',
+      sortDescending: false,
+    }).subscribe({
+      next: r => {
+        const paged: PagedResult<ActionItem> = r.data;
+        this.createdByItems.set(paged.items);
+        this.createdByTotalCount.set(paged.totalCount);
+        this.createdByLoading.set(false);
+      },
+      error: () => {
+        this.createdByLoading.set(false);
+        this.toastSvc.error('Failed to load created-by-me items.');
+      },
+    });
+  }
+
+  createdByPrevPage(): void {
+    if (this.createdByPageNumber() > 1) {
+      this.createdByPageNumber.update(p => p - 1);
+      this.loadCreatedByMe();
+    }
+  }
+
+  createdByNextPage(): void {
+    if (this.createdByPageNumber() < this.createdByTotalPages()) {
+      this.createdByPageNumber.update(p => p + 1);
+      this.loadCreatedByMe();
+    }
+  }
+
+  onCreatedByPageSizeChange(size: number): void {
+    this.createdByPageSize.set(+size);
+    this.createdByPageNumber.set(1);
+    this.loadCreatedByMe();
   }
 
   private loadAllUsers(): void {
@@ -289,6 +349,9 @@ export class ActionListComponent implements OnInit, OnDestroy {
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
+    // Pre-select the logged-in user as default assignee
+    const uid = this.currentUser()?.userId;
+    if (uid) this.actionForm.assigneeIds = [uid];
     this.editingEscalations = [];
     this.originalEscalated = false;
     this.originalEscalationText = '';
@@ -407,12 +470,14 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
     obs$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        const wasNew = !this.editingActionId;
         this.actionSaving = false;
         this.showActionForm = false;
         this.editingActionId = null;
-        this.toastSvc.success(this.editingActionId ? 'Action item updated.' : 'Action item created.');
+        this.toastSvc.success(wasNew ? 'Action item created.' : 'Action item updated.');
         this.load();
         this.loadStats();
+        if (wasNew) this.loadCreatedByMe();
         this.cdr.markForCheck();
       },
       error: err => {

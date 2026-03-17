@@ -496,6 +496,219 @@
       </div>
     }
 
+    <!-- ══════════════════════════════════════════════════════
+         CREATED BY ME section
+         ══════════════════════════════════════════════════════ -->
+
+    <!-- Section header -->
+    <div class="al-section-header" style="margin-top: 2rem;">
+      <h5 class="mb-0">
+        <i class="bi bi-pencil-square me-2 text-secondary"></i>Created by Me
+        <span class="badge bg-secondary ms-2">{{ createdByTotalCount() }}</span>
+      </h5>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="table-wrap d-none d-md-block">
+      <table class="table table-hover table-sm wa-table mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th class="th-title">Title</th>
+            <th>Project</th>
+            <th>Milestone</th>
+            <th>Assignee(s)</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Due Date</th>
+            <th class="th-progress">Progress</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (createdByLoading()) {
+            @for (r of skeletonRows; track $index) {
+              <tr class="sk-row">
+                @for (c of [1,2,3,4,5,6,7,8,9,10]; track c) {
+                  <td><span class="sk-cell"></span></td>
+                }
+              </tr>
+            }
+          }
+          @if (!createdByLoading()) {
+            @if (createdByItems().length === 0) {
+              <tr>
+                <td colspan="10" class="empty-cell">
+                  <div class="empty-state">
+                    <div class="empty-state__icon">✏️</div>
+                    <p class="empty-state__title">No items created by you yet</p>
+                    <p class="empty-state__sub">Action items you create will appear here.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+            @for (item of createdByItems(); track trackById($index, item)) {
+              <tr [class.table-danger]="item.isOverdue || item.status === ActionStatus.Overdue"
+                  [class.wa-deleted-row]="item.isDeleted">
+                <td>
+                  <span class="wa-action-id">{{ item.actionId }}</span>
+                  @if (item.isEscalated) {
+                    <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
+                  }
+                </td>
+                <td>
+                  <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
+                </td>
+                <td>
+                  @if (item.projectName) {
+                    <a [routerLink]="['/projects', item.projectId]" class="wa-link">{{ item.projectName }}</a>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (item.milestoneName && item.projectId) {
+                    <a [routerLink]="['/projects', item.projectId, 'milestones', item.milestoneId]" class="wa-link">{{ item.milestoneName }}</a>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+                <td>
+                  <div class="wa-assignees">
+                    <span class="wa-avatar-sm">{{ assigneeInitial(item) }}</span>
+                    <span class="wa-assignee-text">{{ assigneeNames(item) }}</span>
+                  </div>
+                </td>
+                <td><span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span></td>
+                <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
+                <td>
+                  <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+                </td>
+                <td class="th-progress">
+                  <div class="wa-progress-cell">
+                    <div class="progress wa-progress-bar">
+                      <div class="progress-bar"
+                           [class.bg-success]="item.progress >= 75"
+                           [class.bg-info]="item.progress >= 40 && item.progress < 75"
+                           [class.bg-danger]="item.progress < 40"
+                           [style.width.%]="item.progress"></div>
+                    </div>
+                    <span class="wa-progress-label">{{ item.progress }}%</span>
+                  </div>
+                </td>
+                <td class="text-end">
+                  <div class="wa-row-actions">
+                    <a class="btn btn-outline-info btn-sm wa-action-btn"
+                       [routerLink]="['/actions', item.id, 'view']" title="View">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <button *appHasPermission="'ActionItems'; action: 'Edit'"
+                            class="btn btn-outline-primary btn-sm wa-action-btn"
+                            title="Edit" (click)="openEditActionForm(item)"
+                            [disabled]="showActionForm">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button *appHasPermission="'ActionItems'; action: 'Delete'"
+                            class="btn btn-outline-danger btn-sm wa-action-btn"
+                            title="Delete" (click)="confirmDelete(item.id)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards for Created by me -->
+    <div class="d-block d-md-none">
+      @if (createdByLoading()) {
+        @for (r of skeletonRows; track $index) {
+          <div class="wa-action-card">
+            <span class="sk-cell" style="width:60%;height:14px;margin-bottom:.5rem"></span>
+            <span class="sk-cell" style="width:40%"></span>
+          </div>
+        }
+      }
+      @if (!createdByLoading() && createdByItems().length === 0) {
+        <div class="empty-state py-4">
+          <div class="empty-state__icon">✏️</div>
+          <p class="empty-state__title">No items created by you yet</p>
+          <p class="empty-state__sub">Action items you create will appear here.</p>
+        </div>
+      }
+      @for (item of createdByItems(); track trackById($index, item)) {
+        <div class="wa-action-card"
+             [class.border-danger]="item.isOverdue || item.status === ActionStatus.Overdue">
+          <div class="wa-action-card__header">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="wa-action-id">{{ item.actionId }}</span>
+              @if (item.isEscalated) {
+                <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
+              }
+              <span [class]="priorityClass(item.priority)">{{ item.priorityLabel }}</span>
+              <span [class]="statusClass(item.status)">{{ item.statusLabel }}</span>
+            </div>
+          </div>
+          <a class="wa-action-card__title text-decoration-none"
+             [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
+          <div class="wa-action-card__meta">
+            @if (item.projectName) {
+              <div class="wa-action-card__meta-row">
+                <span class="wa-action-card__meta-label"><i class="bi bi-kanban me-1"></i>Project</span>
+                <span class="wa-action-card__meta-value">{{ item.projectName }}</span>
+              </div>
+            }
+            <div class="wa-action-card__meta-row">
+              <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
+              <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
+            </div>
+            <div class="wa-action-card__meta-row">
+              <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+              <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+            </div>
+          </div>
+          <div class="wa-action-card__actions">
+            <a class="btn btn-outline-info btn-sm" [routerLink]="['/actions', item.id, 'view']">
+              <i class="bi bi-eye me-1"></i>View
+            </a>
+            <button *appHasPermission="'ActionItems'; action: 'Edit'"
+                    class="btn btn-outline-primary btn-sm"
+                    (click)="openEditActionForm(item)" [disabled]="showActionForm">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button *appHasPermission="'ActionItems'; action: 'Delete'"
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="confirmDelete(item.id)">
+              <i class="bi bi-trash me-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination for Created by me -->
+    @if (createdByTotalCount() > 0) {
+      <div class="pagination">
+        <div class="pagination__info">
+          Showing {{ createdByShowingFrom() }}–{{ createdByShowingTo() }} of {{ createdByTotalCount() }} items
+        </div>
+        <div class="pagination__controls">
+          <select class="page-size-select" [ngModel]="createdByPageSize()"
+            (ngModelChange)="onCreatedByPageSizeChange($event)">
+            @for (s of PAGE_SIZE_OPTIONS; track s) {
+              <option [value]="s">{{ s }} / page</option>
+            }
+          </select>
+          <button class="page-btn" [disabled]="createdByPageNumber() === 1" (click)="createdByPrevPage()">‹ Prev</button>
+          <span class="page-indicator">{{ createdByPageNumber() }} / {{ createdByTotalPages() }}</span>
+          <button class="page-btn" [disabled]="createdByPageNumber() === createdByTotalPages()" (click)="createdByNextPage()">Next ›</button>
+        </div>
+      </div>
+    }
+
   </div><!-- /al-body -->
 </div><!-- /al-page -->
 

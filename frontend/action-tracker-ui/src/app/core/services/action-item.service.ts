@@ -81,6 +81,21 @@ export class ActionItemService {
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
   }
 
+  getCreatedByMe(filter: Omit<ActionItemFilter, 'assigneeId'>): Observable<ApiResponse<PagedResult<ActionItem>>> {
+    let params = new HttpParams()
+      .set('pageNumber', filter.pageNumber)
+      .set('pageSize', filter.pageSize)
+      .set('sortBy', filter.sortBy)
+      .set('sortDescending', filter.sortDescending);
+
+    if (filter.status != null)   params = params.set('status', filter.status);
+    if (filter.priority != null) params = params.set('priority', filter.priority);
+    if (filter.searchTerm)       params = params.set('searchTerm', filter.searchTerm);
+    if (filter.includeDeleted)   params = params.set('includeDeleted', true);
+
+    return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/created-by-me`, { params });
+  }
+
   /** Fetches every action item assigned to the current user (no pagination). */
   getAllMyActions(): Observable<ApiResponse<PagedResult<ActionItem>>> {
     const params = new HttpParams()

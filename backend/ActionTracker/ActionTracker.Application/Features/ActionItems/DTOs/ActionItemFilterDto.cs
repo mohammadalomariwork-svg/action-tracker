@@ -6,7 +6,8 @@ public class ActionItemFilterDto
 {
     public ActionStatus?   Status      { get; set; }
     public ActionPriority? Priority    { get; set; }
-    public string          AssigneeId  { get; set; } = string.Empty;
+    public string          AssigneeId   { get; set; } = string.Empty;
+    public string          CreatedById  { get; set; } = string.Empty;
     public Guid?           WorkspaceId { get; set; }
     public Guid?           ProjectId   { get; set; }
     public Guid?           MilestoneId { get; set; }
