@@ -4,6 +4,12 @@ import { permissionGuard } from '../../core/guards/permission-data.guard';
 
 const projectRoutes: Routes = [
   {
+    path: 'my',
+    loadComponent: () =>
+      import('./components/my-projects/my-projects.component').then(m => m.MyProjectsComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'new',
     loadComponent: () =>
       import('./components/project-form/project-form.component').then(m => m.ProjectFormComponent),

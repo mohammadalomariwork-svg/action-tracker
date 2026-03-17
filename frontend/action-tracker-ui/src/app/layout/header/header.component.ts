@@ -33,6 +33,11 @@ const NAV_LINKS: NavLink[] = [
     visibleWhen: null,
   },
   {
+    label: 'My Projects',
+    path: '/projects/my',
+    visibleWhen: null,
+  },
+  {
     label: 'Reports',
     path: '/reports',
     visibleWhen: { area: 'Reports', action: 'View' },
@@ -41,7 +46,7 @@ const NAV_LINKS: NavLink[] = [
     label: 'Team Actions',
     path: '/management',
     visibleWhen: { area: 'Action Items', action: 'View' },
-    alsoActivePrefixes: ['/projects', '/action-items'],
+    alsoActivePrefixes: ['/projects/new', '/projects/edit', '/action-items'],
   },
   {
     label: 'Workspaces',

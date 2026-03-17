@@ -1,0 +1,451 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.mp-page {
+  padding: 1.5rem 2rem;
+  min-height: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+// ── Page header ───────────────────────────────────────────────────────────────
+.mp-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mp-page-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #e8f0fe;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.mp-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1e293b;
+}
+
+.mp-page-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0.2rem 0 0;
+}
+
+.mp-page-stats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mp-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid;
+
+  &--manager {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+
+  &--sponsor {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+  }
+}
+
+// ── Loading ───────────────────────────────────────────────────────────────────
+.mp-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────────────────
+.mp-toolbar {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mp-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mp-toolbar-right {
+  font-size: 0.85rem;
+}
+
+.mp-search-box {
+  position: relative;
+  min-width: 240px;
+
+  i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem 0.45rem 2.1rem;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &::placeholder { color: #94a3b8; }
+  }
+}
+
+.mp-filter-select {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.42rem 2rem 0.42rem 0.75rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #374151;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 0.6rem center;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+.mp-table-wrapper {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  overflow: hidden;
+
+  table { margin-bottom: 0; }
+
+  thead th {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    transition: background-color 0.12s;
+
+    &:hover { background-color: #f8fafc; }
+
+    td {
+      font-size: 0.875rem;
+      vertical-align: middle;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    &:last-child td { border-bottom: none; }
+  }
+}
+
+.mp-th-sortable {
+  cursor: pointer;
+  user-select: none;
+
+  i {
+    margin-left: 0.25rem;
+    font-size: 0.65rem;
+    opacity: 0.6;
+  }
+}
+
+// ── Code chip ─────────────────────────────────────────────────────────────────
+.mp-code {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  color: #475569;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// ── Name link ─────────────────────────────────────────────────────────────────
+.mp-name-link {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.9rem;
+  text-decoration: none;
+
+  &:hover { color: #3b82f6; text-decoration: underline; }
+}
+
+.mp-name-meta {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+// ── Role badges ───────────────────────────────────────────────────────────────
+.mp-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid;
+
+  &--manager {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+
+  &--sponsor {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+  }
+}
+
+// ── Status badges ─────────────────────────────────────────────────────────────
+.mp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &--draft     { background: #f1f5f9; color: #64748b; }
+  &--active    { background: #dbeafe; color: #2563eb; }
+  &--onhold    { background: #fef3c7; color: #d97706; }
+  &--completed { background: #d1fae5; color: #059669; }
+  &--cancelled { background: #fee2e2; color: #dc2626; }
+}
+
+.mp-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+// ── Priority badges ───────────────────────────────────────────────────────────
+.mp-pri {
+  display: inline-flex;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--low      { background: #f0fdf4; color: #16a34a; }
+  &--medium   { background: #fffbeb; color: #d97706; }
+  &--high     { background: #fff7ed; color: #ea580c; }
+  &--critical { background: #fef2f2; color: #dc2626; }
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+.mp-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.mp-action-btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+
+  i { font-size: 0.75rem; }
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+    text-decoration: none;
+  }
+}
+
+.mp-readonly-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.73rem;
+  color: #94a3b8;
+  padding: 0.3rem 0.65rem;
+  border: 1px dashed #e2e8f0;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+.mp-pagination {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mp-pagination-info {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.mp-pagination-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mp-page-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled):not(.active) { background: #f1f5f9; }
+
+  &.active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// ── Mobile cards ──────────────────────────────────────────────────────────────
+.mp-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+
+  &--sponsor {
+    border-left: 3px solid #16a34a;
+  }
+}
+
+.mp-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mp-card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mp-card-meta-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.mp-card-meta-value {
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.mp-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  margin-top: 1rem;
+
+  h4 { color: #1e293b; margin: 0.75rem 0 0.5rem; font-size: 1.05rem; }
+}
+
+.mp-empty-icon {
+  font-size: 3rem;
+  display: block;
+  color: #94a3b8;
+}
+
+.text-muted { color: #64748b; font-size: 0.82rem; }
