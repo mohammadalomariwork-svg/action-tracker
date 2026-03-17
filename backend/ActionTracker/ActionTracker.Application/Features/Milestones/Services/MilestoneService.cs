@@ -48,11 +48,25 @@ public class MilestoneService : IMilestoneService
         if (dto.PlannedDueDate < dto.PlannedStartDate)
             throw new ArgumentException("Planned due date must be on or after the planned start date.");
 
-        // Generate milestone code
-        var count = await _db.Milestones
+        // Generate a globally unique milestone code for the current year.
+        // We look at ALL milestones (across every project) that share the
+        // "MS-YYYY-" prefix, find the highest sequence already used, and
+        // increment it — this prevents collisions when multiple projects
+        // each receive their first milestone in the same year.
+        var year   = DateTime.UtcNow.Year;
+        var prefix = $"MS-{year}-";
+        var existingSequences = await _db.Milestones
             .IgnoreQueryFilters()
-            .CountAsync(m => m.ProjectId == projectId, ct);
-        var milestoneCode = $"MS-{DateTime.UtcNow.Year}-{(count + 1):D3}";
+            .Where(m => m.MilestoneCode.StartsWith(prefix))
+            .Select(m => m.MilestoneCode)
+            .ToListAsync(ct);
+
+        var nextSeq = existingSequences
+            .Select(code => int.TryParse(code[prefix.Length..], out var n) ? n : 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        var milestoneCode = $"{prefix}{nextSeq:D3}";
 
         var milestone = new Milestone
         {
