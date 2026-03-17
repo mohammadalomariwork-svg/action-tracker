@@ -38,7 +38,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Returns all active workspaces ordered by title.</summary>
     [HttpGet]
-    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
+    [Authorize(Policy = "LocalOrAzureAD")]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<WorkspaceListDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
