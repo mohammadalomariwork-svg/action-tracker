@@ -159,7 +159,7 @@
                       {{ getInitials(entry.project.name) }}
                     </div>
                     <div>
-                      <a class="mp-project-name" [routerLink]="['/projects', entry.project.id]">
+                      <a class="wa-title text-decoration-none" [routerLink]="['/projects', entry.project.id]">
                         {{ entry.project.name }}
                       </a>
                       <div class="mp-project-meta">
@@ -243,7 +243,7 @@
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
-                    <a class="mp-project-name" [routerLink]="['/projects', entry.project.id]">
+                    <a class="wa-title text-decoration-none" [routerLink]="['/projects', entry.project.id]">
                       {{ entry.project.name }}
                     </a>
                     <div class="mp-project-meta">{{ entry.project.projectCode }}</div>

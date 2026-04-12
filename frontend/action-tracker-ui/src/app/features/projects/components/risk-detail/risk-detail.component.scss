@@ -1,0 +1,103 @@
+.risk-detail-page {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+code {
+  font-size: 0.9em;
+  color: #6f42c1;
+}
+
+.white-space-pre-wrap {
+  white-space: pre-wrap;
+}
+
+// ── Detail cards ─────────────────────────────────────────
+.detail-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.detail-card-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bd);
+}
+
+// ── Info rows ────────────────────────────────────────────
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bd);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  font-size: 0.82rem;
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: right;
+}
+
+// ── Mini risk matrix ─────────────────────────────────────
+.mini-matrix-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mini-matrix-label-y {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+}
+
+.mini-matrix-label-x {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  text-align: center;
+  flex-basis: 100%;
+  margin-left: 18px;
+}
+
+.mini-matrix {
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
+  grid-template-rows: repeat(5, 28px);
+  gap: 2px;
+}
+
+.mini-cell {
+  border-radius: 3px;
+  opacity: 0.25;
+  transition: opacity 0.15s;
+
+  &.current-cell {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--bg2), 0 0 0 4px var(--accent);
+  }
+}

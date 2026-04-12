@@ -1,7 +1,7 @@
-// ── Code preview (edit mode) ──────────────────────────────────────────────────
+// ── Code preview (edit mode) — card-elevated treatment ───────────────────────
 .of-code-preview {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background-color: var(--el);
+  border: 1px solid var(--bd);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -12,16 +12,41 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6c757d;
+  color: var(--t3);
   flex-shrink: 0;
 }
 
 .of-code-value {
   font-size: 0.9rem;
   letter-spacing: 0.04em;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 // ── Character counters ────────────────────────────────────────────────────────
 .form-text {
   font-size: 0.75rem;
+  color: var(--t3);
+}
+
+// ── Themed form inputs ───────────────────────────────────────────────────────
+.form-control,
+.form-select {
+  background: var(--inp);
+  border-color: var(--bd);
+  color: var(--t1);
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.15);
+  }
+
+  &::placeholder {
+    color: var(--t3);
+  }
+}
+
+.form-label {
+  color: var(--t2);
+  font-weight: 500;
 }

@@ -1,63 +1,73 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
 .uop-page {
   padding: 1.5rem;
   min-height: 100%;
 }
 
+// ── Search card ──────────────────────────────────────────────────────────────
 .uop-search-card {
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--bd);
+  box-shadow: var(--csh);
+  background: var(--sf);
+  backdrop-filter: blur(16px);
 }
 
+// ── Data panels ──────────────────────────────────────────────────────────────
 .uop-panel {
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--bd);
+  box-shadow: var(--csh);
+  background: var(--sf);
+  backdrop-filter: blur(16px);
 }
 
-// Search dropdown
+// ── Search dropdown suggestion list ──────────────────────────────────────────
 .uop-dropdown {
-  position:   absolute;
-  top:        calc(100% + 4px);
-  left:       0;
-  right:      0;
-  z-index:    1050;
-  background: #fff;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-sm);
   max-height: 240px;
   overflow-y: auto;
 
   &__item {
-    display:    block;
-    width:      100%;
-    padding:    0.5rem 0.75rem;
-    border:     none;
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
     background: transparent;
     text-align: left;
-    cursor:     pointer;
-    transition: background 0.1s;
+    cursor: pointer;
+    color: var(--t1);
+    transition: background 0.1s var(--ease);
 
     &:hover {
-      background: #f0f4ff;
+      background: rgba(var(--ar), 0.08);
     }
   }
 }
 
-// Selected user pill
+// ── Selected user pill ───────────────────────────────────────────────────────
 .uop-selected-user {
-  display:         inline-flex;
-  align-items:     center;
-  background:      rgba(79, 70, 229, 0.08);
-  border:          1px solid rgba(79, 70, 229, 0.25);
-  border-radius:   8px;
-  padding:         0.35rem 0.75rem;
-  font-size:       0.875rem;
-  color:           var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  background: rgba(var(--ar), 0.08);
+  border: 1px solid rgba(var(--ar), 0.25);
+  border-radius: var(--r-sm);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--t1);
 }
 
-// Empty state
+// ── Empty state ──────────────────────────────────────────────────────────────
 .uop-empty {
   &__icon {
-    font-size:  4rem;
-    color:      #cbd5e1;
+    font-size: 4rem;
+    color: var(--t3);
   }
 }

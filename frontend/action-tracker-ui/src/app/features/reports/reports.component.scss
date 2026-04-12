@@ -33,6 +33,7 @@ app-page-header {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  backdrop-filter: blur(16px);
 }
 
 // ── Section header row ────────────────────────────────
@@ -99,7 +100,7 @@ app-page-header {
 .spinner {
   width: 14px; height: 14px;
   border: 2px solid rgba(255,255,255,0.35);
-  border-top-color: #fff;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -124,7 +125,7 @@ app-page-header {
 .filter-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--t2);
   letter-spacing: 0.01em;
 }
 
@@ -135,7 +136,7 @@ app-page-header {
   border-radius: 8px;
   font-size: 0.875rem;
   color: var(--text-primary);
-  background: #fff;
+  background: var(--inp);
   outline: none;
   cursor: pointer;
   transition: border-color 0.15s;
@@ -157,7 +158,7 @@ app-page-header {
 .sk {
   display: block;
   border-radius: 8px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background: linear-gradient(90deg, var(--bd) 25%, var(--sf) 50%, var(--bd) 75%);
   background-size: 200% 100%;
   animation: sk-anim 1.4s ease-in-out infinite;
   height: 36px; width: 100%;

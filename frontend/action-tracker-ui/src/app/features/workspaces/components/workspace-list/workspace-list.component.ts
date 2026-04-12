@@ -1,7 +1,7 @@
 import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
@@ -15,7 +15,7 @@ import { HasPermissionDirective } from '../../../../shared/directives/has-permis
 @Component({
   selector: 'app-workspace-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, BreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, BreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './workspace-list.component.html',
   styleUrl: './workspace-list.component.scss',
 })

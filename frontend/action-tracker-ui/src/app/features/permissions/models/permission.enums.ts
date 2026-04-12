@@ -23,6 +23,9 @@ export enum PermissionArea {
   UserManagement        = 9,
   PermissionsManagement = 10,
   Roles                 = 11,
+  Risks                 = 12,
+  EmailTemplates        = 13,
+  Notifications         = 14,
 }
 
 export const PERMISSION_AREA_LABELS: Record<PermissionArea, string> = {
@@ -38,6 +41,9 @@ export const PERMISSION_AREA_LABELS: Record<PermissionArea, string> = {
   [PermissionArea.UserManagement]:        'UserManagement',
   [PermissionArea.PermissionsManagement]: 'PermissionsManagement',
   [PermissionArea.Roles]:                 'Roles',
+  [PermissionArea.Risks]:                 'Risks',
+  [PermissionArea.EmailTemplates]:        'EmailTemplates',
+  [PermissionArea.Notifications]:         'Notifications',
 };
 
 // ── Permission Actions ───────────────────────────────────────────────────────

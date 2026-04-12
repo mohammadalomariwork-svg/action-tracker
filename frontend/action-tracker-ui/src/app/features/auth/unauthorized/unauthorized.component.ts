@@ -5,25 +5,31 @@ import { Router } from '@angular/router';
   selector: 'app-unauthorized',
   standalone: true,
   template: `
+    <!-- Animated Background (duplicated — auth pages live outside the layout shell) -->
+    <div class="bg">
+      <div class="bg-diag"></div>
+      <div class="bg-wave w1"></div>
+      <div class="bg-wave w2"></div>
+      <div class="bg-wave w3"></div>
+      <div class="bg-orb o1"></div>
+      <div class="bg-orb o2"></div>
+    </div>
+
     <div class="unauth-page">
       <div class="unauth-card">
 
-        <div class="unauth-icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="1.5"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            <line x1="9" y1="9" x2="15" y2="15"/>
-            <line x1="15" y1="9" x2="9" y2="15"/>
-          </svg>
+        <div class="unauth-icon-wrap">
+          <i class="bi bi-person-x unauth-icon"></i>
         </div>
 
-        <h1 class="unauth-code">403</h1>
-        <h2 class="unauth-title">Access Denied</h2>
-        <p class="unauth-message">You are not authorized to view this page.</p>
+        <h1 class="unauth-title">Session Expired</h1>
+        <p class="unauth-message">
+          Your session has expired or you are not authorized.<br />
+          Please sign in again to continue.
+        </p>
 
-        <button class="unauth-btn" type="button" (click)="goToDashboard()">
-          Back to Dashboard
+        <button class="unauth-btn" type="button" (click)="goToLogin()">
+          Sign In
         </button>
 
       </div>
@@ -35,80 +41,71 @@ import { Router } from '@angular/router';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--bg-main);
+      position: relative;
+      z-index: 1;
       padding: 2rem;
     }
 
     .unauth-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow-md);
+      background: var(--el);
+      border: 1px solid var(--bd);
+      border-radius: var(--r-xl);
+      box-shadow: var(--neon);
+      backdrop-filter: blur(24px);
       padding: 3rem 2.5rem;
       text-align: center;
-      max-width: 420px;
+      max-width: 440px;
       width: 100%;
     }
 
-    .unauth-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 72px;
-      height: 72px;
-      margin: 0 auto 1.25rem;
-      border-radius: 50%;
-      background: rgba(220, 38, 38, 0.08);
-      color: #dc2626;
-
-      svg {
-        width: 36px;
-        height: 36px;
-      }
+    .unauth-icon-wrap {
+      margin-bottom: 1.5rem;
     }
 
-    .unauth-code {
-      margin: 0 0 0.25rem;
-      font-size: 3.5rem;
-      font-weight: 800;
-      line-height: 1;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .unauth-icon {
+      font-size: 48px;
+      color: var(--warning, #f59e0b);
     }
 
     .unauth-title {
       margin: 0 0 0.75rem;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text-primary);
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--t1);
     }
 
     .unauth-message {
       margin: 0 0 2rem;
-      font-size: 0.9rem;
-      color: var(--text-secondary);
+      font-size: 13px;
+      color: var(--t2);
       line-height: 1.6;
     }
 
+    /* Neon primary button */
     .unauth-btn {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.65rem 1.5rem;
-      background: var(--primary);
-      color: #fff;
+      padding: 0.7rem 2rem;
+      background: var(--accent);
+      color: #000;
       border: none;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
+      border-radius: var(--r-md);
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s, transform 0.15s;
+      box-shadow: var(--neon);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.2s;
 
       &:hover {
-        background: var(--primary-dark);
         transform: translateY(-1px);
+        box-shadow: var(--neon2);
+      }
+
+      &:active {
+        transform: scale(0.97);
       }
     }
   `],
@@ -116,7 +113,7 @@ import { Router } from '@angular/router';
 export class UnauthorizedComponent {
   private readonly router = inject(Router);
 
-  goToDashboard(): void {
-    this.router.navigate(['/dashboard']);
+  goToLogin(): void {
+    this.router.navigate(['/login']);
   }
 }

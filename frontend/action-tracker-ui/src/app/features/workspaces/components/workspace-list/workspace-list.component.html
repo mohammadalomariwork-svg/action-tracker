@@ -213,7 +213,7 @@
                       {{ getInitials(workspace.title) }}
                     </div>
                     <div>
-                      <div class="wl-ws-name">{{ workspace.title }}</div>
+                      <div class="wl-ws-name"><a class="wa-title text-decoration-none" [routerLink]="['/workspaces', workspace.id]">{{ workspace.title }}</a></div>
                       <div class="wl-ws-meta">
                         Created {{ formatDate(workspace.createdAt) }}
                         <span class="wl-ws-meta-sep">&middot;</span>
@@ -299,7 +299,7 @@
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
-                    <div class="wl-ws-name">{{ workspace.title }}</div>
+                    <div class="wl-ws-name"><a class="wa-title text-decoration-none" [routerLink]="['/workspaces', workspace.id]">{{ workspace.title }}</a></div>
                     <div class="wl-ws-meta">Created {{ formatDate(workspace.createdAt) }} &middot; {{ workspace.openActionItemCount }} actions open</div>
                   </div>
                   @if (workspace.isActive) {

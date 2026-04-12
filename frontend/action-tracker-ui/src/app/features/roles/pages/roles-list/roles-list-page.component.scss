@@ -1,22 +1,65 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
 .rl-page {
   padding: 1.5rem;
 }
 
+// ── Role cards: grid layout (3 cols desktop, 2 tablet, 1 mobile) ─────────────
+// Grid handled by Bootstrap col-xl-3/col-lg-6/col-12 in the template.
+// Each card themed:
 .rl-role-card {
-  border: 1px solid #e5e7eb;
-  border-top: 3px solid var(--bs-primary);
-  border-radius: 0.5rem;
-  transition: box-shadow 0.15s ease;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--r-lg);
+  box-shadow: var(--csh);
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease),
+              transform 0.15s var(--ease);
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--bdh);
+  }
+
+  // .card-glow:hover effect
+  &.card-glow:hover,
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+    transform: translateY(-2px);
+  }
+
+  .card-title {
+    color: var(--t1);
+  }
+
+  .card-body {
+    color: var(--t2);
   }
 }
 
+// ── Modal backdrop ───────────────────────────────────────────────────────────
 .rl-modal-backdrop {
   background: rgba(0, 0, 0, 0.5);
   position: fixed;
   inset: 0;
   z-index: 1050;
   overflow-y: auto;
+  backdrop-filter: blur(4px);
+
+  .modal-content {
+    background: var(--el);
+    border: 1px solid var(--bd);
+    border-radius: var(--r-lg);
+    box-shadow: var(--csh), 0 8px 32px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(24px);
+    color: var(--t1);
+  }
+
+  .modal-header {
+    border-bottom: 1px solid var(--bd);
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--bd);
+  }
 }

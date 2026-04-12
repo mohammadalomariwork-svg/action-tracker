@@ -122,6 +122,13 @@ export const routes: Routes = [
           import('./features/action-items/action-item.routes').then(m => m.default),
       },
       {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/notifications/notifications-page/notifications-page.component').then(
+            m => m.NotificationsPageComponent
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('./features/profile/profile.component').then(

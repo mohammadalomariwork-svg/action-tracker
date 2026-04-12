@@ -1,0 +1,94 @@
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL FORM OVERRIDES — Inputs, Selects, Textareas, Labels
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Text inputs & selects ────────────────────────────────────────
+.form-control,
+.form-select {
+  background: var(--inp);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  color: var(--t1);
+  font-size: 14px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder {
+    color: var(--t3);
+  }
+
+  &:focus {
+    background: var(--inpf);
+    border-color: rgba(var(--ar), 0.40);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.06), 0 0 16px rgba(var(--ar), 0.08);
+    outline: none;
+  }
+
+  &.is-invalid,
+  &:invalid:not(:placeholder-shown) {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+// ── Textareas ────────────────────────────────────────────────────
+textarea.form-control {
+  min-height: 100px;
+  resize: vertical;
+}
+
+// ── Date inputs ──────────────────────────────────────────────────
+input[type="date"].form-control,
+input[type="datetime-local"].form-control {
+  background: var(--inp);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  color: var(--t1);
+  font-size: 14px;
+
+  &:focus {
+    background: var(--inpf);
+    border-color: rgba(var(--ar), 0.40);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.06), 0 0 16px rgba(var(--ar), 0.08);
+    outline: none;
+  }
+}
+
+// ── Labels ───────────────────────────────────────────────────────
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  letter-spacing: 0.03em;
+}
+
+// ── Checkboxes ───────────────────────────────────────────────────
+// ── Native <option> inside selects ──────────────────────────────
+.form-select option,
+.form-control option,
+select option {
+  background: var(--bg);
+  color: var(--t1);
+}
+
+.form-check-input {
+  background-color: var(--inp);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-sm);
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+  &:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  &:focus {
+    border-color: rgba(var(--ar), 0.40);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.06);
+  }
+}

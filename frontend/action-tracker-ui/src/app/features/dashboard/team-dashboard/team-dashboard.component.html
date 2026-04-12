@@ -189,7 +189,7 @@
                   @for (item of myActions(); track item.id) {
                     <tr class="mini-row" [routerLink]="['/actions', item.id, 'edit']">
                       <td class="td-title">
-                        <span class="title-ellipsis" [title]="item.title">{{ item.title }}</span>
+                        <a class="wa-title text-decoration-none title-ellipsis" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                       </td>
                       <td><app-priority-badge [priority]="item.priority" /></td>
                       <td><app-status-badge   [status]="item.status"   /></td>
@@ -314,9 +314,9 @@
               <tbody>
                 @for (item of recentActions(); track item.id) {
                   <tr class="mini-row" [routerLink]="['/actions', item.id, 'edit']">
-                    <td><span class="action-id">{{ item.actionId }}</span></td>
+                    <td><a class="action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a></td>
                     <td class="td-title">
-                      <span class="title-ellipsis" [title]="item.title">{{ item.title }}</span>
+                      <a class="wa-title text-decoration-none title-ellipsis" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                     </td>
                     <td>
                       <div class="assignee-cell">

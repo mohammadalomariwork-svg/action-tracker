@@ -1,0 +1,10 @@
+.preview-container {
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--el);
+}
+
+textarea.font-monospace {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}

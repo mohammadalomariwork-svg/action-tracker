@@ -1,0 +1,130 @@
+// ── Stat cards ───────────────────────────────────────────
+.stat-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.stat-card--critical {
+  border-left: 3px solid #dc3545;
+  .stat-value { color: #dc3545; }
+}
+
+.stat-card--high {
+  border-left: 3px solid #fd7e14;
+  .stat-value { color: #fd7e14; }
+}
+
+.stat-card--medium {
+  border-left: 3px solid #ffc107;
+  .stat-value { color: #856404; }
+}
+
+.stat-card--info {
+  border-left: 3px solid #0d6efd;
+  .stat-value { color: #0d6efd; }
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// ── Risk matrix ──────────────────────────────────────────
+.risk-matrix-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.risk-matrix-label-y {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-matrix-label-x {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  flex-basis: 100%;
+  margin-left: 24px;
+}
+
+.risk-matrix {
+  display: grid;
+  grid-template-columns: repeat(5, 32px);
+  grid-template-rows: repeat(5, 32px);
+  gap: 2px;
+}
+
+.matrix-cell {
+  border-radius: 4px;
+  opacity: 0.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: opacity 0.15s;
+  cursor: default;
+
+  &:hover {
+    opacity: 0.6;
+  }
+}
+
+.matrix-dot {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Table ────────────────────────────────────────────────
+code {
+  font-size: 0.82em;
+  color: #6f42c1;
+}
+
+// ── Modal backdrop fix ───────────────────────────────────
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+}
+
+.modal.d-block {
+  z-index: 1050;
+}
+
+// ── Print styles ─────────────────────────────────────────
+@media print {
+  .btn, .form-select, .pagination, .modal-backdrop, .modal {
+    display: none !important;
+  }
+}

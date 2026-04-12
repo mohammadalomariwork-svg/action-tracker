@@ -1,7 +1,9 @@
+// ── Row headers (area names) ─────────────────────────────────────────────────
 .perm-area-cell {
   min-width: 180px;
   padding: 0.6rem 1rem;
-  color: var(--text-primary);
+  color: var(--t1);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -11,27 +13,31 @@
   vertical-align: middle;
 
   &--na {
-    background-color: #f8fafc;
+    background-color: var(--sf);
   }
 }
 
+// ── Checkboxes: custom styled ────────────────────────────────────────────────
 .perm-switch {
   cursor: pointer;
   width: 2.2em;
   height: 1.2em;
+  border: 2px solid var(--bd);
+  background-color: transparent;
 
   &:checked {
-    background-color: var(--primary);
-    border-color: var(--primary);
+    background-color: var(--accent);
+    border-color: var(--accent);
   }
 
   &:focus {
-    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(var(--ar), 0.25);
+    border-color: var(--accent);
   }
 }
 
 .perm-na {
-  color: #cbd5e1;
+  color: var(--t3);
   font-size: 1rem;
   user-select: none;
 }

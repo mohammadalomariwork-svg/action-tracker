@@ -1,11 +1,15 @@
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Services;
+using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using ActionTracker.Infrastructure.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace ActionTracker.Tests.Unit;
@@ -29,7 +33,11 @@ public class ActionItemServiceTests : IDisposable
 
         _dbContext  = new AppDbContext(options);
         _loggerMock = new Mock<ILogger<ActionItemService>>();
-        _service    = new ActionItemService(_dbContext, _loggerMock.Object);
+        var emailSenderMock = new Mock<IEmailSender>();
+        var notificationServiceMock = new Mock<INotificationService>();
+        var appSettings = Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" });
+        var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        _service    = new ActionItemService(_dbContext, _loggerMock.Object, emailSenderMock.Object, notificationServiceMock.Object, appSettings, scopeFactoryMock.Object);
     }
 
     public void Dispose() => _dbContext.Dispose();

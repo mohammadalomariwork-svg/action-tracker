@@ -1,33 +1,53 @@
+// ── Wrapper — card treatment ─────────────────────────
 .dt-wrapper {
   width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border-radius: var(--r-md);
+  border: 1px solid var(--bd);
+  background: var(--sf);
+  backdrop-filter: blur(16px);
+}
+
+// ── Scroll container ─────────────────────────────────
+.dt-scroll {
   overflow-x: auto;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
 }
 
 .dt {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
-  font-size: 0.875rem;
 }
 
-// ── Header ─────────────────────────────────────────────
+// ── Filter / toolbar bar ─────────────────────────────
+.dt-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--bd);
+}
+
+// ── Header ───────────────────────────────────────────
 thead tr {
-  border-bottom: 2px solid var(--border-color);
-  background: var(--bg-main);
+  border-bottom: 1px solid var(--bd);
+  background: var(--sf);
 }
 
 th {
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
+  letter-spacing: 0.07em;
+  color: var(--t3);
   white-space: nowrap;
   user-select: none;
+  background: var(--sf);
+  border-bottom: 1px solid var(--bd);
 
   &.sortable {
     cursor: pointer;
@@ -37,12 +57,12 @@ th {
     }
 
     &:hover {
-      color: var(--primary);
+      color: var(--accent);
     }
   }
 
   &.sorted {
-    color: var(--primary);
+    color: var(--accent);
   }
 }
 
@@ -54,7 +74,7 @@ th {
 
 .sort-icon {
   font-size: 0.8rem;
-  color: var(--primary);
+  color: var(--accent);
 
   &--idle {
     opacity: 0.3;
@@ -62,27 +82,106 @@ th {
   }
 }
 
-// ── Body ───────────────────────────────────────────────
+// ── Body ─────────────────────────────────────────────
 tbody tr {
-  border-bottom: 1px solid var(--border-color);
-  transition: background 0.15s;
+  background: transparent;
+  border-bottom: 1px solid var(--bd);
+  transition: background 0.15s, color 0.15s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: rgba(79, 70, 229, 0.03); }
+
+  &:hover {
+    background: var(--sfh);
+
+    td { color: var(--t1); }
+  }
+
+  // Overdue rows
+  &.overdue {
+    border-left: 3px solid #ef4444;
+  }
 }
 
 td {
-  padding: 0.8rem 1rem;
-  color: var(--text-primary);
+  padding: 0.85rem 1rem;
+  font-size: 13px;
+  color: var(--t2);
   vertical-align: middle;
 }
 
-// ── Skeleton ───────────────────────────────────────────
+// ── Code tags (ACT-001, PRJ-xxx) ─────────────────────
+.code-tag {
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+// ── Title cells ──────────────────────────────────────
+.cell-title {
+  font-weight: 600;
+  color: var(--t1);
+  white-space: normal;
+  min-width: 200px;
+}
+
+// ── Pagination ───────────────────────────────────────
+.dt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 10px 14px;
+  border-top: 1px solid var(--bd);
+}
+
+.dt-pagination__info {
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.dt-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--sf);
+  color: var(--t2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+
+  &:hover:not(:disabled):not(.page-btn--active) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  &--active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+  }
+}
+
+// ── Skeleton ─────────────────────────────────────────
 .skeleton-cell {
   display: block;
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background: linear-gradient(90deg, var(--sf) 25%, var(--sfh) 50%, var(--sf) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   width: 80%;
@@ -93,7 +192,7 @@ td {
   100% { background-position: -200% 0; }
 }
 
-// ── Empty state ────────────────────────────────────────
+// ── Empty state ──────────────────────────────────────
 .empty-cell {
   padding: 3rem 1rem;
 }
@@ -112,6 +211,70 @@ td {
 
 .empty-msg {
   margin: 0;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 13px;
+  color: var(--t2);
+}
+
+// ── Mobile (<600px): card-based layout ───────────────
+@media (max-width: 600px) {
+  .dt-wrapper {
+    border: none;
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .dt-scroll,
+  .dt { display: none; }
+
+  .mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mobile-card {
+    background: var(--sf);
+    border: 1px solid var(--bd);
+    border-radius: var(--r-md);
+    padding: 14px;
+
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    &__title {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--t1);
+      margin-bottom: 6px;
+    }
+
+    &__field {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 3px 0;
+      color: var(--t2);
+    }
+
+    &__label {
+      color: var(--t3);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  .dt-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 601px) {
+  .mobile-cards { display: none; }
 }

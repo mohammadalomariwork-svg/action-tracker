@@ -1,0 +1,46 @@
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL RESETS — Body, selection, scrollbar
+// ═══════════════════════════════════════════════════════════════════
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg2);
+  color: var(--t1);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 0.5s, color 0.3s;
+}
+
+// ── Text selection ───────────────────────────────────────────────
+::selection {
+  background: rgba(var(--ar), 0.25);
+}
+
+// ── Custom scrollbar ─────────────────────────────────────────────
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scr);
+  border-radius: 3px;
+}

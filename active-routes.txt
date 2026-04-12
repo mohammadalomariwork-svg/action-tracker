@@ -1,0 +1,64 @@
+Active Routes & Components - KU Action Tracker
+================================================
+
+PUBLIC ROUTES (No authentication required)
+------------------------------------------
+/login                          -> LoginComponent
+/unauthorized                   -> UnauthorizedComponent
+/access-denied                  -> AccessDeniedComponent
+/auth_fallback                  -> MsalRedirectComponent (Azure AD popup redirect)
+
+AUTHENTICATED ROUTES (Requires login)
+--------------------------------------
+/                               -> Redirects to /dashboard
+/dashboard                      -> TeamDashboardComponent          [Permission: Dashboard.View]
+/management                     -> ManagementDashboardComponent    [Permission: ActionItems.View]
+/actions                        -> ActionListComponent
+/actions/new                    -> ActionFormComponent
+/actions/:id/edit               -> ActionFormComponent
+/actions/:id/view               -> ActionDetailComponent
+/reports                        -> ReportsComponent                [Permission: Reports.View]
+/notifications                  -> NotificationsPageComponent
+/profile                        -> ProfileComponent
+
+WORKSPACE ROUTES [Permission: Workspaces.View]
+-----------------------------------------------
+/workspaces                     -> WorkspaceListComponent
+/workspaces/new                 -> WorkspaceFormComponent
+/workspaces/edit/:id            -> WorkspaceFormComponent
+/workspaces/:id                 -> WorkspaceDetailComponent
+
+PROJECT ROUTES
+--------------
+/projects/my                    -> MyProjectsComponent
+/projects/new                   -> ProjectFormComponent
+/projects/edit/:id              -> ProjectFormComponent
+/projects/:projectId/milestones/:milestoneId -> MilestoneDetailComponent
+/projects/:projectId/risks/:riskId           -> RiskDetailComponent
+/projects/:id                   -> ProjectDetailComponent
+
+ADMIN ROUTES
+------------
+/admin                          -> AdminPanelComponent
+/admin/org-chart                -> OrgChartListComponent
+/admin/objectives               -> ObjectivesListComponent
+/admin/kpis                     -> KpiListComponent
+/admin/kpis/:kpiId/targets      -> KpiTargetsComponent
+/admin/email-templates          -> EmailTemplatesPageComponent
+/admin/permissions/roles        -> RolePermissionsPageComponent
+/admin/permissions/users        -> UserOverridesPageComponent
+/admin/roles                    -> RolesListPageComponent
+/admin/roles/:roleName/permissions -> RolePermissionsPageComponent
+/admin/roles/:roleName/users    -> RoleUsersPageComponent
+
+USER MANAGEMENT ROUTES [Permission: UserManagement.View]
+---------------------------------------------------------
+/admin/users                    -> UserListComponent
+/admin/users/register-external  -> RegisterExternalUserComponent
+/admin/users/register-ad        -> RegisterADUserComponent
+
+WILDCARD
+--------
+/**                             -> Redirects to /dashboard
+
+Total: 37 routes mapping to 28 unique components

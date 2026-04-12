@@ -25,6 +25,9 @@ public static class PermissionCatalogSeeder
     public static readonly Guid AreaUserManagement          = new("10000010-0000-0000-0000-000000000000");
     public static readonly Guid AreaPermissionsManagement   = new("10000011-0000-0000-0000-000000000000");
     public static readonly Guid AreaRoles                   = new("10000012-0000-0000-0000-000000000000");
+    public static readonly Guid AreaRisks                   = new("10000013-0000-0000-0000-000000000000");
+    public static readonly Guid AreaEmailTemplates           = new("10000014-0000-0000-0000-000000000000");
+    public static readonly Guid AreaNotifications            = new("10000015-0000-0000-0000-000000000000");
 
     // ── Action IDs (stable across re-runs) ───────────────────────────────────
 
@@ -76,6 +79,9 @@ public static class PermissionCatalogSeeder
             Area(AreaUserManagement,        "UserManagement",        "User Management",       10),
             Area(AreaPermissionsManagement, "PermissionsManagement", "Permissions Management",11),
             Area(AreaRoles,                 "Roles",                 "Roles Management",      12),
+            Area(AreaRisks,                 "Risks",                 "Risks",                 13),
+            Area(AreaEmailTemplates,        "EmailTemplates",        "Email Templates",       14),
+            Area(AreaNotifications,         "Notifications",         "Notifications",         15),
         };
 
         var toInsert = areas.Where(a => !existingIds.Contains(a.Id)).ToList();
@@ -213,6 +219,21 @@ public static class PermissionCatalogSeeder
             (AreaRoles, "Roles", 12, ActionEdit,   "Edit",   3),
             (AreaRoles, "Roles", 12, ActionDelete, "Delete", 4),
             (AreaRoles, "Roles", 12, ActionAssign, "Assign", 7),
+
+            // Risks: View, Create, Edit, Delete, Export
+            (AreaRisks, "Risks", 13, ActionView,   "View",   1),
+            (AreaRisks, "Risks", 13, ActionCreate, "Create", 2),
+            (AreaRisks, "Risks", 13, ActionEdit,   "Edit",   3),
+            (AreaRisks, "Risks", 13, ActionDelete, "Delete", 4),
+            (AreaRisks, "Risks", 13, ActionExport, "Export", 6),
+
+            // EmailTemplates: View, Edit
+            (AreaEmailTemplates, "EmailTemplates", 14, ActionView, "View", 1),
+            (AreaEmailTemplates, "EmailTemplates", 14, ActionEdit, "Edit", 3),
+
+            // Notifications: View, Delete
+            (AreaNotifications, "Notifications", 15, ActionView,   "View",   1),
+            (AreaNotifications, "Notifications", 15, ActionDelete, "Delete", 4),
         };
 
         var toInsert = desiredMappings

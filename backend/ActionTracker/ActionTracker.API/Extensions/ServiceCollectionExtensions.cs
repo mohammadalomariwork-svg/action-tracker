@@ -1,7 +1,10 @@
 using System.Text;
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Services;
+using ActionTracker.Application.Features.EmailTemplates;
+using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Auth.Interfaces;
 using ActionTracker.Application.Features.Auth.Services;
 using ActionTracker.Application.Features.Dashboard.Interfaces;
@@ -10,6 +13,7 @@ using ActionTracker.Application.Features.Comments.Interfaces;
 using ActionTracker.Application.Features.Comments.Services;
 using ActionTracker.Application.Features.Documents.Interfaces;
 using ActionTracker.Application.Features.Documents.Services;
+using ActionTracker.Application.Features.ProjectRisks.Interfaces;
 using ActionTracker.Application.Features.Milestones.Interfaces;
 using ActionTracker.Application.Features.Milestones.Services;
 using ActionTracker.Application.Features.Projects.Interfaces;
@@ -105,6 +109,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICommentService,     CommentService>();
         services.AddScoped<IProjectService,     ProjectService>();
         services.AddScoped<IMilestoneService,   MilestoneService>();
+        services.AddScoped<IProjectRiskService, ProjectRiskService>();
 
         // Permissions Management
         services.AddScoped<IRolePermissionService,          RolePermissionService>();
@@ -259,5 +264,19 @@ public static class ServiceCollectionExtensions
     /// the admin-panel <c>IStrategicObjectiveService</c> (Guid PK) and the
     /// workspace-scoped one (int PK) used by the Projects feature.
     /// </summary>
-    
+
+    // -------------------------------------------------------------------------
+    // 9. Email services (B-EN-02)
+    // -------------------------------------------------------------------------
+
+    public static IServiceCollection AddEmailServices(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
+        services.Configure<AppSettings>(configuration.GetSection("App"));
+        services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+        services.AddScoped<IEmailSender, EmailSender>();
+        services.AddScoped<INotificationService, NotificationService>();
+        return services;
+    }
 }

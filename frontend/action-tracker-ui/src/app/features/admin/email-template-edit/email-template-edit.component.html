@@ -1,0 +1,130 @@
+<div #modalEl class="modal fade" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil-square me-2"></i>
+          @if (template()) {
+            Edit: {{ template()!.name }}
+          } @else {
+            Edit Template
+          }
+        </h5>
+        <button type="button" class="btn-close" (click)="close()"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        @if (loading()) {
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        } @else if (error() && !template()) {
+          <div class="alert alert-danger">{{ error() }}</div>
+        } @else {
+          @if (error()) {
+            <div class="alert alert-danger mb-3">{{ error() }}</div>
+          }
+
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <!-- Template key (read only) -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Template Key</label>
+              <input type="text" class="form-control" [value]="template()!.templateKey" disabled />
+            </div>
+
+            <!-- Subject -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" formControlName="subject" />
+              @if (form.controls.subject.touched && form.controls.subject.invalid) {
+                <small class="text-danger">Subject is required.</small>
+              }
+            </div>
+
+            <!-- HTML Body -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">HTML Body <span class="text-danger">*</span></label>
+              <textarea
+                class="form-control font-monospace"
+                formControlName="htmlBody"
+                rows="15"
+              ></textarea>
+              @if (form.controls.htmlBody.touched && form.controls.htmlBody.invalid) {
+                <small class="text-danger">HTML Body is required.</small>
+              }
+            </div>
+
+            <!-- Active checkbox -->
+            <div class="form-check mb-3">
+              <input type="checkbox" class="form-check-input" id="isActive" formControlName="isActive" />
+              <label class="form-check-label" for="isActive">Active</label>
+            </div>
+
+            <!-- Placeholders -->
+            @if (placeholders.length > 0) {
+              <div class="mb-3">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  (click)="showPlaceholders.set(!showPlaceholders())"
+                >
+                  <i class="bi bi-braces me-1"></i>
+                  Available Placeholders
+                  <i class="bi" [ngClass]="showPlaceholders() ? 'bi-chevron-up' : 'bi-chevron-down'" class="ms-1"></i>
+                </button>
+                @if (showPlaceholders()) {
+                  <div class="mt-2 p-3 bg-light rounded border">
+                    <div class="d-flex flex-wrap gap-2">
+                      @for (ph of placeholders; track ph) {
+                        <code class="px-2 py-1 bg-white border rounded">{{'{{' + ph + '}}'}}</code>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Preview -->
+            <div class="mb-3">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-info"
+                (click)="showPreview.set(!showPreview())"
+              >
+                <i class="bi bi-eye me-1"></i>
+                {{ showPreview() ? 'Hide' : 'Show' }} Preview
+              </button>
+              @if (showPreview()) {
+                <div class="mt-2 border rounded p-3 bg-white preview-container">
+                  <div [innerHTML]="previewHtml"></div>
+                </div>
+              }
+            </div>
+          </form>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="close()">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="form.invalid || saving() || loading()"
+          (click)="submit()"
+        >
+          @if (saving()) {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+          }
+          Save Changes
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

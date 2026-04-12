@@ -10,17 +10,20 @@
 .wf-card {
   width: 100%;
   max-width: 680px;
+  background: var(--sf);
+  border: 1px solid var(--bd);
   border-radius: var(--border-radius, 12px);
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  backdrop-filter: blur(16px);
   align-self: flex-start;
 
   .card-header {
-    background-color: var(--bg-card, #ffffff);
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--el);
+    border-bottom: 1px solid var(--bd);
     border-radius: var(--border-radius, 12px) var(--border-radius, 12px) 0 0;
 
     h5 {
-      color: var(--text-primary, #1e293b);
+      color: var(--t1);
       font-weight: 600;
     }
   }
@@ -33,19 +36,25 @@
 // ── Form field spacing ────────────────────────────────────────────────────────
 .form-label {
   font-weight: 500;
-  color: var(--text-primary, #1e293b);
+  color: var(--t2);
   margin-bottom: 0.35rem;
 }
 
 .form-control,
 .form-select {
-  border-color: var(--border-color, #e2e8f0);
+  border: 1px solid var(--bd);
   border-radius: 8px;
   font-size: 0.95rem;
+  background: var(--inp);
+  color: var(--t1);
 
   &:focus {
-    border-color: var(--primary, #4f46e5);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.15);
+  }
+
+  &::placeholder {
+    color: var(--t3);
   }
 }
 
@@ -53,14 +62,16 @@
 .wf-admin-list {
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--border-color, #e2e8f0);
+  border: 1px solid var(--bd);
 
   .list-group-item {
-    background: var(--bg-card, #ffffff);
+    background: var(--sf);
+    color: var(--t1);
     font-size: 0.9rem;
+    border-color: var(--bd);
 
     &:not(:last-child) {
-      border-bottom: 1px solid var(--border-color, #e2e8f0);
+      border-bottom: 1px solid var(--bd);
     }
   }
 }
@@ -70,7 +81,7 @@
   width: 2.25em;
 
   &:checked {
-    background-color: var(--primary, #4f46e5);
-    border-color: var(--primary, #4f46e5);
+    background-color: var(--accent);
+    border-color: var(--accent);
   }
 }

@@ -1,0 +1,424 @@
+// ═══════════════════════════════════════════════════════════════════
+// OVERRIDES — Final polish: Toasts, Modals, Offcanvas, Dropdowns,
+//             Tooltips, Print, Accessibility, Transitions
+// Must be the LAST partial imported in styles.scss
+// ═══════════════════════════════════════════════════════════════════
+
+// ── ngx-toastr overrides ────────────────────────────────────────────
+.toast-container .ngx-toastr {
+  background: var(--el) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--bd) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--t1) !important;
+  padding: 14px 18px !important;
+
+  &.toast-success {
+    border-left: 3px solid #22c55e !important;
+  }
+
+  &.toast-error {
+    border-left: 3px solid #ef4444 !important;
+  }
+
+  &.toast-warning {
+    border-left: 3px solid #f59e0b !important;
+  }
+
+  &.toast-info {
+    border-left: 3px solid var(--accent) !important;
+  }
+
+  .toast-title {
+    font-weight: 700;
+  }
+
+  .toast-close-button {
+    color: var(--t3);
+
+    &:hover {
+      color: var(--t1);
+    }
+  }
+}
+
+// ── Bootstrap Modal overrides ───────────────────────────────────────
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.50) !important;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--el) !important;
+  border: 1px solid var(--bdh) !important;
+  border-radius: var(--r-xl) !important;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 0 40px rgba(var(--ar), 0.08) !important;
+  color: var(--t1);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--bd) !important;
+  padding: 18px 24px;
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--t1);
+  }
+
+  .btn-close {
+    filter: invert(1) brightness(0.7);
+    opacity: 0.5;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--bd) !important;
+  padding: 14px 24px;
+}
+
+// Light mode: restore default close button
+[data-theme="light"] {
+  .btn-close {
+    filter: none;
+  }
+}
+
+// ── Bootstrap Offcanvas overrides ───────────────────────────────────
+.offcanvas {
+  background: var(--el) !important;
+  border: none !important;
+  backdrop-filter: blur(24px);
+  color: var(--t1);
+
+  .offcanvas-header {
+    border-bottom: 1px solid var(--bd);
+    padding: 18px 24px;
+  }
+
+  .offcanvas-body {
+    padding: 24px;
+  }
+}
+
+.offcanvas-backdrop {
+  background: rgba(0, 0, 0, 0.50) !important;
+  backdrop-filter: blur(4px);
+}
+
+// ── Bootstrap Dropdown overrides ────────────────────────────────────
+.dropdown-menu {
+  background: var(--el) !important;
+  border: 1px solid var(--bd) !important;
+  border-radius: var(--r-lg) !important;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  padding: 6px;
+
+  .dropdown-item {
+    border-radius: var(--r-sm);
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--t1);
+    transition: all 0.15s;
+
+    &:hover,
+    &:focus {
+      background: var(--sfh);
+      color: var(--t1);
+    }
+
+    &.active,
+    &:active {
+      background: rgba(var(--ar), 0.08);
+      color: var(--accent);
+    }
+  }
+
+  .dropdown-divider {
+    border-color: var(--bd);
+  }
+}
+
+// ── Bootstrap Tooltip overrides ─────────────────────────────────────
+.tooltip .tooltip-inner {
+  background: var(--el);
+  color: var(--t1);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--bd);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
+}
+
+.tooltip .tooltip-arrow::before {
+  display: none;
+}
+
+// ── Focus-visible indicators ────────────────────────────────────────
+*:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px rgba(var(--ar), 0.20) !important;
+  border-radius: var(--r-sm);
+}
+
+*:focus:not(:focus-visible) {
+  box-shadow: none !important;
+}
+
+// ── Reduced motion ──────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .bg-diag,
+  .bg-wave,
+  .bg-orb,
+  .dot,
+  .rail::after,
+  .burst {
+    animation: none !important;
+  }
+}
+
+// ── Print styles ────────────────────────────────────────────────────
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .bg,
+  .rail,
+  .burst,
+  .crn,
+  .nav-overlay {
+    display: none !important;
+  }
+
+  .hdr {
+    position: relative;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    border-bottom: 1px solid #ddd !important;
+  }
+
+  .ft {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    border-top: 1px solid #ddd !important;
+    color: #666 !important;
+  }
+
+  .wrap {
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  .card,
+  [class*="card"] {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+
+  .btn {
+    box-shadow: none !important;
+  }
+
+  .badge {
+    border: 1px solid #ccc !important;
+  }
+}
+
+// ── Smooth page transitions ─────────────────────────────────────────
+.route-animate {
+  animation: routeIn 0.35s ease-out;
+}
+
+@keyframes routeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Global link styling ─────────────────────────────────────────────
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+a:hover {
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+// ── Table base ──────────────────────────────────────────────────────
+.table {
+  color: var(--t1);
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: transparent;
+  --bs-table-hover-bg: var(--sfh);
+  --bs-table-active-bg: var(--sfh);
+
+  thead th {
+    padding: 0.85rem 1rem;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--t3);
+    background: var(--sf);
+    border-bottom: 1px solid var(--bd);
+  }
+
+  tbody tr {
+    background: transparent;
+    border-bottom: 1px solid var(--bd);
+
+    &:hover td { color: var(--t1); }
+  }
+
+  td {
+    padding: 0.85rem 1rem;
+    color: var(--t2);
+    vertical-align: middle;
+  }
+}
+
+.table-dark {
+  --bs-table-bg: var(--sf);
+  --bs-table-color: var(--t1);
+  --bs-table-border-color: var(--bd);
+}
+
+// Contextual row classes — transparent bg, color on text only
+.table-danger {
+  --bs-table-bg: transparent !important;
+  --bs-table-color: var(--t2);
+  --bs-table-hover-bg: var(--sfh) !important;
+  background: transparent !important;
+  border-left: 3px solid #ef4444;
+
+  td { color: #ef4444; }
+}
+
+.table-warning {
+  --bs-table-bg: transparent !important;
+  --bs-table-hover-bg: var(--sfh) !important;
+  background: transparent !important;
+  border-left: 3px solid #f59e0b;
+}
+
+.table-success {
+  --bs-table-bg: transparent !important;
+  --bs-table-hover-bg: var(--sfh) !important;
+  background: transparent !important;
+}
+
+.table-info {
+  --bs-table-bg: transparent !important;
+  --bs-table-hover-bg: var(--sfh) !important;
+  background: transparent !important;
+}
+
+// ── Bootstrap utility overrides ─────────────────────────────────────
+// Map Bootstrap utilities to theme CSS custom properties so they
+// respect dark/light mode instead of leaking hardcoded colors.
+.text-muted     { color: var(--t3) !important; }
+.text-dark      { color: var(--t1) !important; }
+.text-body      { color: var(--t1) !important; }
+.text-secondary { color: var(--t2) !important; }
+.bg-white       { background-color: var(--sf) !important; }
+.bg-light       { background-color: var(--sf) !important; }
+.bg-body        { background-color: var(--bg) !important; }
+.bg-secondary   { background-color: rgba(var(--a2r), 0.15) !important; }
+.bg-dark        { background-color: var(--bg2) !important; }
+
+// ── Bootstrap list-group override ────────────────────────────────────
+.list-group-item {
+  background: var(--sf);
+  color: var(--t1);
+  border-color: var(--bd);
+
+  &:hover {
+    background: var(--sfh);
+  }
+
+  &.active {
+    background: rgba(var(--ar), 0.08);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+// ── Outline danger button ───────────────────────────────────────────
+.btn-outline-danger {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: var(--r-md);
+  transition: background 0.2s, color 0.2s;
+
+  &:hover,
+  &:focus {
+    background: #ef4444;
+    color: #fff;
+  }
+}
+
+// ── Outline info button ─────────────────────────────────────────────
+.btn-outline-info {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: var(--r-md);
+  transition: background 0.2s, color 0.2s;
+
+  &:hover,
+  &:focus {
+    background: var(--accent);
+    color: #000;
+  }
+}
+
+// ── Badge override ──────────────────────────────────────────────────
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: var(--r-full);
+}
+
+// ── Spinner override ────────────────────────────────────────────────
+.spinner-border {
+  border-color: rgba(var(--ar), 0.15);
+  border-top-color: var(--accent);
+}

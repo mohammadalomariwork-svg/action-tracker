@@ -85,6 +85,9 @@ public static class DefaultRolePermissionsSeeder
         var um      = (PermissionCatalogSeeder.AreaUserManagement,        "UserManagement");
         var pm      = (PermissionCatalogSeeder.AreaPermissionsManagement, "PermissionsManagement");
         var roles   = (PermissionCatalogSeeder.AreaRoles,                 "Roles");
+        var risks   = (PermissionCatalogSeeder.AreaRisks,                 "Risks");
+        var emailT  = (PermissionCatalogSeeder.AreaEmailTemplates,        "EmailTemplates");
+        var notif   = (PermissionCatalogSeeder.AreaNotifications,         "Notifications");
 
         // Actions
         var view    = (PermissionCatalogSeeder.ActionView,    "View");
@@ -105,7 +108,7 @@ public static class DefaultRolePermissionsSeeder
             => (role, area.Id, area.Name, action.Id, action.Name);
 
         // ── Admin — every area × every action ─────────────────────────────────
-        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles };
+        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif };
         foreach (var area   in allAreas)
         foreach (var action in allActions)
             yield return P(AppRoles.Admin, area, action);
@@ -171,6 +174,42 @@ public static class DefaultRolePermissionsSeeder
         foreach (var area in new[] { dash, proj, ai, rep })
             yield return P(AppRoles.WorkspaceAdmin, area, view);
         yield return P(AppRoles.WorkspaceAdmin, roles, view);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // New areas: Risks, EmailTemplates, Notifications
+        // ══════════════════════════════════════════════════════════════════════
+
+        // Manager (PMO Head, PMO Analyst, Project Manager, Project Coordinator)
+        // → Risks: View, Create, Edit, Export
+        foreach (var role in new[] { AppRoles.PmoHead, AppRoles.PmoAnalyst, AppRoles.ProjectManager })
+        foreach (var action in new[] { view, create, edit, export })
+            yield return P(role, risks, action);
+
+        // → Notifications: View, Delete (for Manager-tier roles)
+        foreach (var role in new[] { AppRoles.PmoHead, AppRoles.PmoAnalyst, AppRoles.ProjectManager, AppRoles.ProjectCoordinator })
+        foreach (var action in new[] { view, delete })
+            yield return P(role, notif, action);
+
+        // Project Sponsor — Risks: View
+        yield return P(AppRoles.ProjectSponsor, risks, view);
+        yield return P(AppRoles.ProjectSponsor, notif, view);
+        yield return P(AppRoles.ProjectSponsor, notif, delete);
+
+        // Project Coordinator — Risks: View
+        yield return P(AppRoles.ProjectCoordinator, risks, view);
+
+        // Team Member — Risks: View; Notifications: View, Delete
+        yield return P(AppRoles.TeamMember, risks, view);
+        yield return P(AppRoles.TeamMember, notif, view);
+        yield return P(AppRoles.TeamMember, notif, delete);
+
+        // Workspace Admin — Notifications: View, Delete
+        yield return P(AppRoles.WorkspaceAdmin, notif, view);
+        yield return P(AppRoles.WorkspaceAdmin, notif, delete);
+
+        // Viewer — Risks: View; Notifications: View
+        yield return P("Viewer", risks, view);
+        yield return P("Viewer", notif, view);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -1,10 +1,15 @@
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Milestones.DTOs;
 using ActionTracker.Application.Features.Milestones.Interfaces;
+using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ActionTracker.Application.Features.Milestones.Services;
 
@@ -12,11 +17,25 @@ public class MilestoneService : IMilestoneService
 {
     private readonly IAppDbContext _db;
     private readonly ILogger<MilestoneService> _logger;
+    private readonly IEmailSender _emailSender;
+    private readonly INotificationService _notificationService;
+    private readonly AppSettings _appSettings;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public MilestoneService(IAppDbContext db, ILogger<MilestoneService> logger)
+    public MilestoneService(
+        IAppDbContext db,
+        ILogger<MilestoneService> logger,
+        IEmailSender emailSender,
+        INotificationService notificationService,
+        IOptions<AppSettings> appSettings,
+        IServiceScopeFactory scopeFactory)
     {
-        _db = db;
-        _logger = logger;
+        _db                  = db;
+        _logger              = logger;
+        _emailSender         = emailSender;
+        _notificationService = notificationService;
+        _appSettings         = appSettings.Value;
+        _scopeFactory        = scopeFactory;
     }
 
     public async Task<List<MilestoneResponseDto>> GetByProjectAsync(Guid projectId, CancellationToken ct)
@@ -90,6 +109,54 @@ public class MilestoneService : IMilestoneService
 
         _logger.LogInformation("Milestone {Code} created for project {ProjectId}", milestoneCode, projectId);
 
+        // Fire-and-forget email notification
+        var capturedMilestone = milestone;
+        var capturedProject = project;
+        _ = Task.Run(async () =>
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+            var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+            try
+            {
+                var placeholders = BuildMilestonePlaceholders(capturedMilestone, capturedProject);
+                var pmEmail = await GetUserEmailAsync(db, capturedProject.ProjectManagerUserId);
+                if (pmEmail is not null)
+                {
+                    await emailSender.SendEmailAsync("Milestone.Created", placeholders,
+                        [pmEmail], "Milestone", capturedMilestone.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending email for Milestone.Created {Code}", capturedMilestone.MilestoneCode);
+            }
+
+            // In-app notification — notify PM (no actor exclusion needed, milestone create has no userId context)
+            try
+            {
+                var url = $"{_appSettings.FrontendBaseUrl}/projects/{capturedProject.Id}/milestones/{capturedMilestone.Id}";
+                await notifService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId               = capturedProject.ProjectManagerUserId,
+                    Title                = "New Milestone",
+                    Message              = $"{capturedMilestone.Name} added to {capturedProject.Name}",
+                    Type                 = "Milestone",
+                    ActionType           = "Created",
+                    RelatedEntityType    = "Milestone",
+                    RelatedEntityId      = capturedMilestone.Id,
+                    RelatedEntityCode    = capturedMilestone.MilestoneCode,
+                    Url                  = url,
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating notification for Milestone.Created {Code}", capturedMilestone.MilestoneCode);
+            }
+        });
+
         // Re-fetch with includes
         return (await GetByIdAsync(milestone.Id, ct))!;
     }
@@ -99,6 +166,8 @@ public class MilestoneService : IMilestoneService
         var milestone = await _db.Milestones
             .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId, ct)
             ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
+
+        var previousStatus = milestone.Status;
 
         // Check if project is baselined — if so, block date changes
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
@@ -130,6 +199,68 @@ public class MilestoneService : IMilestoneService
             milestone.ActualCompletionDate = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        // Fire-and-forget email when status changes to Completed
+        if (dto.Status == MilestoneStatus.Completed && previousStatus != MilestoneStatus.Completed)
+        {
+            var capturedMilestone = milestone;
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+                try
+                {
+                    var proj = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+                    if (proj is null) return;
+
+                    var placeholders = BuildMilestonePlaceholders(capturedMilestone, proj);
+                    var recipients = new List<string>();
+
+                    var pmEmail = await GetUserEmailAsync(db, proj.ProjectManagerUserId);
+                    if (pmEmail is not null) recipients.Add(pmEmail);
+
+                    if (!string.IsNullOrWhiteSpace(capturedMilestone.ApproverUserId))
+                    {
+                        var approverEmail = await GetUserEmailAsync(db, capturedMilestone.ApproverUserId);
+                        if (approverEmail is not null) recipients.Add(approverEmail);
+                    }
+
+                    recipients = recipients.Distinct().ToList();
+                    if (recipients.Count > 0)
+                    {
+                        await emailSender.SendEmailAsync("Milestone.Completed", placeholders,
+                            recipients, "Milestone", capturedMilestone.Id);
+                    }
+                    // In-app notifications
+                    var notifRecipients = new HashSet<string> { proj.ProjectManagerUserId };
+                    if (!string.IsNullOrWhiteSpace(capturedMilestone.ApproverUserId))
+                        notifRecipients.Add(capturedMilestone.ApproverUserId);
+
+                    var url = $"{_appSettings.FrontendBaseUrl}/projects/{proj.Id}/milestones/{capturedMilestone.Id}";
+                    var notifications = notifRecipients.Select(uid => new CreateNotificationDto
+                    {
+                        UserId               = uid,
+                        Title                = "Milestone Completed",
+                        Message              = $"{capturedMilestone.Name} ({capturedMilestone.MilestoneCode}) has been completed",
+                        Type                 = "Milestone",
+                        ActionType           = "Completed",
+                        RelatedEntityType    = "Milestone",
+                        RelatedEntityId      = capturedMilestone.Id,
+                        RelatedEntityCode    = capturedMilestone.MilestoneCode,
+                        Url                  = url,
+                    }).ToList();
+                    if (notifications.Count > 0)
+                        await notifService.CreateBulkAsync(notifications);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending notifications for Milestone.Completed {Id}", capturedMilestone.Id);
+                }
+            });
+        }
 
         return (await GetByIdAsync(milestoneId, ct))!;
     }
@@ -195,6 +326,38 @@ public class MilestoneService : IMilestoneService
             OnTimeDeliveryRate = onTimeRate,
             EscalatedActionItems = escalated,
         };
+    }
+
+    // ── Email helpers ──────────────────────────────────────────
+
+    private Dictionary<string, string> BuildMilestonePlaceholders(Milestone m, Project p) => new()
+    {
+        ["MilestoneCode"]        = m.MilestoneCode,
+        ["MilestoneName"]        = m.Name,
+        ["ProjectName"]          = p.Name,
+        ["ProjectCode"]          = p.ProjectCode,
+        ["Status"]               = m.Status.ToString(),
+        ["PlannedDueDate"]       = m.PlannedDueDate.ToString("yyyy-MM-dd"),
+        ["CompletionPercentage"] = m.CompletionPercentage.ToString(),
+        ["ItemUrl"]              = $"{_appSettings.FrontendBaseUrl}/projects/{p.Id}/milestones/{m.Id}",
+    };
+
+    private async Task<string?> GetUserEmailAsync(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        return await _db.Users
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync();
+    }
+
+    private static async Task<string?> GetUserEmailAsync(IAppDbContext db, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        return await db.Users
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync();
     }
 
     private static MilestoneResponseDto MapToDto(Milestone m)

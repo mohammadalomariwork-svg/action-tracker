@@ -1,21 +1,27 @@
+// ═══════════════════════════════════════════════════════════════════
+// ACCESS DENIED — Full-screen centered layout, animated bg behind
+// ═══════════════════════════════════════════════════════════════════
+
 .ad-page {
   min-height: 100vh;
-  display:         flex;
-  align-items:     center;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  background:      var(--bg-main, #f1f5f9);
-  padding:         2rem;
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
 }
 
 .ad-card {
-  background:    var(--bg-card, #ffffff);
-  border:        1px solid var(--border-color, #e2e8f0);
-  border-radius: var(--border-radius, 12px);
-  box-shadow:    var(--shadow-md, 0 4px 16px rgba(0,0,0,.08));
-  max-width:     480px;
-  width:         100%;
-  padding:       3rem 2.5rem;
-  text-align:    center;
+  background: var(--el);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-xl);
+  box-shadow: var(--neon);
+  backdrop-filter: blur(24px);
+  max-width: 440px;
+  width: 100%;
+  padding: 3rem 2.5rem;
+  text-align: center;
 }
 
 .ad-icon-wrap {
@@ -23,21 +29,26 @@
 }
 
 .ad-icon {
-  font-size:  4rem;
-  color:      #dc2626;
-  opacity:    0.85;
+  font-size: 48px;
+  color: #ef4444;
 }
 
 .ad-title {
-  font-size:   1.75rem;
-  font-weight: 700;
-  color:       var(--text-primary, #1e293b);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--t1);
   margin-bottom: 0.75rem;
 }
 
+.ad-user {
+  font-size: 13px;
+  color: var(--t2);
+  margin-bottom: 0.5rem;
+}
+
 .ad-subtitle {
-  font-size:     0.9375rem;
-  color:         var(--text-secondary, #64748b);
-  line-height:   1.6;
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.6;
   margin-bottom: 2rem;
 }

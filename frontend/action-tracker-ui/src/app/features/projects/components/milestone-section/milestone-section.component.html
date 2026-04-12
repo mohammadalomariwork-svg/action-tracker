@@ -129,7 +129,7 @@
                 <!-- Name -->
                 <td>
                   <div>
-                    <a class="ms-name-link" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
+                    <a class="wa-title text-decoration-none" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
                     @if (m.description) {
                       <div class="ms-name-meta">{{ m.description | slice:0:60 }}{{ m.description.length > 60 ? '...' : '' }}</div>
                     }
@@ -216,9 +216,9 @@
                         <tbody>
                           @for (a of actionsForMilestone(m.id); track a.id) {
                             <tr>
-                              <td><span class="ms-ai-id">{{ a.actionId }}</span></td>
+                              <td><a class="ms-ai-id" [routerLink]="['/actions', a.id, 'view']">{{ a.actionId }}</a></td>
                               <td>
-                                <a class="ms-ai-title" [routerLink]="['/actions', a.id]">{{ a.title }}</a>
+                                <a class="ms-ai-title" [routerLink]="['/actions', a.id, 'view']">{{ a.title }}</a>
                               </td>
                               <td><span [ngClass]="actionStatusClass(a.status)">{{ a.statusLabel }}</span></td>
                               <td class="text-muted">{{ a.priorityLabel }}</td>
@@ -260,7 +260,7 @@
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
-                    <a class="ms-name-link" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
+                    <a class="wa-title text-decoration-none" [routerLink]="['/projects', projectId(), 'milestones', m.id]">{{ m.name }}</a>
                     <div class="ms-name-meta">{{ m.milestoneCode }}</div>
                   </div>
                   <span class="ms-status-badge" [ngClass]="statusBadgeClass(m.status)">
@@ -292,7 +292,7 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap gap-2 pt-3" style="border-top: 1px solid #e5e7eb;">
+            <div class="d-flex flex-wrap gap-2 pt-3 ms-card-actions-border">
               <a class="ms-action-btn" [routerLink]="['/projects', projectId(), 'milestones', m.id]">
                 <i class="bi bi-eye"></i> View
               </a>
@@ -326,10 +326,10 @@
                   @for (a of actionsForMilestone(m.id); track a.id) {
                     <div class="ms-card-action-item">
                       <div class="ms-card-action-item__header">
-                        <span class="ms-ai-id">{{ a.actionId }}</span>
+                        <a class="ms-ai-id" [routerLink]="['/actions', a.id, 'view']">{{ a.actionId }}</a>
                         <span [ngClass]="actionStatusClass(a.status)">{{ a.statusLabel }}</span>
                       </div>
-                      <a class="ms-ai-title" [routerLink]="['/actions', a.id]">{{ a.title }}</a>
+                      <a class="ms-ai-title" [routerLink]="['/actions', a.id, 'view']">{{ a.title }}</a>
                       <div class="ms-card-action-item__meta">
                         <span class="text-muted">{{ a.priorityLabel }}</span>
                         <span class="text-muted">Due {{ a.dueDate | date:'MMM d, y' }}</span>

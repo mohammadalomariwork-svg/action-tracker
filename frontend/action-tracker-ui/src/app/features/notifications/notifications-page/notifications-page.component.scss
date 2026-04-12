@@ -1,0 +1,172 @@
+// ═══════════════════════════════════════════════════════════════════
+// NOTIFICATIONS PAGE — Full page notification list
+// ═══════════════════════════════════════════════════════════════════
+
+.notification-page {
+  width: 100%;
+}
+
+// ── Filters: themed inputs ──────────────────────────────────────────
+.form-select {
+  background: var(--inp);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  color: var(--t1);
+
+  &:focus {
+    background: var(--inpf);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.12);
+    color: var(--t1);
+  }
+}
+
+// ── Date group headers ──────────────────────────────────────────────
+.date-group-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 12px 0 8px;
+  border-bottom: 1px solid var(--bd);
+  margin-bottom: 8px;
+}
+
+// ── Notification cards ──────────────────────────────────────────────
+.notification-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  padding: 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease),
+              background 0.15s var(--ease);
+
+  // ── Hover: card-glow effect ──────────────────────────────────────
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+  }
+
+  // ── Unread: accent left border + highlighted bg ──────────────────
+  &.unread {
+    background-color: var(--sfh);
+    border-left: 3px solid var(--accent);
+  }
+
+  // ── Read: dimmed ─────────────────────────────────────────────────
+  &.read {
+    opacity: 0.65;
+  }
+}
+
+// ── Icon ────────────────────────────────────────────────────────────
+.notif-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: rgba(var(--ar), 0.08);
+  font-size: 1.1rem;
+}
+
+.notif-title {
+  font-size: 0.9rem;
+  color: var(--t1);
+}
+
+.notif-message {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--t3);
+}
+
+.notif-meta {
+  font-size: 0.78rem;
+  color: var(--t3);
+
+  .badge {
+    background: var(--sf) !important;
+    color: var(--t2) !important;
+    border: 1px solid var(--bd) !important;
+    font-weight: 600;
+  }
+}
+
+// ── Unread dot ──────────────────────────────────────────────────────
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(var(--ar), 0.6), 0 0 12px rgba(var(--ar), 0.3);
+}
+
+// ── Action buttons: ghost icon buttons, dropdown menu ───────────────
+.dropdown-menu {
+  background: var(--el);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+
+  .dropdown-item {
+    color: var(--t1);
+    font-size: 0.85rem;
+
+    &:hover {
+      background: rgba(var(--ar), 0.06);
+      color: var(--t1);
+    }
+
+    &.text-danger:hover {
+      background: rgba(239, 68, 68, 0.08);
+    }
+  }
+}
+
+// ── "Load more" button: full-width ghost ────────────────────────────
+.btn-outline-primary.btn-sm {
+  width: 100%;
+}
+
+// ── Empty state ─────────────────────────────────────────────────────
+.empty-state {
+  padding: 4rem 1rem;
+  color: var(--t3);
+
+  i {
+    font-size: 3rem;
+    color: var(--t3);
+  }
+
+  h5, p {
+    color: var(--t3);
+  }
+}
+
+// ── Animations ──────────────────────────────────────────────────────
+.notification-enter {
+  animation: slideDown 0.3s ease-out;
+}
+
+.notification-exit {
+  animation: fadeOut 0.2s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; height: 0; padding: 0; margin: 0; overflow: hidden; }
+}

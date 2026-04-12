@@ -1,12 +1,17 @@
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Mappers;
+using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ActionTracker.Application.Features.ActionItems.Services;
 
@@ -14,11 +19,25 @@ public class ActionItemService : IActionItemService
 {
     private readonly IAppDbContext _dbContext;
     private readonly ILogger<ActionItemService> _logger;
+    private readonly IEmailSender _emailSender;
+    private readonly INotificationService _notificationService;
+    private readonly AppSettings _appSettings;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public ActionItemService(IAppDbContext dbContext, ILogger<ActionItemService> logger)
+    public ActionItemService(
+        IAppDbContext dbContext,
+        ILogger<ActionItemService> logger,
+        IEmailSender emailSender,
+        INotificationService notificationService,
+        IOptions<AppSettings> appSettings,
+        IServiceScopeFactory scopeFactory)
     {
-        _dbContext = dbContext;
-        _logger    = logger;
+        _dbContext            = dbContext;
+        _logger               = logger;
+        _emailSender          = emailSender;
+        _notificationService  = notificationService;
+        _appSettings          = appSettings.Value;
+        _scopeFactory         = scopeFactory;
     }
 
     // -------------------------------------------------------------------------
@@ -209,6 +228,74 @@ public class ActionItemService : IActionItemService
         _logger.LogInformation(
             "ActionItem {ActionId} created by user {UserId}", created.ActionId, createdByUserId);
 
+        // Fire-and-forget email notifications (new scope to avoid disposed DbContext)
+        var capturedCreated = created;
+        _ = Task.Run(async () =>
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+            var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+            try
+            {
+                var placeholders = BuildActionItemPlaceholders(capturedCreated);
+                var creatorEmail = await GetUserEmailFromDbAsync(db, createdByUserId);
+
+                // Send Created notification to creator
+                if (creatorEmail is not null)
+                {
+                    await emailSender.SendEmailAsync("ActionItem.Created", placeholders,
+                        [creatorEmail], "ActionItem", capturedCreated.Id, createdByUserId);
+                }
+
+                // Send Assigned notification to each assignee
+                var assigneeEmails = await GetActiveUserEmailsFromDbAsync(db,
+                    capturedCreated.Assignees.Select(a => a.UserId));
+                if (assigneeEmails.Count > 0)
+                {
+                    await emailSender.SendEmailAsync("ActionItem.Assigned", placeholders,
+                        assigneeEmails, "ActionItem", capturedCreated.Id, createdByUserId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending email for ActionItem.Created {ActionId}", capturedCreated.ActionId);
+            }
+
+            // In-app notifications — notify assignees (exclude actor)
+            try
+            {
+                var actorName = await GetUserDisplayNameFromDbAsync(db, createdByUserId);
+                var url = $"{_appSettings.FrontendBaseUrl}/actions/{capturedCreated.Id}/view";
+                var notifications = capturedCreated.Assignees
+                    .Where(a => a.UserId != createdByUserId)
+                    .Select(a => a.UserId)
+                    .Distinct()
+                    .Select(uid => new CreateNotificationDto
+                    {
+                        UserId              = uid,
+                        Title               = "New Action Item Assigned",
+                        Message             = $"You've been assigned to {capturedCreated.Title} ({capturedCreated.ActionId})",
+                        Type                = "ActionItem",
+                        ActionType          = "Assigned",
+                        RelatedEntityType   = "ActionItem",
+                        RelatedEntityId     = capturedCreated.Id,
+                        RelatedEntityCode   = capturedCreated.ActionId,
+                        Url                 = url,
+                        CreatedByUserId     = createdByUserId,
+                        CreatedByDisplayName = actorName,
+                    }).ToList();
+
+                if (notifications.Count > 0)
+                    await notifService.CreateBulkAsync(notifications);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating notifications for ActionItem.Created {ActionId}", capturedCreated.ActionId);
+            }
+        });
+
         return ActionItemMapper.ToDto(created);
     }
 
@@ -288,6 +375,51 @@ public class ActionItemService : IActionItemService
 
         _logger.LogInformation("ActionItem {Id} updated", id);
 
+        // Fire-and-forget email for escalation
+        if (dto.IsEscalated == true)
+        {
+            var capturedUpdated = updated;
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+                try
+                {
+                    var placeholders = BuildActionItemPlaceholders(capturedUpdated);
+                    var recipients = await GetActionItemRecipientEmailsFromDbAsync(db, capturedUpdated);
+                    await emailSender.SendEmailAsync("ActionItem.Escalated", placeholders,
+                        recipients, "ActionItem", capturedUpdated.Id, updatedByUserId);
+
+                    // In-app notifications
+                    var actorName = await GetUserDisplayNameFromDbAsync(db, updatedByUserId);
+                    var recipientIds = GetActionItemRecipientUserIds(capturedUpdated, updatedByUserId);
+                    var notifications = recipientIds.Select(uid => new CreateNotificationDto
+                    {
+                        UserId               = uid,
+                        Title                = "Action Item Escalated",
+                        Message              = $"{capturedUpdated.ActionId} has been escalated",
+                        Type                 = "ActionItem",
+                        ActionType           = "Escalated",
+                        RelatedEntityType    = "ActionItem",
+                        RelatedEntityId      = capturedUpdated.Id,
+                        RelatedEntityCode    = capturedUpdated.ActionId,
+                        Url                  = $"{_appSettings.FrontendBaseUrl}/actions/{capturedUpdated.Id}/view",
+                        CreatedByUserId      = updatedByUserId,
+                        CreatedByDisplayName = actorName,
+                    }).ToList();
+                    if (notifications.Count > 0)
+                        await notifService.CreateBulkAsync(notifications);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending escalation notifications for ActionItem {Id}", capturedUpdated.Id);
+                }
+            });
+        }
+
         return ActionItemMapper.ToDto(updated);
     }
 
@@ -345,6 +477,98 @@ public class ActionItemService : IActionItemService
         await _dbContext.SaveChangesAsync(ct);
 
         _logger.LogInformation("ActionItem {Id} status set to {Status}", id, item.Status);
+
+        // Fire-and-forget email notifications for status change
+        var capturedItem = item;
+        var capturedStatus = item.Status;
+        _ = Task.Run(async () =>
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+            var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+            try
+            {
+                // Re-fetch with navigations for placeholder resolution
+                var full = await db.ActionItems
+                    .IgnoreQueryFilters()
+                    .Include(a => a.Workspace)
+                    .Include(a => a.Project)
+                    .Include(a => a.Assignees).ThenInclude(aa => aa.User)
+                    .FirstOrDefaultAsync(a => a.Id == capturedItem.Id);
+                if (full is null) return;
+
+                var placeholders = BuildActionItemPlaceholders(full);
+                var recipients = await GetActionItemRecipientEmailsFromDbAsync(db, full);
+
+                await emailSender.SendEmailAsync("ActionItem.StatusChanged", placeholders,
+                    recipients, "ActionItem", full.Id, full.CreatedByUserId);
+
+                if (capturedStatus == ActionStatus.Done)
+                {
+                    var allRecipients = new List<string>(recipients);
+                    if (full.Project != null)
+                    {
+                        var pmEmail = await GetUserEmailFromDbAsync(db, full.Project.ProjectManagerUserId);
+                        if (pmEmail is not null) allRecipients.Add(pmEmail);
+                    }
+                    await emailSender.SendEmailAsync("ActionItem.Completed", placeholders,
+                        allRecipients.Distinct().ToList(), "ActionItem", full.Id, full.CreatedByUserId);
+                }
+                else if (capturedStatus == ActionStatus.Overdue)
+                {
+                    await emailSender.SendEmailAsync("ActionItem.Overdue", placeholders,
+                        recipients, "ActionItem", full.Id, full.CreatedByUserId);
+                }
+
+                // In-app notifications for status change
+                var actorName = await GetUserDisplayNameFromDbAsync(db, full.CreatedByUserId);
+                var recipientIds = GetActionItemRecipientUserIds(full, null);
+                var url = $"{_appSettings.FrontendBaseUrl}/actions/{full.Id}/view";
+
+                string title, actionType;
+                if (capturedStatus == ActionStatus.Done)
+                {
+                    title = "Action Item Completed";
+                    actionType = "Completed";
+                    if (full.Project != null && !string.IsNullOrWhiteSpace(full.Project.ProjectManagerUserId))
+                        recipientIds.Add(full.Project.ProjectManagerUserId);
+                    recipientIds = recipientIds.Distinct().ToList();
+                }
+                else if (capturedStatus == ActionStatus.Overdue)
+                {
+                    title = "Action Item Overdue";
+                    actionType = "Overdue";
+                }
+                else
+                {
+                    title = "Status Updated";
+                    actionType = "StatusChanged";
+                }
+
+                var notifications = recipientIds.Select(uid => new CreateNotificationDto
+                {
+                    UserId               = uid,
+                    Title                = title,
+                    Message              = $"{full.ActionId} status changed to {capturedStatus}",
+                    Type                 = "ActionItem",
+                    ActionType           = actionType,
+                    RelatedEntityType    = "ActionItem",
+                    RelatedEntityId      = full.Id,
+                    RelatedEntityCode    = full.ActionId,
+                    Url                  = url,
+                    CreatedByUserId      = full.CreatedByUserId,
+                    CreatedByDisplayName = actorName,
+                }).ToList();
+                if (notifications.Count > 0)
+                    await notifService.CreateBulkAsync(notifications);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending status change notifications for ActionItem {Id}", capturedItem.Id);
+            }
+        });
     }
 
     public async Task<int> ProcessOverdueItemsAsync(CancellationToken ct)
@@ -526,5 +750,127 @@ public class ActionItemService : IActionItemService
         await _dbContext.SaveChangesAsync(ct);
 
         _logger.LogInformation("Comment {CommentId} deleted from ActionItem {ActionItemId}", commentId, actionItemId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Email helpers
+    // -------------------------------------------------------------------------
+
+    private Dictionary<string, string> BuildActionItemPlaceholders(ActionItem item)
+    {
+        var assigneeNames = item.Assignees?
+            .Where(a => a.User != null)
+            .Select(a => $"{a.User.FirstName} {a.User.LastName}".Trim())
+            .ToList() ?? [];
+
+        return new Dictionary<string, string>
+        {
+            ["ActionId"]      = item.ActionId,
+            ["Title"]         = item.Title,
+            ["Description"]   = item.Description,
+            ["Status"]        = item.Status.ToString(),
+            ["Priority"]      = item.Priority.ToString(),
+            ["DueDate"]       = item.DueDate.ToString("yyyy-MM-dd"),
+            ["Progress"]      = item.Progress.ToString(),
+            ["AssignedTo"]    = assigneeNames.Count > 0 ? string.Join(", ", assigneeNames) : "Unassigned",
+            ["CreatedBy"]     = item.CreatedByUserId ?? "System",
+            ["WorkspaceName"] = item.Workspace?.Title ?? string.Empty,
+            ["ProjectName"]   = item.Project?.Name ?? string.Empty,
+            ["ItemUrl"]       = $"{_appSettings.FrontendBaseUrl}/actions/{item.Id}/view",
+        };
+    }
+
+    private async Task<List<string>> GetActionItemRecipientEmailsAsync(ActionItem item)
+    {
+        var userIds = new HashSet<string>();
+        if (!string.IsNullOrWhiteSpace(item.CreatedByUserId))
+            userIds.Add(item.CreatedByUserId);
+        foreach (var a in item.Assignees)
+            userIds.Add(a.UserId);
+
+        return await GetActiveUserEmailsAsync(userIds);
+    }
+
+    private async Task<string?> GetUserEmailAsync(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        return await _dbContext.Users
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync();
+    }
+
+    private async Task<List<string>> GetActiveUserEmailsAsync(IEnumerable<string> userIds)
+    {
+        var ids = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        return await _dbContext.Users
+            .Where(u => ids.Contains(u.Id) && u.IsActive && u.Email != null)
+            .Select(u => u.Email!)
+            .Distinct()
+            .ToListAsync();
+    }
+
+    private static List<string> GetActionItemRecipientUserIds(ActionItem item, string? excludeUserId)
+    {
+        var userIds = new HashSet<string>();
+        if (!string.IsNullOrWhiteSpace(item.CreatedByUserId))
+            userIds.Add(item.CreatedByUserId);
+        foreach (var a in item.Assignees)
+            userIds.Add(a.UserId);
+        if (!string.IsNullOrWhiteSpace(excludeUserId))
+            userIds.Remove(excludeUserId);
+        return userIds.ToList();
+    }
+
+    private async Task<string?> GetUserDisplayNameAsync(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        return await _dbContext.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.FirstName + " " + u.LastName)
+            .FirstOrDefaultAsync();
+    }
+
+    // ── Scoped variants for use inside Task.Run (fresh DbContext) ────────────
+
+    private static async Task<string?> GetUserEmailFromDbAsync(IAppDbContext db, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        return await db.Users
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync();
+    }
+
+    private static async Task<List<string>> GetActiveUserEmailsFromDbAsync(IAppDbContext db, IEnumerable<string> userIds)
+    {
+        var ids = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0) return [];
+        return await db.Users
+            .Where(u => ids.Contains(u.Id) && u.IsActive && u.Email != null)
+            .Select(u => u.Email!)
+            .Distinct()
+            .ToListAsync();
+    }
+
+    private static async Task<string?> GetUserDisplayNameFromDbAsync(IAppDbContext db, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        return await db.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.FirstName + " " + u.LastName)
+            .FirstOrDefaultAsync();
+    }
+
+    private static async Task<List<string>> GetActionItemRecipientEmailsFromDbAsync(IAppDbContext db, ActionItem item)
+    {
+        var userIds = new HashSet<string>();
+        if (!string.IsNullOrWhiteSpace(item.CreatedByUserId))
+            userIds.Add(item.CreatedByUserId);
+        foreach (var a in item.Assignees)
+            userIds.Add(a.UserId);
+        return await GetActiveUserEmailsFromDbAsync(db, userIds);
     }
 }

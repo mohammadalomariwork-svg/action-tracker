@@ -6,10 +6,17 @@
 
 // ── Merged header ─────────────────────────────────────────────────────────────
 .wd-merged-header {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
-  border-radius: 0.75rem;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius, 0.75rem);
   padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+  }
 }
 
 .wd-merged-header__title-row {
@@ -30,7 +37,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #212529;
+  color: var(--t1);
   line-height: 1.2;
 }
 
@@ -46,7 +53,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, var(--accent), var(--accent2, #7c3aed));
   color: #fff;
   font-size: 1.5rem;
   font-weight: 700;
@@ -59,7 +66,7 @@
 .profile-arabic-name {
   display: block;
   font-size: 1rem;
-  color: #6c757d;
+  color: var(--t2);
   direction: rtl;
   margin-top: 0.15rem;
 }
@@ -67,16 +74,24 @@
 .profile-email {
   display: block;
   font-size: 0.85rem;
-  color: #0d6efd;
+  color: var(--accent);
   margin-top: 0.25rem;
 }
 
 // ── Section ──────────────────────────────────────────────────────────────────
 .wd-section {
-  background: #ffffff;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius, 0.5rem);
+  box-shadow: var(--csh);
   padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+  }
 }
 
 .wd-section-header {
@@ -87,7 +102,7 @@
   gap: 0.75rem;
   padding-bottom: 1rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--bd);
 }
 
 // ── Details grid ─────────────────────────────────────────────────────────────
@@ -116,13 +131,13 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6c757d;
+  color: var(--t3);
 }
 
 .wd-detail-value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--t1);
 }
 
 // ── Badge ────────────────────────────────────────────────────────────────────
@@ -134,10 +149,10 @@
 
 // ── Alert ────────────────────────────────────────────────────────────────────
 .alert-info {
-  background: #e8f4fd;
-  border: 1px solid #b6d4fe;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.2);
   border-radius: 0.5rem;
-  color: #084298;
+  color: var(--info);
   padding: 1rem 1.25rem;
   font-size: 0.88rem;
 }
@@ -154,8 +169,7 @@
 .me-2 { margin-right: 0.5rem; }
 .ms-1 { margin-left: 0.25rem; }
 .ms-2 { margin-left: 0.5rem; }
-.text-muted { color: #6c757d; }
-.text-primary { color: #4f46e5; }
+.text-primary { color: var(--accent); }
 .text-center { text-align: center; }
 .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
 

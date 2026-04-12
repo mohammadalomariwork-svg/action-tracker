@@ -266,7 +266,7 @@
 
                 <!-- ID -->
                 <td>
-                  <span class="wa-action-id">{{ item.actionId }}</span>
+                  <a class="wa-action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
                   @if (item.isEscalated) {
                     <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
                   }
@@ -394,7 +394,7 @@
           <!-- Card header: ID + badges -->
           <div class="wa-action-card__header">
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="wa-action-id">{{ item.actionId }}</span>
+              <a class="wa-action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
               @if (item.isEscalated) {
                 <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
               }
@@ -415,7 +415,7 @@
             @if (item.projectName) {
               <div class="wa-action-card__meta-row">
                 <span class="wa-action-card__meta-label"><i class="bi bi-kanban me-1"></i>Project</span>
-                <span class="wa-action-card__meta-value">{{ item.projectName }}</span>
+                <a class="wa-action-card__meta-value wa-link" [routerLink]="['/projects', item.projectId]">{{ item.projectName }}</a>
               </div>
             }
             @if (item.milestoneName) {
@@ -551,7 +551,7 @@
               <tr [class.table-danger]="item.isOverdue || item.status === ActionStatus.Overdue"
                   [class.wa-deleted-row]="item.isDeleted">
                 <td>
-                  <span class="wa-action-id">{{ item.actionId }}</span>
+                  <a class="wa-action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
                   @if (item.isEscalated) {
                     <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
                   }
@@ -644,7 +644,7 @@
              [class.border-danger]="item.isOverdue || item.status === ActionStatus.Overdue">
           <div class="wa-action-card__header">
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="wa-action-id">{{ item.actionId }}</span>
+              <a class="wa-action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
               @if (item.isEscalated) {
                 <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
               }
@@ -658,7 +658,7 @@
             @if (item.projectName) {
               <div class="wa-action-card__meta-row">
                 <span class="wa-action-card__meta-label"><i class="bi bi-kanban me-1"></i>Project</span>
-                <span class="wa-action-card__meta-value">{{ item.projectName }}</span>
+                <a class="wa-action-card__meta-value wa-link" [routerLink]="['/projects', item.projectId]">{{ item.projectName }}</a>
               </div>
             }
             <div class="wa-action-card__meta-row">

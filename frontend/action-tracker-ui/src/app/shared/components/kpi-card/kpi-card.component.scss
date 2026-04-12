@@ -1,12 +1,12 @@
 @use 'sass:color';
 
 $color-map: (
-  'primary':  #4f46e5,
-  'success':  #059669,
-  'warning':  #d97706,
-  'danger':   #dc2626,
-  'info':     #0284c7,
-  'purple':   #7c3aed,
+  'primary':  #00E5FF,
+  'success':  #22c55e,
+  'warning':  #f59e0b,
+  'danger':   #ef4444,
+  'info':     #3b82f6,
+  'purple':   #7C5CFC,
 );
 
 :host {
@@ -17,15 +17,16 @@ $color-map: (
 .kpi-card {
   position: relative;
   height: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-sm);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(16px);
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
 
   &:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--neon);
+    border-color: var(--accent);
     transform: translateY(-2px);
   }
 }
@@ -35,12 +36,14 @@ $color-map: (
   width: 100%;
 }
 
-@each $name, $color in $color-map {
+@each $name, $c in $color-map {
   .kpi-card--#{$name} .kpi-card__top-border {
-    background: linear-gradient(90deg, $color, color.adjust($color, $lightness: 18%));
+    background: linear-gradient(90deg, $c, color.adjust($c, $lightness: 18%));
+    box-shadow: 0 0 12px rgba($c, 0.3);
   }
   .kpi-card--#{$name} .kpi-card__icon {
-    color: $color;
+    color: $c;
+    filter: drop-shadow(0 0 4px $c);
   }
 }
 
@@ -58,24 +61,31 @@ $color-map: (
 }
 
 .kpi-card__title {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
+  letter-spacing: 0.07em;
+  color: var(--t3);
 }
 
 .kpi-card__icon {
-  font-size: 1.4rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(var(--ar), 0.08);
+  font-size: 1.15rem;
   line-height: 1;
 }
 
 .kpi-card__value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--t1);
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .kpi-card__footer {
@@ -88,22 +98,28 @@ $color-map: (
 
 .kpi-card__subtitle {
   font-size: 0.78rem;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .kpi-card__trend {
-  font-size: 0.75rem;
+  font-size: 10.5px;
   font-weight: 600;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
 
   &--up {
-    color: #059669;
-    background: rgba(5, 150, 105, 0.1);
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.12);
   }
 
   &--down {
-    color: #dc2626;
-    background: rgba(220, 38, 38, 0.1);
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-card__value {
+    font-size: 22px;
   }
 }

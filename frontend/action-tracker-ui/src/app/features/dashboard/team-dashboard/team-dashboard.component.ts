@@ -131,17 +131,22 @@ export class TeamDashboardComponent implements OnInit {
     plugins: {
       legend: { display: false },
       tooltip: {
+        backgroundColor: 'var(--el, #1e293b)',
+        borderColor: 'var(--bd, rgba(255,255,255,0.06))',
+        borderWidth: 1,
+        titleColor: 'var(--t1, #f1f5f9)',
+        bodyColor: 'var(--t1, #f1f5f9)',
         callbacks: { label: ctx => ` ${ctx.parsed.x} actions` },
       },
     },
     scales: {
       x: {
         beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 10 } },
-        grid: { color: 'rgba(0,0,0,0.04)' },
+        ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' },
+        grid: { color: 'rgba(0,229,255,0.06)' },
       },
       y: {
-        ticks: { font: { size: 11 } },
+        ticks: { font: { size: 11 }, color: '#94a3b8' },
         grid: { display: false },
       },
     },

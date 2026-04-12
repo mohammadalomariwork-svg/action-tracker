@@ -55,4 +55,5 @@ public class Project
     public ApplicationUser ProjectManager { get; set; } = null!;
     public OrgUnit? OwnerOrgUnit { get; set; }
     public ICollection<ProjectSponsor> Sponsors { get; set; } = new List<ProjectSponsor>();
+    public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"component|\\\\.ts$\")",
+      "Bash(grep '\\\\.scss$')",
+      "Bash(grep -nE '#[0-9a-fA-F]{3,8}' src/app/features/profile/profile.component.scss)"
+    ]
+  }
+}

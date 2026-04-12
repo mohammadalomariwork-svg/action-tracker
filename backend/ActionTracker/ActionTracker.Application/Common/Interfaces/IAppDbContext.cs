@@ -30,6 +30,7 @@ public interface IAppDbContext
     DbSet<Project>          Projects        { get; }
     DbSet<ProjectSponsor>   ProjectSponsors { get; }
     DbSet<Milestone>        Milestones      { get; }
+    DbSet<ProjectRisk>      ProjectRisks    { get; }
 
     DbSet<StrategicObjective> StrategicObjectives { get; }
 
@@ -39,6 +40,13 @@ public interface IAppDbContext
     DbSet<AppPermissionArea>      PermissionAreas         { get; }
     DbSet<AppPermissionAction>    PermissionActions       { get; }
     DbSet<AreaPermissionMapping>  AreaPermissionMappings  { get; }
+
+    // ── Email feature sets ───────────────────────────────────────────────────
+    DbSet<EmailTemplate>     EmailTemplates       { get; }
+    DbSet<EmailLog>          EmailLogs            { get; }
+
+    // ── Notification feature sets ────────────────────────────────────────────
+    DbSet<AppNotification>   AppNotifications     { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

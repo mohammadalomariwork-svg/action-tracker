@@ -12,6 +12,7 @@ export interface BreadcrumbItem {
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './admin-breadcrumb.component.html',
+  styleUrl: './admin-breadcrumb.component.scss',
 })
 export class AdminBreadcrumbComponent {
   @Input() items: BreadcrumbItem[] = [];

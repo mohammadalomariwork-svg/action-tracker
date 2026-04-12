@@ -1,0 +1,21 @@
+// ═══════════════════════════════════════════════════════════════════
+// Chart.js Global Theme Overrides
+// Canvas wrappers get transparent backgrounds; grid/tick/label colors
+// are set via Chart.js options in components, but we handle the CSS
+// side of tooltip and container styling here.
+// ═══════════════════════════════════════════════════════════════════
+
+// Canvas containers — transparent backgrounds
+.chart-wrap,
+.chart-container,
+.pie-canvas-wrap {
+  background: transparent;
+
+  canvas {
+    background: transparent;
+  }
+}
+
+// Chart.js tooltip customization via CSS (where supported)
+// Note: Most Chart.js tooltip styling is done via JS options,
+// but we ensure surrounding containers don't interfere.

@@ -21,6 +21,7 @@ import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { getMsalConfig } from './core/auth/msal.config';
 import { AuthService } from './core/services/auth.service';
 import { PermissionStateService } from './features/permissions/services/permission-state.service';
+import { ThemeService } from './services/theme.service';
 
 // ── MSAL setup ───────────────────────────────────────────────────────────────
 // The PublicClientApplication instance must be created *outside* appConfig so
@@ -78,6 +79,16 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: () => () => msalInstance.initialize(),
+      multi: true,
+    },
+
+    // Apply persisted theme before the first render.
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const themeService = inject(ThemeService);
+        return () => themeService.initTheme();
+      },
       multi: true,
     },
 

@@ -1,0 +1,203 @@
+<!-- ── Section header ──────────────────────────────────────────────────────── -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <h5 class="mb-0 fw-bold">
+    <i class="bi bi-exclamation-triangle me-2"></i>Risk Register
+    <span class="badge bg-secondary ms-2">{{ totalCount() }}</span>
+  </h5>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-success" (click)="exportToExcel()" title="Export to Excel">
+      <i class="bi bi-file-earmark-excel"></i>
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" (click)="printRisks()" title="Print">
+      <i class="bi bi-printer"></i>
+    </button>
+    <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+      <button class="btn btn-sm btn-primary" (click)="openCreate()">
+        <i class="bi bi-plus-lg me-1"></i> Add Risk
+      </button>
+    </ng-container>
+  </div>
+</div>
+
+<!-- ── Stats cards ────────────────────────────────────────────────────────── -->
+@if (stats(); as s) {
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card--critical">
+        <div class="stat-value">{{ s.criticalCount }}</div>
+        <div class="stat-label">Critical</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card--high">
+        <div class="stat-value">{{ s.highCount }}</div>
+        <div class="stat-label">High</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card--medium">
+        <div class="stat-value">{{ s.mediumCount }}</div>
+        <div class="stat-label">Medium</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card--info">
+        <div class="stat-value">{{ s.openRisks }}</div>
+        <div class="stat-label">Open</div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Risk matrix mini-visual ────────────────────────────────────────────── -->
+<div class="risk-matrix-wrapper mb-3">
+  <div class="risk-matrix-label-y">Probability</div>
+  <div class="risk-matrix">
+    @for (cell of matrixCells; track $index) {
+      <div
+        class="matrix-cell"
+        [style.background-color]="matrixCellColor(cell.prob, cell.impact)"
+        [title]="'P' + cell.prob + ' × I' + cell.impact + ' = ' + (cell.prob * cell.impact)"
+      >
+        @if (matrixCellCount(cell.prob, cell.impact) > 0) {
+          <span class="matrix-dot">{{ matrixCellCount(cell.prob, cell.impact) }}</span>
+        }
+      </div>
+    }
+  </div>
+  <div class="risk-matrix-label-x">Impact</div>
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<div class="row g-2 mb-3">
+  <div class="col-sm-3">
+    <select class="form-select form-select-sm" [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event); onFilterChange()">
+      <option value="">All Statuses</option>
+      @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
+    </select>
+  </div>
+  <div class="col-sm-3">
+    <select class="form-select form-select-sm" [ngModel]="filterRating()" (ngModelChange)="filterRating.set($event); onFilterChange()">
+      <option value="">All Ratings</option>
+      @for (r of ratings; track r) { <option [value]="r">{{ r }}</option> }
+    </select>
+  </div>
+  <div class="col-sm-3">
+    <select class="form-select form-select-sm" [ngModel]="filterCategory()" (ngModelChange)="filterCategory.set($event); onFilterChange()">
+      <option value="">All Categories</option>
+      @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+    </select>
+  </div>
+</div>
+
+<!-- ── Risk table ─────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="text-center py-4">
+    <div class="spinner-border spinner-border-sm text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+} @else {
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Code</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th class="text-center">Score</th>
+          <th class="text-center">Rating</th>
+          <th class="text-center">Status</th>
+          <th>Owner</th>
+          <th>Due Date</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of risks(); track r.id) {
+          <tr>
+            <td><code>{{ r.riskCode }}</code></td>
+            <td class="fw-semibold"><a class="wa-title text-decoration-none" [routerLink]="['/projects', projectId(), 'risks', r.id]">{{ r.title }}</a></td>
+            <td>{{ r.category }}</td>
+            <td class="text-center">
+              <span class="badge" [style.background-color]="ratingColor(r.riskRating)" [style.color]="r.riskRating === 'Medium' ? '#212529' : '#fff'">
+                {{ r.riskScore }}
+              </span>
+            </td>
+            <td class="text-center">
+              <app-risk-rating-badge [rating]="r.riskRating" />
+            </td>
+            <td class="text-center">
+              <span class="badge" [style.background-color]="statusColor(r.status)">
+                {{ r.status }}
+              </span>
+            </td>
+            <td>{{ r.riskOwnerDisplayName ?? '—' }}</td>
+            <td>{{ r.dueDate ? (r.dueDate | date:'mediumDate') : '—' }}</td>
+            <td class="text-end text-nowrap">
+              <button class="btn btn-sm btn-outline-primary me-1" (click)="viewRisk(r.id)" title="View">
+                <i class="bi bi-eye"></i>
+              </button>
+              <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="openEdit(r.id)" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </ng-container>
+              <ng-container *appHasPermission="'Projects'; action: 'Delete'">
+                <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(r.id)" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              <i class="bi bi-shield-check me-1"></i> No risks registered yet.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  @if (totalPages() > 1) {
+    <nav class="d-flex justify-content-between align-items-center mt-3">
+      <small class="text-muted">Page {{ page() }} of {{ totalPages() }}</small>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="page() <= 1">
+          <button class="page-link" (click)="goToPage(page() - 1)">&laquo;</button>
+        </li>
+        @for (p of [].constructor(totalPages()); track $index) {
+          <li class="page-item" [class.active]="page() === $index + 1">
+            <button class="page-link" (click)="goToPage($index + 1)">{{ $index + 1 }}</button>
+          </li>
+        }
+        <li class="page-item" [class.disabled]="page() >= totalPages()">
+          <button class="page-link" (click)="goToPage(page() + 1)">&raquo;</button>
+        </li>
+      </ul>
+    </nav>
+  }
+}
+
+<!-- ── Delete confirm dialog ──────────────────────────────────────────────── -->
+<app-confirm-dialog
+  #deleteConfirm
+  title="Delete Risk"
+  message="Are you sure you want to delete this risk? This action can be undone by restoring it."
+  confirmLabel="Delete"
+  [danger]="true"
+  (confirmed)="onDeleteConfirmed($event)"
+/>
+
+<!-- ── Risk form modal ────────────────────────────────────────────────────── -->
+@if (showForm()) {
+  <app-risk-form
+    [projectId]="projectId()"
+    [risk]="editingRisk()"
+    (saved)="onFormSaved($event)"
+    (cancelled)="closeForm()"
+  />
+}

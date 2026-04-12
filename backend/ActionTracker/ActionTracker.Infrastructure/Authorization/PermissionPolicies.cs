@@ -82,4 +82,19 @@ public static class PermissionPolicies
     public const string RolesEdit   = "Roles.Edit";
     public const string RolesDelete = "Roles.Delete";
     public const string RolesAssign = "Roles.Assign";
+
+    // ── Risks ─────────────────────────────────────────────────────────────────
+    public const string RisksView   = "Risks.View";
+    public const string RisksCreate = "Risks.Create";
+    public const string RisksEdit   = "Risks.Edit";
+    public const string RisksDelete = "Risks.Delete";
+    public const string RisksExport = "Risks.Export";
+
+    // ── Email Templates ───────────────────────────────────────────────────────
+    public const string EmailTemplatesView = "EmailTemplates.View";
+    public const string EmailTemplatesEdit = "EmailTemplates.Edit";
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+    public const string NotificationsView   = "Notifications.View";
+    public const string NotificationsDelete = "Notifications.Delete";
 }

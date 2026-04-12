@@ -1,16 +1,129 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
 .ru-page {
   padding: 1.5rem;
+
+  // ── Desktop table: DataTable theme ─────────────────────────────────────────
+  .table {
+    background: transparent;
+
+    thead th {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--t3);
+      font-weight: 700;
+      border-bottom: 1px solid var(--bd);
+      padding: 0.85rem 1rem;
+      background: var(--sf);
+    }
+
+    tbody tr {
+      background: transparent;
+      transition: background-color 0.12s var(--ease);
+
+      &:hover {
+        background-color: var(--sfh);
+        td { color: var(--t1); }
+      }
+
+      td {
+        font-size: 0.9rem;
+        vertical-align: middle;
+        padding: 0.85rem 1rem;
+        color: var(--t2);
+        border-bottom: 1px solid var(--bd);
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+    }
+  }
+
+  // ── Mobile cards: avatar + name + email ────────────────────────────────────
+  .card {
+    background: var(--sf);
+    border: 1px solid var(--bd);
+    border-radius: var(--r-lg);
+    backdrop-filter: blur(16px);
+
+    .fw-semibold {
+      color: var(--t1);
+    }
+  }
+
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  .pagination {
+    .page-link {
+      background: var(--sf);
+      border-color: var(--bd);
+      color: var(--t2);
+      transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+
+      &:hover {
+        background: var(--sfh);
+        border-color: var(--bdh);
+        color: var(--t1);
+      }
+    }
+
+    .page-item.active .page-link {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+    }
+
+    .page-item.disabled .page-link {
+      background: var(--sf);
+      border-color: var(--bd);
+      color: var(--t3);
+      opacity: 0.5;
+    }
+  }
 }
 
+// ── Modal backdrop ───────────────────────────────────────────────────────────
 .ru-modal-backdrop {
   background: rgba(0, 0, 0, 0.5);
   position: fixed;
   inset: 0;
   z-index: 1050;
   overflow-y: auto;
-}
+  backdrop-filter: blur(4px);
 
-.list-group-item.disabled {
-  opacity: 0.6;
-  pointer-events: none;
+  .modal-content {
+    background: var(--el);
+    border: 1px solid var(--bd);
+    border-radius: var(--r-lg);
+    box-shadow: var(--csh), 0 8px 32px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(24px);
+    color: var(--t1);
+  }
+
+  .modal-header {
+    border-bottom: 1px solid var(--bd);
+    color: var(--t1);
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--bd);
+  }
+
+  // ── Transfer list styling ──────────────────────────────────────────────────
+  .list-group-item {
+    background: var(--sf);
+    border-color: var(--bd);
+    color: var(--t1);
+    transition: background 0.12s var(--ease);
+
+    &:hover:not(.disabled) {
+      background: rgba(var(--ar), 0.06);
+    }
+
+    &.disabled {
+      opacity: 0.6;
+      pointer-events: none;
+      color: var(--t3);
+    }
+  }
 }

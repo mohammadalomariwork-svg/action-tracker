@@ -1,0 +1,107 @@
+// ═══════════════════════════════════════════════════════════════════
+// ANIMATED BACKGROUND — 5 layers, fixed behind all content
+// ═══════════════════════════════════════════════════════════════════
+
+// Container
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+// Layer 1: Diagonal sweep lines
+.bg-diag {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 60px,
+    rgba(var(--ar), 0.025) 60px,
+    rgba(var(--ar), 0.025) 61px
+  );
+  animation: diagM 18s linear infinite;
+}
+
+@keyframes diagM {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(85px, 85px); }
+}
+
+// Layer 2: Wave bands — 3 horizontal luminous gradient strips
+.bg-wave {
+  display: none;
+}
+
+@keyframes wF {
+  0%, 100% { opacity: 0.03; transform: scaleX(0.8); }
+  50%      { opacity: 0.06; transform: scaleX(1); }
+}
+
+// Layer 3: Pulsing orbs — 2 large blurred gradient circles
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  animation: oP ease-in-out infinite;
+
+  &.o1 {
+    width: 500px;
+    height: 500px;
+    top: 10%;
+    left: -10%;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity: 0.08;
+    animation-duration: 8s;
+  }
+
+  &.o2 {
+    width: 400px;
+    height: 400px;
+    bottom: 5%;
+    right: -5%;
+    background: radial-gradient(circle, var(--accent2) 0%, transparent 70%);
+    opacity: 0.06;
+    animation-duration: 13s;
+    animation-delay: 4s;
+  }
+}
+
+@keyframes oP {
+  0%, 100% { transform: scale(1); opacity: 0.06; }
+  50%      { transform: scale(1.15); opacity: 0.12; }
+}
+
+// Layer 4: Particle field container
+.pf {
+  position: absolute;
+  inset: 0;
+}
+
+// Particle base style
+.dot {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+  animation: dotF linear infinite;
+}
+
+@keyframes dotF {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(var(--dx, 30px), var(--dy, -40px)); }
+  50%  { transform: translate(calc(var(--dx, 30px) * -0.5), calc(var(--dy, -40px) * 1.5)); }
+  75%  { transform: translate(calc(var(--dx, 30px) * 1.2), calc(var(--dy, -40px) * -0.8)); }
+  100% { transform: translate(0, 0); }
+}
+
+// Light mode: reduce all effects
+[data-theme="light"] {
+  .bg-diag { opacity: 0.3; }
+  .bg-wave { opacity: 0.02; }
+  .bg-orb  { opacity: 0.015; }
+  .dot     { opacity: 0.06; }
+}

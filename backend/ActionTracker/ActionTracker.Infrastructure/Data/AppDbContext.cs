@@ -48,6 +48,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<Project>           Projects             => Set<Project>();
     public DbSet<ProjectSponsor>    ProjectSponsors      => Set<ProjectSponsor>();
     public DbSet<Milestone>         Milestones           => Set<Milestone>();
+    public DbSet<ProjectRisk>       ProjectRisks         => Set<ProjectRisk>();
+
+    // ── Email feature sets ───────────────────────────────────────────────────
+    public DbSet<EmailTemplate>     EmailTemplates       => Set<EmailTemplate>();
+    public DbSet<EmailLog>          EmailLogs            => Set<EmailLog>();
+
+    // ── Notification feature sets ────────────────────────────────────────────
+    public DbSet<AppNotification>   AppNotifications     => Set<AppNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +89,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted);
+        modelBuilder.Entity<EmailTemplate>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<ProjectRisk>().HasQueryFilter(r => !r.IsDeleted);
 
         modelBuilder.Entity<Workspace>(entity =>
         {
@@ -173,6 +183,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         }
 
         foreach (var entry in ChangeTracker.Entries<Milestone>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = utcNow;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ProjectRisk>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = utcNow;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<EmailTemplate>())
         {
             if (entry.State == EntityState.Modified)
             {

@@ -1,19 +1,19 @@
-// ── Card ────────────────────────────────────────────
+// ── Card — section wrapper ───────────────────────────
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
   padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(16px);
 }
 
 .card__title {
   margin: 0 0 1rem;
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--t1);
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--bd);
 }
 
 // ── Shared button tokens ────────────────────────────
@@ -22,7 +22,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -34,17 +34,20 @@
   &:active { transform: scale(0.97); }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 
+  // Neon primary
   &.btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: #fff;
-    &:hover:not(:disabled) { opacity: 0.88; }
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    box-shadow: var(--neon);
+    &:hover:not(:disabled) { box-shadow: var(--neon-intense); }
   }
 
   &.btn-outline {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    &:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    background: var(--sf);
+    border: 1px solid var(--bd);
+    color: var(--t2);
+    &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   }
 
   &.btn-sm {
@@ -55,8 +58,8 @@
 
 .spin-sm {
   width: 14px; height: 14px;
-  border: 2px solid rgba(255,255,255,0.35);
-  border-top-color: #fff;
+  border: 2px solid rgba(var(--ar), 0.35);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -70,15 +73,15 @@
   align-items: center;
   gap: 0.75rem;
   padding: 4rem 1rem;
-  color: var(--text-secondary);
+  color: var(--t3);
 
   &--sm { padding: 1.5rem 0; }
 }
 
 .spinner {
   width: 36px; height: 36px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--primary);
+  border: 3px solid var(--bd);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 
@@ -99,35 +102,36 @@
 .doc-name-input {
   flex: 1;
   padding: 0.5rem 0.75rem;
-  border: 1.5px solid var(--border-color);
-  border-radius: 8px;
+  border: 1.5px solid var(--bd);
+  border-radius: var(--r-sm);
   font-size: 0.875rem;
-  color: var(--text-primary);
-  background: var(--bg-main);
+  color: var(--t1);
+  background: var(--sf);
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s;
 
-  &:focus { border-color: var(--primary); }
-  &::placeholder { color: var(--text-secondary); }
+  &:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(var(--ar), 0.1); }
+  &::placeholder { color: var(--t3); }
 }
 
+// Upload area — dashed border
 .doc-file-label {
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  border: 1.5px dashed var(--border-color);
-  border-radius: 8px;
+  border: 2px dashed var(--bd);
+  border-radius: var(--r-lg);
   font-size: 0.82rem;
-  color: var(--text-secondary);
+  color: var(--t3);
   cursor: pointer;
   white-space: nowrap;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, color 0.15s;
 
-  &:hover { border-color: var(--primary); color: var(--primary); }
+  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 
 .doc-file-input {
@@ -142,22 +146,33 @@
 
 .doc-hint {
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
+// File rows
 .doc-entry {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 0;
-  border-bottom: 1px solid var(--border-color);
+  background: var(--sf);
+  border-bottom: 1px solid var(--bd);
 
   &:last-child { border-bottom: none; }
 }
 
+// File type icons — colored by type
 .doc-icon {
   font-size: 1.5rem;
   flex-shrink: 0;
+
+  &--pdf { color: #ef4444; }
+  &--xlsx,
+  &--xls { color: #22c55e; }
+  &--doc,
+  &--docx { color: #3b82f6; }
+  &--ppt,
+  &--pptx { color: #f59e0b; }
 }
 
 .doc-info {
@@ -171,7 +186,7 @@
 .doc-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -179,7 +194,7 @@
 
 .doc-meta {
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: var(--t3);
 }
 
 .doc-actions {
@@ -198,14 +213,14 @@
   border-radius: 4px;
   transition: background 0.12s;
 
-  &:hover { background: rgba(0,0,0,0.05); }
-  &--delete:hover { background: rgba(220,38,38,0.08); }
+  &:hover { background: rgba(var(--ar), 0.08); }
+  &--delete:hover { background: rgba(220, 38, 38, 0.08); }
 }
 
 // ── Empty state ─────────────────────────────────────
 .empty-text {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--t3);
   text-align: center;
   padding: 1rem 0;
   margin: 0;

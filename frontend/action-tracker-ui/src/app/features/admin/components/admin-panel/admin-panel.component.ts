@@ -64,6 +64,15 @@ export class AdminPanelComponent {
       permissionArea:  'UserManagement',
     },
     {
+      id:              'email-templates',
+      title:           'Email Templates',
+      description:     'Manage notification email templates and review sent email logs.',
+      icon:            'bi-envelope-fill',
+      route:           '/admin/email-templates',
+      color:           'dark',
+      permissionArea:  'Admin',
+    },
+    {
       id:              'permissions',
       title:           'Permissions Management',
       description:     'Configure role permission matrices and manage user-level permission overrides.',

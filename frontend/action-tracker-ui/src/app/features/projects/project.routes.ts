@@ -30,6 +30,12 @@ const projectRoutes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: ':projectId/risks/:riskId',
+    loadComponent: () =>
+      import('./components/risk-detail/risk-detail.component').then(m => m.RiskDetailComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: ':id',
     loadComponent: () =>
       import('./components/project-detail/project-detail.component').then(m => m.ProjectDetailComponent),

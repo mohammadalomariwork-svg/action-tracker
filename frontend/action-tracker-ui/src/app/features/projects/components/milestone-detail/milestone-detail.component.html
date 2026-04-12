@@ -280,7 +280,7 @@
                 @for (item of actionItems; track item.id) {
                   <tr [class.table-danger]="item.isOverdue" [class.wa-deleted-row]="item.isDeleted">
                     <td>
-                      <span class="wa-action-id">{{ item.actionId }}</span>
+                      <a class="wa-action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
                       @if (item.isEscalated) {
                         <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Escalated"></i>
                       }
@@ -360,7 +360,7 @@
               <div class="wa-action-card" [class.wa-action-card--deleted]="item.isDeleted">
                 <div class="wa-action-card__header">
                   <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="wa-action-id">{{ item.actionId }}</span>
+                    <a class="wa-action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
                     @if (item.isEscalated) {
                       <i class="bi bi-exclamation-triangle-fill text-danger" title="Escalated"></i>
                     }

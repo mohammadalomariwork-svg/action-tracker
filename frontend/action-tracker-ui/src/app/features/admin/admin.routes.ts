@@ -39,6 +39,13 @@ export const ADMIN_ROUTES: Routes = [
     data: { requiredArea: 'KPIs', requiredAction: 'View' },
   },
   {
+    path: 'email-templates',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./email-templates/email-templates-page.component')
+        .then(m => m.EmailTemplatesPageComponent),
+  },
+  {
     path: 'permissions/roles',
     canActivate: [permissionGuard],
     data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },

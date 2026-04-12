@@ -1,68 +1,90 @@
-.dialog-card {
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+// ── Backdrop ─────────────────────────────────────────
+::ng-deep .modal-backdrop.show {
+  background: rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(4px);
 }
 
+// ── Dialog card ──────────────────────────────────────
+.dialog-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-xl);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  padding: 28px;
+}
+
+// ── Warning icon ─────────────────────────────────────
+.dialog-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 2.5rem;
+  line-height: 1;
+
+  &--danger { color: #ef4444; }
+  &--warning { color: #f59e0b; }
+}
+
+// ── Header ───────────────────────────────────────────
 .dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-card);
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--bd);
 
   &--danger {
-    background: rgba(220, 38, 38, 0.05);
-    border-bottom-color: rgba(220, 38, 38, 0.2);
+    border-bottom-color: rgba(239, 68, 68, 0.2);
   }
 }
 
 .dialog-title {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--t1);
 }
 
 .btn-close-custom {
   background: none;
   border: none;
   font-size: 1rem;
-  color: var(--text-secondary);
+  color: var(--t3);
   cursor: pointer;
   padding: 0.25rem;
   line-height: 1;
   transition: color 0.15s;
 
-  &:hover { color: var(--text-primary); }
+  &:hover { color: var(--t1); }
 }
 
+// ── Body ─────────────────────────────────────────────
 .dialog-body {
-  padding: 1.25rem;
-  background: var(--bg-card);
+  padding: 16px 0;
 }
 
 .dialog-message {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-primary);
+  font-size: 13px;
+  color: var(--t2);
   line-height: 1.6;
 }
 
+// ── Footer ───────────────────────────────────────────
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  background: var(--bg-main);
-  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  border-top: 1px solid var(--bd);
 }
 
 .btn {
   padding: 0.45rem 1.1rem;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -72,24 +94,31 @@
   &:active { transform: scale(0.97); }
 }
 
+// Cancel — ghost button
 .btn-cancel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--bd);
+  color: var(--t2);
 
-  &:hover { background: var(--bg-main); }
+  &:hover { background: var(--sfh); color: var(--t1); }
 }
 
+// Confirm — neon primary
 .btn-primary-custom {
-  background: var(--primary);
-  color: #fff;
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  box-shadow: var(--neon);
 
-  &:hover { background: var(--primary-dark); }
+  &:hover { box-shadow: var(--neon-intense); }
 }
 
+// Confirm — neon danger
 .btn-danger {
-  background: #dc2626;
+  background: #ef4444;
   color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 
-  &:hover { background: #b91c1c; }
+  &:hover { box-shadow: 0 0 18px rgba(239, 68, 68, 0.45); }
 }

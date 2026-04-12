@@ -1,0 +1,128 @@
+// ═══════════════════════════════════════════════════════════════════
+// BORDER RAILS — Traveling beams, burst nodes, corner brackets
+// ═══════════════════════════════════════════════════════════════════
+
+// Rail base
+.rail {
+  position: fixed;
+  width: 2px;
+  top: 60px;
+  bottom: 50px;
+  z-index: 50;
+  pointer-events: none;
+
+  // Static dim base line
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--ar), 0.08);
+  }
+
+  // Left rail
+  &.L {
+    left: var(--M);
+
+    // Traveling beam — top→down
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 180px;
+      background: linear-gradient(180deg, transparent 0%, var(--accent) 50%, transparent 100%);
+      box-shadow:
+        0 0 8px var(--accent),
+        0 0 24px rgba(var(--ar), 0.4),
+        0 0 48px rgba(var(--ar), 0.15);
+      animation: goD 4.5s ease-in-out infinite;
+    }
+  }
+
+  // Right rail
+  &.R {
+    right: var(--M);
+
+    // Traveling beam — bottom→up, offset
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 2px;
+      height: 180px;
+      background: linear-gradient(0deg, transparent 0%, var(--accent) 50%, transparent 100%);
+      box-shadow:
+        0 0 8px var(--accent),
+        0 0 24px rgba(var(--ar), 0.4),
+        0 0 48px rgba(var(--ar), 0.15);
+      animation: goU 4.5s ease-in-out infinite;
+      animation-delay: 2.25s;
+    }
+  }
+}
+
+@keyframes goD {
+  0%   { top: -180px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: calc(100% + 180px); opacity: 0; }
+}
+
+@keyframes goU {
+  0%   { bottom: -180px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { bottom: calc(100% + 180px); opacity: 0; }
+}
+
+// Burst nodes — pulsing dots on rails
+.burst {
+  position: fixed;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  z-index: 51;
+  pointer-events: none;
+  animation: bP 3s ease-in-out infinite;
+
+  &.L { left: calc(var(--M) - 2.5px); }
+  &.R { right: calc(var(--M) - 2.5px); }
+}
+
+@keyframes bP {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.5); }
+}
+
+// Corner brackets
+.crn {
+  position: fixed;
+  width: 22px;
+  height: 22px;
+  border-color: var(--accent);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0.4;
+  z-index: 51;
+  pointer-events: none;
+
+  &.tl { top: 60px; left: var(--M); border-top-width: 2px; border-left-width: 2px; }
+  &.tr { top: 60px; right: var(--M); border-top-width: 2px; border-right-width: 2px; }
+  &.bl { bottom: 50px; left: var(--M); border-bottom-width: 2px; border-left-width: 2px; }
+  &.br { bottom: 50px; right: var(--M); border-bottom-width: 2px; border-right-width: 2px; }
+}
+
+// Mobile: rails start lower (smaller header)
+@media (max-width: 768px) {
+  .rail { top: 56px; }
+  .crn.tl, .crn.tr { top: 56px; }
+}
+
+// Light mode: soften rails
+[data-theme="light"] {
+  .rail, .burst, .crn { opacity: 0.3; }
+}

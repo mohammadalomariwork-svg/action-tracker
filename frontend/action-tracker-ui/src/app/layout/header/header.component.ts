@@ -4,57 +4,66 @@ import { AsyncPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 import { PermissionStateService } from '../../features/permissions/services/permission-state.service';
 import { EffectivePermissionDto } from '../../features/permissions/models/user-permission.model';
+import { ThemeService } from '../../services/theme.service';
 
 interface NavLink {
   label: string;
+  icon: string;
   path: string;
-  /**
-   * Visibility rule:
-   *  - null              → always visible to authenticated users
-   *  - { area, action }  → visible when the user holds that effective permission
-   *  - { role }          → visible when the user has that Identity role (admin-only gates)
-   */
   visibleWhen: null | { area: string; action: string } | { role: string };
-  /** Additional path prefixes that should highlight this nav link. */
   alsoActivePrefixes?: string[];
 }
 
 const NAV_LINKS: NavLink[] = [
   {
     label: 'Dashboards',
+    icon: 'bi-speedometer2',
     path: '/dashboard',
     visibleWhen: { area: 'Dashboard', action: 'View' },
   },
   {
     label: 'My Actions',
+    icon: 'bi-check2-square',
     path: '/actions',
     visibleWhen: null,
   },
   {
     label: 'My Projects',
+    icon: 'bi-folder2-open',
     path: '/projects/my',
     visibleWhen: null,
   },
   {
     label: 'Reports',
+    icon: 'bi-bar-chart-line',
     path: '/reports',
     visibleWhen: { area: 'Reports', action: 'View' },
   },
   {
     label: 'Team Actions',
+    icon: 'bi-people',
     path: '/management',
     visibleWhen: { area: 'Action Items', action: 'View' },
     alsoActivePrefixes: ['/projects/new', '/projects/edit', '/action-items'],
   },
   {
     label: 'Workspaces',
+    icon: 'bi-collection',
     path: '/workspaces',
     visibleWhen: { area: 'Workspaces', action: 'View' },
   },
   {
+    label: 'Notifications',
+    icon: 'bi-bell',
+    path: '/notifications',
+    visibleWhen: null,
+  },
+  {
     label: 'Admin Panel',
+    icon: 'bi-shield-lock',
     path: '/admin',
     visibleWhen: { role: 'Admin' },
   },
@@ -63,7 +72,7 @@ const NAV_LINKS: NavLink[] = [
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterLink, AsyncPipe],
+  imports: [RouterLink, AsyncPipe, NotificationBellComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
 })
@@ -71,20 +80,17 @@ export class HeaderComponent {
   private readonly authService       = inject(AuthService);
   private readonly permissionState   = inject(PermissionStateService);
   private readonly router            = inject(Router);
+  private readonly themeService      = inject(ThemeService);
 
-  /** Used by the template via the async pipe for reactive user display. */
   readonly currentUser$ = this.authService.currentUser$;
 
-  /** Signal mirror — used by computed() for role-based link filtering. */
   private readonly currentUser = toSignal(this.authService.currentUser$, { initialValue: null });
 
-  /** Reactive effective-permissions snapshot — re-evaluated on every permissions load. */
   private readonly permissions = toSignal(
     this.permissionState.permissions$,
     { initialValue: [] as EffectivePermissionDto[] },
   );
 
-  /** Current URL path — updated on every navigation. */
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -94,8 +100,9 @@ export class HeaderComponent {
     { initialValue: this.router.url },
   );
 
-  readonly menuOpen = signal(false);
-  readonly navOpen  = signal(false);
+  readonly menuOpen  = signal(false);
+  readonly isNavOpen = signal(false);
+  readonly isDark    = toSignal(this.themeService.isDark$, { initialValue: true });
 
   /** Nav links visible to the current user based on their effective permissions. */
   readonly visibleLinks = computed(() => {
@@ -126,18 +133,26 @@ export class HeaderComponent {
     return link.alsoActivePrefixes?.some(prefix => url.startsWith(prefix)) ?? false;
   }
 
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
+  }
+
   toggleMenu(): void {
     this.menuOpen.update(v => !v);
   }
 
-  toggleNav(): void {
-    this.navOpen.update(v => !v);
+  openNav(): void {
+    this.isNavOpen.set(true);
     this.menuOpen.set(false);
+  }
+
+  closeNav(): void {
+    this.isNavOpen.set(false);
   }
 
   closeMenu(): void {
     this.menuOpen.set(false);
-    this.navOpen.set(false);
+    this.isNavOpen.set(false);
   }
 
   logout(): void {
@@ -150,7 +165,6 @@ export class HeaderComponent {
     const el = target as HTMLElement | null;
     if (!el?.closest?.('.nav-user') && !el?.closest?.('.hamburger')) {
       this.menuOpen.set(false);
-      this.navOpen.set(false);
     }
   }
 }

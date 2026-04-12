@@ -6,35 +6,61 @@
 
 // ── Header ────────────────────────────────────────────────────────────────────
 .ap-header {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  backdrop-filter: blur(16px);
 }
 
 .ap-header-icon {
   font-size: 3rem;
-  color: #6c757d;
+  color: var(--t3);
   line-height: 1;
 }
 
 .ap-title {
   font-size: 1.75rem;
   font-weight: 700;
+  color: var(--t1);
 }
 
 .ap-subtitle {
   font-size: 0.95rem;
+  color: var(--t2);
 }
 
 // ── Feature cards ─────────────────────────────────────────────────────────────
 .admin-card {
-  border-radius: 12px;
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius, 12px);
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  overflow: hidden; // keeps border-radius on top stripe
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--neon);
+    border-color: var(--accent);
+  }
+
+  .card-header {
+    background: transparent;
+    border: none;
+  }
+
+  .card-body {
+    .card-title {
+      color: var(--t1);
+    }
+    .card-text {
+      color: var(--t2) !important;
+    }
+  }
+
+  .card-footer {
+    background: transparent;
+    border: none;
   }
 }
 

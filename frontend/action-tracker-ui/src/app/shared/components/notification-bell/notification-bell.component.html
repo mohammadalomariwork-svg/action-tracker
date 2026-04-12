@@ -1,0 +1,83 @@
+<div class="notification-bell" (click)="$event.stopPropagation()">
+
+  <!-- Bell button -->
+  <button
+    class="bell-btn"
+    [class.bell-animate]="shaking()"
+    (click)="toggle()"
+    aria-label="Notifications"
+  >
+    <i class="bi" [ngClass]="open() ? 'bi-bell-fill' : 'bi-bell'"></i>
+    @if (unreadCount() > 0) {
+      <span class="badge-count badge bg-danger rounded-pill">
+        {{ getBadgeText() }}
+      </span>
+    }
+  </button>
+
+  <!-- Dropdown panel -->
+  @if (open()) {
+    <div class="notification-dropdown">
+
+      <!-- Header -->
+      <div class="dropdown-header d-flex justify-content-between align-items-center px-3 py-2">
+        <span class="fw-semibold">Notifications</span>
+        @if (unreadCount() > 0) {
+          <button class="btn btn-link btn-sm p-0 text-decoration-none" (click)="markAllRead()">
+            Mark all as read
+          </button>
+        }
+      </div>
+
+      <!-- List -->
+      <div class="notification-list">
+        @for (n of notifications(); track n.id) {
+          <div
+            class="notification-item d-flex align-items-start gap-2"
+            [class.unread]="!n.isRead"
+            (click)="clickNotification(n)"
+          >
+            <!-- Unread dot -->
+            <div class="unread-dot-col">
+              @if (!n.isRead) {
+                <span class="unread-dot"></span>
+              }
+            </div>
+
+            <!-- Icon -->
+            <div class="notif-icon" [style.color]="getIconColor(n.actionType)">
+              <i class="bi {{ getIcon(n.type) }}"></i>
+            </div>
+
+            <!-- Content -->
+            <div class="notif-content flex-grow-1 min-width-0">
+              <div class="notif-title" [class.fw-semibold]="!n.isRead">
+                {{ n.title }}
+              </div>
+              <div class="notif-message text-muted">
+                {{ truncate(n.message, 80) }}
+              </div>
+              <div class="notif-time text-muted">
+                {{ relativeTime(n.createdAt) }}
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state text-center py-5">
+            <i class="bi bi-bell-slash text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mt-2 mb-0">No notifications</p>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="dropdown-footer text-center border-top">
+        <button class="btn btn-link btn-sm text-decoration-none w-100 py-2" (click)="viewAll()">
+          View all notifications
+        </button>
+      </div>
+
+    </div>
+  }
+
+</div>

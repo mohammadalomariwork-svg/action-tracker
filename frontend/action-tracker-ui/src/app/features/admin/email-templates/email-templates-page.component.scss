@@ -1,0 +1,24 @@
+.et-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+.nav-tabs .nav-link {
+  font-weight: 500;
+  color: var(--t3);
+
+  &.active {
+    font-weight: 600;
+    color: #0d6efd;
+  }
+}
+
+.form-check-input:checked {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+code {
+  font-size: 0.85em;
+  color: #6f42c1;
+}

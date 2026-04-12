@@ -1,10 +1,8 @@
 // ── Page shell ────────────────────────────────────────
 .td-page {
   min-height: 100%;
-  background: var(--bg-main);
 }
 
-// Align breadcrumb and page-header with body content's 1.5rem horizontal inset
 app-breadcrumb {
   display: block;
   padding: 0 1.5rem;
@@ -29,38 +27,41 @@ app-page-header {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   border: none;
-  transition: opacity 0.15s, transform 0.1s;
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
   text-decoration: none;
   white-space: nowrap;
 
   &:active { transform: scale(0.97); }
 
   &.btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: #fff;
-    &:hover { opacity: 0.88; }
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    box-shadow: var(--neon);
+    &:hover { box-shadow: var(--neon-intense); transform: translateY(-1px); }
   }
 
   &.btn-outline {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    &:hover { border-color: var(--primary); color: var(--primary); }
+    background: var(--sf);
+    border: 1px solid var(--bd);
+    color: var(--t2);
+    backdrop-filter: blur(8px);
+    &:hover { background: var(--sfh); border-color: var(--accent); color: var(--t1); }
 
     &--purple {
-      border-color: rgba(124, 58, 237, 0.4);
-      color: var(--secondary);
-      &:hover { border-color: var(--secondary); background: rgba(124, 58, 237, 0.05); }
+      border-color: rgba(124, 92, 252, 0.3);
+      color: var(--accent2);
+      &:hover { border-color: var(--accent2); background: rgba(124, 92, 252, 0.08); }
     }
   }
 }
 
-// ── Greeting banner ───────────────────────────────────
+// ── Welcome banner — no card, directly on content ─────
 .greeting-banner {
   display: flex;
   align-items: center;
@@ -68,23 +69,25 @@ app-page-header {
   flex-wrap: wrap;
   gap: 1rem;
   padding: 1.5rem 1.5rem 0;
-  margin-bottom: 0.25rem;
+  margin-bottom: 24px;
+  background: transparent;
 }
 
 .greeting-banner__left { display: flex; flex-direction: column; gap: 0.2rem; }
 
 .greeting-title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: clamp(18px, 4vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--t1);
   line-height: 1.2;
 }
 
 .greeting-sub {
   margin: 0;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 12.5px;
+  color: var(--t3);
 }
 
 .quick-actions {
@@ -98,7 +101,7 @@ app-page-header {
 .sk {
   display: inline-block;
   border-radius: 6px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background: linear-gradient(90deg, var(--sf) 25%, var(--sfh) 50%, var(--sf) 75%);
   background-size: 200% 100%;
   animation: sk-anim 1.4s ease-in-out infinite;
   height: 14px;
@@ -112,42 +115,42 @@ app-page-header {
   align-items: center;
   gap: 1rem;
   padding: 0.7rem 0;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--bd);
 }
 
-// ── Stats bar ─────────────────────────────────────────
+// ── KPI stats grid ───────────────────────────────────
 .stats-bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.85rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 
   &--portfolio { grid-template-columns: repeat(6, 1fr); }
 }
 
 .stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
   padding: 1rem 1.1rem;
   display: flex;
   align-items: center;
   align-self: stretch;
   justify-content: space-between;
-  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(16px);
   border-left: 4px solid transparent;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s;
   gap: 0.5rem;
 
-  &:hover { box-shadow: var(--shadow-md); }
+  &:hover { box-shadow: var(--neon); border-color: var(--accent); }
 
-  &--primary    { border-left-color: var(--primary); }
-  &--success    { border-left-color: var(--success); }
-  &--info       { border-left-color: var(--info);    }
-  &--danger     { border-left-color: var(--danger);  }
-  &--warning    { border-left-color: var(--warning); }
+  &--primary    { border-left-color: var(--accent); }
+  &--success    { border-left-color: #22c55e; }
+  &--info       { border-left-color: #3b82f6; }
+  &--danger     { border-left-color: #ef4444; }
+  &--warning    { border-left-color: #f59e0b; }
   &--indigo     { border-left-color: #4f46e5; }
   &--teal       { border-left-color: #0d9488; }
-  &--purple     { border-left-color: #7c3aed; }
+  &--purple     { border-left-color: var(--accent2); }
 }
 
 .stat-body {
@@ -158,22 +161,32 @@ app-page-header {
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--t1);
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .stat-label {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary);
+  letter-spacing: 0.07em;
+  color: var(--t3);
 }
 
-.stat-icon { font-size: 1.35rem; flex-shrink: 0; }
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(var(--ar), 0.08);
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
 
 // ── Two-column layout ─────────────────────────────────
 .two-col {
@@ -182,18 +195,19 @@ app-page-header {
   gap: 1.1rem;
 }
 
-// ── Panel card ────────────────────────────────────────
+// ── Panel card — card wrapper ─────────────────────────
 .panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-sm);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(16px);
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  transition: box-shadow 0.2s;
 
-  &--full { /* occupies full width below two-col */ }
+  &:hover { box-shadow: var(--neon); }
 }
 
 .panel__header {
@@ -201,19 +215,19 @@ app-page-header {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 0.6rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--bd);
 }
 
 .panel__title {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
 .panel__link {
   font-size: 0.78rem;
-  color: var(--primary);
+  color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
   &:hover { text-decoration: underline; }
@@ -227,13 +241,13 @@ app-page-header {
   gap: 0.4rem;
   padding: 1.5rem;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--t3);
   font-size: 0.875rem;
 }
 
 .empty-panel__icon { font-size: 2rem; }
 
-// ── Mini table ────────────────────────────────────────
+// ── Mini table — compact rows ─────────────────────────
 .mini-table-wrap {
   overflow-x: auto;
   margin: 0 -1.5rem;
@@ -243,38 +257,47 @@ app-page-header {
 .mini-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.83rem;
+  font-size: 13px;
   min-width: 420px;
 }
 
 thead tr {
-  border-bottom: 1px solid var(--border-color);
+  background: var(--sf);
+  border-bottom: 1px solid var(--bd);
 }
 
 th {
-  padding: 0.4rem 0.6rem;
+  padding: 0.85rem 1rem;
   text-align: left;
-  font-size: 0.68rem;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
+  letter-spacing: 0.07em;
+  color: var(--t3);
   white-space: nowrap;
 }
 
+// Compact rows with status badge + title + due date
 .mini-row {
-  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  border-bottom: 1px solid var(--bd);
   cursor: pointer;
   transition: background 0.12s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: rgba(79, 70, 229, 0.03); }
+  &:hover { background: var(--sfh); td { color: var(--t1); } }
+
+  // Overdue items get red left border
+  &.due--overdue {
+    border-left: 3px solid #ef4444;
+  }
 }
 
 td {
-  padding: 0.6rem 0.6rem;
+  padding: 0.85rem 1rem;
   vertical-align: middle;
-  color: var(--text-primary);
+  color: var(--t2);
+  font-size: 13px;
 }
 
 .td-title { max-width: 200px; }
@@ -284,14 +307,19 @@ td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  &:hover { opacity: 0.8; }
 }
 
 .action-id {
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--t1);
   font-family: monospace;
+  text-decoration: none;
+  &:hover { color: var(--accent); }
 }
 
 .assignee-cell {
@@ -308,8 +336,8 @@ td {
   justify-content: center;
   width: 20px; height: 20px;
   border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
+  background: rgba(var(--ar), 0.15);
+  color: var(--accent);
   font-size: 0.65rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -318,7 +346,7 @@ td {
 // ── Due date ──────────────────────────────────────────
 .due-cell { display: flex; flex-direction: column; gap: 1px; }
 
-.due-date { font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; }
+.due-date { font-size: 0.8rem; color: var(--t2); white-space: nowrap; }
 
 .due-badge {
   font-size: 0.65rem;
@@ -331,13 +359,13 @@ td {
 }
 
 .due--overdue {
-  .due-date { color: var(--danger); font-weight: 600; }
-  .due-badge { background: rgba(220,38,38,0.1); color: var(--danger); }
+  .due-date { color: #ef4444; font-weight: 600; }
+  .due-badge { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 }
 
 .due--warning {
-  .due-date { color: var(--warning); font-weight: 600; }
-  .due-badge { background: rgba(217,119,6,0.1); color: var(--warning); }
+  .due-date { color: #f59e0b; font-weight: 600; }
+  .due-badge { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
 }
 
 // ── Activity pills ────────────────────────────────────
@@ -352,47 +380,51 @@ td {
   flex-direction: column;
   align-items: center;
   padding: 0.6rem 1rem;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
   flex: 1;
   min-width: 80px;
+  backdrop-filter: blur(8px);
 
-  &--danger  { background: rgba(220,38,38,0.07);  border-color: rgba(220,38,38,0.2);  }
-  &--warning { background: rgba(217,119,6,0.07);  border-color: rgba(217,119,6,0.2);  }
-  &--success { background: rgba(5,150,105,0.07);  border-color: rgba(5,150,105,0.2);  }
+  &--danger  { background: rgba(239, 68, 68, 0.1);  border-color: rgba(239, 68, 68, 0.25);  }
+  &--warning { background: rgba(245, 158, 11, 0.1);  border-color: rgba(245, 158, 11, 0.25);  }
+  &--success { background: rgba(34, 197, 94, 0.1);   border-color: rgba(34, 197, 94, 0.25);  }
 }
 
 .pill-val {
   font-size: 1.4rem;
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--t1);
   line-height: 1;
 }
 
 .pill-lbl {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
   white-space: nowrap;
 }
 
-// ── Chart ─────────────────────────────────────────────
+// ── Chart — card wrapper, transparent canvas bg ───────
 .chart-wrap {
   height: 160px;
   position: relative;
+  background: transparent;
+
+  canvas { background: transparent; }
 
   &--empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-main);
-    border-radius: 8px;
+    background: var(--sf);
+    border-radius: var(--r-sm);
   }
 }
 
-.chart-empty-msg { font-size: 0.83rem; color: var(--text-secondary); margin: 0; }
+.chart-empty-msg { font-size: 13px; color: var(--t3); margin: 0; }
 
 // ── Stacked bar ───────────────────────────────────────
 .stacked-bar {
@@ -400,7 +432,7 @@ td {
   border-radius: 999px;
   overflow: hidden;
   display: flex;
-  background: var(--border-color);
+  background: var(--bd);
 }
 
 .stacked-segment {
@@ -423,17 +455,17 @@ td {
   align-items: center;
   gap: 0.35rem;
   font-size: 0.72rem;
-  color: var(--text-secondary);
+  color: var(--t2);
 }
 
 .legend-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: var(--text-secondary);
+  background: var(--t2);
 }
 
-// ── Project pie charts row ────────────────────────────
+// ── Workspace summary — card grid ─────────────────────
 .pie-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -441,30 +473,33 @@ td {
 }
 
 .pie-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-sm);
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(16px);
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  transition: box-shadow 0.2s;
+
+  &:hover { box-shadow: var(--neon); }
 }
 
 .pie-card__title {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--t1);
 }
 
-// Fixed-size pie chart wrapper (responsive:false canvas)
 .pie-canvas-wrap {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 240px;
+  background: transparent;
 }
 
 .pie-overlay {
@@ -481,30 +516,35 @@ td {
 }
 
 .pie-overlay__num {
-  font-size: 1.6rem;
+  font-size: 26px;
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--t1);
   line-height: 1;
 }
 
 .pie-overlay__lbl {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 // ── Responsive ────────────────────────────────────────
+@media (min-width: 1200px) {
+  .stats-bar { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (max-width: 1199px) and (min-width: 901px) {
+  .stats-bar { grid-template-columns: repeat(4, 1fr); }
+}
+
 @media (max-width: 1400px) {
   .stats-bar--portfolio { grid-template-columns: repeat(3, 1fr); }
 }
 
-@media (max-width: 1100px) {
-  .stats-bar { grid-template-columns: repeat(3, 1fr); }
-}
-
 @media (max-width: 900px) {
+  .stats-bar { grid-template-columns: repeat(3, 1fr); }
   .two-col,
   .pie-row { grid-template-columns: 1fr; }
 }
@@ -512,8 +552,11 @@ td {
 @media (max-width: 768px) {
   .td-body { padding: 0 1rem 2rem; }
   .greeting-banner { padding: 1rem 1rem 0; flex-direction: column; align-items: flex-start; }
-  .stats-bar { grid-template-columns: repeat(2, 1fr); }
   .quick-actions { width: 100%; .btn { flex: 1; justify-content: center; } }
+}
+
+@media (max-width: 600px) {
+  .stats-bar { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 480px) {

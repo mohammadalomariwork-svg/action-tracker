@@ -24,6 +24,7 @@ import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/br
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 import { MilestoneSectionComponent } from '../milestone-section/milestone-section.component';
+import { RiskRegisterSectionComponent } from '../../risk-register-section/risk-register-section.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 
 interface EditFormData {
@@ -47,7 +48,7 @@ interface EditFormData {
   imports: [
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
-    MilestoneSectionComponent, BreadcrumbComponent, HasPermissionDirective,
+    MilestoneSectionComponent, RiskRegisterSectionComponent, BreadcrumbComponent, HasPermissionDirective,
   ],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',

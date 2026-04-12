@@ -1,10 +1,15 @@
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ActionTracker.Infrastructure.Services;
 
@@ -13,15 +18,27 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     private readonly AppDbContext                        _context;
     private readonly IUserLookupService                 _userLookup;
     private readonly ILogger<StrategicObjectiveService> _logger;
+    private readonly IEmailSender                       _emailSender;
+    private readonly INotificationService               _notificationService;
+    private readonly AppSettings                        _appSettings;
+    private readonly IServiceScopeFactory               _scopeFactory;
 
     public StrategicObjectiveService(
         AppDbContext                        context,
         IUserLookupService                 userLookup,
-        ILogger<StrategicObjectiveService> logger)
+        ILogger<StrategicObjectiveService> logger,
+        IEmailSender                       emailSender,
+        INotificationService               notificationService,
+        IOptions<AppSettings>              appSettings,
+        IServiceScopeFactory               scopeFactory)
     {
-        _context    = context;
-        _userLookup = userLookup;
-        _logger     = logger;
+        _context             = context;
+        _userLookup          = userLookup;
+        _logger              = logger;
+        _emailSender         = emailSender;
+        _notificationService = notificationService;
+        _appSettings         = appSettings.Value;
+        _scopeFactory        = scopeFactory;
     }
 
     // -------------------------------------------------------------------------
@@ -147,6 +164,70 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             _logger.LogInformation(
                 "Created StrategicObjective {Id} '{Code}' for OrgUnit {OrgUnitId}",
                 objective.Id, objectiveCode, request.OrgUnitId);
+
+            // Fire-and-forget email notification
+            var capturedObjective = objective;
+            var capturedOrgUnit = orgUnit;
+            var capturedUserId = userId;
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+                try
+                {
+                    var creatorName = await _userLookup.GetDisplayNameAsync(capturedUserId, CancellationToken.None);
+                    var placeholders = new Dictionary<string, string>
+                    {
+                        ["ObjectiveCode"] = capturedObjective.ObjectiveCode,
+                        ["Statement"]     = capturedObjective.Statement,
+                        ["OrgUnit"]       = capturedOrgUnit.Name,
+                        ["CreatedBy"]     = creatorName ?? capturedUserId,
+                        ["ItemUrl"]       = $"{_appSettings.FrontendBaseUrl}/admin/objectives",
+                    };
+
+                    var creatorEmail = await db.Users
+                        .Where(u => u.Id == capturedUserId && u.IsActive)
+                        .Select(u => u.Email)
+                        .FirstOrDefaultAsync();
+
+                    if (creatorEmail is not null)
+                    {
+                        await emailSender.SendEmailAsync("StrategicObjective.Created", placeholders,
+                            [creatorEmail], "StrategicObjective", capturedObjective.Id, capturedUserId);
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogError(ex2, "Error sending email for StrategicObjective.Created {Id}", capturedObjective.Id);
+                }
+
+                // In-app notification (self-notification for confirmation)
+                try
+                {
+                    var creatorName2 = await _userLookup.GetDisplayNameAsync(capturedUserId, CancellationToken.None);
+                    await notifService.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId               = capturedUserId,
+                        Title                = "Strategic Objective Created",
+                        Message              = $"{capturedObjective.ObjectiveCode}: {capturedObjective.Statement}",
+                        Type                 = "StrategicObjective",
+                        ActionType           = "Created",
+                        RelatedEntityType    = "StrategicObjective",
+                        RelatedEntityId      = capturedObjective.Id,
+                        RelatedEntityCode    = capturedObjective.ObjectiveCode,
+                        Url                  = $"{_appSettings.FrontendBaseUrl}/admin/objectives",
+                        CreatedByUserId      = capturedUserId,
+                        CreatedByDisplayName = creatorName2,
+                    });
+                }
+                catch (Exception ex3)
+                {
+                    _logger.LogError(ex3, "Error creating notification for StrategicObjective.Created {Id}", capturedObjective.Id);
+                }
+            });
 
             objective.OrgUnit = orgUnit;
 

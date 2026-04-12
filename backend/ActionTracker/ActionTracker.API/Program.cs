@@ -8,6 +8,7 @@ using ActionTracker.API.Middleware;
 using ActionTracker.Application.Features.ActionItems.Validators;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
+using ActionTracker.Infrastructure.Data.Seeders;
 using ActionTracker.Infrastructure.Helpers;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -225,6 +226,8 @@ try
     builder.Services.AddApplicationServices();
     builder.Services.AddUserManagement();
     builder.Services.AddAdminPanelServices();
+    builder.Services.AddEmailServices(builder.Configuration);
+    builder.Services.AddSignalR();
     builder.Services.AddSwaggerWithJwt();
 
     // -----------------------------------------------------------------------
@@ -301,6 +304,7 @@ try
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
     app.MapControllers();
+    app.MapHub<ActionTracker.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
     // -----------------------------------------------------------------------
     // Auto-migrate: create / update the database schema on startup
@@ -335,6 +339,17 @@ try
                          .GetRequiredService<ILoggerFactory>()
                          .CreateLogger(nameof(DefaultRolePermissionsSeeder));
         await DefaultRolePermissionsSeeder.SeedAsync(db, logger);
+    }
+
+    // -----------------------------------------------------------------------
+    // Seed email templates
+    using (var scope = app.Services.CreateScope())
+    {
+        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var logger = scope.ServiceProvider
+                         .GetRequiredService<ILoggerFactory>()
+                         .CreateLogger(nameof(EmailTemplateSeeder));
+        await EmailTemplateSeeder.SeedAsync(db, logger);
     }
 
     // -----------------------------------------------------------------------

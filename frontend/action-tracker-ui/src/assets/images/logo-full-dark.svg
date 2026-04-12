@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#7C5CFC"/>
+    </linearGradient>
+  </defs>
+  <!-- Logomark -->
+  <g transform="translate(0,0)">
+    <path d="M32 6 L56 20 L56 44 L32 58 L8 44 L8 20 Z" fill="none" stroke="url(#g)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="32" cy="18" r="3.5" fill="#00E5FF"/>
+    <circle cx="46" cy="32" r="3" fill="#7C5CFC"/>
+    <circle cx="32" cy="46" r="3" fill="#00E5FF"/>
+    <circle cx="18" cy="32" r="3" fill="#7C5CFC"/>
+    <line x1="32" y1="18" x2="46" y2="32" stroke="#00E5FF" stroke-width="1.5" opacity=".4"/>
+    <line x1="46" y1="32" x2="32" y2="46" stroke="#7C5CFC" stroke-width="1.5" opacity=".4"/>
+    <line x1="32" y1="46" x2="18" y2="32" stroke="#00E5FF" stroke-width="1.5" opacity=".4"/>
+    <line x1="18" y1="32" x2="32" y2="18" stroke="#7C5CFC" stroke-width="1.5" opacity=".4"/>
+    <circle cx="32" cy="32" r="5" fill="url(#g)"/>
+    <circle cx="32" cy="32" r="2" fill="#0B1930"/>
+    <circle cx="32" cy="6" r="1.5" fill="#00E5FF" opacity=".6"/>
+    <circle cx="56" cy="20" r="1.5" fill="#7C5CFC" opacity=".5"/>
+    <circle cx="56" cy="44" r="1.5" fill="#00E5FF" opacity=".5"/>
+    <circle cx="32" cy="58" r="1.5" fill="#7C5CFC" opacity=".6"/>
+    <circle cx="8" cy="44" r="1.5" fill="#00E5FF" opacity=".5"/>
+    <circle cx="8" cy="20" r="1.5" fill="#7C5CFC" opacity=".5"/>
+  </g>
+  <!-- Text -->
+  <text x="72" y="30" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="22" fill="#E2E8F0" letter-spacing="-0.5">
+    Actions<tspan fill="#00E5FF">Center</tspan>
+  </text>
+  <text x="72" y="48" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9.5" fill="#64748B" letter-spacing="1.5">
+    KHALIFA UNIVERSITY
+  </text>
+</svg>

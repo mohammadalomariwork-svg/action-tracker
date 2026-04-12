@@ -1,28 +1,45 @@
 using System.Globalization;
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Kpis.DTOs;
 using ActionTracker.Application.Features.Kpis.Interfaces;
+using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ActionTracker.Infrastructure.Services;
 
 public class KpiService : IKpiService
 {
-    private readonly AppDbContext        _context;
-    private readonly IUserLookupService  _userLookup;
-    private readonly ILogger<KpiService> _logger;
+    private readonly AppDbContext         _context;
+    private readonly IUserLookupService   _userLookup;
+    private readonly ILogger<KpiService>  _logger;
+    private readonly IEmailSender         _emailSender;
+    private readonly INotificationService _notificationService;
+    private readonly AppSettings          _appSettings;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public KpiService(
-        AppDbContext        context,
-        IUserLookupService  userLookup,
-        ILogger<KpiService> logger)
+        AppDbContext           context,
+        IUserLookupService    userLookup,
+        ILogger<KpiService>   logger,
+        IEmailSender          emailSender,
+        INotificationService  notificationService,
+        IOptions<AppSettings> appSettings,
+        IServiceScopeFactory  scopeFactory)
     {
-        _context    = context;
-        _userLookup = userLookup;
-        _logger     = logger;
+        _context             = context;
+        _userLookup          = userLookup;
+        _logger              = logger;
+        _emailSender         = emailSender;
+        _notificationService = notificationService;
+        _appSettings         = appSettings.Value;
+        _scopeFactory        = scopeFactory;
     }
 
     // -------------------------------------------------------------------------
@@ -199,6 +216,71 @@ public class KpiService : IKpiService
             _logger.LogInformation(
                 "Created KPI {Id} #{KpiNumber} for Objective {ObjectiveId}",
                 kpi.Id, kpiNumber, request.StrategicObjectiveId);
+
+            // Fire-and-forget email notification
+            var capturedKpi = kpi;
+            var capturedObjective = objective;
+            var capturedUserId = userId;
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+                try
+                {
+                    var creatorName = await _userLookup.GetDisplayNameAsync(capturedUserId, CancellationToken.None);
+                    var placeholders = new Dictionary<string, string>
+                    {
+                        ["KpiName"]           = capturedKpi.Name,
+                        ["ObjectiveName"]     = capturedObjective.Statement,
+                        ["ObjectiveCode"]     = capturedObjective.ObjectiveCode,
+                        ["CalculationMethod"] = capturedKpi.CalculationMethod ?? string.Empty,
+                        ["Period"]            = capturedKpi.Period.ToString(),
+                        ["CreatedBy"]         = creatorName ?? capturedUserId,
+                        ["ItemUrl"]           = $"{_appSettings.FrontendBaseUrl}/admin/kpis",
+                    };
+
+                    var creatorEmail = await db.Users
+                        .Where(u => u.Id == capturedUserId && u.IsActive)
+                        .Select(u => u.Email)
+                        .FirstOrDefaultAsync();
+
+                    if (creatorEmail is not null)
+                    {
+                        await emailSender.SendEmailAsync("Kpi.Created", placeholders,
+                            [creatorEmail], "Kpi", capturedKpi.Id, capturedUserId);
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogError(ex2, "Error sending email for Kpi.Created {Id}", capturedKpi.Id);
+                }
+
+                // In-app notification (self-notification for confirmation)
+                try
+                {
+                    var creatorName2 = await _userLookup.GetDisplayNameAsync(capturedUserId, CancellationToken.None);
+                    await notifService.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId               = capturedUserId,
+                        Title                = "KPI Created",
+                        Message              = $"{capturedKpi.Name} for {capturedObjective.Statement}",
+                        Type                 = "Kpi",
+                        ActionType           = "Created",
+                        RelatedEntityType    = "Kpi",
+                        RelatedEntityId      = capturedKpi.Id,
+                        Url                  = $"{_appSettings.FrontendBaseUrl}/admin/kpis",
+                        CreatedByUserId      = capturedUserId,
+                        CreatedByDisplayName = creatorName2,
+                    });
+                }
+                catch (Exception ex3)
+                {
+                    _logger.LogError(ex3, "Error creating notification for Kpi.Created {Id}", capturedKpi.Id);
+                }
+            });
 
             kpi.StrategicObjective = objective;
 

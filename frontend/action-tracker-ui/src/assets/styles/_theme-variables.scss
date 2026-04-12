@@ -1,0 +1,80 @@
+// ═══════════════════════════════════════════════════════════════════
+// THEME VARIABLES — CSS Custom Properties for Dark & Light themes
+// Short-name aliases used across all components
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Dark theme (default) ─────────────────────────────────────────
+[data-theme="dark"],
+:root {
+  --bg:    #0B1930;
+  --bg2:   #071224;
+  --sf:    rgba(255,255,255,0.04);
+  --sfh:   rgba(255,255,255,0.07);
+  --el:    rgba(255,255,255,0.06);
+  --inp:   rgba(255,255,255,0.05);
+  --inpf:  rgba(255,255,255,0.09);
+  --bd:    rgba(255,255,255,0.07);
+  --bdh:   rgba(255,255,255,0.14);
+  --t1:    #E2E8F0;
+  --t2:    #94A3B8;
+  --t3:    #64748B;
+  --nav:   rgba(11,25,48,0.88);
+  --csh:   0 2px 12px rgba(0,0,0,0.3);
+  --neon:  0 0 8px rgba(0,229,255,0.50), 0 0 24px rgba(0,229,255,0.25), 0 0 48px rgba(0,229,255,0.10);
+  --neon2: 0 0 12px rgba(0,229,255,0.70), 0 0 36px rgba(0,229,255,0.40), 0 0 72px rgba(0,229,255,0.15);
+  --accent:  #00E5FF;
+  --ar:      0,229,255;
+  --accent2: #7C5CFC;
+  --a2r:     124,92,252;
+  --scr:     rgba(255,255,255,0.12);
+  --drag-outline: rgba(0,229,255,0.35);
+}
+
+// ── Light theme ──────────────────────────────────────────────────
+[data-theme="light"] {
+  --bg:    #F2F4F8;
+  --bg2:   #E8EBF0;
+  --sf:    rgba(255,255,255,0.82);
+  --sfh:   rgba(255,255,255,0.95);
+  --el:    rgba(255,255,255,0.90);
+  --inp:   rgba(255,255,255,0.85);
+  --inpf:  rgba(255,255,255,1);
+  --bd:    rgba(0,0,0,0.06);
+  --bdh:   rgba(0,0,0,0.12);
+  --t1:    #0B1222;
+  --t2:    #4A5568;
+  --t3:    #94A3B8;
+  --nav:   rgba(255,255,255,0.85);
+  --csh:   0 2px 12px rgba(0,0,0,0.06);
+  --neon:  0 0 6px rgba(0,85,255,0.30), 0 0 18px rgba(0,85,255,0.15);
+  --neon2: 0 0 10px rgba(0,85,255,0.45), 0 0 28px rgba(0,85,255,0.25);
+  --accent:  #0055FF;
+  --ar:      0,85,255;
+  --accent2: #7C5CFC;
+  --a2r:     124,92,252;
+  --scr:     rgba(0,0,0,0.15);
+  --drag-outline: rgba(0,85,255,0.30);
+}
+
+// ── Static variables (same in both themes) ───────────────────────
+:root {
+  --font:   'Plus Jakarta Sans', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   24px;
+  --r-full: 9999px;
+  --ease:   cubic-bezier(0.4, 0, 0.2, 1);
+  --M:      44px;
+}
+
+// ── Responsive --M overrides ─────────────────────────────────────
+@media (max-width: 1024px) {
+  :root, [data-theme="dark"], [data-theme="light"] { --M: 28px; }
+}
+@media (max-width: 768px) {
+  :root, [data-theme="dark"], [data-theme="light"] { --M: 16px; }
+}
+@media (max-width: 480px) {
+  :root, [data-theme="dark"], [data-theme="light"] { --M: 8px; }
+}

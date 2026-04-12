@@ -95,9 +95,14 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { padding: 14, font: { size: 12 } },
+        labels: { padding: 14, font: { size: 12 }, color: '#cbd5e1' },
       },
       tooltip: {
+        backgroundColor: 'var(--el, #1e293b)',
+        borderColor: 'var(--bd, rgba(255,255,255,0.06))',
+        borderWidth: 1,
+        titleColor: 'var(--t1, #f1f5f9)',
+        bodyColor: 'var(--t1, #f1f5f9)',
         callbacks: {
           label: ctx => ` ${ctx.label}: ${ctx.parsed} items`,
         },
@@ -114,13 +119,13 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
       {
         label: 'Assigned',
         data: [],
-        backgroundColor: 'rgba(79, 70, 229, 0.75)',
+        backgroundColor: 'rgba(0, 229, 255, 0.65)',
         borderRadius: 4,
       },
       {
         label: 'Completed',
         data: [],
-        backgroundColor: 'rgba(5, 150, 105, 0.75)',
+        backgroundColor: 'rgba(34, 197, 94, 0.70)',
         borderRadius: 4,
       },
     ],
@@ -133,20 +138,25 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
     scales: {
       x: {
         beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 11 } },
-        grid: { color: 'rgba(0,0,0,0.05)' },
+        ticks: { stepSize: 1, font: { size: 11 }, color: '#94a3b8' },
+        grid: { color: 'rgba(0,229,255,0.06)' },
       },
       y: {
-        ticks: { font: { size: 11 } },
+        ticks: { font: { size: 11 }, color: '#94a3b8' },
         grid: { display: false },
       },
     },
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { padding: 14, font: { size: 12 } },
+        labels: { padding: 14, font: { size: 12 }, color: '#cbd5e1' },
       },
       tooltip: {
+        backgroundColor: 'var(--el, #1e293b)',
+        borderColor: 'var(--bd, rgba(255,255,255,0.06))',
+        borderWidth: 1,
+        titleColor: 'var(--t1, #f1f5f9)',
+        bodyColor: 'var(--t1, #f1f5f9)',
         callbacks: {
           label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}`,
         },
@@ -242,13 +252,13 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
         {
           label: 'Assigned',
           data:  wl.map(w => w.assignedCount),
-          backgroundColor: 'rgba(79, 70, 229, 0.75)',
+          backgroundColor: 'rgba(0, 229, 255, 0.65)',
           borderRadius: 4,
         },
         {
           label: 'Completed',
           data:  wl.map(w => w.completedCount),
-          backgroundColor: 'rgba(5, 150, 105, 0.75)',
+          backgroundColor: 'rgba(34, 197, 94, 0.70)',
           borderRadius: 4,
         },
       ],

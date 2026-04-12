@@ -1,0 +1,215 @@
+<div class="et-page">
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────────── -->
+  <app-admin-breadcrumb
+    [items]="[{ label: 'Admin Panel', route: '/admin' }, { label: 'Email Templates' }]"
+    class="mb-3 d-block"
+  />
+
+  <!-- ── Page header ─────────────────────────────────────────────────────────── -->
+  <app-page-header
+    title="Email Templates"
+    subtitle="Manage notification email templates and view sent email logs"
+    icon="bi bi-envelope-fill"
+  />
+
+  <!-- ── Tabs ────────────────────────────────────────────────────────────────── -->
+  <ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeTab() === 'templates'"
+        (click)="selectTab('templates')"
+      >
+        <i class="bi bi-file-earmark-code me-1"></i> Templates
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeTab() === 'logs'"
+        (click)="selectTab('logs')"
+      >
+        <i class="bi bi-clock-history me-1"></i> Email Logs
+      </button>
+    </li>
+  </ul>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 1: Templates                                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'templates') {
+    @if (loadingTemplates()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Template Key</th>
+              <th>Subject</th>
+              <th class="text-center">Active</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tpl of templates(); track tpl.id) {
+              <tr [class.table-secondary]="!tpl.isActive">
+                <td>
+                  <span class="fw-semibold" [class.text-muted]="!tpl.isActive">{{ tpl.name }}</span>
+                  @if (tpl.description) {
+                    <br><small class="text-muted">{{ tpl.description }}</small>
+                  }
+                </td>
+                <td><code>{{ tpl.templateKey }}</code></td>
+                <td>{{ truncate(tpl.subject, 60) }}</td>
+                <td class="text-center">
+                  <div class="form-check form-switch d-inline-block">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      [checked]="tpl.isActive"
+                      (change)="toggleActive(tpl)"
+                    />
+                  </div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-primary" (click)="openEdit(tpl.id)">
+                    <i class="bi bi-pencil-square me-1"></i> Edit
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">No templates found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 2: Email Logs                                                         -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'logs') {
+    <!-- Filters -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <select class="form-select" [ngModel]="logsFilterKey()" (ngModelChange)="logsFilterKey.set($event); applyLogsFilter()">
+          <option value="">All Template Keys</option>
+          @for (tpl of templates(); track tpl.id) {
+            <option [value]="tpl.templateKey">{{ tpl.templateKey }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [ngModel]="logsFilterStatus()" (ngModelChange)="logsFilterStatus.set($event); applyLogsFilter()">
+          <option value="">All Statuses</option>
+          <option value="Sent">Sent</option>
+          <option value="Failed">Failed</option>
+          <option value="Queued">Queued</option>
+        </select>
+      </div>
+    </div>
+
+    @if (loadingLogs()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Template Key</th>
+              <th>To Email</th>
+              <th>Subject</th>
+              <th>Sent At</th>
+              <th>Status</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of logs(); track log.id) {
+              <tr>
+                <td><code>{{ log.templateKey }}</code></td>
+                <td>{{ log.toEmail }}</td>
+                <td>{{ truncate(log.subject, 50) }}</td>
+                <td>{{ log.sentAt | date:'medium' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getStatusBadgeClass(log.status)">
+                    {{ log.status }}
+                  </span>
+                </td>
+                <td>
+                  @if (log.errorMessage) {
+                    <button
+                      class="btn btn-sm btn-link text-danger p-0"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      [attr.data-bs-target]="'#error-' + log.id"
+                    >
+                      View
+                    </button>
+                    <div [id]="'error-' + log.id" class="collapse">
+                      <small class="text-danger">{{ log.errorMessage }}</small>
+                    </div>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">No email logs found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (logsTotalPages() > 1) {
+        <nav class="d-flex justify-content-between align-items-center mt-3">
+          <small class="text-muted">
+            Page {{ logsPage() }} of {{ logsTotalPages() }} ({{ logsTotalCount() }} total)
+          </small>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="logsPage() <= 1">
+              <button class="page-link" (click)="goToLogsPage(logsPage() - 1)">&laquo;</button>
+            </li>
+            @for (p of [].constructor(logsTotalPages()); track $index) {
+              <li class="page-item" [class.active]="logsPage() === $index + 1">
+                <button class="page-link" (click)="goToLogsPage($index + 1)">{{ $index + 1 }}</button>
+              </li>
+            }
+            <li class="page-item" [class.disabled]="logsPage() >= logsTotalPages()">
+              <button class="page-link" (click)="goToLogsPage(logsPage() + 1)">&raquo;</button>
+            </li>
+          </ul>
+        </nav>
+      }
+    }
+  }
+
+  <!-- ── Edit modal ──────────────────────────────────────────────────────────── -->
+  @if (editTemplateId()) {
+    <app-email-template-edit
+      [templateId]="editTemplateId()!"
+      (saved)="onEditSaved()"
+      (closed)="onEditClosed()"
+    />
+  }
+
+</div>

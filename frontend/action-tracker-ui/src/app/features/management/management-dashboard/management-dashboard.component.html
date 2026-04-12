@@ -184,12 +184,12 @@
               <li class="risk-item" [class]="severityClass(item)"
                 [routerLink]="['/actions', item.id, 'edit']">
                 <div class="risk-item__top">
-                  <span class="risk-id">{{ item.actionId }}</span>
+                  <a class="risk-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
                   @if (item.isEscalated) {
                     <span class="escalation-badge">🚨 Escalated</span>
                   }
                 </div>
-                <p class="risk-title">{{ item.title }}</p>
+                <a class="wa-title text-decoration-none risk-title" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
                 <div class="risk-meta">
                   <span class="risk-assignee">
                     <span class="avatar-xs">{{ avatarInitial(item.assigneeName) }}</span>
@@ -282,10 +282,10 @@
                   style="cursor:pointer"
                 >
                   <td class="td-id">
-                    <span class="action-id">{{ item.actionId }}</span>
+                    <a class="action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a>
                   </td>
                   <td class="td-title">
-                    <span class="title-ellipsis" [title]="item.title">{{ item.title }}</span>
+                    <a class="wa-title text-decoration-none title-ellipsis" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                   </td>
                   <td>
                     <div class="assignee-cell">

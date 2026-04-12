@@ -2,13 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ActionTracker.Application.Features.Workspaces.Services;
 
@@ -21,14 +26,28 @@ public class WorkspaceService : IWorkspaceService
 {
     private readonly IAppDbContext _db;
     private readonly ILogger<WorkspaceService> _logger;
+    private readonly IEmailSender _emailSender;
+    private readonly INotificationService _notificationService;
+    private readonly AppSettings _appSettings;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     /// <summary>
     /// Initialises a new instance of <see cref="WorkspaceService"/>.
     /// </summary>
-    public WorkspaceService(IAppDbContext db, ILogger<WorkspaceService> logger)
+    public WorkspaceService(
+        IAppDbContext db,
+        ILogger<WorkspaceService> logger,
+        IEmailSender emailSender,
+        INotificationService notificationService,
+        IOptions<AppSettings> appSettings,
+        IServiceScopeFactory scopeFactory)
     {
-        _db     = db;
-        _logger = logger;
+        _db                  = db;
+        _logger              = logger;
+        _emailSender         = emailSender;
+        _notificationService = notificationService;
+        _appSettings         = appSettings.Value;
+        _scopeFactory        = scopeFactory;
     }
 
     // -------------------------------------------------------------------------
@@ -362,6 +381,68 @@ public class WorkspaceService : IWorkspaceService
 
             _logger.LogInformation("Workspace {WorkspaceId} created with {AdminCount} admin(s)",
                 workspace.Id, workspace.Admins.Count);
+
+            // Fire-and-forget email notification
+            var capturedWorkspace = workspace;
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var notifService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
+                try
+                {
+                    var placeholders = new Dictionary<string, string>
+                    {
+                        ["WorkspaceName"] = capturedWorkspace.Title,
+                        ["OrgUnit"]       = capturedWorkspace.OrganizationUnit,
+                        ["CreatedBy"]     = string.Empty,
+                        ["ItemUrl"]       = $"{_appSettings.FrontendBaseUrl}/workspaces/{capturedWorkspace.Id}",
+                    };
+
+                    var adminUserIds = capturedWorkspace.Admins.Select(a => a.AdminUserId).ToList();
+                    var adminEmails = await db.Users
+                        .Where(u => adminUserIds.Contains(u.Id) && u.IsActive && u.Email != null)
+                        .Select(u => u.Email!)
+                        .Distinct()
+                        .ToListAsync();
+
+                    if (adminEmails.Count > 0)
+                    {
+                        await emailSender.SendEmailAsync("Workspace.Created", placeholders,
+                            adminEmails, "Workspace", capturedWorkspace.Id);
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogError(ex2, "Error sending email for Workspace.Created {Id}", capturedWorkspace.Id);
+                }
+
+                // In-app notifications
+                try
+                {
+                    var url = $"{_appSettings.FrontendBaseUrl}/workspaces/{capturedWorkspace.Id}";
+                    var notifications = capturedWorkspace.Admins
+                        .Select(a => new CreateNotificationDto
+                        {
+                            UserId               = a.AdminUserId,
+                            Title                = "New Workspace",
+                            Message              = $"Workspace {capturedWorkspace.Title} has been created",
+                            Type                 = "Workspace",
+                            ActionType           = "Created",
+                            RelatedEntityType    = "Workspace",
+                            RelatedEntityId      = capturedWorkspace.Id,
+                            Url                  = url,
+                        }).ToList();
+                    if (notifications.Count > 0)
+                        await notifService.CreateBulkAsync(notifications);
+                }
+                catch (Exception ex3)
+                {
+                    _logger.LogError(ex3, "Error creating notifications for Workspace.Created {Id}", capturedWorkspace.Id);
+                }
+            });
 
             var responseDto = ToResponseDto(workspace);
             await EnrichAdminDtosAsync(responseDto.Admins);
