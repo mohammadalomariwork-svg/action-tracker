@@ -33,6 +33,26 @@
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
 
+        <!-- Section 0 — Workspace (shown when navigating from My Projects) -->
+        @if (needsWorkspaceSelector) {
+          <div class="pf-section">
+            <h6 class="pf-section-title"><i class="bi bi-collection me-1"></i>Workspace</h6>
+            <div class="mb-3">
+              <label for="pfWorkspace" class="form-label">Workspace <span class="text-danger">*</span></label>
+              <select id="pfWorkspace" class="form-select" formControlName="selectedWorkspaceId"
+                      [class.is-invalid]="isInvalid('selectedWorkspaceId')">
+                <option value="">Select a workspace...</option>
+                @for (ws of workspaces; track ws.id) {
+                  <option [value]="ws.id">{{ ws.title }} ({{ ws.organizationUnit }})</option>
+                }
+              </select>
+              @if (hasError('selectedWorkspaceId', 'required')) {
+                <div class="invalid-feedback">Workspace is required.</div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- Section 1 — Project Info -->
         <div class="pf-section">
           <h6 class="pf-section-title"><i class="bi bi-info-circle me-1"></i>Project Info</h6>

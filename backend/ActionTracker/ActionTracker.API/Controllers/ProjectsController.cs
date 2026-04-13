@@ -16,12 +16,18 @@ public class ProjectsController : ControllerBase
 {
     private readonly IProjectService _service;
     private readonly IOrgUnitScopeResolver _scopeResolver;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ProjectsController> _logger;
 
-    public ProjectsController(IProjectService service, IOrgUnitScopeResolver scopeResolver, ILogger<ProjectsController> logger)
+    public ProjectsController(
+        IProjectService service,
+        IOrgUnitScopeResolver scopeResolver,
+        IServiceScopeFactory scopeFactory,
+        ILogger<ProjectsController> logger)
     {
         _service       = service;
         _scopeResolver = scopeResolver;
+        _scopeFactory  = scopeFactory;
         _logger        = logger;
     }
 
@@ -72,6 +78,16 @@ public class ProjectsController : ControllerBase
             var created = await _service.CreateAsync(dto, userId, ct);
 
             _logger.LogInformation("Project {ProjectCode} created", created.ProjectCode);
+
+            // Fire-and-forget project creation notifications (new scope to avoid disposed DbContext)
+            var capturedId = created.Id;
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var wfService = scope.ServiceProvider.GetRequiredService<IProjectWorkflowService>();
+                try { await wfService.SendProjectCreatedNotificationsAsync(capturedId, userId); }
+                catch (Exception ex) { _logger.LogError(ex, "Error sending project creation notifications"); }
+            });
 
             return Created(string.Empty, ApiResponse<ProjectResponseDto>.Ok(created));
         }

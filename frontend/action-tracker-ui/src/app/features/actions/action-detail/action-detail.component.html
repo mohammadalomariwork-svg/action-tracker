@@ -12,6 +12,57 @@
 
   @if (!loading() && item(); as ai) {
 
+    <!-- ── Pending Workflow Requests Alert ────────────────── -->
+    @if (pendingRequests().length > 0 && canReviewWorkflow()) {
+      <div class="wf-alert wf-alert--warning mb-4">
+        <div class="wf-alert__icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="wf-alert__content">
+          <strong>{{ pendingRequests().length }} pending workflow request(s)</strong> require your review.
+          <div class="wf-alert__actions mt-2">
+            @for (req of pendingRequests(); track req.id) {
+              <div class="wf-alert__request">
+                <span class="badge bg-info text-dark me-1">{{ WORKFLOW_TYPE_LABELS[req.requestType] ?? req.requestType }}</span>
+                <span class="small">by {{ req.requestedByDisplayName }}</span>
+                <button class="btn btn-sm btn-success ms-2" (click)="openReviewDialog(req)">
+                  <i class="bi bi-check-lg"></i> Review
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Escalation Direction Panel ────────────────────── -->
+    @if (ai.isEscalated && (isCreator() || canReviewWorkflow())) {
+      <div class="wf-direction-panel mb-4">
+        <div class="wd-section-header">
+          <h5 class="mb-0"><i class="bi bi-compass me-2 text-warning"></i>Escalation Direction</h5>
+          @if (!showDirectionForm()) {
+            <button class="btn btn-sm btn-outline-primary ms-auto" (click)="showDirectionForm.set(true)">
+              <i class="bi bi-pencil me-1"></i>Give Direction
+            </button>
+          }
+        </div>
+        @if (showDirectionForm()) {
+          <div class="p-3">
+            <textarea
+              class="form-control mb-2"
+              rows="3"
+              placeholder="Provide direction for this escalated item..."
+              [(ngModel)]="directionText"
+            ></textarea>
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-sm btn-outline-secondary" (click)="showDirectionForm.set(false)">Cancel</button>
+              <button class="btn btn-sm btn-primary" [disabled]="!directionText.trim()" (click)="submitDirection()">
+                <i class="bi bi-send me-1"></i>Submit
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     <!-- ── Header card (merged) ──────────────────────────── -->
     <div class="wd-merged-header mb-4">
       <div class="wd-merged-header__title-row">
@@ -49,9 +100,16 @@
           <a [routerLink]="backRoute()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>{{ backLabel() }}
           </a>
-          <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
-            <i class="bi bi-pencil me-1"></i>Edit
-          </button>
+          @if (!ai.isEscalated && ai.statusCode !== ActionStatus.Done) {
+            <button class="btn btn-warning btn-sm" (click)="showEscalateDialog.set(true)">
+              <i class="bi bi-exclamation-triangle me-1"></i>Escalate
+            </button>
+          }
+          @if (ai.statusCode !== ActionStatus.Done) {
+            <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+          }
         </div>
       </div>
     </div>
@@ -187,6 +245,61 @@
       }
     </div>
 
+    <!-- ── Workflow Request History Section ────────────── -->
+    <div class="wd-section mb-4">
+      <div class="wd-section-header d-flex align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-clock-history me-2 text-info"></i>Workflow Requests
+        </h5>
+        <button class="btn btn-sm btn-link ms-auto" (click)="showWorkflowHistory.set(!showWorkflowHistory())">
+          {{ showWorkflowHistory() ? 'Hide' : 'Show' }} ({{ workflowRequests().length }})
+        </button>
+      </div>
+
+      @if (showWorkflowHistory()) {
+        @if (workflowRequests().length === 0) {
+          <p class="text-muted text-center py-3 mb-0">No workflow requests recorded.</p>
+        }
+        @for (req of workflowRequests(); track req.id) {
+          <div class="wf-request-entry">
+            <div class="wf-request-entry__header">
+              <span class="badge" [ngClass]="WORKFLOW_STATUS_CONFIG[req.status]?.cssClass ?? 'bg-secondary'">
+                {{ WORKFLOW_STATUS_CONFIG[req.status]?.label ?? req.status }}
+              </span>
+              <span class="badge bg-info text-dark">{{ WORKFLOW_TYPE_LABELS[req.requestType] ?? req.requestType }}</span>
+              <span class="fw-semibold small ms-2">{{ req.requestedByDisplayName }}</span>
+              <span class="text-muted small ms-auto">{{ req.createdAt | date:'MMM d, y, h:mm a' }}</span>
+            </div>
+            <div class="wf-request-entry__body small">{{ req.reason }}</div>
+            @if (req.requestType === 'DateChangeRequest') {
+              <div class="wf-request-entry__detail small text-muted">
+                Requested: {{ req.requestedNewStartDate ? (req.requestedNewStartDate | date:'MMM d, y') : 'N/A' }}
+                &rarr; {{ req.requestedNewDueDate ? (req.requestedNewDueDate | date:'MMM d, y') : 'N/A' }}
+              </div>
+            }
+            @if (req.requestType === 'StatusChangeRequest') {
+              <div class="wf-request-entry__detail small text-muted">
+                {{ req.currentStatus }} &rarr; {{ req.requestedNewStatus }}
+              </div>
+            }
+            @if (req.reviewComment) {
+              <div class="wf-request-entry__review small">
+                <i class="bi bi-chat-left-text me-1"></i>
+                <strong>{{ req.reviewedByDisplayName }}:</strong> {{ req.reviewComment }}
+              </div>
+            }
+            @if (req.status === 'Pending' && canReviewWorkflow()) {
+              <div class="wf-request-entry__actions mt-1">
+                <button class="btn btn-sm btn-success" (click)="openReviewDialog(req)">
+                  <i class="bi bi-check-lg me-1"></i>Review
+                </button>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+
     <!-- ── Comments Section ───────────────────────────── -->
     <div class="mb-4">
       <app-comments-section
@@ -202,6 +315,14 @@
         [entityId]="ai.id"
       />
     </div>
+
+    <!-- ── Workflow Review Dialog ─────────────────────── -->
+    <app-workflow-review-dialog
+      [request]="selectedRequest()"
+      [visible]="showReviewDialog()"
+      (reviewed)="onWorkflowReviewed($event)"
+      (closed)="onReviewDialogClosed()"
+    />
   }
 
   @if (!loading() && !item()) {
@@ -354,63 +475,6 @@
         />
       </div>
 
-      <!-- Escalated -->
-      <div class="mb-3">
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            id="editActionEscalated"
-            [(ngModel)]="editForm.isEscalated"
-          />
-          <label class="form-check-label" for="editActionEscalated">Escalated</label>
-        </div>
-      </div>
-
-      <!-- Escalation Explanation -->
-      @if (editForm.isEscalated) {
-        <div class="mb-3">
-          <label class="form-label">
-            Escalation Explanation <span class="text-danger">*</span>
-          </label>
-          @if (latestEscalation) {
-            <div class="text-muted small mb-2">
-              <i class="bi bi-person me-1"></i>Last escalated by
-              <strong>{{ latestEscalation.escalatedByName || 'Unknown' }}</strong>
-              on {{ latestEscalation.createdAt | date:'MMM d, y h:mm a' }}
-            </div>
-          }
-          <textarea
-            class="form-control"
-            [(ngModel)]="editForm.escalationExplanation"
-            placeholder="Provide the reason for escalation…"
-            rows="3"
-            maxlength="2000"
-          ></textarea>
-          @if (!editForm.escalationExplanation?.trim()) {
-            <small class="text-danger">Escalation explanation is required.</small>
-          }
-        </div>
-      }
-
-      <!-- Escalation History -->
-      @if (editingEscalations.length > 0) {
-        <div class="mb-4">
-          <label class="form-label text-muted"><i class="bi bi-clock-history me-1"></i>Escalation History</label>
-          <div class="wa-escalation-history">
-            @for (esc of editingEscalations; track esc.id) {
-              <div class="wa-escalation-entry">
-                <div class="wa-escalation-entry__header">
-                  <span class="fw-semibold small">{{ esc.escalatedByName || 'Unknown' }}</span>
-                  <span class="text-muted small">{{ esc.createdAt | date:'MMM d, y h:mm a' }}</span>
-                </div>
-                <div class="wa-escalation-entry__body small">{{ esc.explanation }}</div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
       <!-- Actions -->
       <div class="d-flex gap-2 justify-content-end border-top pt-3">
         <button
@@ -423,7 +487,7 @@
           type="button"
           class="btn btn-primary d-inline-flex align-items-center gap-2"
           (click)="saveEdit()"
-          [disabled]="saving || !editForm.title.trim() || editForm.assigneeIds.length === 0 || !editForm.dueDate || (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate) || (editForm.isEscalated && !editForm.escalationExplanation?.trim())"
+          [disabled]="saving || !editForm.title.trim() || editForm.assigneeIds.length === 0 || !editForm.dueDate || (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate)"
         >
           @if (saving) {
             <span class="spinner-border spinner-border-sm" role="status"></span>
@@ -440,4 +504,47 @@
 <!-- Backdrop -->
 @if (showEditForm) {
   <div class="offcanvas-backdrop fade show" (click)="cancelEditForm()"></div>
+}
+
+<!-- ════════════════════════════════════════════════════════════
+     Escalation Dialog
+     ════════════════════════════════════════════════════════════ -->
+@if (showEscalateDialog()) {
+  <div class="modal-backdrop" (click)="showEscalateDialog.set(false)"></div>
+  <div class="modal-dialog-wrapper">
+    <div class="escalate-modal">
+      <div class="escalate-modal__header">
+        <h5 class="escalate-modal__title">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Escalate Action Item
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="showEscalateDialog.set(false)"></button>
+      </div>
+      <div class="escalate-modal__body">
+        <p class="text-muted small mb-3">
+          Escalating will notify the action item creator and the direct manager(s) of the assignee(s).
+        </p>
+        <div class="mb-3">
+          <label class="form-label">Reason <span class="text-danger">*</span></label>
+          <textarea
+            class="form-control"
+            rows="3"
+            placeholder="Explain why this action item needs to be escalated…"
+            [(ngModel)]="escalateReason"
+          ></textarea>
+        </div>
+      </div>
+      <div class="escalate-modal__footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="showEscalateDialog.set(false)">Cancel</button>
+        <button type="button" class="btn btn-warning btn-sm"
+                [disabled]="!escalateReason.trim() || escalating()"
+                (click)="submitEscalation()">
+          @if (escalating()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>Escalating…
+          } @else {
+            <i class="bi bi-exclamation-triangle me-1"></i>Escalate
+          }
+        </button>
+      </div>
+    </div>
+  </div>
 }

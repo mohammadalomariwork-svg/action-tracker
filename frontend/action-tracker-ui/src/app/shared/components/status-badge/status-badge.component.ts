@@ -9,6 +9,8 @@ const STATUS_CONFIG: Record<ActionStatus, BadgeConfig> = {
   [ActionStatus.InReview]:  { label: 'In Review',    cssClass: 'badge--purple' },
   [ActionStatus.Done]:      { label: 'Done',         cssClass: 'badge--green'  },
   [ActionStatus.Overdue]:   { label: 'Overdue',      cssClass: 'badge--red'    },
+  [ActionStatus.Deferred]:  { label: 'Deferred',     cssClass: 'badge--secondary' },
+  [ActionStatus.Cancelled]: { label: 'Cancelled',    cssClass: 'badge--dark'  },
 };
 
 @Component({

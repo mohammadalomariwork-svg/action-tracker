@@ -1,0 +1,119 @@
+@if (visible() && request(); as req) {
+  <div class="wrd-backdrop" (click)="close()"></div>
+  <div class="wrd-dialog">
+    <div class="wrd-header">
+      <h5 class="wrd-title">
+        <i class="bi bi-clipboard-check me-2 text-primary"></i>
+        Review Workflow Request
+      </h5>
+      <button type="button" class="btn-close" (click)="close()"></button>
+    </div>
+
+    <div class="wrd-body">
+      <!-- Request Info -->
+      <div class="wrd-info-grid">
+        <div class="wrd-info-item">
+          <span class="wrd-info-label">Type</span>
+          <span class="wrd-info-value">
+            <span class="badge bg-info text-dark">{{ WORKFLOW_TYPE_LABELS[req.requestType] || req.requestType }}</span>
+          </span>
+        </div>
+        <div class="wrd-info-item">
+          <span class="wrd-info-label">Action Item</span>
+          <span class="wrd-info-value fw-semibold">{{ req.actionItemCode }} - {{ req.actionItemTitle }}</span>
+        </div>
+        <div class="wrd-info-item">
+          <span class="wrd-info-label">Requested By</span>
+          <span class="wrd-info-value">{{ req.requestedByDisplayName }}</span>
+        </div>
+        <div class="wrd-info-item">
+          <span class="wrd-info-label">Requested At</span>
+          <span class="wrd-info-value">{{ req.createdAt | date:'MMM d, y, h:mm a' }}</span>
+        </div>
+
+        @if (req.requestType === 'DateChangeRequest') {
+          <div class="wrd-info-item">
+            <span class="wrd-info-label">Current Dates</span>
+            <span class="wrd-info-value">
+              {{ req.currentStartDate ? (req.currentStartDate | date:'MMM d, y') : 'No start date' }}
+              &rarr;
+              {{ req.currentDueDate | date:'MMM d, y' }}
+            </span>
+          </div>
+          <div class="wrd-info-item">
+            <span class="wrd-info-label">Requested Dates</span>
+            <span class="wrd-info-value text-primary fw-semibold">
+              {{ req.requestedNewStartDate ? (req.requestedNewStartDate | date:'MMM d, y') : 'No change' }}
+              &rarr;
+              {{ req.requestedNewDueDate ? (req.requestedNewDueDate | date:'MMM d, y') : 'No change' }}
+            </span>
+          </div>
+        }
+
+        @if (req.requestType === 'StatusChangeRequest') {
+          <div class="wrd-info-item">
+            <span class="wrd-info-label">Current Status</span>
+            <span class="wrd-info-value">{{ req.currentStatus }}</span>
+          </div>
+          <div class="wrd-info-item">
+            <span class="wrd-info-label">Requested Status</span>
+            <span class="wrd-info-value text-primary fw-semibold">{{ req.requestedNewStatus }}</span>
+          </div>
+        }
+
+        <div class="wrd-info-item wrd-info-item--full">
+          <span class="wrd-info-label">Reason</span>
+          <span class="wrd-info-value text-pre-wrap">{{ req.reason }}</span>
+        </div>
+      </div>
+
+      <!-- Review Comment -->
+      <div class="mt-3">
+        <label class="form-label fw-semibold">
+          Review Comment
+          <span class="text-muted fw-normal">(required for rejection)</span>
+        </label>
+        <textarea
+          class="form-control"
+          rows="3"
+          placeholder="Add your review comment..."
+          [ngModel]="reviewComment()"
+          (ngModelChange)="reviewComment.set($event)"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="wrd-footer">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        (click)="close()"
+        [disabled]="submitting()"
+      >Cancel</button>
+
+      <button
+        type="button"
+        class="btn btn-danger"
+        (click)="reject()"
+        [disabled]="submitting() || !reviewComment().trim()"
+      >
+        @if (submitting()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        <i class="bi bi-x-circle me-1"></i>Reject
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="approve()"
+        [disabled]="submitting()"
+      >
+        @if (submitting()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        <i class="bi bi-check-circle me-1"></i>Approve
+      </button>
+    </div>
+  </div>
+}

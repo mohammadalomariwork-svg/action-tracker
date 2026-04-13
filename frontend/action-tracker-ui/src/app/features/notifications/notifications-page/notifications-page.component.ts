@@ -33,14 +33,22 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  Created:       '#0d6efd',
-  Completed:     '#198754',
-  Overdue:       '#dc3545',
-  Escalated:     '#fd7e14',
-  StatusChanged: '#6f42c1',
-  Assigned:      '#20c997',
-  Updated:       '#0d6efd',
-  Deleted:       '#6c757d',
+  Created:                '#0d6efd',
+  Completed:              '#198754',
+  Overdue:                '#dc3545',
+  Escalated:              '#fd7e14',
+  StatusChanged:          '#6f42c1',
+  Assigned:               '#20c997',
+  Updated:                '#0d6efd',
+  Deleted:                '#6c757d',
+  DateChangeRequested:    '#17a2b8',
+  StatusChangeRequested:  '#17a2b8',
+  DateChangeApproved:     '#198754',
+  StatusChangeApproved:   '#198754',
+  DateChangeRejected:     '#dc3545',
+  StatusChangeRejected:   '#dc3545',
+  ActionItemEscalated:    '#fd7e14',
+  EscalationDirectionGiven: '#0dcaf0',
 };
 
 @Component({
@@ -147,6 +155,13 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
 
   // ── Actions ──────────────────────────────────────────────
 
+  private readonly WORKFLOW_ACTIONS = new Set([
+    'DateChangeRequested', 'StatusChangeRequested',
+    'DateChangeApproved', 'StatusChangeApproved',
+    'DateChangeRejected', 'StatusChangeRejected',
+    'ActionItemEscalated', 'EscalationDirectionGiven',
+  ]);
+
   clickNotification(n: AppNotification): void {
     if (!n.isRead) {
       this.service.markAsRead(n.id).subscribe();
@@ -155,6 +170,13 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
     }
     if (n.url) {
       this.router.navigateByUrl(n.url);
+    } else if (this.WORKFLOW_ACTIONS.has(n.actionType)) {
+      // Route to approvals page for workflow notifications, or to the action item
+      if (n.relatedEntityId) {
+        this.router.navigate(['/actions', n.relatedEntityId, 'view']);
+      } else {
+        this.router.navigate(['/approvals']);
+      }
     }
   }
 

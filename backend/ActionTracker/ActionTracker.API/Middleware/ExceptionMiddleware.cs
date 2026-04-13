@@ -36,7 +36,7 @@ public class ExceptionMiddleware : IMiddleware
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized,          "Unauthorized"),
             ArgumentException           => (StatusCodes.Status400BadRequest,            "Bad Request"),
             KeyNotFoundException        => (StatusCodes.Status404NotFound,              "Not Found"),
-            InvalidOperationException   => (StatusCodes.Status503ServiceUnavailable,    "Service Unavailable"),
+            InvalidOperationException   => (StatusCodes.Status422UnprocessableEntity,   "Unprocessable Entity"),
             _                           => (StatusCodes.Status500InternalServerError,   "Internal Server Error"),
         };
 

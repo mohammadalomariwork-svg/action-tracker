@@ -1,0 +1,507 @@
+<div class="approvals-page">
+
+  <app-breadcrumb [items]="[{ label: 'My Approvals' }]" />
+
+  <app-page-header
+    title="My Approvals"
+    subtitle="Review and manage workflow requests."
+    icon="bi bi-clipboard-check"
+  />
+
+  <div class="approvals-body">
+
+    <!-- Stat Cards -->
+    <div class="stats-bar">
+
+      <div class="stat-card stat-card--warning">
+        <div class="stat-icon-wrap stat-icon-wrap--orange">
+          <i class="bi bi-calendar-event"></i>
+        </div>
+        <div class="stat-text">
+          @if (summaryLoading()) {
+            <span class="stat-value stat-value--loading">&mdash;</span>
+          } @else {
+            <span class="stat-value">{{ summary().pendingDateChanges }}</span>
+          }
+          <span class="stat-label">Pending Date Changes</span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--blue">
+        <div class="stat-icon-wrap stat-icon-wrap--indigo">
+          <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div class="stat-text">
+          @if (summaryLoading()) {
+            <span class="stat-value stat-value--loading">&mdash;</span>
+          } @else {
+            <span class="stat-value">{{ summary().pendingStatusChanges }}</span>
+          }
+          <span class="stat-label">Pending Status Changes</span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--total">
+        <div class="stat-icon-wrap stat-icon-wrap--blue">
+          <i class="bi bi-inbox"></i>
+        </div>
+        <div class="stat-text">
+          @if (summaryLoading()) {
+            <span class="stat-value stat-value--loading">&mdash;</span>
+          } @else {
+            <span class="stat-value">{{ summary().totalPending }}</span>
+          }
+          <span class="stat-label">Total Pending</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tab Buttons -->
+    <div class="tab-bar">
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'pending'"
+        (click)="switchTab('pending')">
+        <i class="bi bi-hourglass-split"></i>
+        Pending Reviews
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'my'"
+        (click)="switchTab('my')">
+        <i class="bi bi-send"></i>
+        My Requests
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'projects'"
+        (click)="switchTab('projects')">
+        <i class="bi bi-kanban"></i>
+        Project Approvals
+        @if (projectPendingCount() > 0) {
+          <span class="badge bg-warning text-dark ms-1">{{ projectPendingCount() }}</span>
+        }
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Loading requests...</span>
+      </div>
+    }
+
+    <!-- Pending Reviews Tab -->
+    @if (activeTab() === 'pending' && !isLoading()) {
+      @if (pendingReviews().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-check-circle"></i>
+          <h4>No pending reviews</h4>
+          <p>You have no workflow requests awaiting your review.</p>
+        </div>
+      } @else {
+        <div class="request-list">
+          @for (request of pendingReviews(); track trackById($index, request)) {
+            <div class="request-card">
+              <div class="request-header">
+                <div class="request-title-row">
+                  <a [routerLink]="['/actions', request.actionItemId, 'view']" class="request-code">
+                    {{ request.actionItemCode }}
+                  </a>
+                  <span class="request-title">{{ request.actionItemTitle }}</span>
+                </div>
+                <div class="request-badges">
+                  <span class="badge" [ngClass]="getStatusConfig(request.status).cssClass">
+                    {{ getStatusConfig(request.status).label }}
+                  </span>
+                  <span class="badge bg-info text-dark">
+                    {{ getTypeLabel(request.requestType) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="request-body">
+                <div class="request-meta">
+                  <span class="meta-item">
+                    <i class="bi bi-person"></i>
+                    {{ request.requestedByDisplayName }}
+                  </span>
+                  <span class="meta-item">
+                    <i class="bi bi-clock"></i>
+                    {{ formatTime(request.createdAt) }}
+                  </span>
+                </div>
+
+                <div class="request-details">
+                  @if (request.requestType === 'DateChangeRequest') {
+                    <div class="detail-row">
+                      <span class="detail-label">Current Due Date:</span>
+                      <span class="detail-value">{{ request.currentDueDate | date:'mediumDate' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Requested Due Date:</span>
+                      <span class="detail-value detail-value--highlight">{{ request.requestedNewDueDate | date:'mediumDate' }}</span>
+                    </div>
+                    @if (request.requestedNewStartDate) {
+                      <div class="detail-row">
+                        <span class="detail-label">Requested Start Date:</span>
+                        <span class="detail-value detail-value--highlight">{{ request.requestedNewStartDate | date:'mediumDate' }}</span>
+                      </div>
+                    }
+                  }
+                  @if (request.requestType === 'StatusChangeRequest') {
+                    <div class="detail-row">
+                      <span class="detail-label">Current Status:</span>
+                      <span class="detail-value">{{ request.currentStatus }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Requested Status:</span>
+                      <span class="detail-value detail-value--highlight">{{ request.requestedNewStatus }}</span>
+                    </div>
+                  }
+                </div>
+
+                @if (request.reason) {
+                  <div class="request-reason">
+                    <strong>Reason:</strong> {{ request.reason }}
+                  </div>
+                }
+              </div>
+
+              <div class="request-actions">
+                <button class="btn btn-approve" (click)="openReview(request, true)">
+                  <i class="bi bi-check-lg"></i> Approve
+                </button>
+                <button class="btn btn-reject" (click)="openReview(request, false)">
+                  <i class="bi bi-x-lg"></i> Reject
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- My Requests Tab -->
+    @if (activeTab() === 'my' && !isLoading()) {
+      @if (myRequests().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-send"></i>
+          <h4>No requests submitted</h4>
+          <p>You have not submitted any workflow requests yet.</p>
+        </div>
+      } @else {
+        <div class="request-list">
+          @for (request of myRequests(); track trackById($index, request)) {
+            <div class="request-card">
+              <div class="request-header">
+                <div class="request-title-row">
+                  <a [routerLink]="['/actions', request.actionItemId, 'view']" class="request-code">
+                    {{ request.actionItemCode }}
+                  </a>
+                  <span class="request-title">{{ request.actionItemTitle }}</span>
+                </div>
+                <div class="request-badges">
+                  <span class="badge" [ngClass]="getStatusConfig(request.status).cssClass">
+                    {{ getStatusConfig(request.status).label }}
+                  </span>
+                  <span class="badge bg-info text-dark">
+                    {{ getTypeLabel(request.requestType) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="request-body">
+                <div class="request-meta">
+                  <span class="meta-item">
+                    <i class="bi bi-clock"></i>
+                    Submitted {{ formatTime(request.createdAt) }}
+                  </span>
+                  @if (request.reviewedByDisplayName) {
+                    <span class="meta-item">
+                      <i class="bi bi-person-check"></i>
+                      Reviewed by {{ request.reviewedByDisplayName }}
+                    </span>
+                  }
+                  @if (request.reviewedAt) {
+                    <span class="meta-item">
+                      <i class="bi bi-calendar-check"></i>
+                      Reviewed {{ formatTime(request.reviewedAt) }}
+                    </span>
+                  }
+                </div>
+
+                <div class="request-details">
+                  @if (request.requestType === 'DateChangeRequest') {
+                    <div class="detail-row">
+                      <span class="detail-label">Current Due Date:</span>
+                      <span class="detail-value">{{ request.currentDueDate | date:'mediumDate' }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Requested Due Date:</span>
+                      <span class="detail-value detail-value--highlight">{{ request.requestedNewDueDate | date:'mediumDate' }}</span>
+                    </div>
+                  }
+                  @if (request.requestType === 'StatusChangeRequest') {
+                    <div class="detail-row">
+                      <span class="detail-label">Current Status:</span>
+                      <span class="detail-value">{{ request.currentStatus }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Requested Status:</span>
+                      <span class="detail-value detail-value--highlight">{{ request.requestedNewStatus }}</span>
+                    </div>
+                  }
+                </div>
+
+                @if (request.reason) {
+                  <div class="request-reason">
+                    <strong>Reason:</strong> {{ request.reason }}
+                  </div>
+                }
+
+                @if (request.reviewComment) {
+                  <div class="request-reason review-comment">
+                    <strong>Review Comment:</strong> {{ request.reviewComment }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- Project Approvals Tab -->
+    @if (activeTab() === 'projects') {
+      <div class="mt-3">
+        <!-- Pending Project Reviews -->
+        <h5 class="mb-3"><i class="bi bi-hourglass-split me-2"></i>Pending Project Reviews</h5>
+        @if (projectPendingReviews().length === 0) {
+          <div class="empty-state mb-4">
+            <i class="bi bi-check-circle"></i>
+            <h4>No pending project reviews</h4>
+            <p>No projects are awaiting your approval.</p>
+          </div>
+        } @else {
+          <div class="request-list mb-4">
+            @for (req of projectPendingReviews(); track req.id) {
+              <div class="request-card">
+                <div class="request-card__header">
+                  <div class="request-card__title">
+                    <a [routerLink]="['/projects', req.projectId]">{{ req.projectCode }} — {{ req.projectName }}</a>
+                  </div>
+                  <span [class]="projectApprovalStatusClass(req.status)">{{ req.status }}</span>
+                </div>
+                <div class="request-card__body">
+                  <div class="request-card__meta">
+                    <span><strong>Requested by:</strong> {{ req.requestedByDisplayName }}</span>
+                    <span><strong>Reason:</strong> {{ req.reason }}</span>
+                    <span><strong>Submitted:</strong> {{ formatTime(req.createdAt) }}</span>
+                  </div>
+                </div>
+                <div class="request-card__actions">
+                  <button class="btn btn-success btn-sm" (click)="openProjectReview(req, true)">
+                    <i class="bi bi-check-lg me-1"></i>Approve
+                  </button>
+                  <button class="btn btn-danger btn-sm" (click)="openProjectReview(req, false)">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- My Project Requests -->
+        <h5 class="mb-3"><i class="bi bi-send me-2"></i>My Project Requests</h5>
+        @if (projectMyRequests().length === 0) {
+          <div class="empty-state">
+            <i class="bi bi-folder2-open"></i>
+            <h4>No project requests</h4>
+            <p>You haven't submitted any project approval requests.</p>
+          </div>
+        } @else {
+          <div class="request-list">
+            @for (req of projectMyRequests(); track req.id) {
+              <div class="request-card">
+                <div class="request-card__header">
+                  <div class="request-card__title">
+                    <a [routerLink]="['/projects', req.projectId]">{{ req.projectCode }} — {{ req.projectName }}</a>
+                  </div>
+                  <span [class]="projectApprovalStatusClass(req.status)">{{ req.status }}</span>
+                </div>
+                <div class="request-card__body">
+                  <div class="request-card__meta">
+                    <span><strong>Reason:</strong> {{ req.reason }}</span>
+                    @if (req.reviewedByDisplayName) {
+                      <span><strong>Reviewed by:</strong> {{ req.reviewedByDisplayName }}</span>
+                    }
+                    @if (req.reviewComment) {
+                      <span><strong>Comment:</strong> {{ req.reviewComment }}</span>
+                    }
+                    <span><strong>Submitted:</strong> {{ formatTime(req.createdAt) }}</span>
+                    @if (req.reviewedAt) {
+                      <span><strong>Reviewed:</strong> {{ formatTime(req.reviewedAt) }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Project Review Modal -->
+    @if (showProjectReviewModal()) {
+      <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ isProjectApproving() ? 'Approve' : 'Reject' }} Project</h5>
+              <button type="button" class="btn-close" (click)="closeProjectReviewModal()"></button>
+            </div>
+            <div class="modal-body">
+              @if (selectedProjectRequest(); as req) {
+                <p><strong>Project:</strong> {{ req.projectCode }} — {{ req.projectName }}</p>
+                <p><strong>Reason:</strong> {{ req.reason }}</p>
+              }
+              <textarea class="form-control" rows="3" [ngModel]="projectReviewComment()" (ngModelChange)="projectReviewComment.set($event)" [placeholder]="isProjectApproving() ? 'Comment (optional)' : 'Reason for rejection (required)'" maxlength="2000"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeProjectReviewModal()">Cancel</button>
+              <button [class]="isProjectApproving() ? 'btn btn-success' : 'btn btn-danger'" (click)="submitProjectReview()" [disabled]="isProjectSubmitting() || (!isProjectApproving() && !projectReviewComment())">
+                @if (isProjectSubmitting()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                {{ isProjectApproving() ? 'Approve' : 'Reject' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Pagination -->
+    @if (!isLoading() && totalCount() > 0) {
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          Showing {{ showingFrom() }}&ndash;{{ showingTo() }} of {{ totalCount() }}
+        </div>
+
+        <div class="pagination-controls">
+          <label class="page-size-label">
+            Rows
+            <select
+              class="page-size-select"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeChange($event)">
+              @for (opt of PAGE_SIZE_OPTIONS; track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
+            </select>
+          </label>
+
+          <div class="page-nav">
+            <button
+              class="btn btn-icon"
+              [disabled]="page() <= 1"
+              (click)="prevPage()">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="page-indicator">{{ page() }} / {{ totalPages() }}</span>
+            <button
+              class="btn btn-icon"
+              [disabled]="page() >= totalPages()"
+              (click)="nextPage()">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>
+
+<!-- Review Modal (Bootstrap 5) -->
+@if (showReviewModal()) {
+  <div class="modal-backdrop" (click)="closeReviewModal()"></div>
+  <div class="modal-dialog-wrapper">
+    <div class="review-modal">
+      <div class="review-modal__header">
+        <h5 class="review-modal__title">
+          @if (isApproving()) {
+            <i class="bi bi-check-circle text-success"></i> Approve Request
+          } @else {
+            <i class="bi bi-x-circle text-danger"></i> Reject Request
+          }
+        </h5>
+        <button class="btn-close" (click)="closeReviewModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="review-modal__body">
+        @if (selectedRequest(); as req) {
+          <div class="review-summary">
+            <div class="review-summary__item">
+              <span class="review-summary__label">Action Item</span>
+              <span class="review-summary__value">{{ req.actionItemCode }} &mdash; {{ req.actionItemTitle }}</span>
+            </div>
+            <div class="review-summary__item">
+              <span class="review-summary__label">Type</span>
+              <span class="review-summary__value">{{ getTypeLabel(req.requestType) }}</span>
+            </div>
+            <div class="review-summary__item">
+              <span class="review-summary__label">Requested By</span>
+              <span class="review-summary__value">{{ req.requestedByDisplayName }}</span>
+            </div>
+            <div class="review-summary__item">
+              <span class="review-summary__label">Reason</span>
+              <span class="review-summary__value">{{ req.reason || 'No reason provided' }}</span>
+            </div>
+          </div>
+        }
+
+        <div class="review-comment-field">
+          <label for="reviewComment" class="form-label">Comment (optional)</label>
+          <textarea
+            id="reviewComment"
+            class="form-control"
+            rows="3"
+            [placeholder]="isApproving() ? 'Add an approval note...' : 'Reason for rejection...'"
+            [ngModel]="reviewComment()"
+            (ngModelChange)="reviewComment.set($event)">
+          </textarea>
+        </div>
+      </div>
+
+      <div class="review-modal__footer">
+        <button class="btn btn-cancel" (click)="closeReviewModal()">Cancel</button>
+        @if (isApproving()) {
+          <button
+            class="btn btn-approve"
+            [disabled]="isSubmitting()"
+            (click)="submitReview()">
+            @if (isSubmitting()) {
+              <span class="spinner-sm"></span>
+            }
+            <i class="bi bi-check-lg"></i> Approve
+          </button>
+        } @else {
+          <button
+            class="btn btn-reject"
+            [disabled]="isSubmitting()"
+            (click)="submitReview()">
+            @if (isSubmitting()) {
+              <span class="spinner-sm"></span>
+            }
+            <i class="bi bi-x-lg"></i> Reject
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

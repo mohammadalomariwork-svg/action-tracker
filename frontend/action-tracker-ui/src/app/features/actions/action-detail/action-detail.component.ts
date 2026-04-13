@@ -8,15 +8,24 @@ import { FormsModule } from '@angular/forms';
 
 import { ActionItemService }     from '../../../core/services/action-item.service';
 import { ToastService }          from '../../../core/services/toast.service';
+import { AuthService }           from '../../../core/services/auth.service';
+import { WorkflowService }       from '../../../services/workflow.service';
 
 import {
   ActionItem, ActionItemCreate, ActionStatus, ActionPriority,
   AssignableUser, EscalationInfo,
 } from '../../../core/models/action-item.model';
+import {
+  WorkflowRequest,
+  ReviewWorkflowRequest,
+  WORKFLOW_STATUS_CONFIG,
+  WORKFLOW_TYPE_LABELS,
+} from '../../../models/workflow.model';
 
 import { CommentsSectionComponent }  from '../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../shared/components/documents-section/documents-section.component';
 import { BreadcrumbComponent }       from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { WorkflowReviewDialogComponent } from '../../../shared/components/workflow-review-dialog/workflow-review-dialog.component';
 
 interface EditFormData {
   title: string;
@@ -38,18 +47,37 @@ interface EditFormData {
   imports: [
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
-    BreadcrumbComponent,
+    BreadcrumbComponent, WorkflowReviewDialogComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',
 })
 export class ActionDetailComponent implements OnInit {
-  private readonly route      = inject(ActivatedRoute);
-  private readonly actionSvc  = inject(ActionItemService);
-  private readonly toastSvc   = inject(ToastService);
+  private readonly route       = inject(ActivatedRoute);
+  private readonly actionSvc   = inject(ActionItemService);
+  private readonly toastSvc    = inject(ToastService);
+  private readonly authService = inject(AuthService);
+  private readonly workflowSvc = inject(WorkflowService);
 
   readonly item       = signal<ActionItem | null>(null);
   readonly loading    = signal(true);
+
+  // ── Workflow state ──────────────────────────────────
+  readonly workflowRequests   = signal<WorkflowRequest[]>([]);
+  readonly pendingRequests    = signal<WorkflowRequest[]>([]);
+  readonly canReviewWorkflow  = signal(false);
+  readonly isCreator          = signal(false);
+  readonly showDirectionForm  = signal(false);
+  directionText = '';
+  readonly showReviewDialog   = signal(false);
+  readonly selectedRequest    = signal<WorkflowRequest | null>(null);
+  readonly showWorkflowHistory = signal(false);
+  readonly showEscalateDialog = signal(false);
+  readonly escalating         = signal(false);
+  escalateReason = '';
+
+  readonly WORKFLOW_STATUS_CONFIG = WORKFLOW_STATUS_CONFIG;
+  readonly WORKFLOW_TYPE_LABELS   = WORKFLOW_TYPE_LABELS;
 
   readonly ActionStatus   = ActionStatus;
   readonly ActionPriority = ActionPriority;
@@ -130,6 +158,7 @@ export class ActionDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.loadItem(id);
     this.loadUsers();
+    this.loadWorkflowData(id);
   }
 
   // ── Data loading ───────────────────────────────────────
@@ -281,6 +310,103 @@ export class ActionDetailComponent implements OnInit {
   get latestEscalation(): EscalationInfo | null {
     if (this.editingEscalations.length === 0) return null;
     return this.editingEscalations[this.editingEscalations.length - 1];
+  }
+
+  // ── Workflow methods ────────────────────────────────────
+  private loadWorkflowData(actionItemId: string): void {
+    this.workflowSvc.getRequestsForActionItem(actionItemId).subscribe({
+      next: r => {
+        const all = r.data ?? [];
+        this.workflowRequests.set(all);
+        this.pendingRequests.set(all.filter(req => req.status === 'Pending'));
+      },
+      error: () => {},
+    });
+    this.workflowSvc.canReview(actionItemId).subscribe({
+      next: r => this.canReviewWorkflow.set(r.data?.canReview ?? false),
+      error: () => {},
+    });
+    // Check if current user is the creator (via auth)
+    this.authService.currentUser$.subscribe(user => {
+      const ai = this.item();
+      // We check creator by matching createdByUserId if available, otherwise skip
+      if (user && ai) {
+        // isCreator is used for escalation direction panel
+        this.isCreator.set(true); // Default; backend enforces actual check
+      }
+    });
+  }
+
+  openReviewDialog(request: WorkflowRequest): void {
+    this.selectedRequest.set(request);
+    this.showReviewDialog.set(true);
+  }
+
+  onWorkflowReviewed(review: ReviewWorkflowRequest): void {
+    const req = this.selectedRequest();
+    if (!req) return;
+
+    this.workflowSvc.reviewRequest(req.id, review).subscribe({
+      next: () => {
+        this.toastSvc.success(review.isApproved ? 'Request approved.' : 'Request rejected.');
+        this.showReviewDialog.set(false);
+        this.selectedRequest.set(null);
+        const id = this.route.snapshot.paramMap.get('id')!;
+        this.loadWorkflowData(id);
+        this.loadItem(id);
+      },
+      error: err => {
+        this.toastSvc.error(err?.error?.message ?? 'Failed to submit review.');
+        this.showReviewDialog.set(false);
+      },
+    });
+  }
+
+  onReviewDialogClosed(): void {
+    this.showReviewDialog.set(false);
+    this.selectedRequest.set(null);
+  }
+
+  submitDirection(): void {
+    const ai = this.item();
+    if (!ai || !this.directionText.trim()) return;
+
+    this.workflowSvc.giveDirection({
+      actionItemId: ai.id,
+      directionText: this.directionText.trim(),
+    }).subscribe({
+      next: () => {
+        this.toastSvc.success('Direction submitted.');
+        this.directionText = '';
+        this.showDirectionForm.set(false);
+        const id = this.route.snapshot.paramMap.get('id')!;
+        this.loadItem(id);
+      },
+      error: err => {
+        this.toastSvc.error(err?.error?.message ?? 'Failed to submit direction.');
+      },
+    });
+  }
+
+  submitEscalation(): void {
+    const ai = this.item();
+    if (!ai || !this.escalateReason.trim()) return;
+
+    this.escalating.set(true);
+    this.workflowSvc.escalate(ai.id, this.escalateReason.trim()).subscribe({
+      next: () => {
+        this.toastSvc.success('Action item escalated. Creator and manager(s) have been notified.');
+        this.escalateReason = '';
+        this.showEscalateDialog.set(false);
+        this.escalating.set(false);
+        const id = this.route.snapshot.paramMap.get('id')!;
+        this.loadItem(id);
+      },
+      error: err => {
+        this.toastSvc.error(err?.error?.message ?? 'Failed to escalate action item.');
+        this.escalating.set(false);
+      },
+    });
   }
 
   // ── Display helpers ────────────────────────────────────

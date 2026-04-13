@@ -113,6 +113,61 @@ public static class EmailTemplateSeeder
                 IsActive  = true,
                 CreatedAt = now,
             },
+            new()
+            {
+                Id          = new Guid("d4e5f6a7-b8c9-4d01-a234-567890abcde1"),
+                TemplateKey = "ActionItem.DateChangeRequested",
+                Name        = "Date Change Requested",
+                Subject     = "Date Change Requested — {{ActionId}}: {{Title}}",
+                Description = "Sent when a date change is requested for an action item.",
+                HtmlBody    = BuildDateChangeRequestedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+            new()
+            {
+                Id          = new Guid("d4e5f6a7-b8c9-4d01-a234-567890abcde2"),
+                TemplateKey = "ActionItem.DateChangeReviewed",
+                Name        = "Date Change Reviewed",
+                Subject     = "Date Change {{Outcome}} — {{ActionId}}: {{Title}}",
+                Description = "Sent when a date change request is approved or rejected.",
+                HtmlBody    = BuildDateChangeReviewedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+            new()
+            {
+                Id          = new Guid("d4e5f6a7-b8c9-4d01-a234-567890abcde3"),
+                TemplateKey = "ActionItem.StatusChangeRequested",
+                Name        = "Status Change Requested",
+                Subject     = "Status Change Requested — {{ActionId}}: {{Title}}",
+                Description = "Sent when a status change is requested for an action item.",
+                HtmlBody    = BuildStatusChangeRequestedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+            new()
+            {
+                Id          = new Guid("d4e5f6a7-b8c9-4d01-a234-567890abcde4"),
+                TemplateKey = "ActionItem.StatusChangeReviewed",
+                Name        = "Status Change Reviewed",
+                Subject     = "Status Change {{Outcome}} — {{ActionId}}: {{Title}}",
+                Description = "Sent when a status change request is approved or rejected.",
+                HtmlBody    = BuildStatusChangeReviewedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+            new()
+            {
+                Id          = new Guid("d4e5f6a7-b8c9-4d01-a234-567890abcde5"),
+                TemplateKey = "ActionItem.DirectionGiven",
+                Name        = "Direction Given",
+                Subject     = "Direction Given — {{ActionId}}: {{Title}}",
+                Description = "Sent when a direction is given on an action item.",
+                HtmlBody    = BuildDirectionGivenBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
 
             // ── Project templates ───────────────────────────────���────────────
             new()
@@ -179,6 +234,30 @@ public static class EmailTemplateSeeder
                 HtmlBody    = BuildMilestoneBody(
                     "Milestone Completed",
                     "The following milestone has been completed."),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+
+            // ── Project Approval Workflow templates ──────────────────────────
+            new()
+            {
+                Id          = new Guid("b2c3d4e5-0004-4000-8000-000000000004"),
+                TemplateKey = "ProjectApproval.Requested",
+                Name        = "Project Approval Requested",
+                Subject     = "Project Approval Requested: {{ProjectCode}} — {{ProjectName}}",
+                Description = "Sent to sponsors and direct line manager when a project is submitted for start-approval.",
+                HtmlBody    = BuildProjectApprovalRequestedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+            new()
+            {
+                Id          = new Guid("b2c3d4e5-0005-4000-8000-000000000005"),
+                TemplateKey = "ProjectApproval.Reviewed",
+                Name        = "Project Approval Reviewed",
+                Subject     = "Project {{Decision}}: {{ProjectCode}} — {{ProjectName}}",
+                Description = "Sent to the project manager after a sponsor or manager approves or rejects the request.",
+                HtmlBody    = BuildProjectApprovalReviewedBody(),
                 IsActive  = true,
                 CreatedAt = now,
             },
@@ -381,5 +460,122 @@ public static class EmailTemplateSeeder
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Mitigation Plan:</td><td style=\"padding: 8px;\">{{MitigationPlan}}</td></tr>" +
         "</table>" +
         "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Details</a>" +
+        "</div>";
+
+    // ── Change-request & direction body builders ────────────────────────────
+
+    private static string BuildDateChangeRequestedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Date Change Requested</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p><strong>{{RequesterName}}</strong> has requested a date change for the following action item.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Title:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Current Start Date:</td><td style=\"padding: 8px;\">{{CurrentStartDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Proposed Start Date:</td><td style=\"padding: 8px;\">{{NewStartDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Current Due Date:</td><td style=\"padding: 8px;\">{{CurrentDueDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Proposed Due Date:</td><td style=\"padding: 8px;\">{{NewDueDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Reason:</td><td style=\"padding: 8px;\">{{Reason}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ApprovalsUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">Review Request</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildDateChangeReviewedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Date Change {{Outcome}}</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p>Your date change request has been <strong>{{Outcome}}</strong> by <strong>{{ReviewerName}}</strong>.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Title:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Current Start Date:</td><td style=\"padding: 8px;\">{{CurrentStartDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Requested Start Date:</td><td style=\"padding: 8px;\">{{NewStartDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Current Due Date:</td><td style=\"padding: 8px;\">{{CurrentDueDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Requested Due Date:</td><td style=\"padding: 8px;\">{{NewDueDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Outcome:</td><td style=\"padding: 8px;\">{{Outcome}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Reviewer Comment:</td><td style=\"padding: 8px;\">{{ReviewComment}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ActionUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildStatusChangeRequestedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Status Change Requested</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p><strong>{{RequesterName}}</strong> has requested a status change for the following action item.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Title:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Current Status:</td><td style=\"padding: 8px;\">{{CurrentStatus}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Proposed Status:</td><td style=\"padding: 8px;\">{{NewStatus}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Reason:</td><td style=\"padding: 8px;\">{{Reason}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ApprovalsUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">Review Request</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildStatusChangeReviewedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Status Change {{Outcome}}</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p>Your status change request has been <strong>{{Outcome}}</strong> by <strong>{{ReviewerName}}</strong>.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Title:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Current Status:</td><td style=\"padding: 8px;\">{{CurrentStatus}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Requested Status:</td><td style=\"padding: 8px;\">{{NewStatus}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Outcome:</td><td style=\"padding: 8px;\">{{Outcome}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Reviewer Comment:</td><td style=\"padding: 8px;\">{{ReviewComment}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ActionUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildProjectApprovalRequestedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Project Approval Requested</h2>" +
+        "<p>Hi,</p>" +
+        "<p><strong>{{RequestedByName}}</strong> has submitted a project for your approval.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Project Code:</td><td style=\"padding: 8px;\">{{ProjectCode}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Project Name:</td><td style=\"padding: 8px;\">{{ProjectName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Reason:</td><td style=\"padding: 8px;\">{{Reason}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ProjectUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Project</a>" +
+        "&nbsp;&nbsp;" +
+        "<a href=\"{{ApprovalUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #28a745; color: #fff; text-decoration: none; border-radius: 4px;\">Review Request</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildProjectApprovalReviewedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Project {{Decision}}</h2>" +
+        "<p>Hi,</p>" +
+        "<p>Your project approval request has been <strong>{{Decision}}</strong> by <strong>{{ReviewedByName}}</strong>.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Project Code:</td><td style=\"padding: 8px;\">{{ProjectCode}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Project Name:</td><td style=\"padding: 8px;\">{{ProjectName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Decision:</td><td style=\"padding: 8px;\">{{Decision}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Comment:</td><td style=\"padding: 8px;\">{{ReviewComment}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ProjectUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Project</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildDirectionGivenBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Direction Given</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p><strong>{{DirectorName}}</strong> has provided direction on the following action item.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Title:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Direction:</td><td style=\"padding: 8px;\">{{Reason}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ActionUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
         "</div>";
 }

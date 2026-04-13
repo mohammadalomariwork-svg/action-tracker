@@ -17,5 +17,11 @@ public enum ActionStatus
     Done = 4,
 
     [Description("Overdue")]
-    Overdue = 5
+    Overdue = 5,
+
+    [Description("Deferred")]
+    Deferred = 6,
+
+    [Description("Cancelled")]
+    Cancelled = 7
 }

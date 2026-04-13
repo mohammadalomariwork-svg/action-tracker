@@ -1,11 +1,14 @@
 # KU Action Tracker - Backend Overview
 
+> Last updated: 2026-04-14
+
 ## Tech Stack
 
 - **Framework:** .NET 9 / ASP.NET Core
 - **ORM:** Entity Framework Core (SQL Server)
 - **Identity:** ASP.NET Core Identity
 - **Authentication:** Dual JWT (Local HS256 + Azure AD OIDC)
+- **Real-time:** SignalR
 - **Validation:** FluentValidation
 - **Logging:** Serilog (structured logging)
 - **API Docs:** Swagger / Swashbuckle
@@ -17,7 +20,7 @@
 Four-layer clean architecture:
 
 ```
-ActionTracker.API/            -> Controllers, Middleware, Configuration
+ActionTracker.API/            -> Controllers, Middleware, Configuration, SignalR Hubs
 ActionTracker.Application/    -> Business Logic, DTOs, Service Interfaces, Validators
 ActionTracker.Infrastructure/ -> Data Access, EF Core, Auth, Authorization
 ActionTracker.Domain/         -> Entities, Enums, Constants
@@ -49,7 +52,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 **Fine-Grained Permissions (RBAC + ABAC Hybrid)**
 - Permissions defined as Area.Action pairs (e.g., `Projects.View`, `ActionItems.Delete`)
-- **12 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles
+- **15 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks
 - **7 Actions:** View, Create, Edit, Delete, Approve, Export, Assign
 - Stored in `RolePermission` (role-level) and `UserPermissionOverride` (user-level) tables
 - **Effective Permissions** = Role Permissions + User Overrides (denials take precedence)
@@ -71,7 +74,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
-## API Controllers & Endpoints
+## API Controllers & Endpoints (22 Controllers)
 
 ### AuthController (`/api/auth`)
 | Method | Endpoint | Description |
@@ -133,11 +136,22 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 |--------|----------|-------------|
 | GET | `/` | All milestones for project (ordered by sequence) |
 | GET | `/{milestoneId}` | Single milestone |
-| POST | `/` | Create milestone |
+| POST | `/` | Create milestone (auto-generates MS-YYYY-001) |
 | PUT | `/{milestoneId}` | Update milestone |
 | DELETE | `/{milestoneId}` | Soft delete |
 | GET | `/{milestoneId}/stats` | Action-item stats for milestone |
 | POST | `/baseline` | Lock milestone dates (save baseline values) |
+
+### ProjectRisksController (`/api/projects/{projectId}/risks`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Paginated risks for project |
+| GET | `/{riskId}` | Single risk |
+| POST | `/` | Create risk (auto-generates RISK-001 per project) |
+| PUT | `/{riskId}` | Update risk |
+| DELETE | `/{riskId}` | Soft delete |
+| PATCH | `/{riskId}/restore` | Restore soft-deleted risk |
+| GET | `/stats` | Risk stats summary for project |
 
 ### DashboardController (`/api/dashboard`)
 | Method | Endpoint | Description |
@@ -146,6 +160,25 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/management` | Full management dashboard (KPIs, status, workload, at-risk, activity) |
 | GET | `/team-workload` | Per-user workload stats |
 | GET | `/status-breakdown` | Action items grouped by status |
+
+### NotificationsController (`/api/notifications`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Paginated notifications for current user |
+| GET | `/summary` | Notification summary |
+| GET | `/unread-count` | Count of unread notifications |
+| PATCH | `/{id}/read` | Mark single notification as read |
+| POST | `/mark-all-read` | Mark all notifications as read |
+| DELETE | `/{id}` | Delete single notification |
+| DELETE | `/read` | Delete all read notifications |
+
+### EmailTemplatesController (`/api/email-templates`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | All email templates (requires EmailTemplates.View) |
+| GET | `/{id}` | Single template by ID |
+| GET | `/logs` | Paginated email delivery logs |
+| PUT | `/{id}` | Update template (requires EmailTemplates.Edit) |
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
@@ -273,6 +306,31 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 |--------|----------|-------------|
 | GET | `/me` | Current user's employee profile from KU directory |
 
+### ActionItemWorkflowController (`/api/action-items/workflow`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/date-change-request` | Create date change request (dates frozen on standalone items) |
+| POST | `/status-change-request` | Create status change request (terminal transitions require approval) |
+| PUT | `/requests/{requestId}/review` | Approve or reject a workflow request |
+| GET | `/pending-reviews` | Get pending requests for current user to review |
+| GET | `/my-requests` | Get requests created by current user |
+| GET | `/action-item/{actionItemId}` | Get all workflow requests for an action item |
+| GET | `/pending-summary` | Get pending request counts for badge |
+| POST | `/escalate` | Trigger escalation workflow with notifications |
+| POST | `/give-direction` | Give direction on escalated item (high-importance comment) |
+| GET | `/can-review/{actionItemId}` | Check if current user can review requests |
+
+### ProjectWorkflowController (`/api/projects/workflow`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/submit` | Submit project for start-approval (Draft → PendingApproval) |
+| PUT | `/requests/{requestId}/review` | Approve or reject a project approval request |
+| GET | `/project/{projectId}` | Get all approval requests for a project |
+| GET | `/pending-reviews` | Get pending approval requests for current user to review |
+| GET | `/my-requests` | Get approval requests submitted by current user |
+| GET | `/pending-summary` | Get pending project approval count for badge |
+| GET | `/can-review/{projectId}` | Check if current user can review a project |
+
 ### ReportsController (`/api/reports`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -281,7 +339,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
-## Database Entities
+## Database Entities (23 Entities)
 
 ### Core Entities
 
@@ -297,7 +355,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | MilestoneId | Guid? (FK) | Linked milestone (nullable) |
 | IsStandalone | bool | True when not linked to project/milestone |
 | Priority | enum | Low, Medium, High, Critical |
-| Status | enum | ToDo, InProgress, InReview, Done, Overdue |
+| Status | enum | ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled |
 | StartDate | DateTime? | Start date |
 | DueDate | DateTime | Due date (required) |
 | Progress | int | 0-100 (auto-clamped) |
@@ -317,7 +375,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | Description | string | Description |
 | WorkspaceId | Guid (FK) | Parent workspace |
 | ProjectType | enum | Operational, Strategic |
-| ProjectStatus | enum | Draft, Active, OnHold, Completed, Cancelled |
+| ProjectStatus | enum | Draft, Active, OnHold, Completed, Cancelled, PendingApproval |
 | StrategicObjectiveId | Guid? (FK) | Required when Strategic type |
 | Priority | enum | Low, Medium, High, Critical |
 | ProjectManagerUserId | string (FK) | Project manager |
@@ -329,7 +387,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | Currency | string | Always "AED" |
 | IsBaselined | bool | Locks dates when true |
 | IsDeleted | bool | Soft delete (cascades to milestones/items) |
-| **Nav:** | | Workspace, StrategicObjective, ProjectManager, OwnerOrgUnit, Sponsors |
+| **Nav:** | | Workspace, StrategicObjective, ProjectManager, OwnerOrgUnit, Sponsors, Risks |
 
 #### Milestone
 | Field | Type | Description |
@@ -343,13 +401,37 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | PlannedDueDate | DateTime | Planned due date |
 | ActualCompletionDate | DateTime? | Actual completion |
 | IsDeadlineFixed | bool | Hard deadline flag |
-| Status | enum | NotStarted, InProgress, Completed, Delayed, Cancelled |
+| Status | enum | NotStarted, InProgress, AtRisk, Completed |
 | CompletionPercentage | decimal | 0-100% |
 | ApproverUserId | string? | Formal sign-off approver |
 | BaselinePlannedStartDate | DateTime? | Locked baseline start |
 | BaselinePlannedDueDate | DateTime? | Locked baseline due |
 | IsDeleted | bool | Soft delete flag |
 | **Nav:** | | Project, Approver |
+
+#### ProjectRisk
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| RiskCode | string | Auto-generated (RISK-001 per project) |
+| ProjectId | Guid (FK) | Parent project |
+| Title | string | Risk title |
+| Description | string | Risk description |
+| Category | string | Risk category |
+| ProbabilityScore | int | 1-5 scale |
+| ImpactScore | int | 1-5 scale |
+| RiskScore | int | Computed: Probability x Impact (1-25) |
+| RiskRating | enum | Critical (20-25), High (12-19), Medium (5-11), Low (1-4) |
+| Status | enum | Open, Mitigated, Closed |
+| MitigationPlan | string | Mitigation strategy |
+| ContingencyPlan | string | Contingency strategy |
+| Notes | string | Additional notes |
+| RiskOwnerUserId | string | Risk owner |
+| IdentifiedDate | DateTime | When risk was identified |
+| DueDate | DateTime? | Target resolution date |
+| ClosedDate | DateTime? | When risk was closed |
+| IsDeleted | bool | Soft delete |
+| **Nav:** | | Project |
 
 #### Workspace
 | Field | Type | Description |
@@ -419,6 +501,43 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | OrgUnitId | Guid? (FK) | Assigned org unit |
 | LastLoginAt | DateTime? | Last login timestamp |
 
+### Supporting Entities
+
+#### AppNotification
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| UserId | string | Target user |
+| Title | string | Notification title |
+| Message | string | Notification body |
+| Type | string | Entity type (ActionItem, Project, Milestone, etc.) |
+| ActionType | string | Action that triggered notification |
+| RelatedEntityType | string | Entity type discriminator |
+| RelatedEntityId | Guid? | Related entity ID |
+| RelatedEntityCode | string? | Related entity code |
+| Url | string? | Optional deep link |
+| IsRead | bool | Read status |
+| ReadAt | DateTime? | When read |
+| CreatedAt | DateTime | Created timestamp |
+
+#### EmailTemplate
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| TemplateKey | string | Lookup key |
+| Name | string | Template name |
+| Subject | string | Email subject line |
+| HtmlBody | string | Email HTML body |
+| Description | string? | Optional description |
+| IsActive | bool | Active toggle |
+| IsDeleted | bool | Soft delete |
+
+#### EmailLog
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| Tracks email delivery attempts for auditing |
+
 #### Document
 | Field | Type | Description |
 |-------|------|-------------|
@@ -431,6 +550,29 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | RelatedEntityType | string | Polymorphic: "ActionItem", "Project", "Kpi" |
 | RelatedEntityId | Guid | Owning entity ID |
 | UploadedByUserId | string (FK) | Uploader |
+
+#### Comment (Generic)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| RelatedEntityType | string | Polymorphic entity type |
+| RelatedEntityId | Guid | Owning entity ID |
+| Content | string | Comment text |
+| AuthorUserId | string | Author |
+| IsHighImportance | bool | High-importance flag |
+
+#### Other Entities
+| Entity | Purpose |
+|--------|---------|
+| ActionItemAssignee | Junction table: ActionItem <-> User (multi-assignee) |
+| ActionItemComment | Action-item-specific comments |
+| ActionItemEscalation | Escalation tracking for overdue items |
+| ActionItemWorkflowRequest | Date change and status change approval requests (pending/approved/rejected) |
+| ProjectApprovalRequest | Project start-approval requests (pending/approved/rejected) |
+| ProjectSponsor | Sponsors linked to projects |
+| WorkspaceAdmin | Admin users per workspace |
+| RefreshToken | JWT refresh token storage with rotation |
+| KuEmployeeInfo | KU employee directory integration |
 
 ### Permission Entities
 
@@ -464,28 +606,53 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
+## Enums
+
+| Enum | Values |
+|------|--------|
+| ActionPriority | Low, Medium, High, Critical |
+| ActionStatus | ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled |
+| ProjectStatus | Draft, Active, OnHold, Completed, Cancelled, PendingApproval |
+| ProjectType | Operational, Strategic |
+| MilestoneStatus | NotStarted, InProgress, AtRisk, Completed |
+| ProjectPhase | Initiation, Planning, Execution, MonitoringAndControlling, Closing |
+| RiskStatus | Open, Mitigated, Closed |
+| RiskRating | Critical (20-25), High (12-19), Medium (5-11), Low (1-4) |
+| WorkflowRequestType | DateChangeRequest, StatusChangeRequest |
+| WorkflowRequestStatus | Pending, Approved, Rejected |
+| ProjectApprovalStatus | Pending, Approved, Rejected |
+
+---
+
 ## Services (Application Layer)
 
 | Service Interface | Responsibilities |
 |-------------------|------------------|
-| `IActionItemService` | CRUD, filtering, stats, comments, overdue processing |
+| `IActionItemService` | CRUD, filtering, stats, comments, overdue processing, approved date/status change bypass |
+| `IActionItemWorkflowService` | Date change requests, status change requests, review/approve/reject, escalation handling, direction giving, pending summary |
+| `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication |
 | `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
 | `IMilestoneService` | CRUD per project, stats, baselining |
+| `IProjectRiskService` | CRUD per project, risk stats, scoring |
 | `IWorkspaceService` | CRUD, summary stats, admin assignment |
 | `IDashboardService` | KPI metrics, management dashboard, team workload |
+| `INotificationService` | CRUD notifications, read/unread tracking, summary |
+| `IEmailTemplateService` | CRUD templates, delivery logging |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
 | `IUserManagementService` | CRUD users, role assignment, KU employee search, activation |
-| `ICommentService` | CRUD polymorphic comments (Project, Milestone) |
+| `ICommentService` | CRUD polymorphic comments (any entity type) |
 | `IDocumentService` | Upload, download, delete documents (polymorphic) |
 | `IStrategicObjectiveService` | CRUD by org unit, soft delete/restore |
 | `IKpiService` | CRUD, monthly targets, bulk upsert |
 | `IOrgUnitService` | Tree, CRUD, soft delete hierarchy |
+| `IReportService` | CSV export, summary statistics |
 | `IRoleManagementService` | CRUD roles, user assignment, permission matrix |
 | `IPermissionCatalogService` | CRUD areas, actions, mappings |
 | `IRolePermissionService` | CRUD role permissions, matrix queries |
 | `IUserPermissionOverrideService` | CRUD user overrides |
 | `IEffectivePermissionService` | Calculate merged effective permissions |
 | `IOrgUnitScopeResolver` | Resolve visible org units for user |
+| `IUserLookupService` | User lookup and KU employee directory integration |
 
 ---
 
@@ -495,7 +662,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 |-----------|---------|
 | `RequestLoggingMiddleware` | Logs every HTTP request: `[Method] Path responded StatusCode in {N}ms` |
 | `ExceptionMiddleware` | Catches unhandled exceptions, returns RFC 7807 ProblemDetails JSON, suppresses stack traces in production |
-| `PermissionEnforcement` | Custom middleware applying fine-grained permission checks via PermissionRequirement + PermissionAuthorizationHandler |
+| `PermissionEnforcement` | Extension point for permission-audit middleware |
 
 ---
 
@@ -509,7 +676,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 6. Authorization
 7. PermissionEnforcement
 8. Swagger
-9. Controllers
+9. Controllers & SignalR Hubs
 
 ---
 
@@ -517,7 +684,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 1. **Auto-migrate** database on startup
 2. **RoleSeeder** - seeds Admin, Manager, User, Viewer roles
-3. **PermissionCatalogSeeder** - seeds 12 permission areas, 7 actions, area-action mappings
+3. **PermissionCatalogSeeder** - seeds permission areas, actions, area-action mappings
 4. **DefaultRolePermissionsSeeder** - seeds default permissions for each role
 
 ---
@@ -535,10 +702,11 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | Hybrid Auth | Dual JWT schemes (local + Azure AD) routed via tid claim |
 | FluentValidation | Auto-validated DTOs before handlers run |
 | Async All the Way | All I/O operations use async/await |
-| Auto-Generated Codes | ActionId (ACT-001), ProjectCode (PRJ-YYYY-001), MilestoneCode (MS-YYYY-001), ObjectiveCode (SO-001) |
+| Auto-Generated Codes | ActionId (ACT-001), ProjectCode (PRJ-YYYY-001), MilestoneCode (MS-YYYY-001), RiskCode (RISK-001), ObjectiveCode (SO-001) |
 | Progress Clamping | ActionItem.Progress auto-clamped to 0-100 |
 | Token Rotation | Refresh tokens invalidated on use for security |
 | Cascade Deletes | Soft-deleting projects cascades to milestones and action items |
+| SignalR | Real-time communication hub for notifications |
 
 ---
 
@@ -546,31 +714,18 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 | Key | Description |
 |-----|-------------|
-| `ConnectionStrings:DefaultConnection` | SQL Server connection string |
+| `ConnectionStrings:DefaultConnection` | SQL Server connection string (`ActionTrackerDb`) |
 | `Jwt:Key` | HS256 symmetric signing key |
 | `Jwt:Issuer` | JWT issuer |
 | `Jwt:Audience` | JWT audience |
+| `Jwt:ExpiryMinutes` | Access token expiry |
+| `Jwt:RefreshTokenExpiryDays` | Refresh token expiry |
 | `AzureAd:TenantId` | Microsoft Entra tenant ID |
 | `AzureAd:ClientId` | Azure AD application client ID |
+| `AzureAd:ClientSecret` | Azure AD client secret |
+| `AzureAd:Instance` | Azure AD instance URL |
 | `AllowedOrigins` | CORS allowed origins |
-| `Serilog` | Structured logging configuration |
-
----
-
-## Recent Feature History
-
-1. Browser title set to "KU Action Tracker" with KU logo favicon
-2. Default assignee + "Created by Me" section in My Actions
-3. Workspace dropdown scoped to user's Level-2 org-unit ancestor
-4. My Projects page with role-based access
-5. Interactive Gantt chart in project detail
-6. Milestone validation blocks project activation when incomplete
-7. Dashboard redesign: 6 stat cards per row
-8. Excel export and PDF print on all major pages
-9. Org unit scoping enforcement across workspaces, projects, action items
-10. Permission-based CRUD button visibility
-11. Offcanvas drawer for workspace create/edit
-12. Full role and permission management system
-13. Admin panel: org chart, strategic objectives, KPIs with monthly targets
-14. APP_INITIALIZER pre-loads permissions on hard refresh
-15. .NET 9 JWT fix: MapInboundClaims for sub -> NameIdentifier
+| `App:FrontendBaseUrl` | Frontend base URL for deep links |
+| `Smtp:Host/Port/UseSsl/FromEmail/FromName/Username/Password` | SMTP email configuration |
+| `FileStorage:Path/MaxFileSizeMB/AllowedExtensions` | File storage settings |
+| `Serilog` | Structured logging configuration (Console + File with daily rolling) |

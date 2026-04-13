@@ -21,6 +21,20 @@
     }
 
     @if (!loadingItem()) {
+
+      <!-- ── Pending workflow requests banner ──────────── -->
+      @if (pendingRequests().length > 0) {
+        <div class="wf-banner">
+          <div class="wf-banner__icon">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <div class="wf-banner__content">
+            <strong>{{ pendingRequests().length }} pending workflow request(s)</strong>
+            <span class="text-muted"> awaiting review.</span>
+          </div>
+        </div>
+      }
+
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="af-form">
 
         <!-- ── Section: Core details ───────────────────── -->
@@ -130,20 +144,32 @@
                 class="field__select"
                 formControlName="status"
               >
-                @for (opt of STATUS_OPTIONS; track opt.value) {
+                @for (opt of filteredStatusOptions(); track opt.value) {
                   <option [value]="opt.value">{{ opt.label }}</option>
                 }
               </select>
+              @if (areDatesLocked() && isEditMode()) {
+                <button type="button" class="btn-wf-request mt-1" (click)="openStatusChangeDialog()">
+                  <i class="bi bi-arrow-left-right"></i> Request Status Change
+                </button>
+              }
             </div>
 
             <!-- Start Date -->
             <div class="field">
-              <label class="field__label" for="startDate">Start Date</label>
+              <label class="field__label" for="startDate">
+                Start Date
+                @if (areDatesLocked()) {
+                  <i class="bi bi-lock-fill text-warning ms-1" title="Dates are locked for standalone items"></i>
+                }
+              </label>
               <input
                 id="startDate"
                 type="date"
                 class="field__input"
+                [class.field__input--locked]="areDatesLocked()"
                 formControlName="startDate"
+                [readonly]="areDatesLocked()"
               />
             </div>
 
@@ -151,35 +177,28 @@
             <div class="field">
               <label class="field__label" for="dueDate">
                 Due Date <span class="req">*</span>
+                @if (areDatesLocked()) {
+                  <i class="bi bi-lock-fill text-warning ms-1" title="Dates are locked for standalone items"></i>
+                }
               </label>
               <input
                 id="dueDate"
                 type="date"
                 class="field__input"
                 [class.field__input--error]="isInvalid('dueDate')"
+                [class.field__input--locked]="areDatesLocked()"
                 formControlName="dueDate"
                 [min]="isEditMode() ? '' : TODAY"
+                [readonly]="areDatesLocked()"
               />
               @if (isInvalid('dueDate')) {
                 <span class="field__error">Due date is required.</span>
               }
-            </div>
-
-            <!-- Is Escalated toggle -->
-            <div class="field field--toggle">
-              <label class="field__label" for="isEscalated">Escalation</label>
-              <label class="toggle-switch">
-                <input
-                  id="isEscalated"
-                  type="checkbox"
-                  class="toggle-switch__input"
-                  formControlName="isEscalated"
-                />
-                <span class="toggle-switch__track"></span>
-                <span class="toggle-switch__label">
-                  {{ ctrl('isEscalated').value ? '🚨 Escalated' : 'Not escalated' }}
-                </span>
-              </label>
+              @if (areDatesLocked()) {
+                <button type="button" class="btn-wf-request mt-1" (click)="openDateChangeDialog()">
+                  <i class="bi bi-calendar-event"></i> Request Date Change
+                </button>
+              }
             </div>
 
           </div><!-- /form-grid -->
@@ -262,7 +281,129 @@
         </div>
 
       </form>
+
+      <!-- ── Workflow Request History (collapsible) ───── -->
+      @if (isEditMode() && areDatesLocked()) {
+        <section class="form-section wf-history-section">
+          <button type="button" class="wf-history-toggle" (click)="showWorkflowHistory.set(!showWorkflowHistory())">
+            <i class="bi" [class.bi-chevron-down]="!showWorkflowHistory()" [class.bi-chevron-up]="showWorkflowHistory()"></i>
+            Workflow Request History
+            @if (pendingRequests().length > 0) {
+              <span class="badge bg-warning text-dark ms-2">{{ pendingRequests().length }} pending</span>
+            }
+          </button>
+          @if (showWorkflowHistory()) {
+            <div class="wf-history-list">
+              @for (req of pendingRequests(); track req.id) {
+                <div class="wf-history-item">
+                  <div class="wf-history-item__header">
+                    <span class="badge" [ngClass]="WORKFLOW_STATUS_CONFIG[req.status]?.cssClass ?? 'bg-secondary'">
+                      {{ WORKFLOW_STATUS_CONFIG[req.status]?.label ?? req.status }}
+                    </span>
+                    <span class="badge bg-info text-dark">{{ WORKFLOW_TYPE_LABELS[req.requestType] ?? req.requestType }}</span>
+                    <span class="text-muted small ms-auto">{{ req.createdAt | date:'MMM d, y, h:mm a' }}</span>
+                  </div>
+                  <div class="wf-history-item__body small">
+                    <strong>{{ req.requestedByDisplayName }}</strong>: {{ req.reason }}
+                  </div>
+                  @if (req.reviewComment) {
+                    <div class="wf-history-item__review small text-muted">
+                      <i class="bi bi-chat-left-text me-1"></i>{{ req.reviewedByDisplayName }}: {{ req.reviewComment }}
+                    </div>
+                  }
+                </div>
+              }
+              @if (pendingRequests().length === 0) {
+                <p class="text-muted small text-center py-2 mb-0">No pending workflow requests.</p>
+              }
+            </div>
+          }
+        </section>
+      }
     }
 
   </div><!-- /af-body -->
 </div><!-- /af-page -->
+
+<!-- ════════════════════════════════════════════════════════════
+     Date Change Request Dialog
+     ════════════════════════════════════════════════════════════ -->
+@if (showDateChangeDialog()) {
+  <div class="wf-dialog-backdrop" (click)="showDateChangeDialog.set(false)"></div>
+  <div class="wf-dialog">
+    <div class="wf-dialog__header">
+      <h5><i class="bi bi-calendar-event me-2 text-primary"></i>Request Date Change</h5>
+      <button type="button" class="btn-close" (click)="showDateChangeDialog.set(false)"></button>
+    </div>
+    <div class="wf-dialog__body">
+      <div class="mb-3">
+        <label class="form-label">New Start Date</label>
+        <input type="date" class="form-control"
+               [ngModel]="requestedNewStartDate()"
+               (ngModelChange)="requestedNewStartDate.set($event)" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">New Due Date</label>
+        <input type="date" class="form-control"
+               [ngModel]="requestedNewDueDate()"
+               (ngModelChange)="requestedNewDueDate.set($event)" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reason <span class="text-danger">*</span></label>
+        <textarea class="form-control" rows="3"
+                  placeholder="Explain why the dates need to change..."
+                  [ngModel]="dateChangeReason()"
+                  (ngModelChange)="dateChangeReason.set($event)"></textarea>
+      </div>
+    </div>
+    <div class="wf-dialog__footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="showDateChangeDialog.set(false)">Cancel</button>
+      <button type="button" class="btn btn-primary"
+              [disabled]="!dateChangeReason().trim()"
+              (click)="submitDateChangeRequest()">
+        <i class="bi bi-send me-1"></i>Submit Request
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════
+     Status Change Request Dialog
+     ════════════════════════════════════════════════════════════ -->
+@if (showStatusChangeDialog()) {
+  <div class="wf-dialog-backdrop" (click)="showStatusChangeDialog.set(false)"></div>
+  <div class="wf-dialog">
+    <div class="wf-dialog__header">
+      <h5><i class="bi bi-arrow-left-right me-2 text-primary"></i>Request Status Change</h5>
+      <button type="button" class="btn-close" (click)="showStatusChangeDialog.set(false)"></button>
+    </div>
+    <div class="wf-dialog__body">
+      <div class="mb-3">
+        <label class="form-label">New Status <span class="text-danger">*</span></label>
+        <select class="form-select"
+                [ngModel]="selectedNewStatus()"
+                (ngModelChange)="selectedNewStatus.set($event)">
+          <option [ngValue]="null">-- Select status --</option>
+          @for (opt of STATUS_OPTIONS; track opt.value) {
+            <option [ngValue]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reason <span class="text-danger">*</span></label>
+        <textarea class="form-control" rows="3"
+                  placeholder="Explain why the status should change..."
+                  [ngModel]="statusChangeReason()"
+                  (ngModelChange)="statusChangeReason.set($event)"></textarea>
+      </div>
+    </div>
+    <div class="wf-dialog__footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="showStatusChangeDialog.set(false)">Cancel</button>
+      <button type="button" class="btn btn-primary"
+              [disabled]="selectedNewStatus() === null || !statusChangeReason().trim()"
+              (click)="submitStatusChangeRequest()">
+        <i class="bi bi-send me-1"></i>Submit Request
+      </button>
+    </div>
+  </div>
+}

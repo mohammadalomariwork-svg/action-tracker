@@ -31,6 +31,10 @@ public class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
         builder.Property(m => m.Description)
             .HasMaxLength(5000);
 
+        builder.Property(m => m.Phase)
+            .HasConversion<int>()
+            .HasDefaultValue(ProjectPhase.Initiation);
+
         builder.Property(m => m.Status)
             .HasConversion<int>()
             .HasDefaultValue(MilestoneStatus.NotStarted);

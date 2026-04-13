@@ -60,12 +60,59 @@
           <button class="btn btn-outline-secondary btn-sm" (click)="printToPDF()" title="Print / Save as PDF">
             <i class="bi bi-printer me-1"></i>Print
           </button>
-          <button *appHasPermission="'Projects'; action: 'Edit'" class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
-            <i class="bi bi-pencil me-1"></i>Edit
-          </button>
+          @if (canSubmitForApproval) {
+            <button *appHasPermission="'Projects'; action: 'Edit'" class="btn btn-warning btn-sm" (click)="openSubmitModal()" [disabled]="validatingSubmit">
+              @if (validatingSubmit) {
+                <span class="spinner-border spinner-border-sm me-1"></span>Checking...
+              } @else {
+                <i class="bi bi-send me-1"></i>Submit for Approval
+              }
+            </button>
+          }
+          @if (!isProjectFrozen) {
+            <button *appHasPermission="'Projects'; action: 'Edit'" class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+          }
         </div>
       </div>
     </div>
+
+    <!-- ── Submit Validation Errors ───────────────────── -->
+    @if (submitValidationErrors.length > 0) {
+      <div class="alert alert-danger mb-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <strong>Cannot submit for approval</strong>
+          <button type="button" class="btn-close ms-auto" (click)="submitValidationErrors = []"></button>
+        </div>
+        <ul class="mb-0 ps-3">
+          @for (err of submitValidationErrors; track err) {
+            <li>{{ err }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- ── Pending Approval Banner ────────────────────── -->
+    @if (isPendingApproval) {
+      <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-hourglass-split"></i>
+          <span><strong>Pending Approval.</strong> This project is awaiting review from sponsors or management.</span>
+        </div>
+        @if (canReview) {
+          <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm" (click)="openReviewModal(true)">
+              <i class="bi bi-check-lg me-1"></i>Approve
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="openReviewModal(false)">
+              <i class="bi bi-x-lg me-1"></i>Reject
+            </button>
+          </div>
+        }
+      </div>
+    }
 
     <!-- ── Stats Cards ────────────────────────────────── -->
     @if (stats) {
@@ -402,11 +449,117 @@
       </div>
     }
 
+    <!-- ── Approval History ──────────────────────────────── -->
+    @if (approvalRequests.length > 0) {
+      <div class="card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between cursor-pointer" (click)="showApprovalHistory = !showApprovalHistory">
+          <span><i class="bi bi-clock-history me-2"></i>Approval History</span>
+          <i [class]="showApprovalHistory ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
+        </div>
+        @if (showApprovalHistory) {
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Requested By</th>
+                    <th>Reason</th>
+                    <th>Reviewed By</th>
+                    <th>Comment</th>
+                    <th>Submitted</th>
+                    <th>Reviewed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (req of approvalRequests; track req.id) {
+                    <tr>
+                      <td><span [class]="approvalStatusClass(req.status)">{{ req.status }}</span></td>
+                      <td>{{ req.requestedByDisplayName }}</td>
+                      <td class="text-truncate" style="max-width: 200px;" [title]="req.reason">{{ req.reason }}</td>
+                      <td>{{ req.reviewedByDisplayName ?? '—' }}</td>
+                      <td class="text-truncate" style="max-width: 200px;" [title]="req.reviewComment ?? ''">{{ req.reviewComment ?? '—' }}</td>
+                      <td>{{ req.createdAt | date:'mediumDate' }}</td>
+                      <td>{{ req.reviewedAt ? (req.reviewedAt | date:'mediumDate') : '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── Submit for Approval Modal ─────────────────── -->
+    @if (showSubmitModal) {
+      <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Submit for Approval</h5>
+              <button type="button" class="btn-close" (click)="showSubmitModal = false"></button>
+            </div>
+            <div class="modal-body">
+              @if (submitError) {
+                <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3" role="alert">
+                  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                  <span>{{ submitError }}</span>
+                </div>
+              }
+              <p class="text-muted">Provide a justification for starting this project. This will be sent to all sponsors and your line manager for review.</p>
+              <textarea class="form-control" rows="4" [(ngModel)]="submitReason" placeholder="Reason for approval..." maxlength="2000"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="showSubmitModal = false">Cancel</button>
+              <button class="btn btn-primary" (click)="submitForApproval()" [disabled]="submittingApproval || !submitReason.trim()">
+                @if (submittingApproval) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Review Approval Modal ──────────────────────── -->
+    @if (showReviewModal) {
+      <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ reviewIsApproval ? 'Approve' : 'Reject' }} Project</h5>
+              <button type="button" class="btn-close" (click)="showReviewModal = false"></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted">
+                @if (reviewIsApproval) {
+                  Approving will set the project to Active and baseline all dates.
+                } @else {
+                  Rejecting will return the project to Draft. A comment is required.
+                }
+              </p>
+              <textarea class="form-control" rows="3" [(ngModel)]="reviewComment" [placeholder]="reviewIsApproval ? 'Comment (optional)' : 'Reason for rejection (required)'" maxlength="2000"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="showReviewModal = false">Cancel</button>
+              <button [class]="reviewIsApproval ? 'btn btn-success' : 'btn btn-danger'" (click)="reviewApproval()" [disabled]="reviewingApproval || (!reviewIsApproval && !reviewComment.trim())">
+                @if (reviewingApproval) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                {{ reviewIsApproval ? 'Approve' : 'Reject' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- ── Milestones Section ─────────────────────────── -->
     <div class="mb-4">
       <app-milestone-section
         [projectId]="project.id"
+        [workspaceId]="project.workspaceId"
         [isBaselined]="project.isBaselined"
+        [projectStatus]="project.status"
       />
     </div>
 

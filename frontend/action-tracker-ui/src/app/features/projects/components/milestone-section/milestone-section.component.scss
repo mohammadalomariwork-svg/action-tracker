@@ -806,3 +806,80 @@ select.form-control {
 
   &.btn-sm { padding: 6px 13px; font-size: 0.82rem; }
 }
+
+// ── Action Item multi-select (assignees) ──────────────────────────────────────
+.ai-multi-select {
+  position: relative;
+
+  &__control {
+    cursor: pointer;
+    min-height: 38px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  &__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    background: rgba(var(--ar), 0.12);
+    color: var(--accent);
+  }
+
+  &__tag-remove {
+    border: 0;
+    background: 0;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--el);
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    margin-top: 4px;
+    overflow: hidden;
+  }
+
+  &__search {
+    border: 0;
+    border-bottom: 1px solid var(--bd);
+    border-radius: 0;
+    &:focus { box-shadow: none; }
+  }
+
+  &__options {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    &:hover { background: var(--sf); }
+    input { accent-color: var(--accent); }
+  }
+}

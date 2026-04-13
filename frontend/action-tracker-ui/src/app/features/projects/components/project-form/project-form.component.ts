@@ -13,6 +13,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ProjectService } from '../../services/project.service';
+import { WorkspaceService } from '../../../workspaces/services/workspace.service';
+import { WorkspaceList } from '../../../workspaces/models/workspace.model';
 import {
   ProjectType,
   ProjectStatus,
@@ -41,6 +43,7 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
 export class ProjectFormComponent implements OnInit {
   private readonly fb            = inject(FormBuilder);
   private readonly projectSvc    = inject(ProjectService);
+  private readonly workspaceSvc  = inject(WorkspaceService);
   private readonly route         = inject(ActivatedRoute);
   private readonly router        = inject(Router);
   private readonly destroyRef    = inject(DestroyRef);
@@ -49,6 +52,8 @@ export class ProjectFormComponent implements OnInit {
   projectId: string | null = null;
   workspaceId!: string;
   isBaselined = false;
+  needsWorkspaceSelector = false;
+  workspaces: WorkspaceList[] = [];
 
   strategicObjectives: StrategicObjectiveOption[] = [];
   availableUsers: AssignableUser[] = [];
@@ -82,10 +87,18 @@ export class ProjectFormComponent implements OnInit {
     }
 
     const wsId = this.route.snapshot.queryParamMap.get('workspaceId');
-    if (wsId) this.workspaceId = wsId;
+    if (wsId) {
+      this.workspaceId = wsId;
+    } else if (!this.isEditMode) {
+      this.needsWorkspaceSelector = true;
+    }
 
     this.buildForm();
     this.loadUsers();
+
+    if (this.needsWorkspaceSelector) {
+      this.loadWorkspaces();
+    }
 
     if (this.isEditMode && this.projectId) {
       this.loadProject(this.projectId);
@@ -170,15 +183,16 @@ export class ProjectFormComponent implements OnInit {
           this.router.navigate(['/workspaces', this.workspaceId]);
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to update project.';
+          this.errorMessage = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
           this.isLoading = false;
         },
       });
     } else {
+      const wsId = this.needsWorkspaceSelector ? v.selectedWorkspaceId : this.workspaceId;
       this.projectSvc.create({
         name: v.name,
         description: v.description || undefined,
-        workspaceId: this.workspaceId,
+        workspaceId: wsId,
         projectType: v.projectType,
         strategicObjectiveId: v.strategicObjectiveId || undefined,
         priority: v.priority,
@@ -190,7 +204,8 @@ export class ProjectFormComponent implements OnInit {
       }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.isLoading = false;
-          this.router.navigate(['/workspaces', this.workspaceId]);
+          const navTarget = wsId ? ['/workspaces', wsId] : ['/projects/my'];
+          this.router.navigate(navTarget);
         },
         error: (err) => {
           this.errorMessage = err?.error?.message ?? 'Failed to create project.';
@@ -202,26 +217,39 @@ export class ProjectFormComponent implements OnInit {
 
   onCancel(): void {
     if (this.workspaceId) this.router.navigate(['/workspaces', this.workspaceId]);
+    else if (this.needsWorkspaceSelector) this.router.navigate(['/projects/my']);
     else this.router.navigate(['/workspaces']);
   }
 
   private buildForm(): void {
-    this.form = this.fb.group(
-      {
-        name: ['', [Validators.required, Validators.maxLength(255)]],
-        description: [''],
-        projectType: [ProjectType.Operational, [Validators.required]],
-        strategicObjectiveId: [null as string | null],
-        priority: [ProjectPriority.Medium, [Validators.required]],
-        projectManagerUserId: ['', [Validators.required]],
-        plannedStartDate: ['', [Validators.required]],
-        plannedEndDate: ['', [Validators.required]],
-        approvedBudget: [null as number | null],
-        status: [ProjectStatus.Draft],
-        actualStartDate: [''],
-      },
-      { validators: dateRangeValidator }
-    );
+    const formConfig: Record<string, any> = {
+      name: ['', [Validators.required, Validators.maxLength(255)]],
+      description: [''],
+      projectType: [ProjectType.Operational, [Validators.required]],
+      strategicObjectiveId: [null as string | null],
+      priority: [ProjectPriority.Medium, [Validators.required]],
+      projectManagerUserId: ['', [Validators.required]],
+      plannedStartDate: ['', [Validators.required]],
+      plannedEndDate: ['', [Validators.required]],
+      approvedBudget: [null as number | null],
+      status: [ProjectStatus.Draft],
+      actualStartDate: [''],
+    };
+
+    if (this.needsWorkspaceSelector) {
+      formConfig['selectedWorkspaceId'] = ['', [Validators.required]];
+    }
+
+    this.form = this.fb.group(formConfig, { validators: dateRangeValidator });
+  }
+
+  private loadWorkspaces(): void {
+    this.workspaceSvc.getWorkspaces()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.workspaces = (res.data ?? []).filter(w => w.isActive); },
+        error: () => { this.errorMessage = 'Failed to load workspaces.'; },
+      });
   }
 
   private setupProjectTypeListener(): void {
@@ -251,8 +279,11 @@ export class ProjectFormComponent implements OnInit {
   }
 
   private loadStrategicObjectives(): void {
-    if (!this.workspaceId) return;
-    this.projectSvc.getStrategicObjectivesForWorkspace(this.workspaceId)
+    const wsId = this.needsWorkspaceSelector
+      ? this.form?.get('selectedWorkspaceId')?.value
+      : this.workspaceId;
+    if (!wsId) return;
+    this.projectSvc.getStrategicObjectivesForWorkspace(wsId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.strategicObjectives = (res.data ?? []) as StrategicObjectiveOption[],
@@ -285,9 +316,16 @@ export class ProjectFormComponent implements OnInit {
             actualStartDate: p.actualStartDate ? String(p.actualStartDate).substring(0, 10) : '',
           });
 
-          if (this.isBaselined) {
+          // Freeze dates when project is not Draft (submitted for approval or active)
+          const isNotDraft = p.status !== ProjectStatus.Draft;
+          if (this.isBaselined || isNotDraft) {
             this.form.get('plannedStartDate')!.disable();
             this.form.get('plannedEndDate')!.disable();
+          }
+
+          // Disable status when PendingApproval (workflow-controlled)
+          if (p.status === ProjectStatus.PendingApproval) {
+            this.form.get('status')?.disable();
           }
 
           if (p.projectType === ProjectType.Strategic) {

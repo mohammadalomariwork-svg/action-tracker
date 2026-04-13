@@ -1,3 +1,28 @@
+export enum ProjectPhase {
+  Initiation = 1,
+  Planning = 2,
+  Execution = 3,
+  MonitoringAndControlling = 4,
+  Closing = 5,
+}
+
+export const ProjectPhaseLabels: Record<ProjectPhase, string> = {
+  [ProjectPhase.Initiation]: 'Initiation',
+  [ProjectPhase.Planning]: 'Planning',
+  [ProjectPhase.Execution]: 'Execution',
+  [ProjectPhase.MonitoringAndControlling]: 'Monitoring & Controlling',
+  [ProjectPhase.Closing]: 'Closing',
+};
+
+/** Maps camelCase API strings to numeric enum values */
+export const ProjectPhaseFromApi: Record<string, ProjectPhase> = {
+  initiation: ProjectPhase.Initiation,
+  planning: ProjectPhase.Planning,
+  execution: ProjectPhase.Execution,
+  monitoringAndControlling: ProjectPhase.MonitoringAndControlling,
+  closing: ProjectPhase.Closing,
+};
+
 export enum MilestoneStatus {
   NotStarted = 1,
   InProgress = 2,
@@ -14,6 +39,15 @@ export const MilestoneStatusLabels: Record<MilestoneStatus, string> = {
   [MilestoneStatus.Cancelled]: 'Cancelled',
 };
 
+/** Maps camelCase API strings to numeric enum values */
+export const MilestoneStatusFromApi: Record<string, MilestoneStatus> = {
+  notStarted: MilestoneStatus.NotStarted,
+  inProgress: MilestoneStatus.InProgress,
+  completed: MilestoneStatus.Completed,
+  delayed: MilestoneStatus.Delayed,
+  cancelled: MilestoneStatus.Cancelled,
+};
+
 export interface MilestoneResponse {
   id: string;
   milestoneCode: string;
@@ -25,6 +59,8 @@ export interface MilestoneResponse {
   plannedDueDate: string;
   actualCompletionDate?: string;
   isDeadlineFixed: boolean;
+  phase: ProjectPhase;
+  phaseLabel: string;
   status: MilestoneStatus;
   completionPercentage: number;
   approverUserId?: string;
@@ -41,6 +77,7 @@ export interface MilestoneCreate {
   name: string;
   description?: string;
   sequenceOrder: number;
+  phase: ProjectPhase;
   plannedStartDate: string;
   plannedDueDate: string;
   isDeadlineFixed: boolean;
@@ -59,6 +96,7 @@ export interface MilestoneUpdate {
   name: string;
   description?: string;
   sequenceOrder: number;
+  phase: ProjectPhase;
   plannedStartDate: string;
   plannedDueDate: string;
   actualCompletionDate?: string;

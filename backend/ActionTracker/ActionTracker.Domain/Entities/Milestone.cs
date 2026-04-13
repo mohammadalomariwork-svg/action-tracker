@@ -24,6 +24,9 @@ public class Milestone
     /// <summary>Whether the due date is a hard deadline.</summary>
     public bool IsDeadlineFixed { get; set; }
 
+    /// <summary>Project phase this milestone belongs to.</summary>
+    public ProjectPhase Phase { get; set; }
+
     public MilestoneStatus Status { get; set; } = MilestoneStatus.NotStarted;
 
     /// <summary>0–100 completion percentage. Auto-calculated from action items or set manually.</summary>

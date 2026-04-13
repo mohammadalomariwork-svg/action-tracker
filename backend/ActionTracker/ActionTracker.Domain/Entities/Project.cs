@@ -56,4 +56,5 @@ public class Project
     public OrgUnit? OwnerOrgUnit { get; set; }
     public ICollection<ProjectSponsor> Sponsors { get; set; } = new List<ProjectSponsor>();
     public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
+    public ICollection<ProjectApprovalRequest> ApprovalRequests { get; set; } = new List<ProjectApprovalRequest>();
 }

@@ -3,7 +3,9 @@ export enum ActionStatus {
   InProgress = 2,
   InReview = 3,
   Done = 4,
-  Overdue = 5
+  Overdue = 5,
+  Deferred = 6,
+  Cancelled = 7
 }
 
 export enum ActionPriority {
@@ -51,8 +53,10 @@ export interface ActionItem {
   isStandalone: boolean;
   assignees: AssigneeInfo[];
   priority: ActionPriority;
+  priorityCode: number;
   priorityLabel: string;
   status: ActionStatus;
+  statusCode: number;
   statusLabel: string;
   startDate: string | null;
   dueDate: string;
@@ -80,7 +84,7 @@ export interface ActionItemCreate {
   startDate: string | null;
   dueDate: string;
   progress: number;
-  isEscalated: boolean;
+  isEscalated?: boolean;
   escalationExplanation?: string;
 }
 

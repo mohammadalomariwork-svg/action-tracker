@@ -20,6 +20,9 @@ public class MilestoneResponseDto
 
     public bool IsDeadlineFixed { get; set; }
 
+    public ProjectPhase Phase { get; set; }
+    public string PhaseLabel => Phase.GetDescription();
+
     public MilestoneStatus Status { get; set; }
     public decimal CompletionPercentage { get; set; }
 
@@ -51,6 +54,9 @@ public class MilestoneCreateDto
     public int SequenceOrder { get; set; }
 
     [Required]
+    public ProjectPhase Phase { get; set; }
+
+    [Required]
     public DateTime PlannedStartDate { get; set; }
 
     [Required]
@@ -74,6 +80,9 @@ public class MilestoneUpdateDto
     public string? Description { get; set; }
 
     public int SequenceOrder { get; set; }
+
+    [Required]
+    public ProjectPhase Phase { get; set; }
 
     public DateTime PlannedStartDate { get; set; }
     public DateTime PlannedDueDate { get; set; }

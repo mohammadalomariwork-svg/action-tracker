@@ -42,6 +42,10 @@ public class ActionItemResponseDto
     // Comments
     public List<CommentDto> Comments { get; set; } = new();
 
+    // Numeric enum codes for frontend comparisons
+    public int StatusCode   => (int)Status;
+    public int PriorityCode => (int)Priority;
+
     // Human-readable enum labels sourced from [Description] attributes
     public string StatusLabel   => Status.GetDescription();
     public string PriorityLabel => Priority.GetDescription();

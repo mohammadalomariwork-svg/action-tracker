@@ -12,8 +12,12 @@ import {
   MilestoneResponse,
   MilestoneStatus,
   MilestoneStatusLabels,
+  MilestoneStatusFromApi,
   MilestoneStats,
   MilestoneUpdate,
+  ProjectPhase,
+  ProjectPhaseLabels,
+  ProjectPhaseFromApi,
 } from '../../models/milestone.models';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
@@ -87,15 +91,18 @@ export class MilestoneDetailComponent implements OnInit {
     { value: MilestoneStatus.Cancelled,  label: 'Cancelled'   },
   ];
 
-  private readonly MILESTONE_STATUS_MAP: Record<string, MilestoneStatus> = {
-    notStarted: MilestoneStatus.NotStarted, inProgress: MilestoneStatus.InProgress,
-    completed: MilestoneStatus.Completed, delayed: MilestoneStatus.Delayed,
-    cancelled: MilestoneStatus.Cancelled,
-  };
+  private resolvePhase(val: unknown): ProjectPhase {
+    if (typeof val === 'number') return val;
+    return ProjectPhaseFromApi[String(val)] ?? ProjectPhase.Initiation;
+  }
+
+  compareNumeric(a: any, b: any): boolean {
+    return +a === +b;
+  }
 
   private resolveMilestoneStatus(val: unknown): MilestoneStatus {
     if (typeof val === 'number') return val;
-    return this.MILESTONE_STATUS_MAP[String(val)] ?? MilestoneStatus.NotStarted;
+    return MilestoneStatusFromApi[String(val)] ?? MilestoneStatus.NotStarted;
   }
 
   // Delete
@@ -404,11 +411,22 @@ export class MilestoneDetailComponent implements OnInit {
   }
 
   // ── Milestone Edit Form ────────────────────────────────
+  readonly ProjectPhase = ProjectPhase;
+  readonly ProjectPhaseLabels = ProjectPhaseLabels;
+  readonly PHASE_OPTIONS = [
+    ProjectPhase.Initiation,
+    ProjectPhase.Planning,
+    ProjectPhase.Execution,
+    ProjectPhase.MonitoringAndControlling,
+    ProjectPhase.Closing,
+  ];
+
   private emptyMilestoneEditForm(): MilestoneEditFormData {
     return {
       name: '',
       description: '',
       sequenceOrder: 1,
+      phase: ProjectPhase.Initiation,
       plannedStartDate: '',
       plannedDueDate: '',
       actualCompletionDate: '',
@@ -425,6 +443,7 @@ export class MilestoneDetailComponent implements OnInit {
       name: this.milestone.name,
       description: this.milestone.description ?? '',
       sequenceOrder: this.milestone.sequenceOrder,
+      phase: this.resolvePhase(this.milestone.phase),
       plannedStartDate: this.milestone.plannedStartDate?.slice(0, 10) ?? '',
       plannedDueDate: this.milestone.plannedDueDate?.slice(0, 10) ?? '',
       actualCompletionDate: this.milestone.actualCompletionDate?.slice(0, 10) ?? '',
@@ -450,6 +469,7 @@ export class MilestoneDetailComponent implements OnInit {
       name: this.milestoneEditForm.name.trim(),
       description: this.milestoneEditForm.description?.trim() || undefined,
       sequenceOrder: +this.milestoneEditForm.sequenceOrder,
+      phase: +this.milestoneEditForm.phase as ProjectPhase,
       plannedStartDate: this.milestoneEditForm.plannedStartDate,
       plannedDueDate: this.milestoneEditForm.plannedDueDate,
       actualCompletionDate: this.milestoneEditForm.actualCompletionDate || undefined,
@@ -498,8 +518,6 @@ export class MilestoneDetailComponent implements OnInit {
       { Field: 'Baseline Start',         Value: ms.baselinePlannedStartDate  ? new Date(ms.baselinePlannedStartDate).toLocaleDateString()  : '' },
       { Field: 'Baseline Due',           Value: ms.baselinePlannedDueDate    ? new Date(ms.baselinePlannedDueDate).toLocaleDateString()    : '' },
       { Field: 'Schedule Variance',      Value: ms.scheduleVarianceDays != null ? this.varianceLabel(ms.scheduleVarianceDays) : '' },
-      { Field: 'Fixed Deadline',         Value: ms.isDeadlineFixed ? 'Yes' : 'No' },
-      { Field: 'Approver',               Value: ms.approverName ?? '' },
       { Field: 'Description',            Value: ms.description ?? '' },
       { Field: 'Created',                Value: ms.createdAt  ? new Date(ms.createdAt).toLocaleDateString()  : '' },
       { Field: 'Last Updated',           Value: ms.updatedAt  ? new Date(ms.updatedAt).toLocaleDateString()  : '' },
@@ -617,6 +635,7 @@ interface MilestoneEditFormData {
   name: string;
   description: string;
   sequenceOrder: number;
+  phase: ProjectPhase;
   plannedStartDate: string;
   plannedDueDate: string;
   actualCompletionDate: string;

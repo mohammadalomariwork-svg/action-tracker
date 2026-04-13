@@ -1,22 +1,33 @@
 import {
   Component, OnInit, ChangeDetectionStrategy,
-  inject, signal,
+  inject, signal, HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { ProjectService } from '../../services/project.service';
+import { WorkspaceService } from '../../../workspaces/services/workspace.service';
+import { WorkspaceList } from '../../../workspaces/models/workspace.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
-  ProjectResponse, ProjectStatus, ProjectPriority,
+  ProjectResponse, ProjectStatus, ProjectPriority, ProjectType,
+  StrategicObjectiveOption,
 } from '../../models/project.models';
+import { AssignableUser } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
 import { HasPermissionDirective } from '../../../../shared';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+
+function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
+  const start = group.get('plannedStartDate')?.value;
+  const end = group.get('plannedEndDate')?.value;
+  if (start && end && end <= start) return { dateRange: true };
+  return null;
+}
 
 export type MyProjectRole = 'manager' | 'sponsor';
 
@@ -35,15 +46,17 @@ const AVATAR_COLORS = [
   selector: 'app-my-projects',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, HasPermissionDirective,
             BreadcrumbComponent, PageHeaderComponent],
   templateUrl: './my-projects.component.html',
   styleUrl: './my-projects.component.scss',
 })
 export class MyProjectsComponent implements OnInit {
-  private readonly authSvc    = inject(AuthService);
-  private readonly projectSvc = inject(ProjectService);
-  private readonly toastSvc   = inject(ToastService);
+  private readonly authSvc      = inject(AuthService);
+  private readonly projectSvc   = inject(ProjectService);
+  private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly toastSvc     = inject(ToastService);
+  private readonly fb           = inject(FormBuilder);
 
   readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
 
@@ -77,8 +90,32 @@ export class MyProjectsComponent implements OnInit {
     { value: ProjectStatus.Cancelled, label: 'Cancelled' },
   ];
 
+  // ── Create drawer ──────────────────────────────────────
+  showDrawer    = false;
+  drawerSaving  = false;
+  drawerError:  string | null = null;
+  createForm!:  FormGroup;
+  workspaces:   WorkspaceList[] = [];
+  availableUsers: AssignableUser[] = [];
+  strategicObjectives: StrategicObjectiveOption[] = [];
+  selectedSponsorIds: string[] = [];
+  sponsorDropdownOpen = false;
+  sponsorSearchTerm   = '';
+
+  readonly ProjectType     = ProjectType;
+  readonly PRIORITY_OPTIONS = [
+    { value: ProjectPriority.Low,      label: 'Low'      },
+    { value: ProjectPriority.Medium,   label: 'Medium'   },
+    { value: ProjectPriority.High,     label: 'High'     },
+    { value: ProjectPriority.Critical, label: 'Critical' },
+  ];
+
+  @HostListener('document:click')
+  onDocumentClick(): void { this.sponsorDropdownOpen = false; }
+
   ngOnInit(): void {
     this.loadProjects();
+    this.buildCreateForm();
   }
 
   private loadProjects(): void {
@@ -218,8 +255,9 @@ export class MyProjectsComponent implements OnInit {
       case ProjectStatus.Active:     return 'mp-status-badge mp-status-badge--active';
       case ProjectStatus.OnHold:     return 'mp-status-badge mp-status-badge--onhold';
       case ProjectStatus.Completed:  return 'mp-status-badge mp-status-badge--completed';
-      case ProjectStatus.Cancelled:  return 'mp-status-badge mp-status-badge--cancelled';
-      default:                       return 'mp-status-badge mp-status-badge--draft';
+      case ProjectStatus.Cancelled:       return 'mp-status-badge mp-status-badge--cancelled';
+      case ProjectStatus.PendingApproval: return 'mp-status-badge mp-status-badge--pending';
+      default:                            return 'mp-status-badge mp-status-badge--draft';
     }
   }
 
@@ -231,5 +269,153 @@ export class MyProjectsComponent implements OnInit {
       case ProjectPriority.Critical: return 'mp-pri-badge mp-pri-badge--critical';
       default:                       return 'mp-pri-badge mp-pri-badge--low';
     }
+  }
+
+  // ── Create drawer methods ─────────────────────────────────────────────────
+
+  private buildCreateForm(): void {
+    this.createForm = this.fb.group({
+      workspaceId:          ['', [Validators.required]],
+      name:                 ['', [Validators.required, Validators.maxLength(255)]],
+      description:          [''],
+      projectType:          [ProjectType.Operational, [Validators.required]],
+      strategicObjectiveId: [null as string | null],
+      priority:             [ProjectPriority.Medium, [Validators.required]],
+      projectManagerUserId: ['', [Validators.required]],
+      plannedStartDate:     ['', [Validators.required]],
+      plannedEndDate:       ['', [Validators.required]],
+      approvedBudget:       [null as number | null],
+    }, { validators: dateRangeValidator });
+
+    this.createForm.get('workspaceId')!.valueChanges.subscribe(wsId => {
+      if (wsId && this.createForm.get('projectType')?.value === ProjectType.Strategic) {
+        this.loadStrategicObjectives(wsId);
+      }
+    });
+
+    this.createForm.get('projectType')!.valueChanges.subscribe((type: ProjectType) => {
+      const soCtrl = this.createForm.get('strategicObjectiveId')!;
+      if (type === ProjectType.Strategic) {
+        soCtrl.setValidators([Validators.required]);
+        const wsId = this.createForm.get('workspaceId')?.value;
+        if (wsId) this.loadStrategicObjectives(wsId);
+      } else {
+        soCtrl.clearValidators();
+        soCtrl.setValue(null);
+        this.strategicObjectives = [];
+      }
+      soCtrl.updateValueAndValidity();
+    });
+  }
+
+  openCreateDrawer(): void {
+    this.createForm.reset({
+      workspaceId: '', name: '', description: '',
+      projectType: ProjectType.Operational,
+      strategicObjectiveId: null,
+      priority: ProjectPriority.Medium,
+      projectManagerUserId: '',
+      plannedStartDate: '', plannedEndDate: '',
+      approvedBudget: null,
+    });
+    this.selectedSponsorIds = [];
+    this.drawerError = null;
+    this.sponsorSearchTerm = '';
+
+    if (this.workspaces.length === 0) {
+      this.workspaceSvc.getWorkspaces().subscribe({
+        next: res => this.workspaces = (res.data ?? []).filter(w => w.isActive),
+      });
+    }
+    if (this.availableUsers.length === 0) {
+      this.projectSvc.getAssignableUsers().subscribe({
+        next: res => this.availableUsers = res.data ?? [],
+      });
+    }
+
+    this.showDrawer = true;
+  }
+
+  closeDrawer(): void {
+    this.showDrawer = false;
+  }
+
+  get isStrategic(): boolean {
+    return this.createForm.get('projectType')?.value === ProjectType.Strategic;
+  }
+
+  get hasDateRangeError(): boolean {
+    return !!(this.createForm.hasError('dateRange') && this.createForm.get('plannedEndDate')?.touched);
+  }
+
+  formHasError(field: string, error: string): boolean {
+    const ctrl = this.createForm.get(field);
+    return !!(ctrl?.touched && ctrl.hasError(error));
+  }
+
+  formIsInvalid(field: string): boolean {
+    const ctrl = this.createForm.get(field);
+    return !!(ctrl?.touched && ctrl.invalid);
+  }
+
+  get filteredSponsorUsers(): AssignableUser[] {
+    if (!this.sponsorSearchTerm.trim()) return this.availableUsers;
+    const term = this.sponsorSearchTerm.toLowerCase();
+    return this.availableUsers.filter(u => u.fullName.toLowerCase().includes(term));
+  }
+
+  toggleSponsor(userId: string): void {
+    const idx = this.selectedSponsorIds.indexOf(userId);
+    if (idx >= 0) this.selectedSponsorIds.splice(idx, 1);
+    else this.selectedSponsorIds.push(userId);
+  }
+
+  isSponsorSelected(userId: string): boolean {
+    return this.selectedSponsorIds.includes(userId);
+  }
+
+  getSponsorName(userId: string): string {
+    return this.availableUsers.find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  private loadStrategicObjectives(workspaceId: string): void {
+    this.projectSvc.getStrategicObjectivesForWorkspace(workspaceId).subscribe({
+      next: res => this.strategicObjectives = res.data ?? [],
+      error: () => this.strategicObjectives = [],
+    });
+  }
+
+  onDrawerSubmit(): void {
+    this.createForm.markAllAsTouched();
+    if (this.createForm.invalid || this.selectedSponsorIds.length === 0) return;
+
+    this.drawerSaving = true;
+    this.drawerError = null;
+    const v = this.createForm.getRawValue();
+
+    this.projectSvc.create({
+      name: v.name,
+      description: v.description || undefined,
+      workspaceId: v.workspaceId,
+      projectType: v.projectType,
+      strategicObjectiveId: v.strategicObjectiveId || undefined,
+      priority: v.priority,
+      projectManagerUserId: v.projectManagerUserId,
+      sponsorUserIds: this.selectedSponsorIds,
+      plannedStartDate: v.plannedStartDate,
+      plannedEndDate: v.plannedEndDate,
+      approvedBudget: v.approvedBudget ? +v.approvedBudget : undefined,
+    }).subscribe({
+      next: () => {
+        this.drawerSaving = false;
+        this.showDrawer = false;
+        this.toastSvc.success('Project created successfully.');
+        this.loadProjects();
+      },
+      error: err => {
+        this.drawerSaving = false;
+        this.drawerError = err?.error?.message ?? 'Failed to create project.';
+      },
+    });
   }
 }

@@ -5,6 +5,8 @@ using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Mappers;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.Workflow.DTOs;
+using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
@@ -160,6 +162,17 @@ public class ActionItemService : IActionItemService
     public async Task<ActionItemResponseDto> CreateAsync(
         ActionItemCreateDto dto, string createdByUserId, CancellationToken ct)
     {
+        // Block creation if linked to a non-Draft project
+        if (dto.ProjectId.HasValue && dto.ProjectId.Value != Guid.Empty)
+        {
+            var parentProject = await _dbContext.Projects
+                .Where(p => p.Id == dto.ProjectId.Value && !p.IsDeleted)
+                .Select(p => new { p.Status })
+                .FirstOrDefaultAsync(ct);
+            if (parentProject != null && parentProject.Status != ProjectStatus.Draft)
+                throw new ArgumentException("New action items cannot be added to a project after it has been submitted for approval or activated.");
+        }
+
         // Determine next ActionId sequence across all rows including soft-deleted ones
         var maxSeq = await _dbContext.ActionItems
             .IgnoreQueryFilters()
@@ -312,6 +325,93 @@ public class ActionItemService : IActionItemService
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
 
+        // ── Block edits on completed items ────────────────────────────────────
+        if (item.Status == ActionStatus.Done)
+            throw new InvalidOperationException("Completed action items cannot be edited.");
+
+        // ── Date freeze for project-linked items ──────────────────────────────
+        if (item.ProjectId.HasValue)
+        {
+            var parentProject = await _dbContext.Projects
+                .Where(p => p.Id == item.ProjectId.Value && !p.IsDeleted)
+                .Select(p => new { p.Status })
+                .FirstOrDefaultAsync(ct);
+
+            if (parentProject != null && parentProject.Status != ProjectStatus.Draft)
+            {
+                var dateChanged = (dto.StartDate is not null && dto.StartDate.Value != item.StartDate) ||
+                                  (dto.DueDate   is not null && dto.DueDate.Value   != item.DueDate);
+                if (dateChanged)
+                    throw new ArgumentException("Action item dates cannot be changed after the parent project has been submitted for approval or activated.");
+            }
+        }
+
+        // ── Workflow auto-request for standalone items ─────────────────────────
+        if (item.IsStandalone)
+        {
+            var workflowService = _scopeFactory.CreateScope().ServiceProvider
+                .GetRequiredService<IActionItemWorkflowService>();
+
+            // Date freeze: auto-create a date change request instead of applying directly
+            var dateChanged = (dto.StartDate is not null && dto.StartDate.Value != item.StartDate) ||
+                              (dto.DueDate   is not null && dto.DueDate.Value   != item.DueDate);
+            if (dateChanged)
+            {
+                try
+                {
+                    await workflowService.CreateDateChangeRequestAsync(
+                        new CreateDateChangeRequestDto
+                        {
+                            ActionItemId = item.Id,
+                            NewStartDate = dto.StartDate ?? item.StartDate,
+                            NewDueDate   = dto.DueDate   ?? item.DueDate,
+                            Reason       = "Date change requested via action item edit."
+                        }, updatedByUserId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not auto-create date change request for {Id}", item.Id);
+                }
+
+                // Strip the date fields so the update proceeds without changing dates
+                dto.StartDate = null;
+                dto.DueDate   = null;
+            }
+
+            // Status approval: auto-create a status change request for terminal transitions
+            if (dto.Status is not null && dto.Status.Value != item.Status)
+            {
+                var requiresApproval = dto.Status.Value is ActionStatus.Done
+                                                        or ActionStatus.Deferred
+                                                        or ActionStatus.Cancelled;
+                var isWorkflowSource = item.Status is ActionStatus.ToDo
+                                                   or ActionStatus.InProgress
+                                                   or ActionStatus.InReview
+                                                   or ActionStatus.Overdue;
+
+                if (requiresApproval && isWorkflowSource)
+                {
+                    try
+                    {
+                        await workflowService.CreateStatusChangeRequestAsync(
+                            new CreateStatusChangeRequestDto
+                            {
+                                ActionItemId = item.Id,
+                                NewStatus    = dto.Status.Value,
+                                Reason       = "Status change requested via action item edit."
+                            }, updatedByUserId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not auto-create status change request for {Id}", item.Id);
+                    }
+
+                    // Strip the status field so the update proceeds without changing status
+                    dto.Status = null;
+                }
+            }
+        }
+
         // Patch only the fields that were supplied
         if (dto.Title       is not null) item.Title       = dto.Title;
         if (dto.Description is not null) item.Description = dto.Description;
@@ -429,6 +529,16 @@ public class ActionItemService : IActionItemService
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
 
+        if (item.ProjectId.HasValue)
+        {
+            var parentProject = await _dbContext.Projects
+                .Where(p => p.Id == item.ProjectId.Value && !p.IsDeleted)
+                .Select(p => new { p.Status })
+                .FirstOrDefaultAsync(ct);
+            if (parentProject != null && parentProject.Status != ProjectStatus.Draft)
+                throw new ArgumentException("Action items cannot be removed from a project after it has been submitted for approval or activated.");
+        }
+
         item.IsDeleted = true;
         await _dbContext.SaveChangesAsync(ct);
 
@@ -460,6 +570,33 @@ public class ActionItemService : IActionItemService
         var item = await _dbContext.ActionItems
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
+
+        // ── Workflow auto-request for standalone items ─────────────────────────
+        if (item.IsStandalone && newStatus != item.Status)
+        {
+            var requiresApproval = newStatus is ActionStatus.Done
+                                             or ActionStatus.Deferred
+                                             or ActionStatus.Cancelled;
+            var isWorkflowSource = item.Status is ActionStatus.ToDo
+                                              or ActionStatus.InProgress
+                                              or ActionStatus.InReview
+                                              or ActionStatus.Overdue;
+
+            if (requiresApproval && isWorkflowSource)
+            {
+                // Auto-create a workflow request instead of blocking
+                var workflowService = _scopeFactory.CreateScope().ServiceProvider
+                    .GetRequiredService<IActionItemWorkflowService>();
+                await workflowService.CreateStatusChangeRequestAsync(
+                    new CreateStatusChangeRequestDto
+                    {
+                        ActionItemId = item.Id,
+                        NewStatus    = newStatus,
+                        Reason       = "Status change requested."
+                    }, "system");
+                return; // Don't apply the status change — wait for approval
+            }
+        }
 
         item.Status = newStatus;
 
@@ -603,6 +740,48 @@ public class ActionItemService : IActionItemService
                 Email    = u.Email ?? string.Empty,
             })
             .ToListAsync(ct);
+    }
+
+    // -------------------------------------------------------------------------
+    // Workflow bypass (called after approval — skips standalone guards)
+    // -------------------------------------------------------------------------
+
+    public async Task ApplyApprovedDateChangeAsync(Guid actionItemId, DateTime? newStartDate, DateTime? newDueDate)
+    {
+        var item = await _dbContext.ActionItems
+            .FirstOrDefaultAsync(a => a.Id == actionItemId)
+            ?? throw new KeyNotFoundException($"ActionItem {actionItemId} not found.");
+
+        if (newStartDate.HasValue)
+            item.StartDate = newStartDate.Value;
+        if (newDueDate.HasValue)
+            item.DueDate = newDueDate.Value;
+
+        item.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(default);
+
+        _logger.LogInformation(
+            "Approved date change applied to ActionItem {Id}: StartDate={StartDate}, DueDate={DueDate}",
+            actionItemId, newStartDate, newDueDate);
+    }
+
+    public async Task ApplyApprovedStatusChangeAsync(Guid actionItemId, ActionStatus newStatus)
+    {
+        var item = await _dbContext.ActionItems
+            .FirstOrDefaultAsync(a => a.Id == actionItemId)
+            ?? throw new KeyNotFoundException($"ActionItem {actionItemId} not found.");
+
+        item.Status = newStatus;
+
+        if (newStatus == ActionStatus.Done)
+            item.Progress = 100;
+
+        item.UpdatedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(default);
+
+        _logger.LogInformation(
+            "Approved status change applied to ActionItem {Id}: Status={Status}",
+            actionItemId, newStatus);
     }
 
     // -------------------------------------------------------------------------

@@ -16,10 +16,18 @@
         <p class="ms-page-subtitle">Track and manage project milestones, deadlines, and progress.</p>
       </div>
     </div>
-    <button *appHasPermission="'Projects'; action: 'Create'"
-            class="btn btn-primary" (click)="openCreateForm()" [disabled]="showForm()">
-      <i class="bi bi-plus-circle me-1"></i>Add Milestone
-    </button>
+    @if (!isProjectFrozen()) {
+      <div class="d-flex gap-2">
+        <button *appHasPermission="'Projects'; action: 'Create'"
+                class="btn btn-primary" (click)="openCreateForm()" [disabled]="showForm()">
+          <i class="bi bi-plus-circle me-1"></i>Add Milestone
+        </button>
+        <button *appHasPermission="'ActionItems'; action: 'Create'"
+                class="btn btn-outline-primary" (click)="openActionForm()" [disabled]="showActionForm() || milestones().length === 0">
+          <i class="bi bi-plus-lg me-1"></i>Add Action Item
+        </button>
+      </div>
+    }
   </div>
 
   <!-- ── Loading spinner ─────────────────────────────────────────────────── -->
@@ -85,6 +93,7 @@
                   <i class="bi bi-arrow-down-up"></i>
                 }
               </th>
+              <th>PHASE</th>
               <th>STATUS</th>
               <th>PROGRESS</th>
               <th class="ms-th-sortable" (click)="toggleSort('plannedStartDate')">
@@ -136,6 +145,11 @@
                   </div>
                 </td>
 
+                <!-- Phase -->
+                <td>
+                  <span class="badge bg-info bg-opacity-10 text-info">{{ m.phaseLabel }}</span>
+                </td>
+
                 <!-- Status -->
                 <td>
                   <span class="ms-status-badge" [ngClass]="statusBadgeClass(m.status)">
@@ -160,9 +174,6 @@
                 <!-- Planned Due -->
                 <td class="text-muted">
                   {{ m.plannedDueDate | date:'MMM d, y' }}
-                  @if (m.isDeadlineFixed) {
-                    <span class="ms-fixed-badge">Fixed</span>
-                  }
                 </td>
 
                 <!-- Actions -->
@@ -273,6 +284,10 @@
 
             <div class="ms-card-meta">
               <div class="ms-card-meta-row">
+                <span class="ms-card-meta-label">Phase</span>
+                <span class="badge bg-info bg-opacity-10 text-info">{{ m.phaseLabel }}</span>
+              </div>
+              <div class="ms-card-meta-row">
                 <span class="ms-card-meta-label">Progress</span>
                 <div class="ms-progress-cell">
                   <div class="ms-progress-bar">
@@ -285,9 +300,6 @@
                 <span class="ms-card-meta-label">Period</span>
                 <span class="ms-card-meta-value">
                   {{ m.plannedStartDate | date:'MMM d, y' }} &ndash; {{ m.plannedDueDate | date:'MMM d, y' }}
-                  @if (m.isDeadlineFixed) {
-                    <span class="ms-fixed-badge">Fixed</span>
-                  }
                 </span>
               </div>
             </div>
@@ -440,6 +452,18 @@
                [ngModel]="formSequenceOrder()" (ngModelChange)="formSequenceOrder.set($event)">
       </div>
 
+      <!-- Phase -->
+      <div class="mb-3">
+        <label class="form-label">Phase <span class="text-danger">*</span></label>
+        <select class="form-control"
+                [ngModel]="formPhase()" (ngModelChange)="formPhase.set($event)"
+                [compareWith]="compareNumeric">
+          @for (p of phaseOptions; track p) {
+            <option [ngValue]="p">{{ ProjectPhaseLabels[p] }}</option>
+          }
+        </select>
+      </div>
+
       <!-- Planned Start & Due Date -->
       <div class="row mb-3">
         <div class="col-6">
@@ -467,9 +491,10 @@
           <div class="col-6">
             <label class="form-label">Status</label>
             <select class="form-control"
-                    [ngModel]="formStatus()" (ngModelChange)="formStatus.set(+$event)">
+                    [ngModel]="formStatus()" (ngModelChange)="formStatus.set($event)"
+                    [compareWith]="compareNumeric">
               @for (s of statusOptions; track s) {
-                <option [value]="s">{{ MilestoneStatusLabels[s] }}</option>
+                <option [ngValue]="s">{{ MilestoneStatusLabels[s] }}</option>
               }
             </select>
           </div>
@@ -481,27 +506,6 @@
         <label class="form-label">Completion %</label>
         <input type="number" class="form-control" min="0" max="100" step="1"
                [ngModel]="formCompletionPercentage()" (ngModelChange)="formCompletionPercentage.set($event)">
-      </div>
-
-      <!-- Approver -->
-      <div class="mb-3">
-        <label class="form-label">Approver</label>
-        <select class="form-control"
-                [ngModel]="formApproverUserId()" (ngModelChange)="formApproverUserId.set($event)">
-          <option value="">-- None --</option>
-          @for (u of users(); track u.id) {
-            <option [value]="u.id">{{ u.fullName }}</option>
-          }
-        </select>
-      </div>
-
-      <!-- Fixed Deadline -->
-      <div class="mb-3">
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" id="msFixedDeadline"
-                 [ngModel]="formIsDeadlineFixed()" (ngModelChange)="formIsDeadlineFixed.set($event)">
-          <label class="form-check-label" for="msFixedDeadline">Fixed Deadline</label>
-        </div>
       </div>
 
       <!-- Save / Cancel -->
@@ -522,7 +526,150 @@
   </div>
 </div>
 
-<!-- Backdrop -->
+<!-- Milestone Backdrop -->
 @if (showForm()) {
   <div class="offcanvas-backdrop fade show" (click)="cancelForm()"></div>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Offcanvas drawer — Add Action Item
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end ms-offcanvas"
+     [class.show]="showActionForm()"
+     [style.visibility]="showActionForm() ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">
+      <i class="bi bi-plus-circle text-success me-2"></i>
+      New Action Item
+    </h5>
+    <button type="button" class="btn-close" (click)="cancelActionForm()"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (showActionForm()) {
+
+      @if (actionFormError) {
+        <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3">
+          <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+          <span>{{ actionFormError }}</span>
+        </div>
+      }
+
+      <!-- Milestone selector -->
+      <div class="mb-3">
+        <label class="form-label">Milestone <span class="text-danger">*</span></label>
+        <select class="form-control"
+                [ngModel]="aiMilestoneId()" (ngModelChange)="aiMilestoneId.set($event)">
+          <option value="">-- Select milestone --</option>
+          @for (m of milestones(); track m.id) {
+            <option [value]="m.id">{{ m.milestoneCode }} — {{ m.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Title -->
+      <div class="mb-3">
+        <label class="form-label">Title <span class="text-danger">*</span></label>
+        <input type="text" class="form-control"
+               [ngModel]="aiTitle()" (ngModelChange)="aiTitle.set($event)"
+               placeholder="Action item title" maxlength="255">
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" rows="2"
+                  [ngModel]="aiDescription()" (ngModelChange)="aiDescription.set($event)"
+                  placeholder="Optional description" maxlength="5000"></textarea>
+      </div>
+
+      <!-- Priority -->
+      <div class="mb-3">
+        <label class="form-label">Priority</label>
+        <select class="form-control"
+                [ngModel]="aiPriority()" (ngModelChange)="aiPriority.set(+$event)">
+          @for (opt of PRIORITY_OPTIONS; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Dates -->
+      <div class="row mb-3">
+        <div class="col-6">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control"
+                 [ngModel]="aiStartDate()" (ngModelChange)="aiStartDate.set($event)">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Due Date <span class="text-danger">*</span></label>
+          <input type="date" class="form-control"
+                 [ngModel]="aiDueDate()" (ngModelChange)="aiDueDate.set($event)">
+        </div>
+      </div>
+
+      <!-- Assignees multi-select -->
+      <div class="mb-3">
+        <label class="form-label">Assignee(s) <span class="text-danger">*</span></label>
+        <div class="ai-multi-select" (click)="actionAssigneeDropdownOpen = !actionAssigneeDropdownOpen; $event.stopPropagation()">
+          <div class="ai-multi-select__control form-select">
+            @if (aiAssigneeIds().length === 0) {
+              <span class="text-muted">Select assignees...</span>
+            } @else {
+              <div class="ai-multi-select__tags">
+                @for (id of aiAssigneeIds(); track id) {
+                  <span class="ai-multi-select__tag">
+                    {{ getActionAssigneeName(id) }}
+                    <button type="button" class="ai-multi-select__tag-remove"
+                            (click)="toggleActionAssignee(id); $event.stopPropagation()">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+          @if (actionAssigneeDropdownOpen) {
+            <div class="ai-multi-select__dropdown">
+              <input type="text" class="form-control form-control-sm ai-multi-select__search"
+                     placeholder="Search users..." [(ngModel)]="actionAssigneeSearchTerm"
+                     [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
+              <div class="ai-multi-select__options">
+                @for (u of filteredActionAssignees; track u.id) {
+                  <label class="ai-multi-select__option" (click)="$event.stopPropagation()">
+                    <input type="checkbox" [checked]="isActionAssigneeSelected(u.id)"
+                           (change)="toggleActionAssignee(u.id)" />
+                    <span>{{ u.fullName }}</span>
+                  </label>
+                }
+                @if (filteredActionAssignees.length === 0) {
+                  <div class="text-muted small px-3 py-2">No users found.</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Save / Cancel -->
+      <div class="d-flex gap-2 justify-content-end border-top pt-3">
+        <button type="button" class="btn btn-outline-secondary"
+                (click)="cancelActionForm()" [disabled]="actionSubmitting()">Cancel</button>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                (click)="submitActionForm()" [disabled]="actionSubmitting()">
+          @if (actionSubmitting()) {
+            <span class="spinner-border spinner-border-sm"></span> Creating...
+          } @else {
+            Create
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Action Item Backdrop -->
+@if (showActionForm()) {
+  <div class="offcanvas-backdrop fade show" (click)="cancelActionForm()"></div>
 }

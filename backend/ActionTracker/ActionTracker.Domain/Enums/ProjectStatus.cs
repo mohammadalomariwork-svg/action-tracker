@@ -17,5 +17,8 @@ public enum ProjectStatus
     Completed = 4,
 
     [Description("Cancelled")]
-    Cancelled = 5
+    Cancelled = 5,
+
+    [Description("Pending Approval")]
+    PendingApproval = 6
 }

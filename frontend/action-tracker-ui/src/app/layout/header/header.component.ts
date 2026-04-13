@@ -1,13 +1,15 @@
-import { Component, inject, signal, computed, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { AsyncPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { filter, map, startWith } from 'rxjs';
+import { filter, map, startWith, Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 import { PermissionStateService } from '../../features/permissions/services/permission-state.service';
 import { EffectivePermissionDto } from '../../features/permissions/models/user-permission.model';
 import { ThemeService } from '../../services/theme.service';
+import { WorkflowStateService } from '../../services/workflow-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 interface NavLink {
   label: string;
@@ -34,6 +36,12 @@ const NAV_LINKS: NavLink[] = [
     label: 'My Projects',
     icon: 'bi-folder2-open',
     path: '/projects/my',
+    visibleWhen: null,
+  },
+  {
+    label: 'My Approvals',
+    icon: 'bi-clipboard-check',
+    path: '/approvals',
     visibleWhen: null,
   },
   {
@@ -76,13 +84,19 @@ const NAV_LINKS: NavLink[] = [
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit, OnDestroy {
   private readonly authService       = inject(AuthService);
   private readonly permissionState   = inject(PermissionStateService);
   private readonly router            = inject(Router);
   private readonly themeService      = inject(ThemeService);
+  private readonly workflowState     = inject(WorkflowStateService);
+  private readonly notificationSvc  = inject(NotificationService);
 
   readonly currentUser$ = this.authService.currentUser$;
+  readonly pendingApprovalCount = toSignal(this.workflowState.pendingCount$, { initialValue: 0 });
+
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private userSub: Subscription | null = null;
 
   private readonly currentUser = toSignal(this.authService.currentUser$, { initialValue: null });
 
@@ -103,6 +117,34 @@ export class HeaderComponent {
   readonly menuOpen  = signal(false);
   readonly isNavOpen = signal(false);
   readonly isDark    = toSignal(this.themeService.isDark$, { initialValue: true });
+
+  ngOnInit(): void {
+    // Register callback for real-time workflow notification refresh
+    this.notificationSvc.registerWorkflowRefresh(() => {
+      this.workflowState.refreshPendingCount();
+    });
+
+    this.userSub = this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        this.workflowState.refreshPendingCount();
+        this.refreshInterval = setInterval(() => {
+          this.workflowState.refreshPendingCount();
+        }, 60_000);
+      } else {
+        if (this.refreshInterval) {
+          clearInterval(this.refreshInterval);
+          this.refreshInterval = null;
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    this.userSub?.unsubscribe();
+  }
 
   /** Nav links visible to the current user based on their effective permissions. */
   readonly visibleLinks = computed(() => {
@@ -157,6 +199,7 @@ export class HeaderComponent {
 
   logout(): void {
     this.permissionState.clearPermissions();
+    this.workflowState.clearPendingCount();
     this.authService.logout();
   }
 

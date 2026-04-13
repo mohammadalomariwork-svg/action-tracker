@@ -10,11 +10,14 @@ import { ProjectService } from '../../services/project.service';
 import { MilestoneService } from '../../services/milestone.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { ProjectWorkflowService } from '../../../../services/project-workflow.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
   ProjectResponse, ProjectUpdate, ProjectStats,
   ProjectType, ProjectStatus, ProjectPriority,
   StrategicObjectiveOption,
 } from '../../models/project.models';
+import { ProjectApprovalRequest } from '../../models/project-approval.models';
 import { MilestoneResponse } from '../../models/milestone.models';
 import {
   ActionItem, ActionItemFilter, ActionStatus, AssignableUser,
@@ -57,6 +60,8 @@ export class ProjectDetailComponent implements OnInit {
   private readonly projectService     = inject(ProjectService);
   private readonly milestoneService   = inject(MilestoneService);
   private readonly actionService      = inject(ActionItemService);
+  private readonly workflowService    = inject(ProjectWorkflowService);
+  private readonly authService        = inject(AuthService);
   private readonly route              = inject(ActivatedRoute);
   private readonly destroyRef         = inject(DestroyRef);
   private readonly toastSvc           = inject(ToastService);
@@ -104,6 +109,23 @@ export class ProjectDetailComponent implements OnInit {
 
   editForm: EditFormData = this.emptyEditForm();
 
+  // ── Approval workflow ──────────────────────────────
+  approvalRequests: ProjectApprovalRequest[] = [];
+  canReview = false;
+  currentUserId = '';
+  showApprovalHistory = true;
+  showSubmitModal = false;
+  submitReason = '';
+  submittingApproval = false;
+  submitError: string | null = null;
+  submitValidationErrors: string[] = [];
+  validatingSubmit = false;
+  showReviewModal = false;
+  reviewIsApproval = true;
+  reviewComment = '';
+  reviewingApproval = false;
+  pendingRequestId: string | null = null;
+
   readonly PROJECT_PRIORITY_OPTIONS = [
     { value: ProjectPriority.Low,      label: 'Low'      },
     { value: ProjectPriority.Medium,   label: 'Medium'   },
@@ -124,6 +146,11 @@ export class ProjectDetailComponent implements OnInit {
     this.loadProject();
     this.loadStats();
     this.loadUsers();
+    this.loadApprovalRequests();
+    this.loadCanReview();
+    this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(u => {
+      if (u) this.currentUserId = u.userId;
+    });
   }
 
   // ── Data loading ───────────────────────────────────────
@@ -161,6 +188,128 @@ export class ProjectDetailComponent implements OnInit {
         next: (res) => { this.allUsers = res.data ?? []; },
         error: () => {},
       });
+  }
+
+  // ── Approval workflow methods ──────────────────────────
+  loadApprovalRequests(): void {
+    this.workflowService.getApprovalRequestsForProject(this.projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          if (res.success) this.approvalRequests = res.data;
+        },
+        error: () => {},
+      });
+  }
+
+  private loadCanReview(): void {
+    this.workflowService.canReviewProject(this.projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          if (res.success) this.canReview = res.data.canReview;
+        },
+        error: () => {},
+      });
+  }
+
+  get canSubmitForApproval(): boolean {
+    return !!this.project
+      && this.project.status === ProjectStatus.Draft
+      && this.project.projectManagerUserId === this.currentUserId;
+  }
+
+  get isPendingApproval(): boolean {
+    return !!this.project && this.project.status === ProjectStatus.PendingApproval;
+  }
+
+  get isProjectFrozen(): boolean {
+    return !!this.project && this.project.status !== ProjectStatus.Draft;
+  }
+
+  openSubmitModal(): void {
+    this.submitValidationErrors = [];
+    this.validatingSubmit = true;
+    this.workflowService.validateSubmit(this.projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          this.validatingSubmit = false;
+          if (res.success && res.data.isValid) {
+            this.submitReason = '';
+            this.submitError = null;
+            this.showSubmitModal = true;
+          } else {
+            this.submitValidationErrors = res.data?.errors ?? ['Validation failed.'];
+          }
+        },
+        error: () => {
+          this.validatingSubmit = false;
+          this.submitValidationErrors = ['Failed to validate project. Please try again.'];
+        },
+      });
+  }
+
+  submitForApproval(): void {
+    if (!this.submitReason.trim()) return;
+    this.submittingApproval = true;
+    this.workflowService.submitForApproval({
+      projectId: this.projectId,
+      reason: this.submitReason.trim(),
+    }).subscribe({
+      next: () => {
+        this.toastSvc.success('Project submitted for approval');
+        this.showSubmitModal = false;
+        this.submittingApproval = false;
+        this.loadProject();
+        this.loadApprovalRequests();
+      },
+      error: (err) => {
+        this.submitError = err?.error?.message ?? err?.error?.detail ?? err?.message ?? 'Failed to submit for approval';
+        this.submittingApproval = false;
+      },
+    });
+  }
+
+  openReviewModal(isApproval: boolean): void {
+    this.reviewIsApproval = isApproval;
+    this.reviewComment = '';
+    this.pendingRequestId = this.approvalRequests.find(r => r.status === 'Pending')?.id ?? null;
+    this.showReviewModal = true;
+  }
+
+  reviewApproval(): void {
+    if (!this.pendingRequestId) return;
+    if (!this.reviewIsApproval && !this.reviewComment.trim()) return;
+    this.reviewingApproval = true;
+    this.workflowService.reviewApprovalRequest(this.pendingRequestId, {
+      requestId: this.pendingRequestId,
+      isApproved: this.reviewIsApproval,
+      reviewComment: this.reviewComment.trim() || null,
+    }).subscribe({
+      next: () => {
+        const action = this.reviewIsApproval ? 'approved' : 'rejected';
+        this.toastSvc.success(`Project ${action} successfully`);
+        this.showReviewModal = false;
+        this.reviewingApproval = false;
+        this.loadProject();
+        this.loadApprovalRequests();
+        this.loadStats();
+      },
+      error: (err) => {
+        this.toastSvc.error(err?.error?.message ?? 'Failed to review approval');
+        this.reviewingApproval = false;
+      },
+    });
+  }
+
+  approvalStatusClass(status: string): string {
+    switch (status) {
+      case 'Pending':  return 'badge bg-warning text-dark';
+      case 'Approved': return 'badge bg-success';
+      case 'Rejected': return 'badge bg-danger';
+      default:         return 'badge bg-secondary';
+    }
   }
 
   // ── Edit form ──────────────────────────────────────────
@@ -319,6 +468,26 @@ export class ProjectDetailComponent implements OnInit {
           return;
         }
 
+        // When completing, all action items must be Done or Cancelled
+        if (targetStatus === ProjectStatus.Completed) {
+          const doneStatuses: (string | number)[] = [
+            ActionStatus.Done, ActionStatus.Cancelled,
+            'done', 'cancelled',
+          ];
+          const incompleteActions = actionList.filter(a =>
+            !doneStatuses.includes(a.status as string | number)
+          );
+
+          if (incompleteActions.length > 0) {
+            const names = incompleteActions.map(a => `"${a.title}"`).join(', ');
+            this.saveEditError =
+              `Cannot complete the project: all action items must be Done or Cancelled. ` +
+              `Incomplete action items: ${names}.`;
+            this.saving = false;
+            return;
+          }
+        }
+
         onValid();
       },
       error: () => {
@@ -359,7 +528,7 @@ export class ProjectDetailComponent implements OnInit {
         },
         error: (err) => {
           this.saving = false;
-          this.toastSvc.error(err?.error?.message ?? 'Failed to update project.');
+          this.saveEditError = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
         },
       });
   }
@@ -613,8 +782,9 @@ export class ProjectDetailComponent implements OnInit {
       case ProjectStatus.Active:    return 'badge bg-primary';
       case ProjectStatus.OnHold:    return 'badge bg-warning text-dark';
       case ProjectStatus.Completed: return 'badge bg-success';
-      case ProjectStatus.Cancelled: return 'badge bg-danger';
-      default:                      return 'badge bg-light text-dark';
+      case ProjectStatus.Cancelled:       return 'badge bg-danger';
+      case ProjectStatus.PendingApproval: return 'badge bg-warning text-dark';
+      default:                            return 'badge bg-light text-dark';
     }
   }
 

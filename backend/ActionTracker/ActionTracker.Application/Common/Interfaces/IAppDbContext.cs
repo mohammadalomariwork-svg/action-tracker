@@ -48,5 +48,9 @@ public interface IAppDbContext
     // ── Notification feature sets ────────────────────────────────────────────
     DbSet<AppNotification>   AppNotifications     { get; }
 
+    // ── Workflow feature sets ────────────────────────────────────────────────
+    DbSet<ActionItemWorkflowRequest> ActionItemWorkflowRequests { get; }
+    DbSet<ProjectApprovalRequest> ProjectApprovalRequests { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

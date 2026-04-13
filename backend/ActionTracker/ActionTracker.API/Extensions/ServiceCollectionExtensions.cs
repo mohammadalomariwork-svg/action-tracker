@@ -33,6 +33,7 @@ using ActionTracker.Application.RoleManagement.Services;
 using ActionTracker.Application.Features.Workspaces.Services;
 using InfraOrgUnitScopeResolver = ActionTracker.Infrastructure.Services.OrgUnitScopeResolver;
 using InfraRoleManagementService = ActionTracker.Infrastructure.RoleManagement.RoleManagementService;
+using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Helpers;
 using ActionTracker.Infrastructure.Services;
@@ -110,6 +111,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectService,     ProjectService>();
         services.AddScoped<IMilestoneService,   MilestoneService>();
         services.AddScoped<IProjectRiskService, ProjectRiskService>();
+
+        // Workflow
+        services.AddScoped<IActionItemWorkflowService, ActionItemWorkflowService>();
+        services.AddScoped<IWorkflowNotificationHelper, WorkflowNotificationHelper>();
+        services.AddScoped<IProjectWorkflowService, ProjectWorkflowService>();
 
         // Permissions Management
         services.AddScoped<IRolePermissionService,          RolePermissionService>();

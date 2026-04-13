@@ -9,6 +9,7 @@ export enum ProjectStatus {
   OnHold = 'onHold',
   Completed = 'completed',
   Cancelled = 'cancelled',
+  PendingApproval = 'pendingApproval',
 }
 
 export enum ProjectPriority {

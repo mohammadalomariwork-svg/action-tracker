@@ -3,11 +3,20 @@
   <app-breadcrumb [items]="[{ label: 'My Projects' }]" />
 
   <!-- ── Page Header ────────────────────────────────────────────────────────── -->
-  <app-page-header
-    title="My Projects"
-    subtitle="Projects where you are assigned as Project Manager or Sponsor."
-    icon="bi bi-person-workspace"
-  />
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <app-page-header
+      title="My Projects"
+      subtitle="Projects where you are assigned as Project Manager or Sponsor."
+      icon="bi bi-person-workspace"
+    />
+    <button
+      *appHasPermission="'Projects'; action: 'Create'"
+      class="btn btn-primary d-flex align-items-center gap-2"
+      (click)="openCreateDrawer()"
+    >
+      <i class="bi bi-plus-lg"></i> Create New Project
+    </button>
+  </div>
 
   <!-- ── Summary Stat Cards ─────────────────────────────────────────────────── -->
   @if (!loading()) {
@@ -342,5 +351,211 @@
       </div>
     }
   }
+
+  <!-- ── Offcanvas Drawer: Create New Project ──────────────────────────── -->
+  @if (showDrawer) {
+    <div class="mp-backdrop" (click)="closeDrawer()"></div>
+  }
+  <div class="mp-offcanvas offcanvas offcanvas-end"
+       [class.show]="showDrawer"
+       [style.visibility]="showDrawer ? 'visible' : 'hidden'"
+       tabindex="-1">
+
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title">
+        <i class="bi bi-plus-circle-fill text-primary me-2"></i>New Project
+      </h5>
+      <button type="button" class="btn-close" (click)="closeDrawer()"></button>
+    </div>
+
+    <div class="offcanvas-body">
+
+      @if (drawerError) {
+        <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ drawerError }}</span>
+        </div>
+      }
+
+      <form [formGroup]="createForm" (ngSubmit)="onDrawerSubmit()" novalidate>
+
+        <!-- Workspace -->
+        <div class="mb-3">
+          <label class="form-label">Workspace <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="workspaceId"
+                  [class.is-invalid]="formIsInvalid('workspaceId')">
+            <option value="">Select a workspace...</option>
+            @for (ws of workspaces; track ws.id) {
+              <option [value]="ws.id">{{ ws.title }} ({{ ws.organizationUnit }})</option>
+            }
+          </select>
+          @if (formHasError('workspaceId', 'required')) {
+            <div class="invalid-feedback">Workspace is required.</div>
+          }
+        </div>
+
+        <!-- Name -->
+        <div class="mb-3">
+          <label class="form-label">Project Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" formControlName="name"
+                 placeholder="e.g. IT Infrastructure Upgrade" autocomplete="off"
+                 [class.is-invalid]="formIsInvalid('name')" />
+          @if (formHasError('name', 'required')) { <div class="invalid-feedback">Name is required.</div> }
+          @if (formHasError('name', 'maxlength')) { <div class="invalid-feedback">Max 255 characters.</div> }
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" formControlName="description" rows="2"
+                    placeholder="Optional description"></textarea>
+        </div>
+
+        <!-- Project Type -->
+        <div class="mb-3">
+          <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" id="mpPtOp" formControlName="projectType"
+                   [value]="ProjectType.Operational" autocomplete="off" />
+            <label class="btn btn-outline-primary" for="mpPtOp"><i class="bi bi-gear me-1"></i>Operational</label>
+            <input type="radio" class="btn-check" id="mpPtSt" formControlName="projectType"
+                   [value]="ProjectType.Strategic" autocomplete="off" />
+            <label class="btn btn-outline-primary" for="mpPtSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
+          </div>
+        </div>
+
+        <!-- Strategic Objective (conditional) -->
+        @if (isStrategic && strategicObjectives.length > 0) {
+          <div class="mb-3">
+            <label class="form-label">Strategic Objective <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="strategicObjectiveId"
+                    [class.is-invalid]="formIsInvalid('strategicObjectiveId')">
+              <option [ngValue]="null">-- Select --</option>
+              @for (so of strategicObjectives; track so.id) {
+                <option [ngValue]="so.id">{{ so.objectiveCode }} — {{ so.statement }}</option>
+              }
+            </select>
+            @if (formHasError('strategicObjectiveId', 'required')) {
+              <div class="invalid-feedback">Required for strategic projects.</div>
+            }
+          </div>
+        }
+
+        <!-- Priority -->
+        <div class="mb-3">
+          <label class="form-label">Priority <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="priority">
+            @for (opt of PRIORITY_OPTIONS; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Project Manager -->
+        <div class="mb-3">
+          <label class="form-label">Project Manager <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="projectManagerUserId"
+                  [class.is-invalid]="formIsInvalid('projectManagerUserId')">
+            <option value="">-- Select --</option>
+            @for (user of availableUsers; track user.id) {
+              <option [value]="user.id">{{ user.fullName }}</option>
+            }
+          </select>
+          @if (formHasError('projectManagerUserId', 'required')) {
+            <div class="invalid-feedback">Project manager is required.</div>
+          }
+        </div>
+
+        <!-- Sponsors multi-select -->
+        <div class="mb-3">
+          <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
+          <div class="mp-multi-select" (click)="sponsorDropdownOpen = !sponsorDropdownOpen; $event.stopPropagation()">
+            <div class="mp-multi-select__control form-select">
+              @if (selectedSponsorIds.length === 0) {
+                <span class="text-muted">Select sponsors...</span>
+              } @else {
+                <div class="mp-multi-select__tags">
+                  @for (id of selectedSponsorIds; track id) {
+                    <span class="mp-multi-select__tag">
+                      {{ getSponsorName(id) }}
+                      <button type="button" class="mp-multi-select__tag-remove"
+                              (click)="toggleSponsor(id); $event.stopPropagation()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+            @if (sponsorDropdownOpen) {
+              <div class="mp-multi-select__dropdown">
+                <input type="text" class="form-control form-control-sm mp-multi-select__search"
+                       placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
+                       [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
+                <div class="mp-multi-select__options">
+                  @for (u of filteredSponsorUsers; track u.id) {
+                    <label class="mp-multi-select__option" (click)="$event.stopPropagation()">
+                      <input type="checkbox" [checked]="isSponsorSelected(u.id)"
+                             (change)="toggleSponsor(u.id)" />
+                      <span>{{ u.fullName }}</span>
+                    </label>
+                  }
+                  @if (filteredSponsorUsers.length === 0) {
+                    <div class="text-muted small px-3 py-2">No users found.</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          @if (selectedSponsorIds.length === 0) {
+            <small class="text-danger">At least one sponsor is required.</small>
+          }
+        </div>
+
+        <!-- Dates -->
+        <div class="row">
+          <div class="col-6 mb-3">
+            <label class="form-label">Start Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" formControlName="plannedStartDate"
+                   [class.is-invalid]="formIsInvalid('plannedStartDate')" />
+            @if (formHasError('plannedStartDate', 'required')) {
+              <div class="invalid-feedback">Required.</div>
+            }
+          </div>
+          <div class="col-6 mb-3">
+            <label class="form-label">End Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" formControlName="plannedEndDate"
+                   [class.is-invalid]="formIsInvalid('plannedEndDate') || hasDateRangeError" />
+            @if (formHasError('plannedEndDate', 'required')) {
+              <div class="invalid-feedback">Required.</div>
+            } @else if (hasDateRangeError) {
+              <div class="invalid-feedback d-block">End must be after start.</div>
+            }
+          </div>
+        </div>
+
+        <!-- Budget -->
+        <div class="mb-3">
+          <label class="form-label">Budget (AED)</label>
+          <input type="number" class="form-control" formControlName="approvedBudget"
+                 placeholder="Optional" min="0" step="0.01" />
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 justify-content-end mt-4">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeDrawer()" [disabled]="drawerSaving">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" [disabled]="drawerSaving">
+            @if (drawerSaving) {
+              <span class="spinner-border spinner-border-sm"></span> Creating...
+            } @else {
+              <i class="bi bi-plus-circle"></i> Create Project
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 </div>

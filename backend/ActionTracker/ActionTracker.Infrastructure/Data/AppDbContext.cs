@@ -57,6 +57,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     // ── Notification feature sets ────────────────────────────────────────────
     public DbSet<AppNotification>   AppNotifications     => Set<AppNotification>();
 
+    // ── Workflow feature sets ────────────────────────────────────────────────
+    public DbSet<ActionItemWorkflowRequest> ActionItemWorkflowRequests => Set<ActionItemWorkflowRequest>();
+    public DbSet<ProjectApprovalRequest> ProjectApprovalRequests => Set<ProjectApprovalRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -91,6 +95,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted);
         modelBuilder.Entity<EmailTemplate>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ProjectRisk>().HasQueryFilter(r => !r.IsDeleted);
+        modelBuilder.Entity<ProjectApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
 
         modelBuilder.Entity<Workspace>(entity =>
         {

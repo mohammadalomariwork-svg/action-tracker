@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using ActionTracker.Domain.Enums;
 
 namespace ActionTracker.Domain.Entities;
@@ -58,4 +59,12 @@ public class ActionItem
     public ICollection<ActionItemAssignee> Assignees { get; set; } = new List<ActionItemAssignee>();
     public ICollection<ActionItemEscalation> Escalations { get; set; } = new List<ActionItemEscalation>();
     public ICollection<ActionItemComment> Comments { get; set; } = new List<ActionItemComment>();
+    public ICollection<ActionItemWorkflowRequest> WorkflowRequests { get; set; } = new List<ActionItemWorkflowRequest>();
+
+    /// <summary>
+    /// Dates are locked once the action item has been created (Id != Guid.Empty).
+    /// Changes require a workflow request.
+    /// </summary>
+    [NotMapped]
+    public bool AreDatesLocked => Id != Guid.Empty;
 }

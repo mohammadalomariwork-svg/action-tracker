@@ -16,6 +16,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             body.errors.forEach((msg: string) => toastService.error(msg));
           } else if (body?.message) {
             toastService.error(body.message);
+          } else if (body?.detail) {
+            toastService.error(body.detail);
           } else {
             toastService.error('Invalid request.');
           }

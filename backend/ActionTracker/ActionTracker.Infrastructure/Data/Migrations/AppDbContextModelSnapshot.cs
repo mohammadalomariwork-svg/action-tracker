@@ -503,6 +503,94 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ActionItemEscalations", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemWorkflowRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("ActionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("CurrentDueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CurrentStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("RequestType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestedByDisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("RequestedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("RequestedNewDueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RequestedNewStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RequestedNewStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedByDisplayName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionItemId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("ActionItemWorkflowRequests", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.AppNotification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1359,6 +1447,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int>("Phase")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime>("PlannedDueDate")
                         .HasColumnType("datetime2");
 
@@ -1570,6 +1663,73 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Projects", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectApprovalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("RequestedByDisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("RequestedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ReviewComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedByDisplayName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("ProjectApprovalRequests", (string)null);
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectRisk", b =>
@@ -2092,6 +2252,17 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("EscalatedByUser");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemWorkflowRequest", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
+                        .WithMany("WorkflowRequests")
+                        .HasForeignKey("ActionItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionItem");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.Comment", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "Author")
@@ -2195,6 +2366,17 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("StrategicObjective");
 
                     b.Navigation("Workspace");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectApprovalRequest", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
+                        .WithMany("ApprovalRequests")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectRisk", b =>
@@ -2318,6 +2500,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Escalations");
+
+                    b.Navigation("WorkflowRequests");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
@@ -2339,6 +2523,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.Project", b =>
                 {
+                    b.Navigation("ApprovalRequests");
+
                     b.Navigation("Risks");
 
                     b.Navigation("Sponsors");

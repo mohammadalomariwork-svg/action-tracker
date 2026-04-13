@@ -122,6 +122,14 @@ export const routes: Routes = [
           import('./features/action-items/action-item.routes').then(m => m.default),
       },
       {
+        path: 'approvals',
+        loadComponent: () =>
+          import('./features/workflow/my-approvals/my-approvals.component').then(
+            m => m.MyApprovalsComponent
+          ),
+        data: { title: 'My Approvals' },
+      },
+      {
         path: 'notifications',
         loadComponent: () =>
           import('./features/notifications/notifications-page/notifications-page.component').then(

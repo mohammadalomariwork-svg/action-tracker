@@ -1,10 +1,12 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AppNotification, NotificationSummary } from '../models/notification.model';
 import { ApiResponse, PagedResult } from '../models/api-response.model';
 import { AuthService } from './auth.service';
+import { ToastService } from './toast.service';
 import * as signalR from '@microsoft/signalr';
 
 @Injectable({ providedIn: 'root' })
@@ -12,7 +14,15 @@ export class NotificationService {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
   private readonly zone = inject(NgZone);
+  private readonly router = inject(Router);
+  private readonly toastSvc = inject(ToastService);
   private readonly apiUrl = `${environment.apiUrl}/notifications`;
+
+  /** Set by header component to avoid circular DI with WorkflowStateService */
+  private workflowRefreshCallback: (() => void) | null = null;
+  registerWorkflowRefresh(cb: () => void): void {
+    this.workflowRefreshCallback = cb;
+  }
 
   private hubConnection: signalR.HubConnection | null = null;
   private initialized = false;
@@ -118,6 +128,48 @@ export class NotificationService {
     this._unreadCount$.next(0);
   }
 
+  // ── Workflow toast handling ────────────────────────────────
+
+  private readonly WORKFLOW_ACTION_TYPES = new Set([
+    'DateChangeRequested', 'StatusChangeRequested',
+    'DateChangeApproved', 'StatusChangeApproved',
+    'DateChangeRejected', 'StatusChangeRejected',
+    'ActionItemEscalated', 'EscalationDirectionGiven',
+  ]);
+
+  private handleWorkflowToast(notification: AppNotification): void {
+    const action = notification.actionType;
+    if (!this.WORKFLOW_ACTION_TYPES.has(action)) return;
+
+    const msg = notification.message || notification.title;
+
+    switch (action) {
+      case 'DateChangeRequested':
+      case 'StatusChangeRequested':
+        this.toastSvc.info(msg);
+        break;
+      case 'DateChangeApproved':
+      case 'StatusChangeApproved':
+        this.toastSvc.success(msg);
+        break;
+      case 'DateChangeRejected':
+      case 'StatusChangeRejected':
+        this.toastSvc.warning(msg);
+        break;
+      case 'ActionItemEscalated':
+        this.toastSvc.error(msg);
+        break;
+      case 'EscalationDirectionGiven':
+        this.toastSvc.info(msg);
+        break;
+    }
+
+    // Refresh workflow pending count
+    if (this.workflowRefreshCallback) {
+      this.workflowRefreshCallback();
+    }
+  }
+
   // ── SignalR ───────────────────────────────────────────────
 
   private startSignalR(): void {
@@ -136,6 +188,9 @@ export class NotificationService {
         this._unreadCount$.next(this._unreadCount$.value + 1);
         const current = this._latestNotifications$.value;
         this._latestNotifications$.next([notification, ...current].slice(0, 10));
+
+        // Workflow-specific toast handling
+        this.handleWorkflowToast(notification);
       });
     });
 

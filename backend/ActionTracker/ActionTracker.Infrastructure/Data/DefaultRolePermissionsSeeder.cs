@@ -147,8 +147,8 @@ public static class DefaultRolePermissionsSeeder
         foreach (var action in vcdeExp)
             yield return P(AppRoles.ProjectManager, area, action);
 
-        // ActionItems: View+Create+Edit+Delete+Export+Assign
-        foreach (var action in new[] { view, create, edit, delete, export, assign })
+        // ActionItems: View+Create+Edit+Delete+Approve+Export+Assign
+        foreach (var action in new[] { view, create, edit, delete, approve, export, assign })
             yield return P(AppRoles.ProjectManager, ai, action);
 
         foreach (var area in new[] { dash, kpi, so })

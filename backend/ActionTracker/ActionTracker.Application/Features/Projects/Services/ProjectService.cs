@@ -1,4 +1,5 @@
 using ActionTracker.Application.Common;
+using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
@@ -287,6 +288,24 @@ public class ProjectService : IProjectService
 
         if (dto.SponsorUserIds.Count == 0)
             throw new ArgumentException("At least one sponsor is required.");
+
+        // Block status changes from PendingApproval via normal update — only workflow review can do that
+        if (project.Status == ProjectStatus.PendingApproval && dto.Status != ProjectStatus.PendingApproval)
+            throw new ArgumentException("Project status can only be changed from PendingApproval through the approval workflow.");
+
+        // Date freeze: block date changes when project is not in Draft
+        if (project.Status != ProjectStatus.Draft)
+        {
+            if (dto.PlannedStartDate != project.PlannedStartDate || dto.PlannedEndDate != project.PlannedEndDate)
+                throw new ArgumentException("Project dates cannot be changed after the project has been submitted for approval or activated.");
+        }
+
+        // Validate milestones/phases/action items when transitioning to Active or Completed
+        if ((dto.Status == ProjectStatus.Active || dto.Status == ProjectStatus.Completed)
+            && project.Status != dto.Status)
+        {
+            await ValidateProjectMilestonesAndActionsAsync(id, dto.Status, ct);
+        }
 
         // Set actual start date when transitioning to Active
         if (dto.Status == ProjectStatus.Active && project.Status == ProjectStatus.Draft && !dto.ActualStartDate.HasValue)
@@ -592,6 +611,59 @@ public class ProjectService : IProjectService
     }
 
     // ── Mapping helpers ─────────────────────────────────────
+    private async Task ValidateProjectMilestonesAndActionsAsync(Guid projectId, ProjectStatus targetStatus, CancellationToken ct)
+    {
+        var milestones = await _db.Milestones
+            .Where(m => m.ProjectId == projectId)
+            .Select(m => new { m.Id, m.Phase, m.Name })
+            .ToListAsync(ct);
+
+        // All 5 phases must be covered
+        var allPhases = Enum.GetValues<ProjectPhase>();
+        var coveredPhases = milestones.Select(m => m.Phase).Distinct().ToHashSet();
+        var missingPhases = allPhases.Where(p => !coveredPhases.Contains(p)).ToList();
+        if (missingPhases.Count > 0)
+        {
+            var missing = string.Join(", ", missingPhases.Select(p => p.GetDescription()));
+            throw new ArgumentException($"The project must have at least one milestone in each phase. Missing phases: {missing}.");
+        }
+
+        // Every milestone must have at least one action item
+        var milestoneIds = milestones.Select(m => m.Id).ToList();
+        var milestonesWithActions = await _db.ActionItems
+            .Where(a => a.MilestoneId != null && milestoneIds.Contains(a.MilestoneId.Value))
+            .Select(a => a.MilestoneId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var empty = milestones.Where(m => !milestonesWithActions.Contains(m.Id)).ToList();
+        if (empty.Count > 0)
+        {
+            var names = string.Join(", ", empty.Select(m => m.Name));
+            throw new ArgumentException($"Every milestone must have at least one action item. Milestones without action items: {names}.");
+        }
+
+        // When completing a project, all action items must be Done or Cancelled
+        if (targetStatus == ProjectStatus.Completed)
+        {
+            var incompleteActions = await _db.ActionItems
+                .Where(a => a.ProjectId == projectId
+                         && !a.IsDeleted
+                         && a.Status != ActionStatus.Done
+                         && a.Status != ActionStatus.Cancelled)
+                .Select(a => a.Title)
+                .ToListAsync(ct);
+
+            if (incompleteActions.Count > 0)
+            {
+                var names = string.Join(", ", incompleteActions);
+                throw new ArgumentException(
+                    $"Cannot complete the project: all action items must be Done or Cancelled. " +
+                    $"Incomplete action items: {names}.");
+            }
+        }
+    }
+
     private static ProjectResponseDto MapToDto(Project p)
     {
         return new ProjectResponseDto

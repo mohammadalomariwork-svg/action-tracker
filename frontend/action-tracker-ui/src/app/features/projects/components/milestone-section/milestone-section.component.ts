@@ -1,12 +1,13 @@
 import {
   Component, OnInit, ChangeDetectionStrategy,
-  inject, signal, input,
+  inject, signal, input, computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HasPermissionDirective } from '../../../../shared';
 
+import { ProjectPhase, ProjectPhaseLabels, ProjectPhaseFromApi } from '../../models/milestone.models';
 import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ProjectService } from '../../services/project.service';
@@ -17,9 +18,10 @@ import {
   MilestoneUpdate,
   MilestoneStatus,
   MilestoneStatusLabels,
+  MilestoneStatusFromApi,
 } from '../../models/milestone.models';
 import {
-  AssignableUser, ActionItem, ActionStatus,
+  AssignableUser, ActionItem, ActionItemCreate, ActionStatus, ActionPriority,
 } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
 
@@ -33,12 +35,16 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 })
 export class MilestoneSectionComponent implements OnInit {
   readonly projectId = input.required<string>();
+  readonly workspaceId = input<string>('');
   readonly isBaselined = input<boolean>(false);
+  readonly projectStatus = input<string>('draft');
 
   private readonly milestoneSvc       = inject(MilestoneService);
   private readonly projectSvc         = inject(ProjectService);
   private readonly toastSvc           = inject(ToastService);
   private readonly actionItemSvc      = inject(ActionItemService);
+
+  readonly isProjectFrozen = computed(() => this.projectStatus() !== 'draft');
 
   readonly milestones = signal<MilestoneResponse[]>([]);
   readonly loading = signal(false);
@@ -61,11 +67,21 @@ export class MilestoneSectionComponent implements OnInit {
   readonly formPlannedStartDate = signal('');
   readonly formPlannedDueDate = signal('');
   readonly formActualCompletionDate = signal('');
+  readonly formPhase = signal<ProjectPhase>(ProjectPhase.Initiation);
   readonly formIsDeadlineFixed = signal(false);
   readonly formStatus = signal<MilestoneStatus>(MilestoneStatus.NotStarted);
   readonly formCompletionPercentage = signal(0);
   readonly formApproverUserId = signal('');
 
+  readonly ProjectPhase = ProjectPhase;
+  readonly ProjectPhaseLabels = ProjectPhaseLabels;
+  readonly phaseOptions = [
+    ProjectPhase.Initiation,
+    ProjectPhase.Planning,
+    ProjectPhase.Execution,
+    ProjectPhase.MonitoringAndControlling,
+    ProjectPhase.Closing,
+  ];
   readonly MilestoneStatus = MilestoneStatus;
   readonly MilestoneStatusLabels = MilestoneStatusLabels;
   readonly statusOptions = [
@@ -74,6 +90,28 @@ export class MilestoneSectionComponent implements OnInit {
     MilestoneStatus.Completed,
     MilestoneStatus.Delayed,
     MilestoneStatus.Cancelled,
+  ];
+
+  // ── Action Item form state ─────────────────────────────
+  readonly showActionForm = signal(false);
+  readonly actionSubmitting = signal(false);
+  readonly aiTitle = signal('');
+  readonly aiDescription = signal('');
+  readonly aiMilestoneId = signal('');
+  readonly aiPriority = signal<ActionPriority>(ActionPriority.Medium);
+  readonly aiStartDate = signal('');
+  readonly aiDueDate = signal('');
+  readonly aiAssigneeIds = signal<string[]>([]);
+  actionAssigneeDropdownOpen = false;
+  actionAssigneeSearchTerm = '';
+  actionFormError: string | null = null;
+
+  readonly ActionPriority = ActionPriority;
+  readonly PRIORITY_OPTIONS = [
+    { value: ActionPriority.Low,      label: 'Low' },
+    { value: ActionPriority.Medium,   label: 'Medium' },
+    { value: ActionPriority.High,     label: 'High' },
+    { value: ActionPriority.Critical, label: 'Critical' },
   ];
 
   // Search & sort
@@ -223,11 +261,18 @@ export class MilestoneSectionComponent implements OnInit {
     this.formName.set(m.name);
     this.formDescription.set(m.description ?? '');
     this.formSequenceOrder.set(m.sequenceOrder);
+    const phase = typeof m.phase === 'string'
+      ? (ProjectPhaseFromApi[m.phase] ?? ProjectPhase.Initiation)
+      : (m.phase ?? ProjectPhase.Initiation);
+    this.formPhase.set(phase);
     this.formPlannedStartDate.set(m.plannedStartDate?.substring(0, 10) ?? '');
     this.formPlannedDueDate.set(m.plannedDueDate?.substring(0, 10) ?? '');
     this.formActualCompletionDate.set(m.actualCompletionDate?.substring(0, 10) ?? '');
     this.formIsDeadlineFixed.set(m.isDeadlineFixed);
-    this.formStatus.set(m.status);
+    const status = typeof m.status === 'string'
+      ? (MilestoneStatusFromApi[m.status] ?? MilestoneStatus.NotStarted)
+      : m.status;
+    this.formStatus.set(status);
     this.formCompletionPercentage.set(m.completionPercentage);
     this.formApproverUserId.set(m.approverUserId ?? '');
     this.showForm.set(true);
@@ -258,6 +303,7 @@ export class MilestoneSectionComponent implements OnInit {
       name: this.formName().trim(),
       description: this.formDescription().trim() || undefined,
       sequenceOrder: this.formSequenceOrder(),
+      phase: this.formPhase(),
       plannedStartDate: this.formPlannedStartDate(),
       plannedDueDate: this.formPlannedDueDate(),
       isDeadlineFixed: this.formIsDeadlineFixed(),
@@ -286,6 +332,7 @@ export class MilestoneSectionComponent implements OnInit {
       name: this.formName().trim(),
       description: this.formDescription().trim() || undefined,
       sequenceOrder: this.formSequenceOrder(),
+      phase: this.formPhase(),
       plannedStartDate: this.formPlannedStartDate(),
       plannedDueDate: this.formPlannedDueDate(),
       actualCompletionDate: this.formActualCompletionDate() || undefined,
@@ -469,10 +516,111 @@ export class MilestoneSectionComponent implements OnInit {
     return `${Math.abs(days)}d ahead`;
   }
 
+  // ── Action Item form methods ───────────────────────────
+  openActionForm(): void {
+    this.aiTitle.set('');
+    this.aiDescription.set('');
+    this.aiMilestoneId.set('');
+    this.aiPriority.set(ActionPriority.Medium);
+    this.aiStartDate.set('');
+    this.aiDueDate.set('');
+    this.aiAssigneeIds.set([]);
+    this.actionAssigneeSearchTerm = '';
+    this.actionFormError = null;
+    this.showActionForm.set(true);
+  }
+
+  cancelActionForm(): void {
+    this.showActionForm.set(false);
+  }
+
+  get filteredActionAssignees(): AssignableUser[] {
+    if (!this.actionAssigneeSearchTerm.trim()) return this.users();
+    const term = this.actionAssigneeSearchTerm.toLowerCase();
+    return this.users().filter(u => u.fullName.toLowerCase().includes(term));
+  }
+
+  isActionAssigneeSelected(userId: string): boolean {
+    return this.aiAssigneeIds().includes(userId);
+  }
+
+  toggleActionAssignee(userId: string): void {
+    const current = this.aiAssigneeIds();
+    if (current.includes(userId)) {
+      this.aiAssigneeIds.set(current.filter(id => id !== userId));
+    } else {
+      this.aiAssigneeIds.set([...current, userId]);
+    }
+  }
+
+  getActionAssigneeName(userId: string): string {
+    return this.users().find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  submitActionForm(): void {
+    if (!this.aiTitle().trim()) {
+      this.actionFormError = 'Title is required.';
+      return;
+    }
+    if (!this.aiMilestoneId()) {
+      this.actionFormError = 'Please select a milestone.';
+      return;
+    }
+    if (!this.aiDueDate()) {
+      this.actionFormError = 'Due date is required.';
+      return;
+    }
+    if (this.aiAssigneeIds().length === 0) {
+      this.actionFormError = 'At least one assignee is required.';
+      return;
+    }
+
+    this.actionSubmitting.set(true);
+    this.actionFormError = null;
+
+    const dto: ActionItemCreate = {
+      title: this.aiTitle().trim(),
+      description: this.aiDescription().trim(),
+      workspaceId: this.workspaceId(),
+      projectId: this.projectId(),
+      milestoneId: this.aiMilestoneId(),
+      isStandalone: false,
+      assigneeIds: this.aiAssigneeIds(),
+      priority: this.aiPriority(),
+      status: ActionStatus.ToDo,
+      startDate: this.aiStartDate() || null,
+      dueDate: this.aiDueDate(),
+      progress: 0,
+    };
+
+    this.actionItemSvc.create(dto).subscribe({
+      next: () => {
+        this.actionSubmitting.set(false);
+        this.showActionForm.set(false);
+        this.toastSvc.success('Action item created.');
+        // Force refresh action items for the selected milestone
+        const msId = this.aiMilestoneId();
+        this.actionsByMilestone.update(m => { const copy = { ...m }; delete copy[msId]; return copy; });
+        if (this.expandedIds().has(msId)) {
+          this.ensureActionsLoaded(msId);
+        }
+      },
+      error: (err) => {
+        this.actionSubmitting.set(false);
+        this.actionFormError = err?.error?.message ?? err?.error?.detail ?? 'Failed to create action item.';
+      },
+    });
+  }
+
+  compareNumeric(a: any, b: any): boolean {
+    return +a === +b;
+  }
+
   private resetForm(): void {
     this.formName.set('');
     this.formDescription.set('');
     this.formSequenceOrder.set(1);
+    this.formPhase.set(ProjectPhase.Initiation);
     this.formPlannedStartDate.set('');
     this.formPlannedDueDate.set('');
     this.formActualCompletionDate.set('');

@@ -21,6 +21,10 @@ public interface IActionItemService
     /// </summary>
     Task<ActionItemMyStatsDto> GetMyStatsAsync(string userId, CancellationToken ct);
 
+    // Workflow bypass methods (called by workflow service after approval)
+    Task ApplyApprovedDateChangeAsync(Guid actionItemId, DateTime? newStartDate, DateTime? newDueDate);
+    Task ApplyApprovedStatusChangeAsync(Guid actionItemId, ActionStatus newStatus);
+
     // Comments
     Task<List<ActionItemCommentResponseDto>> GetCommentsAsync(Guid actionItemId, CancellationToken ct);
     Task<ActionItemCommentResponseDto>       AddCommentAsync(Guid actionItemId, CreateCommentDto dto, string userId, CancellationToken ct);

@@ -19,9 +19,6 @@
             <span class="wa-project-code">{{ milestone.milestoneCode }}</span>
             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
               <span [class]="milestoneStatusClass(milestone.status)">{{ milestone.statusLabel }}</span>
-              @if (milestone.isDeadlineFixed) {
-                <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Fixed Deadline</span>
-              }
             </div>
           </div>
         </div>
@@ -137,16 +134,6 @@
             <span class="detail-value">{{ milestone.sequenceOrder }}</span>
           </div>
           <div class="detail-field">
-            <span class="detail-label">Fixed Deadline</span>
-            <span class="detail-value">
-              @if (milestone.isDeadlineFixed) {
-                <span class="badge bg-danger">Yes</span>
-              } @else {
-                <span class="text-muted">No</span>
-              }
-            </span>
-          </div>
-          <div class="detail-field">
             <span class="detail-label">Completion</span>
             <span class="detail-value">
               <div class="progress-container">
@@ -191,17 +178,6 @@
             <div class="detail-field">
               <span class="detail-label">Baseline Due</span>
               <span class="detail-value">{{ milestone.baselinePlannedDueDate | date:'mediumDate' }}</span>
-            </div>
-          }
-          @if (milestone.approverName) {
-            <div class="detail-field">
-              <span class="detail-label">Approver</span>
-              <span class="detail-value">
-                <span class="assignee-chip">
-                  <span class="assignee-avatar">{{ milestone.approverName.charAt(0).toUpperCase() }}</span>
-                  {{ milestone.approverName }}
-                </span>
-              </span>
             </div>
           }
           <div class="detail-field">
@@ -327,12 +303,14 @@
                             [routerLink]="['/actions', item.id, 'view']"
                             title="View"
                           ><i class="bi bi-eye"></i></a>
-                          <button
-                            class="btn btn-outline-primary btn-sm wa-action-btn"
-                            (click)="openEditActionForm(item)"
-                            title="Edit"
-                            [disabled]="showActionForm"
-                          ><i class="bi bi-pencil"></i></button>
+                          @if (item.statusCode !== ActionStatus.Done) {
+                            <button
+                              class="btn btn-outline-primary btn-sm wa-action-btn"
+                              (click)="openEditActionForm(item)"
+                              title="Edit"
+                              [disabled]="showActionForm"
+                            ><i class="bi bi-pencil"></i></button>
+                          }
                           <button
                             class="btn btn-outline-danger btn-sm wa-action-btn"
                             (click)="deleteAction(item)"
@@ -408,7 +386,9 @@
                 @if (!item.isDeleted) {
                   <div class="wa-action-card__actions">
                     <a class="btn btn-outline-info btn-sm" [routerLink]="['/actions', item.id, 'view']"><i class="bi bi-eye me-1"></i>View</a>
-                    <button class="btn btn-outline-primary btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm"><i class="bi bi-pencil me-1"></i>Edit</button>
+                    @if (item.statusCode !== ActionStatus.Done) {
+                      <button class="btn btn-outline-primary btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm"><i class="bi bi-pencil me-1"></i>Edit</button>
+                    }
                     <button class="btn btn-outline-danger btn-sm" (click)="deleteAction(item)" [disabled]="deletingActionId === item.id">
                       @if (deletingActionId === item.id) {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -485,7 +465,7 @@
       <!-- Status -->
       <div class="mb-3">
         <label class="form-label">Status <span class="text-danger">*</span></label>
-        <select class="form-control" [(ngModel)]="milestoneEditForm.status">
+        <select class="form-control" [(ngModel)]="milestoneEditForm.status" [compareWith]="compareNumeric">
           @for (opt of MILESTONE_STATUS_OPTIONS; track opt.value) {
             <option [ngValue]="opt.value">{{ opt.label }}</option>
           }
@@ -502,6 +482,16 @@
           <label class="form-label">Completion ({{ milestoneEditForm.completionPercentage }}%)</label>
           <input type="range" class="form-range" min="0" max="100" step="1" [(ngModel)]="milestoneEditForm.completionPercentage" />
         </div>
+      </div>
+
+      <!-- Phase -->
+      <div class="mb-3">
+        <label class="form-label">Phase <span class="text-danger">*</span></label>
+        <select class="form-control" [(ngModel)]="milestoneEditForm.phase" [compareWith]="compareNumeric">
+          @for (p of PHASE_OPTIONS; track p) {
+            <option [ngValue]="p">{{ ProjectPhaseLabels[p] }}</option>
+          }
+        </select>
       </div>
 
       <!-- Planned Start & Due -->
@@ -523,25 +513,6 @@
       <div class="mb-3">
         <label class="form-label">Actual Completion Date</label>
         <input type="date" class="form-control" [(ngModel)]="milestoneEditForm.actualCompletionDate" />
-      </div>
-
-      <!-- Fixed Deadline -->
-      <div class="mb-3">
-        <label class="form-check-label">
-          <input type="checkbox" [(ngModel)]="milestoneEditForm.isDeadlineFixed" />
-          Fixed Deadline
-        </label>
-      </div>
-
-      <!-- Approver -->
-      <div class="mb-3">
-        <label class="form-label">Approver</label>
-        <select class="form-control" [(ngModel)]="milestoneEditForm.approverUserId">
-          <option [ngValue]="''">-- None --</option>
-          @for (user of allUsers; track user.id) {
-            <option [value]="user.id">{{ user.fullName }}</option>
-          }
-        </select>
       </div>
 
       <!-- Actions -->
@@ -688,41 +659,6 @@
         <input type="range" class="form-range" min="0" max="100" step="1" [(ngModel)]="actionForm.progress" />
       </div>
 
-      <!-- Escalated -->
-      <div class="mb-3">
-        <label class="form-check-label">
-          <input type="checkbox" [(ngModel)]="actionForm.isEscalated" />
-          Escalated
-        </label>
-      </div>
-
-      @if (actionForm.isEscalated) {
-        <div class="mb-3">
-          <label class="form-label">Escalation Explanation <span class="text-danger">*</span></label>
-          <textarea class="form-control" [(ngModel)]="actionForm.escalationExplanation" placeholder="Provide the reason for escalation…" rows="3" maxlength="2000"></textarea>
-          @if (!actionForm.escalationExplanation?.trim()) {
-            <small class="text-danger">Escalation explanation is required.</small>
-          }
-        </div>
-      }
-
-      @if (editingActionId && editingEscalations.length > 0) {
-        <div class="mb-4">
-          <label class="form-label text-muted">Escalation History</label>
-          <div class="escalation-history">
-            @for (esc of editingEscalations; track esc.id) {
-              <div class="escalation-entry">
-                <div class="escalation-entry__header">
-                  <span class="fw-semibold small">{{ esc.escalatedByName || 'Unknown' }}</span>
-                  <span class="text-muted small">{{ esc.createdAt | date:'MMM d, y h:mm a' }}</span>
-                </div>
-                <div class="escalation-entry__body small">{{ esc.explanation }}</div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
       <!-- Actions -->
       <div class="form-actions">
         <button type="button" class="btn btn-outline" (click)="cancelActionForm()" [disabled]="actionSaving">Cancel</button>
@@ -730,7 +666,7 @@
           type="button"
           class="btn btn-primary"
           (click)="saveAction()"
-          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) || (actionForm.isEscalated && !actionForm.escalationExplanation?.trim())"
+          [disabled]="actionSaving || !actionForm.title.trim() || actionForm.assigneeIds.length === 0 || !actionForm.dueDate || (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate)"
         >
           @if (actionSaving) {
             <span class="spinner-sm"></span> Saving…

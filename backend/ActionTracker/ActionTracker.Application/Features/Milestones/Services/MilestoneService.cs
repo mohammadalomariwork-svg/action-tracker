@@ -64,6 +64,9 @@ public class MilestoneService : IMilestoneService
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
             ?? throw new KeyNotFoundException($"Project {projectId} not found.");
 
+        if (project.Status != ProjectStatus.Draft)
+            throw new ArgumentException("New milestones cannot be added after the project has been submitted for approval or activated.");
+
         if (dto.PlannedDueDate < dto.PlannedStartDate)
             throw new ArgumentException("Planned due date must be on or after the planned start date.");
 
@@ -95,6 +98,7 @@ public class MilestoneService : IMilestoneService
             Description = dto.Description?.Trim(),
             ProjectId = projectId,
             SequenceOrder = dto.SequenceOrder,
+            Phase = dto.Phase,
             PlannedStartDate = dto.PlannedStartDate,
             PlannedDueDate = dto.PlannedDueDate,
             IsDeadlineFixed = dto.IsDeadlineFixed,
@@ -169,14 +173,14 @@ public class MilestoneService : IMilestoneService
 
         var previousStatus = milestone.Status;
 
-        // Check if project is baselined — if so, block date changes
+        // Check if project is frozen (not Draft) — block date changes
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
-        if (project?.IsBaselined == true)
+        if (project != null && project.Status != ProjectStatus.Draft)
         {
             if (milestone.PlannedStartDate != dto.PlannedStartDate ||
                 milestone.PlannedDueDate != dto.PlannedDueDate)
             {
-                throw new ArgumentException("Cannot modify milestone dates on a baselined project.");
+                throw new ArgumentException("Milestone dates cannot be changed after the project has been submitted for approval or activated.");
             }
         }
 
@@ -186,6 +190,7 @@ public class MilestoneService : IMilestoneService
         milestone.Name = dto.Name.Trim();
         milestone.Description = dto.Description?.Trim();
         milestone.SequenceOrder = dto.SequenceOrder;
+        milestone.Phase = dto.Phase;
         milestone.PlannedStartDate = dto.PlannedStartDate;
         milestone.PlannedDueDate = dto.PlannedDueDate;
         milestone.ActualCompletionDate = dto.ActualCompletionDate;
@@ -270,6 +275,10 @@ public class MilestoneService : IMilestoneService
         var milestone = await _db.Milestones
             .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId, ct)
             ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
+
+        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+        if (project != null && project.Status != ProjectStatus.Draft)
+            throw new ArgumentException("Milestones cannot be removed after the project has been submitted for approval or activated.");
 
         milestone.IsDeleted = true;
         await _db.SaveChangesAsync(ct);
@@ -377,6 +386,7 @@ public class MilestoneService : IMilestoneService
             Description = m.Description,
             ProjectId = m.ProjectId,
             SequenceOrder = m.SequenceOrder,
+            Phase = m.Phase,
             PlannedStartDate = m.PlannedStartDate,
             PlannedDueDate = m.PlannedDueDate,
             ActualCompletionDate = m.ActualCompletionDate,

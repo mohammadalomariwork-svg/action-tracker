@@ -388,3 +388,148 @@
     .btn { justify-content: center; }
   }
 }
+
+// ── Workflow UI ──────────────────────────────────────────
+
+.wf-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  color: var(--text-primary, #212529);
+}
+
+.wf-banner__icon {
+  font-size: 1.3rem;
+  color: #ffc107;
+}
+
+.field__input--locked {
+  background: var(--bg-subtle, #f8f9fa) !important;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-wf-request {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--primary, #0d6efd);
+  background: transparent;
+  border: 1px solid var(--primary, #0d6efd);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--primary, #0d6efd);
+    color: #fff;
+  }
+}
+
+// Workflow history
+.wf-history-section {
+  margin-top: 1.5rem;
+}
+
+.wf-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0;
+  border: none;
+  background: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #212529);
+  cursor: pointer;
+}
+
+.wf-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.wf-history-item {
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #dee2e6);
+}
+
+.wf-history-item__header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.wf-history-item__body {
+  color: var(--text-primary, #212529);
+}
+
+.wf-history-item__review {
+  margin-top: 0.25rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--primary, #0d6efd);
+}
+
+// Workflow dialogs
+.wf-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+}
+
+.wf-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1051;
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.wf-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+
+  h5 { margin: 0; font-size: 1.05rem; }
+}
+
+.wf-dialog__body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.wf-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border-color, #dee2e6);
+}

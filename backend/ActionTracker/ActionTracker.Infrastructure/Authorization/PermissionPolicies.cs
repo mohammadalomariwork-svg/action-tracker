@@ -36,7 +36,8 @@ public static class PermissionPolicies
     public const string ActionItemsCreate = "ActionItems.Create";
     public const string ActionItemsEdit   = "ActionItems.Edit";
     public const string ActionItemsDelete = "ActionItems.Delete";
-    public const string ActionItemsAssign = "ActionItems.Assign";
+    public const string ActionItemsAssign  = "ActionItems.Assign";
+    public const string ActionItemsApprove = "ActionItems.Approve";
 
     // ── Strategic Objectives ──────────────────────────────────────────────────
     public const string StrategicObjectivesView   = "StrategicObjectives.View";
