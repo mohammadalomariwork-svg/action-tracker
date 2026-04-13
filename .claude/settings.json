@@ -11,7 +11,9 @@
       "Bash(xxd -l 200 -s 4700 \"D:/action-tracker/action-tracker/backend/ActionTracker/ActionTracker.Infrastructure/Data/Seeders/EmailTemplateSeeder.cs\")",
       "Bash(ls -la \"d:/action-tracker/action-tracker/\"CLAUDE*)",
       "Bash(grep -E \"\\\\.\\(cs|ts\\)$\")",
-      "Read(//d/action-tracker/**)"
+      "Read(//d/action-tracker/**)",
+      "Bash(grep -n \"EscalateActionItemDto\\\\|class.*Escalat\" \"/d/action-tracker/action-tracker/backend/ActionTracker/ActionTracker.Application/Features/Workflow/DTOs/\"*.cs)",
+      "Bash(grep -E \"\\\\.\\(ts|component\\\\.html|service\\\\.ts\\)$\")"
     ]
   }
 }

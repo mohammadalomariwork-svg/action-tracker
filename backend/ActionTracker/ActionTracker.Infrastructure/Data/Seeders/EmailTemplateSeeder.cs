@@ -23,9 +23,32 @@ public static class EmailTemplateSeeder
         }
 
         db.EmailTemplates.AddRange(toInsert);
+
+        // Update existing templates whose body has changed (e.g. escalation template)
+        var templateLookup = templates.ToDictionary(t => t.TemplateKey);
+        var existingTemplates = await db.EmailTemplates
+            .IgnoreQueryFilters()
+            .Where(t => existingKeys.Contains(t.TemplateKey))
+            .ToListAsync();
+
+        var updatedCount = 0;
+        foreach (var existing in existingTemplates)
+        {
+            if (templateLookup.TryGetValue(existing.TemplateKey, out var seed)
+                && existing.HtmlBody != seed.HtmlBody)
+            {
+                existing.HtmlBody = seed.HtmlBody;
+                existing.Subject = seed.Subject;
+                updatedCount++;
+            }
+        }
+
         await db.SaveChangesAsync();
 
-        logger.LogInformation("EmailTemplateSeeder: inserted {Count} new email templates.", toInsert.Count);
+        if (toInsert.Count > 0)
+            logger.LogInformation("EmailTemplateSeeder: inserted {Count} new email templates.", toInsert.Count);
+        if (updatedCount > 0)
+            logger.LogInformation("EmailTemplateSeeder: updated {Count} existing email templates.", updatedCount);
     }
 
     private static List<EmailTemplate> BuildTemplates()
@@ -107,9 +130,7 @@ public static class EmailTemplateSeeder
                 Name        = "Action Item Escalated",
                 Subject     = "Action Item Escalated: {{Title}} ({{ActionId}})",
                 Description = "Sent when an action item is escalated.",
-                HtmlBody    = BuildActionItemBody(
-                    "Action Item Escalated",
-                    "The following action item has been escalated and requires immediate attention."),
+                HtmlBody    = BuildEscalationBody(),
                 IsActive  = true,
                 CreatedAt = now,
             },
@@ -364,6 +385,32 @@ public static class EmailTemplateSeeder
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Project:</td><td style=\"padding: 8px;\">{{ProjectName}}</td></tr>" +
         "</table>" +
         "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Details</a>" +
+        "</div>";
+
+    private static string BuildEscalationBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #dc3545;\">Action Item Escalated</h2>" +
+        "<p>The following action item has been escalated and requires immediate attention.</p>" +
+        "<div style=\"background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px 16px; margin: 16px 0;\">" +
+        "<p style=\"margin: 0 0 4px 0; font-weight: 600;\">Escalated By:</p>" +
+        "<p style=\"margin: 0 0 12px 0;\">{{EscalatedBy}}</p>" +
+        "<p style=\"margin: 0 0 4px 0; font-weight: 600;\">Escalation Reason:</p>" +
+        "<p style=\"margin: 0;\">{{Reason}}</p>" +
+        "</div>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 140px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Title:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Description:</td><td style=\"padding: 8px;\">{{Description}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Status:</td><td style=\"padding: 8px;\">{{Status}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Priority:</td><td style=\"padding: 8px;\">{{Priority}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Due Date:</td><td style=\"padding: 8px;\">{{DueDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Progress:</td><td style=\"padding: 8px;\">{{Progress}}%</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Assigned To:</td><td style=\"padding: 8px;\">{{AssignedTo}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Created By:</td><td style=\"padding: 8px;\">{{CreatedBy}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Workspace:</td><td style=\"padding: 8px;\">{{WorkspaceName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Project:</td><td style=\"padding: 8px;\">{{ProjectName}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #dc3545; color: #fff; text-decoration: none; border-radius: 4px;\">View Details</a>" +
         "</div>";
 
     private static string BuildProjectBody(string heading, string intro) =>

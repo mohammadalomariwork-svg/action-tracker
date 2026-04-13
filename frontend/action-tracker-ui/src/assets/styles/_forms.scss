@@ -2,6 +2,13 @@
 // GLOBAL FORM OVERRIDES — Inputs, Selects, Textareas, Labels
 // ═══════════════════════════════════════════════════════════════════
 
+// ── All form elements — ensure theme text color ──────────────────
+input,
+select,
+textarea {
+  color: var(--t1);
+}
+
 // ── Text inputs & selects ────────────────────────────────────────
 .form-control,
 .form-select {

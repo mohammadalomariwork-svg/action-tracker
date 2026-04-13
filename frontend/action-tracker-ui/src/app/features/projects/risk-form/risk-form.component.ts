@@ -1,11 +1,7 @@
 import {
-  AfterViewInit,
   Component,
-  ElementRef,
   Input,
-  OnDestroy,
   OnInit,
-  ViewChild,
   inject,
   output,
   signal,
@@ -20,9 +16,6 @@ import { ProjectRisk, RISK_CATEGORIES, RISK_STATUSES } from '../../../models/pro
 import { AssignableUser } from '../../../core/models/action-item.model';
 import { RiskRatingBadgeComponent } from '../../../shared/components/risk-rating-badge/risk-rating-badge.component';
 
-declare const bootstrap: {
-  Modal: new (el: HTMLElement, opts?: object) => { show(): void; hide(): void; dispose(): void };
-};
 
 const PROB_LABELS: Record<number, string> = {
   1: 'Rare', 2: 'Unlikely', 3: 'Possible', 4: 'Likely', 5: 'Almost Certain',
@@ -52,10 +45,9 @@ interface RiskForm {
   templateUrl: './risk-form.component.html',
   styleUrl: './risk-form.component.scss',
 })
-export class RiskFormComponent implements OnInit, AfterViewInit, OnDestroy {
+export class RiskFormComponent implements OnInit {
   @Input({ required: true }) projectId!: string;
   @Input() risk: ProjectRisk | null = null;
-  @ViewChild('modalEl') modalEl!: ElementRef<HTMLElement>;
 
   saved = output<ProjectRisk>();
   cancelled = output<void>();
@@ -64,8 +56,6 @@ export class RiskFormComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly riskService = inject(ProjectRiskService);
   private readonly userService = inject(ActionItemService);
   private readonly toast       = inject(ToastService);
-
-  private bsModal!: { show(): void; hide(): void; dispose(): void };
 
   readonly categories  = RISK_CATEGORIES;
   readonly statuses    = RISK_STATUSES;
@@ -128,18 +118,6 @@ export class RiskFormComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  ngAfterViewInit(): void {
-    this.bsModal = new bootstrap.Modal(this.modalEl.nativeElement, { backdrop: 'static' });
-    this.modalEl.nativeElement.addEventListener('hidden.bs.modal', () => {
-      this.cancelled.emit();
-    });
-    this.bsModal.show();
-  }
-
-  ngOnDestroy(): void {
-    this.bsModal?.dispose();
-  }
-
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -167,7 +145,6 @@ export class RiskFormComponent implements OnInit, AfterViewInit, OnDestroy {
           this.saving.set(false);
           if (res.success) {
             this.toast.success('Risk updated successfully.');
-            this.bsModal.hide();
             this.saved.emit(res.data);
           }
         },
@@ -192,7 +169,6 @@ export class RiskFormComponent implements OnInit, AfterViewInit, OnDestroy {
           this.saving.set(false);
           if (res.success) {
             this.toast.success('Risk created successfully.');
-            this.bsModal.hide();
             this.saved.emit(res.data);
           }
         },
@@ -202,6 +178,6 @@ export class RiskFormComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   close(): void {
-    this.bsModal.hide();
+    this.cancelled.emit();
   }
 }

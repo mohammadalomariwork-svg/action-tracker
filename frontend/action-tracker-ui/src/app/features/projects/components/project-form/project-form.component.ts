@@ -12,7 +12,10 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+import { forkJoin } from 'rxjs';
+
 import { ProjectService } from '../../services/project.service';
+import { MilestoneService } from '../../services/milestone.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import { WorkspaceList } from '../../../workspaces/models/workspace.model';
 import {
@@ -22,7 +25,10 @@ import {
   ProjectResponse,
   StrategicObjectiveOption,
 } from '../../models/project.models';
-import { AssignableUser } from '../../../../core/models/action-item.model';
+import { AssignableUser, ActionItem, ActionItemFilter, ActionStatus } from '../../../../core/models/action-item.model';
+import { ActionItemService } from '../../../../core/services/action-item.service';
+import { PagedResult } from '../../../../core/models/api-response.model';
+import { MilestoneResponse } from '../../models/milestone.models';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
@@ -41,12 +47,14 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   styleUrl: './project-form.component.scss',
 })
 export class ProjectFormComponent implements OnInit {
-  private readonly fb            = inject(FormBuilder);
-  private readonly projectSvc    = inject(ProjectService);
-  private readonly workspaceSvc  = inject(WorkspaceService);
-  private readonly route         = inject(ActivatedRoute);
-  private readonly router        = inject(Router);
-  private readonly destroyRef    = inject(DestroyRef);
+  private readonly fb             = inject(FormBuilder);
+  private readonly projectSvc     = inject(ProjectService);
+  private readonly workspaceSvc   = inject(WorkspaceService);
+  private readonly milestoneSvc   = inject(MilestoneService);
+  private readonly actionItemSvc  = inject(ActionItemService);
+  private readonly route          = inject(ActivatedRoute);
+  private readonly router         = inject(Router);
+  private readonly destroyRef     = inject(DestroyRef);
 
   isEditMode = false;
   projectId: string | null = null;
@@ -65,6 +73,7 @@ export class ProjectFormComponent implements OnInit {
 
   isLoading = false;
   errorMessage: string | null = null;
+  originalStatus: ProjectStatus | null = null;
 
   form!: FormGroup;
 
@@ -164,29 +173,17 @@ export class ProjectFormComponent implements OnInit {
     const v = this.form.getRawValue();
 
     if (this.isEditMode && this.projectId) {
-      this.projectSvc.update(this.projectId, {
-        name: v.name,
-        description: v.description || undefined,
-        projectType: v.projectType,
-        status: v.status,
-        strategicObjectiveId: v.strategicObjectiveId || undefined,
-        priority: v.priority,
-        projectManagerUserId: v.projectManagerUserId,
-        sponsorUserIds: this.selectedSponsorIds,
-        plannedStartDate: v.plannedStartDate,
-        plannedEndDate: v.plannedEndDate,
-        actualStartDate: v.actualStartDate || undefined,
-        approvedBudget: v.approvedBudget ? +v.approvedBudget : undefined,
-      }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: () => {
-          this.isLoading = false;
-          this.router.navigate(['/workspaces', this.workspaceId]);
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
-          this.isLoading = false;
-        },
-      });
+      // Validate milestones/action items when transitioning to Active or Completed
+      const needsValidation =
+        (v.status === ProjectStatus.Active || v.status === ProjectStatus.Completed)
+        && v.status !== this.originalStatus;
+
+      if (needsValidation) {
+        this.validateBeforeSave(v.status, () => this.doUpdate(v));
+        return;
+      }
+
+      this.doUpdate(v);
     } else {
       const wsId = this.needsWorkspaceSelector ? v.selectedWorkspaceId : this.workspaceId;
       this.projectSvc.create({
@@ -213,6 +210,100 @@ export class ProjectFormComponent implements OnInit {
         },
       });
     }
+  }
+
+  private doUpdate(v: any): void {
+    this.projectSvc.update(this.projectId!, {
+      name: v.name,
+      description: v.description || undefined,
+      projectType: v.projectType,
+      status: v.status,
+      strategicObjectiveId: v.strategicObjectiveId || undefined,
+      priority: v.priority,
+      projectManagerUserId: v.projectManagerUserId,
+      sponsorUserIds: this.selectedSponsorIds,
+      plannedStartDate: v.plannedStartDate,
+      plannedEndDate: v.plannedEndDate,
+      actualStartDate: v.actualStartDate || undefined,
+      approvedBudget: v.approvedBudget ? +v.approvedBudget : undefined,
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.router.navigate(['/workspaces', this.workspaceId]);
+      },
+      error: (err) => {
+        this.errorMessage = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
+        this.isLoading = false;
+      },
+    });
+  }
+
+  private validateBeforeSave(targetStatus: ProjectStatus, onValid: () => void): void {
+    const label = targetStatus === ProjectStatus.Completed ? 'Completed' : 'Active';
+    const actionFilter: ActionItemFilter = {
+      projectId:      this.projectId!,
+      pageNumber:     1,
+      pageSize:       500,
+      sortBy:         'dueDate',
+      sortDescending: false,
+    };
+
+    forkJoin({
+      milestones: this.milestoneSvc.getByProject(this.projectId!),
+      actions:    this.actionItemSvc.getAll(actionFilter),
+    })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: ({ milestones, actions }) => {
+        const msList     = milestones.data ?? [];
+        const actionList = (actions.data as PagedResult<ActionItem>).items ?? [];
+
+        if (msList.length === 0) {
+          this.errorMessage = `Cannot set to ${label}: the project must have at least one milestone.`;
+          this.isLoading = false;
+          return;
+        }
+
+        const emptyMilestones = msList.filter((ms: MilestoneResponse) =>
+          !actionList.some(a => a.milestoneId === ms.id)
+        );
+
+        if (emptyMilestones.length > 0) {
+          const names = emptyMilestones.map((m: MilestoneResponse) => `"${m.name}"`).join(', ');
+          this.errorMessage =
+            `Cannot set to ${label}: the following milestone(s) have no action items — ${names}. ` +
+            `Please add at least one action item to each milestone first.`;
+          this.isLoading = false;
+          return;
+        }
+
+        // When completing, all action items must be Done or Cancelled
+        if (targetStatus === ProjectStatus.Completed) {
+          const doneStatuses: (string | number)[] = [
+            ActionStatus.Done, ActionStatus.Cancelled,
+            'done', 'cancelled',
+          ];
+          const incompleteActions = actionList.filter(a =>
+            !doneStatuses.includes(a.status as string | number)
+          );
+
+          if (incompleteActions.length > 0) {
+            const names = incompleteActions.map(a => `"${a.title}"`).join(', ');
+            this.errorMessage =
+              `Cannot complete the project: all action items must be Done or Cancelled. ` +
+              `Incomplete action items: ${names}.`;
+            this.isLoading = false;
+            return;
+          }
+        }
+
+        onValid();
+      },
+      error: () => {
+        this.errorMessage = 'Could not validate milestones. Please try again.';
+        this.isLoading = false;
+      },
+    });
   }
 
   onCancel(): void {
@@ -300,6 +391,7 @@ export class ProjectFormComponent implements OnInit {
           const p: ProjectResponse = res.data;
           this.workspaceId = p.workspaceId;
           this.isBaselined = p.isBaselined;
+          this.originalStatus = p.status;
           this.selectedSponsorIds = p.sponsors.map(s => s.userId);
 
           this.form.patchValue({

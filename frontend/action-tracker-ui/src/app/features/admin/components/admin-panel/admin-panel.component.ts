@@ -72,15 +72,16 @@ export class AdminPanelComponent {
       color:           'dark',
       permissionArea:  'Admin',
     },
-    {
-      id:              'permissions',
-      title:           'Permissions Management',
-      description:     'Configure role permission matrices and manage user-level permission overrides.',
-      icon:            'bi-shield-check-fill',
-      route:           '/admin/permissions/roles',
-      color:           'danger',
-      permissionArea:  'PermissionsManagement',
-    },
+    // Permissions Management card hidden per business request
+    // {
+    //   id:              'permissions',
+    //   title:           'Permissions Management',
+    //   description:     'Configure role permission matrices and manage user-level permission overrides.',
+    //   icon:            'bi-shield-check-fill',
+    //   route:           '/admin/permissions/roles',
+    //   color:           'danger',
+    //   permissionArea:  'PermissionsManagement',
+    // },
     {
       id:              'roles',
       title:           'Roles Management',

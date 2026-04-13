@@ -353,7 +353,7 @@
                             <a class="btn btn-outline-info btn-sm wa-action-btn"
                                [routerLink]="['/projects', prj.id]"
                                title="View"><i class="bi bi-eye"></i></a>
-                            @if (canManage) {
+                            @if (canManage && prj.status !== ProjectStatus.Completed && prj.status !== ProjectStatus.Cancelled) {
                               <button *appHasPermission="'Projects'; action: 'Edit'"
                                       class="btn btn-outline-primary btn-sm wa-action-btn"
                                       (click)="openEditProjectForm(prj)"
@@ -429,7 +429,7 @@
                          [routerLink]="['/projects', prj.id]">
                         <i class="bi bi-eye me-1"></i>View
                       </a>
-                      @if (canManage) {
+                      @if (canManage && prj.status !== ProjectStatus.Completed && prj.status !== ProjectStatus.Cancelled) {
                         <button *appHasPermission="'Projects'; action: 'Edit'"
                                 class="btn btn-outline-primary btn-sm"
                                 (click)="openEditProjectForm(prj)"

@@ -234,7 +234,7 @@
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="pfStatus" class="form-label">Project Status</label>
-                <select id="pfStatus" class="form-select" formControlName="status">
+                <select id="pfStatus" class="form-select" formControlName="status" (change)="errorMessage = null">
                   <option [ngValue]="ProjectStatus.Draft">Draft</option>
                   <option [ngValue]="ProjectStatus.Active">Active</option>
                   <option [ngValue]="ProjectStatus.OnHold">On Hold</option>

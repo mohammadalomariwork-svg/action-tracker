@@ -1,164 +1,165 @@
-<div #modalEl class="modal fade" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
+<!-- Backdrop -->
+<div class="risk-backdrop" (click)="close()"></div>
 
-      <!-- Header -->
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          {{ isEdit ? 'Edit Risk' : 'Create Risk' }}
-        </h5>
-        <button type="button" class="btn-close" (click)="close()"></button>
-      </div>
+<!-- Offcanvas drawer -->
+<div #drawerEl class="risk-offcanvas offcanvas offcanvas-end show" tabindex="-1">
 
-      <!-- Body -->
-      <div class="modal-body">
-        <form [formGroup]="form" (ngSubmit)="submit()">
-          <div class="row g-3">
+  <!-- Header -->
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title">
+      <i class="bi bi-exclamation-triangle text-primary me-2"></i>
+      {{ isEdit ? 'Edit Risk' : 'Create Risk' }}
+    </h5>
+    <button type="button" class="btn-close" (click)="close()"></button>
+  </div>
 
-            <!-- Title -->
-            <div class="col-12">
-              <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" formControlName="title"
-                     [class.is-invalid]="form.controls.title.touched && form.controls.title.invalid" />
-              @if (form.controls.title.touched && form.controls.title.errors) {
-                <div class="invalid-feedback">
-                  @if (form.controls.title.errors['required']) { Title is required. }
-                  @if (form.controls.title.errors['maxlength']) { Max 300 characters. }
-                </div>
-              }
+  <!-- Body -->
+  <div class="offcanvas-body">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="row g-3">
+
+        <!-- Title -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" formControlName="title"
+                 [class.is-invalid]="form.controls.title.touched && form.controls.title.invalid" />
+          @if (form.controls.title.touched && form.controls.title.errors) {
+            <div class="invalid-feedback">
+              @if (form.controls.title.errors['required']) { Title is required. }
+              @if (form.controls.title.errors['maxlength']) { Max 300 characters. }
             </div>
+          }
+        </div>
 
-            <!-- Description -->
-            <div class="col-12">
-              <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
-              <textarea class="form-control" formControlName="description" rows="3"
-                        [class.is-invalid]="form.controls.description.touched && form.controls.description.invalid"></textarea>
-              @if (form.controls.description.touched && form.controls.description.errors) {
-                <div class="invalid-feedback">
-                  @if (form.controls.description.errors['required']) { Description is required. }
-                  @if (form.controls.description.errors['maxlength']) { Max 2000 characters. }
-                </div>
-              }
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+          <textarea class="form-control" formControlName="description" rows="3"
+                    [class.is-invalid]="form.controls.description.touched && form.controls.description.invalid"></textarea>
+          @if (form.controls.description.touched && form.controls.description.errors) {
+            <div class="invalid-feedback">
+              @if (form.controls.description.errors['required']) { Description is required. }
+              @if (form.controls.description.errors['maxlength']) { Max 2000 characters. }
             </div>
+          }
+        </div>
 
-            <!-- Category -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
-              <select class="form-select" formControlName="category"
-                      [class.is-invalid]="form.controls.category.touched && form.controls.category.invalid">
-                <option value="" disabled>Select category</option>
-                @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
-              </select>
-              @if (form.controls.category.touched && form.controls.category.errors) {
-                <div class="invalid-feedback">Category is required.</div>
-              }
-            </div>
+        <!-- Category -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="category"
+                  [class.is-invalid]="form.controls.category.touched && form.controls.category.invalid">
+            <option value="" disabled>Select category</option>
+            @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+          @if (form.controls.category.touched && form.controls.category.errors) {
+            <div class="invalid-feedback">Category is required.</div>
+          }
+        </div>
 
-            <!-- Status -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-              <select class="form-select" formControlName="status">
-                @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
-              </select>
-            </div>
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="status">
+            @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
+          </select>
+        </div>
 
-            <!-- Probability -->
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Probability <span class="text-danger">*</span></label>
-              <select class="form-select" formControlName="probabilityScore">
-                @for (s of scores; track s) {
-                  <option [ngValue]="s">{{ s }} — {{ probLabels[s] }}</option>
-                }
-              </select>
-            </div>
+        <!-- Probability -->
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Probability <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="probabilityScore">
+            @for (s of scores; track s) {
+              <option [ngValue]="s">{{ s }} — {{ probLabels[s] }}</option>
+            }
+          </select>
+        </div>
 
-            <!-- Impact -->
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Impact <span class="text-danger">*</span></label>
-              <select class="form-select" formControlName="impactScore">
-                @for (s of scores; track s) {
-                  <option [ngValue]="s">{{ s }} — {{ impactLabels[s] }}</option>
-                }
-              </select>
-            </div>
+        <!-- Impact -->
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Impact <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="impactScore">
+            @for (s of scores; track s) {
+              <option [ngValue]="s">{{ s }} — {{ impactLabels[s] }}</option>
+            }
+          </select>
+        </div>
 
-            <!-- Live risk score -->
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Risk Score</label>
-              <div class="d-flex align-items-center gap-2 mt-1">
-                <span class="fs-4 fw-bold">{{ computedScore }}</span>
-                <app-risk-rating-badge [rating]="computedRating" />
-              </div>
-            </div>
-
-            <!-- Risk Owner -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Risk Owner</label>
-              <select class="form-select" formControlName="riskOwnerUserId">
-                <option value="">— None —</option>
-                @for (u of users(); track u.id) {
-                  <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
-                }
-              </select>
-            </div>
-
-            <!-- Due Date -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Due Date</label>
-              <input type="date" class="form-control" formControlName="dueDate" />
-            </div>
-
-            <!-- Mitigation Plan -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Mitigation Plan</label>
-              <textarea class="form-control" formControlName="mitigationPlan" rows="3"
-                        [class.is-invalid]="form.controls.mitigationPlan.touched && form.controls.mitigationPlan.errors?.['maxlength']"></textarea>
-              @if (form.controls.mitigationPlan.errors?.['maxlength']) {
-                <div class="invalid-feedback">Max 2000 characters.</div>
-              }
-            </div>
-
-            <!-- Contingency Plan -->
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Contingency Plan</label>
-              <textarea class="form-control" formControlName="contingencyPlan" rows="3"
-                        [class.is-invalid]="form.controls.contingencyPlan.touched && form.controls.contingencyPlan.errors?.['maxlength']"></textarea>
-              @if (form.controls.contingencyPlan.errors?.['maxlength']) {
-                <div class="invalid-feedback">Max 2000 characters.</div>
-              }
-            </div>
-
-            <!-- Notes -->
-            <div class="col-12">
-              <label class="form-label fw-semibold">Notes</label>
-              <textarea class="form-control" formControlName="notes" rows="2"
-                        [class.is-invalid]="form.controls.notes.touched && form.controls.notes.errors?.['maxlength']"></textarea>
-              @if (form.controls.notes.errors?.['maxlength']) {
-                <div class="invalid-feedback">Max 2000 characters.</div>
-              }
-            </div>
-
+        <!-- Live risk score -->
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Risk Score</label>
+          <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="fs-4 fw-bold">{{ computedScore }}</span>
+            <app-risk-rating-badge [rating]="computedRating" />
           </div>
-        </form>
+        </div>
+
+        <!-- Risk Owner -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Risk Owner</label>
+          <select class="form-select" formControlName="riskOwnerUserId">
+            <option value="">— None —</option>
+            @for (u of users(); track u.id) {
+              <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
+            }
+          </select>
+        </div>
+
+        <!-- Due Date -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Due Date</label>
+          <input type="date" class="form-control" formControlName="dueDate" />
+        </div>
+
+        <!-- Mitigation Plan -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Mitigation Plan</label>
+          <textarea class="form-control" formControlName="mitigationPlan" rows="3"
+                    [class.is-invalid]="form.controls.mitigationPlan.touched && form.controls.mitigationPlan.errors?.['maxlength']"></textarea>
+          @if (form.controls.mitigationPlan.errors?.['maxlength']) {
+            <div class="invalid-feedback">Max 2000 characters.</div>
+          }
+        </div>
+
+        <!-- Contingency Plan -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Contingency Plan</label>
+          <textarea class="form-control" formControlName="contingencyPlan" rows="3"
+                    [class.is-invalid]="form.controls.contingencyPlan.touched && form.controls.contingencyPlan.errors?.['maxlength']"></textarea>
+          @if (form.controls.contingencyPlan.errors?.['maxlength']) {
+            <div class="invalid-feedback">Max 2000 characters.</div>
+          }
+        </div>
+
+        <!-- Notes -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">Notes</label>
+          <textarea class="form-control" formControlName="notes" rows="2"
+                    [class.is-invalid]="form.controls.notes.touched && form.controls.notes.errors?.['maxlength']"></textarea>
+          @if (form.controls.notes.errors?.['maxlength']) {
+            <div class="invalid-feedback">Max 2000 characters.</div>
+          }
+        </div>
+
       </div>
 
-      <!-- Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="close()">Cancel</button>
+      <!-- Actions -->
+      <div class="d-flex gap-2 justify-content-end mt-4">
+        <button type="button" class="btn btn-outline-secondary" (click)="close()" [disabled]="saving()">
+          Cancel
+        </button>
         <button
-          type="button"
-          class="btn btn-primary"
+          type="submit"
+          class="btn btn-primary d-inline-flex align-items-center gap-2"
           [disabled]="form.invalid || saving()"
-          (click)="submit()"
         >
           @if (saving()) {
-            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            <span class="spinner-border spinner-border-sm" role="status"></span>
           }
           {{ isEdit ? 'Save Changes' : 'Create Risk' }}
         </button>
       </div>
-
-    </div>
+    </form>
   </div>
+
 </div>

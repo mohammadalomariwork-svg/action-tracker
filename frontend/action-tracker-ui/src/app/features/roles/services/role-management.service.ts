@@ -56,12 +56,10 @@ export class RoleManagementService {
   }
 
   assignUsersToRole(dto: AssignUsersToRoleDto): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/${dto.roleName}/users`, dto);
+    return this.http.post<void>(`${this.baseUrl}/${dto.roleName}/users/assign`, dto);
   }
 
   removeUsersFromRole(dto: { roleName: string; userIds: string[] }): Observable<void> {
-    return this.http.request<void>('delete', `${this.baseUrl}/${dto.roleName}/users`, {
-      body: dto,
-    });
+    return this.http.post<void>(`${this.baseUrl}/${dto.roleName}/users/remove`, dto);
   }
 }

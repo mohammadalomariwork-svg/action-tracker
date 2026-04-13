@@ -6,6 +6,7 @@
 // ── Dark theme (default) ─────────────────────────────────────────
 [data-theme="dark"],
 :root {
+  --bs-body-color: #E2E8F0;
   --bg:    #0B1930;
   --bg2:   #071224;
   --sf:    rgba(255,255,255,0.04);
@@ -32,6 +33,7 @@
 
 // ── Light theme ──────────────────────────────────────────────────
 [data-theme="light"] {
+  --bs-body-color: #0B1222;
   --bg:    #F2F4F8;
   --bg2:   #E8EBF0;
   --sf:    rgba(255,255,255,0.82);

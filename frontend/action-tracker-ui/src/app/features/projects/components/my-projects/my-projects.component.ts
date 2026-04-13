@@ -1,22 +1,26 @@
 import {
-  Component, OnInit, ChangeDetectionStrategy,
-  inject, signal, HostListener,
+  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
+  inject, signal, HostListener, DestroyRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { ProjectService } from '../../services/project.service';
+import { MilestoneService } from '../../services/milestone.service';
+import { ActionItemService } from '../../../../core/services/action-item.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import { WorkspaceList } from '../../../workspaces/models/workspace.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
-  ProjectResponse, ProjectStatus, ProjectPriority, ProjectType,
+  ProjectResponse, ProjectUpdate, ProjectStatus, ProjectPriority, ProjectType,
   StrategicObjectiveOption,
 } from '../../models/project.models';
-import { AssignableUser } from '../../../../core/models/action-item.model';
+import { MilestoneResponse } from '../../models/milestone.models';
+import { AssignableUser, ActionItem, ActionItemFilter, ActionStatus } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
 import { HasPermissionDirective } from '../../../../shared';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
@@ -52,11 +56,15 @@ const AVATAR_COLORS = [
   styleUrl: './my-projects.component.scss',
 })
 export class MyProjectsComponent implements OnInit {
-  private readonly authSvc      = inject(AuthService);
-  private readonly projectSvc   = inject(ProjectService);
-  private readonly workspaceSvc = inject(WorkspaceService);
-  private readonly toastSvc     = inject(ToastService);
-  private readonly fb           = inject(FormBuilder);
+  private readonly authSvc        = inject(AuthService);
+  private readonly projectSvc     = inject(ProjectService);
+  private readonly milestoneSvc   = inject(MilestoneService);
+  private readonly actionItemSvc  = inject(ActionItemService);
+  private readonly workspaceSvc   = inject(WorkspaceService);
+  private readonly toastSvc       = inject(ToastService);
+  private readonly fb             = inject(FormBuilder);
+  private readonly destroyRef     = inject(DestroyRef);
+  private readonly cdr            = inject(ChangeDetectorRef);
 
   readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
 
@@ -102,6 +110,28 @@ export class MyProjectsComponent implements OnInit {
   sponsorDropdownOpen = false;
   sponsorSearchTerm   = '';
 
+  // ── Edit drawer ──────────────────────────────────────
+  showEditDrawer    = false;
+  editDrawerSaving  = false;
+  editDrawerError:  string | null = null;
+  editDrawerLoading = false;
+  editForm!:        FormGroup;
+  editProjectId:    string | null = null;
+  editOriginalStatus: ProjectStatus | null = null;
+  editIsBaselined   = false;
+  editSponsorIds:   string[] = [];
+  editSponsorDropdownOpen = false;
+  editSponsorSearchTerm   = '';
+  editStrategicObjectives: StrategicObjectiveOption[] = [];
+
+  readonly STATUS_OPTIONS = [
+    { value: ProjectStatus.Draft,     label: 'Draft' },
+    { value: ProjectStatus.Active,    label: 'Active' },
+    { value: ProjectStatus.OnHold,    label: 'On Hold' },
+    { value: ProjectStatus.Completed, label: 'Completed' },
+    { value: ProjectStatus.Cancelled, label: 'Cancelled' },
+  ];
+
   readonly ProjectType     = ProjectType;
   readonly PRIORITY_OPTIONS = [
     { value: ProjectPriority.Low,      label: 'Low'      },
@@ -111,7 +141,10 @@ export class MyProjectsComponent implements OnInit {
   ];
 
   @HostListener('document:click')
-  onDocumentClick(): void { this.sponsorDropdownOpen = false; }
+  onDocumentClick(): void {
+    this.sponsorDropdownOpen = false;
+    this.editSponsorDropdownOpen = false;
+  }
 
   ngOnInit(): void {
     this.loadProjects();
@@ -417,5 +450,276 @@ export class MyProjectsComponent implements OnInit {
         this.drawerError = err?.error?.message ?? 'Failed to create project.';
       },
     });
+  }
+
+  // ── Edit drawer methods ─────────────────────────────────────────────────
+
+  private buildEditForm(): void {
+    this.editForm = this.fb.group({
+      name:                 ['', [Validators.required, Validators.maxLength(255)]],
+      description:          [''],
+      projectType:          [ProjectType.Operational, [Validators.required]],
+      strategicObjectiveId: [null as string | null],
+      priority:             [ProjectPriority.Medium, [Validators.required]],
+      projectManagerUserId: ['', [Validators.required]],
+      plannedStartDate:     ['', [Validators.required]],
+      plannedEndDate:       ['', [Validators.required]],
+      approvedBudget:       [null as number | null],
+      status:               [ProjectStatus.Draft],
+      actualStartDate:      [''],
+    }, { validators: dateRangeValidator });
+  }
+
+  openEditDrawer(entry: MyProjectEntry): void {
+    this.editProjectId = entry.project.id;
+    this.editDrawerError = null;
+    this.editSponsorSearchTerm = '';
+
+    if (!this.editForm) this.buildEditForm();
+
+    if (this.availableUsers.length === 0) {
+      this.projectSvc.getAssignableUsers().subscribe({
+        next: res => this.availableUsers = res.data ?? [],
+      });
+    }
+
+    // Load fresh project data
+    this.editDrawerLoading = true;
+    this.showEditDrawer = true;
+
+    this.projectSvc.getById(entry.project.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const p: ProjectResponse = res.data;
+          this.editOriginalStatus = p.status;
+          this.editIsBaselined = p.isBaselined;
+          this.editSponsorIds = p.sponsors.map(s => s.userId);
+
+          this.editForm.patchValue({
+            name: p.name,
+            description: p.description ?? '',
+            projectType: p.projectType,
+            strategicObjectiveId: p.strategicObjectiveId ?? null,
+            priority: p.priority,
+            projectManagerUserId: p.projectManagerUserId,
+            plannedStartDate: p.plannedStartDate ? String(p.plannedStartDate).substring(0, 10) : '',
+            plannedEndDate: p.plannedEndDate ? String(p.plannedEndDate).substring(0, 10) : '',
+            approvedBudget: p.approvedBudget ?? null,
+            status: p.status,
+            actualStartDate: p.actualStartDate ? String(p.actualStartDate).substring(0, 10) : '',
+          });
+
+          // Freeze dates when not Draft
+          const isNotDraft = p.status !== ProjectStatus.Draft;
+          if (this.editIsBaselined || isNotDraft) {
+            this.editForm.get('plannedStartDate')!.disable();
+            this.editForm.get('plannedEndDate')!.disable();
+          } else {
+            this.editForm.get('plannedStartDate')!.enable();
+            this.editForm.get('plannedEndDate')!.enable();
+          }
+
+          // Disable status when PendingApproval
+          if (p.status === ProjectStatus.PendingApproval) {
+            this.editForm.get('status')?.disable();
+          } else {
+            this.editForm.get('status')?.enable();
+          }
+
+          if (p.projectType === ProjectType.Strategic) {
+            this.loadEditStrategicObjectives(p.workspaceId);
+          }
+
+          this.editDrawerLoading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.editDrawerError = 'Failed to load project.';
+          this.editDrawerLoading = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  closeEditDrawer(): void {
+    this.showEditDrawer = false;
+    this.editProjectId = null;
+  }
+
+  get editIsStrategic(): boolean {
+    return this.editForm?.get('projectType')?.value === ProjectType.Strategic;
+  }
+
+  get editHasDateRangeError(): boolean {
+    return !!(this.editForm?.hasError('dateRange') && this.editForm.get('plannedEndDate')?.touched);
+  }
+
+  editFormHasError(field: string, error: string): boolean {
+    const ctrl = this.editForm?.get(field);
+    return !!(ctrl?.touched && ctrl.hasError(error));
+  }
+
+  editFormIsInvalid(field: string): boolean {
+    const ctrl = this.editForm?.get(field);
+    return !!(ctrl?.touched && ctrl.invalid);
+  }
+
+  get filteredEditSponsorUsers(): AssignableUser[] {
+    if (!this.editSponsorSearchTerm.trim()) return this.availableUsers;
+    const term = this.editSponsorSearchTerm.toLowerCase();
+    return this.availableUsers.filter(u => u.fullName.toLowerCase().includes(term));
+  }
+
+  toggleEditSponsor(userId: string): void {
+    const idx = this.editSponsorIds.indexOf(userId);
+    if (idx >= 0) this.editSponsorIds.splice(idx, 1);
+    else this.editSponsorIds.push(userId);
+  }
+
+  isEditSponsorSelected(userId: string): boolean {
+    return this.editSponsorIds.includes(userId);
+  }
+
+  getEditSponsorName(userId: string): string {
+    return this.availableUsers.find(u => u.id === userId)?.fullName ?? userId;
+  }
+
+  private loadEditStrategicObjectives(workspaceId: string): void {
+    this.projectSvc.getStrategicObjectivesForWorkspace(workspaceId).subscribe({
+      next: res => { this.editStrategicObjectives = res.data ?? []; this.cdr.markForCheck(); },
+      error: () => { this.editStrategicObjectives = []; this.cdr.markForCheck(); },
+    });
+  }
+
+  onEditSubmit(): void {
+    this.editForm.markAllAsTouched();
+    if (this.editForm.invalid || this.editSponsorIds.length === 0) {
+      if (this.editSponsorIds.length === 0)
+        this.editDrawerError = 'At least one sponsor is required.';
+      return;
+    }
+
+    this.editDrawerSaving = true;
+    this.editDrawerError = null;
+    const v = this.editForm.getRawValue();
+
+    const needsValidation =
+      (v.status === ProjectStatus.Active || v.status === ProjectStatus.Completed)
+      && v.status !== this.editOriginalStatus;
+
+    if (needsValidation) {
+      this.validateEditBeforeSave(v.status, () => this.doEditUpdate(v));
+      return;
+    }
+
+    this.doEditUpdate(v);
+  }
+
+  private doEditUpdate(v: any): void {
+    this.projectSvc.update(this.editProjectId!, {
+      name: v.name,
+      description: v.description || undefined,
+      projectType: v.projectType,
+      status: v.status,
+      strategicObjectiveId: v.strategicObjectiveId || undefined,
+      priority: v.priority,
+      projectManagerUserId: v.projectManagerUserId,
+      sponsorUserIds: this.editSponsorIds,
+      plannedStartDate: v.plannedStartDate,
+      plannedEndDate: v.plannedEndDate,
+      actualStartDate: v.actualStartDate || undefined,
+      approvedBudget: v.approvedBudget ? +v.approvedBudget : undefined,
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.editDrawerSaving = false;
+        this.showEditDrawer = false;
+        this.toastSvc.success('Project updated successfully.');
+        this.loadProjects();
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.editDrawerSaving = false;
+        this.editDrawerError = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private validateEditBeforeSave(targetStatus: ProjectStatus, onValid: () => void): void {
+    const label = targetStatus === ProjectStatus.Completed ? 'Completed' : 'Active';
+    const actionFilter: ActionItemFilter = {
+      projectId:      this.editProjectId!,
+      pageNumber:     1,
+      pageSize:       500,
+      sortBy:         'dueDate',
+      sortDescending: false,
+    };
+
+    forkJoin({
+      milestones: this.milestoneSvc.getByProject(this.editProjectId!),
+      actions:    this.actionItemSvc.getAll(actionFilter),
+    })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: ({ milestones, actions }) => {
+        const msList     = milestones.data ?? [];
+        const actionList = (actions.data as PagedResult<ActionItem>).items ?? [];
+
+        if (msList.length === 0) {
+          this.editDrawerError = `Cannot set to ${label}: the project must have at least one milestone.`;
+          this.editDrawerSaving = false;
+          this.cdr.markForCheck();
+          return;
+        }
+
+        const emptyMilestones = msList.filter((ms: MilestoneResponse) =>
+          !actionList.some(a => a.milestoneId === ms.id)
+        );
+
+        if (emptyMilestones.length > 0) {
+          const names = emptyMilestones.map((m: MilestoneResponse) => `"${m.name}"`).join(', ');
+          this.editDrawerError =
+            `Cannot set to ${label}: the following milestone(s) have no action items — ${names}. ` +
+            `Please add at least one action item to each milestone first.`;
+          this.editDrawerSaving = false;
+          this.cdr.markForCheck();
+          return;
+        }
+
+        if (targetStatus === ProjectStatus.Completed) {
+          const doneStatuses: (string | number)[] = [
+            ActionStatus.Done, ActionStatus.Cancelled,
+            'done', 'cancelled',
+          ];
+          const incompleteActions = actionList.filter(a =>
+            !doneStatuses.includes(a.status as string | number)
+          );
+
+          if (incompleteActions.length > 0) {
+            const names = incompleteActions.map(a => `"${a.title}"`).join(', ');
+            this.editDrawerError =
+              `Cannot complete the project: all action items must be Done or Cancelled. ` +
+              `Incomplete action items: ${names}.`;
+            this.editDrawerSaving = false;
+            this.cdr.markForCheck();
+            return;
+          }
+        }
+
+        onValid();
+      },
+      error: () => {
+        this.editDrawerError = 'Could not validate milestones. Please try again.';
+        this.editDrawerSaving = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  canEdit(entry: MyProjectEntry): boolean {
+    return entry.role === 'manager'
+      && entry.project.status !== ProjectStatus.Completed
+      && entry.project.status !== ProjectStatus.Cancelled;
   }
 }

@@ -1,4 +1,5 @@
 using ActionTracker.Application.Common;
+using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
@@ -449,7 +450,9 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
     public async Task HandleEscalationAsync(Guid actionItemId, string escalatedByUserId, string reason)
     {
         var actionItem = await _db.ActionItems
-            .Include(a => a.Assignees)
+            .Include(a => a.Assignees).ThenInclude(a => a.User)
+            .Include(a => a.Workspace)
+            .Include(a => a.Project)
             .FirstOrDefaultAsync(a => a.Id == actionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {actionItemId} not found.");
 
@@ -504,13 +507,27 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
 
                 if (recipientEmails.Count > 0)
                 {
+                    var assigneeNames = capturedItem.Assignees.Any()
+                        ? string.Join(", ", capturedItem.Assignees.Select(a => a.User?.FullName ?? a.UserId))
+                        : "—";
+                    var creatorName = await GetUserDisplayNameFromDbAsync(db, capturedItem.CreatedByUserId) ?? "—";
+
                     var placeholders = new Dictionary<string, string>
                     {
-                        ["ActionId"]    = capturedItem.ActionId,
-                        ["Title"]       = capturedItem.Title,
-                        ["Reason"]      = reason,
-                        ["EscalatedBy"] = escalatorName,
-                        ["ItemUrl"]     = $"{_appSettings.FrontendBaseUrl}/actions/{capturedItem.Id}/view",
+                        ["ActionId"]      = capturedItem.ActionId,
+                        ["Title"]         = capturedItem.Title,
+                        ["Description"]   = capturedItem.Description ?? "—",
+                        ["Status"]        = capturedItem.Status.GetDescription(),
+                        ["Priority"]      = capturedItem.Priority.GetDescription(),
+                        ["DueDate"]       = capturedItem.DueDate.ToString("MMM d, yyyy"),
+                        ["Progress"]      = capturedItem.Progress.ToString(),
+                        ["AssignedTo"]    = assigneeNames,
+                        ["CreatedBy"]     = creatorName,
+                        ["WorkspaceName"] = capturedItem.Workspace?.Title ?? "—",
+                        ["ProjectName"]   = capturedItem.Project?.Name ?? "—",
+                        ["Reason"]        = reason,
+                        ["EscalatedBy"]   = escalatorName,
+                        ["ItemUrl"]       = $"{_appSettings.FrontendBaseUrl}/actions/{capturedItem.Id}/view",
                     };
 
                     await emailSender.SendEmailAsync(

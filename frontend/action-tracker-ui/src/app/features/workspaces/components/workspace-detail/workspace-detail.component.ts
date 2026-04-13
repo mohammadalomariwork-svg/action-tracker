@@ -911,6 +911,26 @@ export class WorkspaceDetailComponent implements OnInit {
           return;
         }
 
+        // When completing, all action items must be Done or Cancelled
+        if (targetStatus === ProjectStatus.Completed) {
+          const doneStatuses: (string | number)[] = [
+            ActionStatus.Done, ActionStatus.Cancelled,
+            'done', 'cancelled',
+          ];
+          const incompleteActions = actionList.filter(a =>
+            !doneStatuses.includes(a.status as string | number)
+          );
+
+          if (incompleteActions.length > 0) {
+            const names = incompleteActions.map(a => `"${a.title}"`).join(', ');
+            this.projectFormError =
+              `Cannot complete the project: all action items must be Done or Cancelled. ` +
+              `Incomplete action items: ${names}.`;
+            this.projectSaving = false;
+            return;
+          }
+        }
+
         onValid();
       },
       error: () => {

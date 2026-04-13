@@ -220,13 +220,13 @@
                        title="View project">
                       <i class="bi bi-eye"></i> View
                     </a>
-                    @if (entry.role === 'manager') {
-                      <a *appHasPermission="'Projects'; action: 'Edit'"
-                         class="mp-action-btn"
-                         [routerLink]="['/projects/edit', entry.project.id]"
+                    @if (canEdit(entry)) {
+                      <button *appHasPermission="'Projects'; action: 'Edit'"
+                         class="mp-action-btn btn btn-link p-0"
+                         (click)="openEditDrawer(entry)"
                          title="Edit project">
                         <i class="bi bi-pencil-square"></i> Edit
-                      </a>
+                      </button>
                     }
                     @if (entry.role === 'sponsor') {
                       <span class="mp-readonly-hint" title="Read-only access as Sponsor">
@@ -292,12 +292,12 @@
               <a class="mp-action-btn" [routerLink]="['/projects', entry.project.id]">
                 <i class="bi bi-eye"></i> View
               </a>
-              @if (entry.role === 'manager') {
-                <a *appHasPermission="'Projects'; action: 'Edit'"
-                   class="mp-action-btn"
-                   [routerLink]="['/projects/edit', entry.project.id]">
+              @if (canEdit(entry)) {
+                <button *appHasPermission="'Projects'; action: 'Edit'"
+                   class="mp-action-btn btn btn-link p-0"
+                   (click)="openEditDrawer(entry)">
                   <i class="bi bi-pencil-square"></i> Edit
-                </a>
+                </button>
               }
               @if (entry.role === 'sponsor') {
                 <span class="mp-readonly-hint">
@@ -555,6 +555,221 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ── Offcanvas Drawer: Edit Project ──────────────────────────────── -->
+  @if (showEditDrawer) {
+    <div class="mp-backdrop" (click)="closeEditDrawer()"></div>
+  }
+  <div class="mp-offcanvas offcanvas offcanvas-end"
+       [class.show]="showEditDrawer"
+       [style.visibility]="showEditDrawer ? 'visible' : 'hidden'"
+       tabindex="-1">
+
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title">
+        <i class="bi bi-pencil-square text-primary me-2"></i>Edit Project
+      </h5>
+      <button type="button" class="btn-close" (click)="closeEditDrawer()"></button>
+    </div>
+
+    <div class="offcanvas-body">
+
+      @if (editDrawerLoading) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      }
+
+      @if (editDrawerError) {
+        <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-3" role="alert">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+          <span>{{ editDrawerError }}</span>
+        </div>
+      }
+
+      @if (!editDrawerLoading && editForm) {
+        <form [formGroup]="editForm" (ngSubmit)="onEditSubmit()" novalidate>
+
+          <!-- Name -->
+          <div class="mb-3">
+            <label class="form-label">Project Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" formControlName="name"
+                   [class.is-invalid]="editFormIsInvalid('name')" />
+            @if (editFormHasError('name', 'required')) { <div class="invalid-feedback">Name is required.</div> }
+            @if (editFormHasError('name', 'maxlength')) { <div class="invalid-feedback">Max 255 characters.</div> }
+          </div>
+
+          <!-- Description -->
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" formControlName="description" rows="2"></textarea>
+          </div>
+
+          <!-- Project Type -->
+          <div class="mb-3">
+            <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" id="editPtOp" formControlName="projectType"
+                     [value]="ProjectType.Operational" autocomplete="off" />
+              <label class="btn btn-outline-primary" for="editPtOp"><i class="bi bi-gear me-1"></i>Operational</label>
+              <input type="radio" class="btn-check" id="editPtSt" formControlName="projectType"
+                     [value]="ProjectType.Strategic" autocomplete="off" />
+              <label class="btn btn-outline-primary" for="editPtSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
+            </div>
+          </div>
+
+          <!-- Strategic Objective (conditional) -->
+          @if (editIsStrategic && editStrategicObjectives.length > 0) {
+            <div class="mb-3">
+              <label class="form-label">Strategic Objective <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="strategicObjectiveId"
+                      [class.is-invalid]="editFormIsInvalid('strategicObjectiveId')">
+                <option [ngValue]="null">-- Select --</option>
+                @for (so of editStrategicObjectives; track so.id) {
+                  <option [ngValue]="so.id">{{ so.objectiveCode }} — {{ so.statement }}</option>
+                }
+              </select>
+              @if (editFormHasError('strategicObjectiveId', 'required')) {
+                <div class="invalid-feedback">Required for strategic projects.</div>
+              }
+            </div>
+          }
+
+          <!-- Priority -->
+          <div class="mb-3">
+            <label class="form-label">Priority <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="priority">
+              @for (opt of PRIORITY_OPTIONS; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Project Manager -->
+          <div class="mb-3">
+            <label class="form-label">Project Manager <span class="text-danger">*</span></label>
+            <select class="form-select" formControlName="projectManagerUserId"
+                    [class.is-invalid]="editFormIsInvalid('projectManagerUserId')">
+              <option value="">-- Select --</option>
+              @for (user of availableUsers; track user.id) {
+                <option [value]="user.id">{{ user.fullName }}</option>
+              }
+            </select>
+            @if (editFormHasError('projectManagerUserId', 'required')) {
+              <div class="invalid-feedback">Project manager is required.</div>
+            }
+          </div>
+
+          <!-- Sponsors multi-select -->
+          <div class="mb-3">
+            <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
+            <div class="mp-multi-select" (click)="editSponsorDropdownOpen = !editSponsorDropdownOpen; $event.stopPropagation()">
+              <div class="mp-multi-select__control form-select">
+                @if (editSponsorIds.length === 0) {
+                  <span class="text-muted">Select sponsors...</span>
+                } @else {
+                  <div class="mp-multi-select__tags">
+                    @for (id of editSponsorIds; track id) {
+                      <span class="mp-multi-select__tag">
+                        {{ getEditSponsorName(id) }}
+                        <button type="button" class="mp-multi-select__tag-remove"
+                                (click)="toggleEditSponsor(id); $event.stopPropagation()">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+              @if (editSponsorDropdownOpen) {
+                <div class="mp-multi-select__dropdown">
+                  <input type="text" class="form-control form-control-sm mp-multi-select__search"
+                         placeholder="Search users..." [(ngModel)]="editSponsorSearchTerm"
+                         [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
+                  <div class="mp-multi-select__options">
+                    @for (u of filteredEditSponsorUsers; track u.id) {
+                      <label class="mp-multi-select__option" (click)="$event.stopPropagation()">
+                        <input type="checkbox" [checked]="isEditSponsorSelected(u.id)"
+                               (change)="toggleEditSponsor(u.id)" />
+                        <span>{{ u.fullName }}</span>
+                      </label>
+                    }
+                    @if (filteredEditSponsorUsers.length === 0) {
+                      <div class="text-muted small px-3 py-2">No users found.</div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+            @if (editSponsorIds.length === 0) {
+              <small class="text-danger">At least one sponsor is required.</small>
+            }
+          </div>
+
+          <!-- Dates -->
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Start Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="plannedStartDate"
+                     [class.is-invalid]="editFormIsInvalid('plannedStartDate')" />
+              @if (editFormHasError('plannedStartDate', 'required')) {
+                <div class="invalid-feedback">Required.</div>
+              }
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label">End Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" formControlName="plannedEndDate"
+                     [class.is-invalid]="editFormIsInvalid('plannedEndDate') || editHasDateRangeError" />
+              @if (editFormHasError('plannedEndDate', 'required')) {
+                <div class="invalid-feedback">Required.</div>
+              } @else if (editHasDateRangeError) {
+                <div class="invalid-feedback d-block">End must be after start.</div>
+              }
+            </div>
+          </div>
+
+          <!-- Status & Actual Start -->
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-select" formControlName="status" (change)="editDrawerError = null">
+                @for (opt of STATUS_OPTIONS; track opt.value) {
+                  <option [ngValue]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label">Actual Start Date</label>
+              <input type="date" class="form-control" formControlName="actualStartDate" />
+            </div>
+          </div>
+
+          <!-- Budget -->
+          <div class="mb-3">
+            <label class="form-label">Budget (AED)</label>
+            <input type="number" class="form-control" formControlName="approvedBudget"
+                   placeholder="Optional" min="0" step="0.01" />
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-2 justify-content-end mt-4">
+            <button type="button" class="btn btn-outline-secondary" (click)="closeEditDrawer()" [disabled]="editDrawerSaving">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" [disabled]="editDrawerSaving">
+              @if (editDrawerSaving) {
+                <span class="spinner-border spinner-border-sm"></span> Saving...
+              } @else {
+                <i class="bi bi-check-lg"></i> Save Changes
+              }
+            </button>
+          </div>
+        </form>
+      }
     </div>
   </div>
 
