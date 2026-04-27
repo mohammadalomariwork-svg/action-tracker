@@ -3,6 +3,7 @@ using System.Security.Claims;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Auth;
 using ActionTracker.Application.Features.Auth.DTOs;
+using ActionTracker.Domain.Constants;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Helpers;
 using Microsoft.AspNetCore.Identity;
@@ -154,9 +155,10 @@ public sealed class AuthService : IAuthService
                 throw new InvalidOperationException($"User provisioning failed: {errors}");
             }
 
-            await _userManager.AddToRoleAsync(user, "User");
+            await _userManager.AddToRoleAsync(user, AppRoles.Viewer);
             _logger.LogInformation(
-                "Provisioned Azure AD user {UserId} with role 'User'", user.Id);
+                "Provisioned Azure AD user {UserId} with role '{Role}'",
+                user.Id, AppRoles.Viewer);
         }
 
         // --- Guard: local-only accounts may not authenticate via Azure AD ---
