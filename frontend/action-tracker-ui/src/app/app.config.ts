@@ -61,24 +61,36 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(
       MsalModule.forRoot(
         msalInstance,
-        // Guard config — Popup interaction for the MSAL route guard (if used)
         {
-          interactionType: InteractionType.Popup,
+          interactionType: InteractionType.Redirect,
         },
-        // Interceptor config — Popup interaction; no routes are protected here
         {
-          interactionType: InteractionType.Popup,
+          interactionType: InteractionType.Redirect,
           protectedResourceMap: new Map(),
         },
       ),
     ),
 
-    // Initialize the MSAL PublicClientApplication before the app bootstraps.
-    // This resolves the internal MSAL cache and completes any pending redirect
-    // responses, making the instance ready for loginPopup / acquireToken calls.
+    // Initialize MSAL and complete any pending redirect response before the
+    // app bootstraps. When the browser lands back at /auth_fallback#code=...,
+    // handleRedirectPromise() exchanges the code for an Azure AD access token,
+    // which we then swap for a local JWT via /api/auth/azure-login.
     {
       provide: APP_INITIALIZER,
-      useFactory: () => () => msalInstance.initialize(),
+      useFactory: () => {
+        const authService = inject(AuthService);
+        return async () => {
+          await msalInstance.initialize();
+          try {
+            const result = await msalInstance.handleRedirectPromise();
+            if (result?.accessToken) {
+              await firstValueFrom(authService.loginWithAzureAd(result.accessToken));
+            }
+          } catch {
+            // Swallow — login page will surface the error on next interaction.
+          }
+        };
+      },
       multi: true,
     },
 

@@ -87,6 +87,23 @@ try
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+
+        // SignalR sends the JWT as ?access_token=... on WebSocket handshakes
+        // because browsers can't attach an Authorization header to a WS upgrade.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
     if (azureAdEnabled)
@@ -108,6 +125,21 @@ try
                 ValidAudiences = new[] { azureClientId, $"api://{azureClientId}" },
                 ValidateLifetime = true
             };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) &&
+                        path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
     }
 
@@ -117,10 +149,22 @@ try
         {
             if (azureAdEnabled)
             {
+                string? token = null;
+
                 var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
                 if (authHeader?.StartsWith("Bearer ") == true)
                 {
-                    var token = authHeader["Bearer ".Length..].Trim();
+                    token = authHeader["Bearer ".Length..].Trim();
+                }
+                else if (context.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    // WebSocket handshakes can't set Authorization; SignalR
+                    // passes the JWT as ?access_token=... instead.
+                    token = context.Request.Query["access_token"].FirstOrDefault();
+                }
+
+                if (!string.IsNullOrEmpty(token))
+                {
                     var jwtHandler = new JwtSecurityTokenHandler();
                     if (jwtHandler.CanReadToken(token))
                     {
@@ -296,12 +340,17 @@ try
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Action Tracker API v1");
+        // Relative path so Swagger UI works whether the app is hosted at the
+        // site root (e.g. localhost:7135/swagger) or under an IIS sub-path
+        // (e.g. apps.ku.ac.ae/actiontrackerAPIs/swagger).
+        options.SwaggerEndpoint("v1/swagger.json", "Action Tracker API v1");
         options.RoutePrefix = "swagger";
     });
 
-    // Redirect root to Swagger UI so opening the app shows the API docs
-    app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
+    // Redirect root to Swagger UI so opening the app shows the API docs.
+    // Use LocalRedirect with "~/swagger" so it works when the app is hosted
+    // under an IIS sub-path (e.g. https://apps.ku.ac.ae/actiontrackerAPIs/).
+    app.MapGet("/", () => Results.LocalRedirect("~/swagger")).ExcludeFromDescription();
 
     app.MapControllers();
     app.MapHub<ActionTracker.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
@@ -351,6 +400,10 @@ try
                          .CreateLogger(nameof(EmailTemplateSeeder));
         await EmailTemplateSeeder.SeedAsync(db, logger);
     }
+
+    // -----------------------------------------------------------------------
+    // Seed bootstrap admin user (idempotent)
+    await AdminBootstrapSeeder.SeedAsync(app.Services);
 
     // -----------------------------------------------------------------------
     // Run

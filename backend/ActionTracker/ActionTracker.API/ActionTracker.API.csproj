@@ -4,7 +4,19 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Preserve the project's web.config during publish so stdout logging
+         settings and environment variables are not overwritten. -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Ensure the stdout log directory exists in the published output so
+         AspNetCoreModuleV2 can write startup diagnostics. -->
+    <None Include="logs\.keep">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.13" />

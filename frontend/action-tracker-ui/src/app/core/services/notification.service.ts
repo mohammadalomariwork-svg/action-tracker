@@ -200,7 +200,7 @@ export class NotificationService {
       });
     });
 
-    this.hubConnection.start().catch(err => {
+    this.hubConnection.start().catch((err: unknown) => {
       console.warn('SignalR connection failed, will retry:', err);
     });
   }

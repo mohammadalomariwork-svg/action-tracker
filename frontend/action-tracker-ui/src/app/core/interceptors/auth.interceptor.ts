@@ -11,7 +11,6 @@ const SKIP_URLS = [
   '/auth/login',
   '/auth/azure-login',
   '/auth/refresh-token',
-  '/auth/logout',
 ];
 
 // ── Module-level refresh state ────────────────────────────────────────────────

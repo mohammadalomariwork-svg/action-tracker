@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx ng *)",
+      "Bash(dotnet ef *)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"c:/Development Projects/action-tracker/backend/ActionTracker/ActionTracker.API/bin/_diag_check_db.ps1\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"c:/Development Projects/action-tracker/backend/ActionTracker/ActionTracker.API/bin/_diag_row_counts.ps1\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"c:/Development Projects/action-tracker/backend/ActionTracker/ActionTracker.API/bin/_wipe_except_ku_employee.ps1\")",
+      "Bash(mkdir -p Migrations_archive)",
+      "Bash(mv Migrations/*.cs Migrations_archive/)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"c:/Development Projects/action-tracker/backend/ActionTracker/ActionTracker.API/bin/_diag_schema_dump.ps1\")",
+      "Bash(dotnet publish *)",
+      "Bash(npm run *)",
+      "Bash(dotnet build *)"
+    ]
+  }
+}

@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { MsalRedirectComponent } from '@azure/msal-angular';
 import { authGuard } from './core/guards/auth.guard';
 import { loginGuard } from './core/guards/login.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -32,16 +31,11 @@ export const routes: Routes = [
       ),
   },
 
-  // MSAL popup redirect landing page.
-  // After a successful Azure AD interactive login, the popup window is redirected
-  // here (matching redirectUri in environment.msalConfig). MsalRedirectComponent
-  // calls handleRedirectObservable(), which resolves the auth code, posts the
-  // result back to the opener window, and closes the popup. Must live outside
-  // authGuard/loginGuard so that the popup can load it without being redirected.
-  {
-    path: 'auth_fallback',
-    component: MsalRedirectComponent,
-  },
+  // MSAL redirect landing page. By the time this route activates,
+  // handleRedirectPromise() in app.config.ts has already exchanged the auth
+  // code for a local JWT and persisted the session. Send the user to the
+  // dashboard — authGuard will bounce them to /login if init failed.
+  { path: 'auth_fallback', redirectTo: 'dashboard', pathMatch: 'full' },
 
   {
     path: '',

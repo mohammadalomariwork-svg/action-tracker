@@ -11,3 +11,6 @@ appsettings.Development.json
 .env
 .aider*
 backend/ActionTracker/ActionTracker.API/appsettings.json
+backend/ActionTracker/ActionTracker.API/appsettings.json
+backend/ActionTracker/ActionTracker.API/web.config
+backend/ActionTracker/ActionTracker.API/appsettings.json

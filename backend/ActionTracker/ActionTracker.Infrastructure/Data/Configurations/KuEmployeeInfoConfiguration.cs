@@ -8,7 +8,7 @@ public class KuEmployeeInfoConfiguration : IEntityTypeConfiguration<KuEmployeeIn
 {
     public void Configure(EntityTypeBuilder<KuEmployeeInfo> builder)
     {
-        builder.ToTable("ku_employee_info");
+        builder.ToTable("ku_employee_info", t => t.ExcludeFromMigrations());
 
         // No primary key — this is a read-only HR data table populated by ETL.
         builder.HasNoKey();
