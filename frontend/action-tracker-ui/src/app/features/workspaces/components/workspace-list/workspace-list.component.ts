@@ -11,11 +11,12 @@ import { WorkspaceList, WorkspaceSummary, OrgUnitDropdownItem, UserDropdownItem,
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
+import { OrgUnitSelectComponent } from '../../../../shared';
 
 @Component({
   selector: 'app-workspace-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, BreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, BreadcrumbComponent, PageHeaderComponent, HasPermissionDirective, OrgUnitSelectComponent],
   templateUrl: './workspace-list.component.html',
   styleUrl: './workspace-list.component.scss',
 })
@@ -38,7 +39,7 @@ export class WorkspaceListComponent implements OnInit {
   // Search, sort & org unit filter
   searchTerm = '';
   orgUnitFilter = '';
-  uniqueOrgUnits: { id: string; name: string }[] = [];
+  uniqueOrgUnits: { id: string; name: string; level: number }[] = [];
   sortField: 'title' | 'organizationUnit' | 'createdAt' = 'createdAt';
   sortDirection: 'asc' | 'desc' = 'desc';
 
@@ -72,13 +73,18 @@ export class WorkspaceListComponent implements OnInit {
 
     forkJoin({
       workspaces: this.workspaceService.getWorkspaces(),
-      summary: this.workspaceService.getSummary(this.orgUnitFilter || undefined)
+      summary:    this.workspaceService.getSummary(this.orgUnitFilter || undefined),
+      // Eager-load the org-unit catalog so the toolbar filter has level data
+      // for the searchable dropdown without waiting for the drawer to open.
+      orgUnits:   this.workspaceService.getOrgUnitsForDropdown(),
     })
     .pipe(takeUntilDestroyed(this.destroyRef))
     .subscribe({
-      next: ({ workspaces, summary }) => {
+      next: ({ workspaces, summary, orgUnits }) => {
         this.allWorkspaces = workspaces.data ?? [];
-        this.summary = summary.data ?? null;
+        this.summary       = summary.data ?? null;
+        this.orgUnits      = orgUnits.data ?? [];
+        this.dropdownsLoaded = true;
         this.deriveUniqueOrgUnits();
         this.applyFilters();
         this.isLoading = false;
@@ -148,9 +154,10 @@ export class WorkspaceListComponent implements OnInit {
     for (const w of this.allWorkspaces) {
       if (!w.orgUnitId || seen.has(w.orgUnitId)) continue;
       seen.add(w.orgUnitId);
-      this.uniqueOrgUnits.push({ id: w.orgUnitId, name: w.organizationUnit });
+      const level = this.orgUnits.find(o => o.id === w.orgUnitId)?.level ?? 1;
+      this.uniqueOrgUnits.push({ id: w.orgUnitId, name: w.organizationUnit, level });
     }
-    this.uniqueOrgUnits.sort((a, b) => a.name.localeCompare(b.name));
+    this.uniqueOrgUnits.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
   }
 
   toggleSort(field: 'title' | 'organizationUnit'): void {

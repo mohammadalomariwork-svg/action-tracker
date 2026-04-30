@@ -150,16 +150,17 @@
           />
         </div>
         @if (uniqueOrgUnits.length > 0) {
-          <select
-            class="form-select form-select-sm wl-org-filter"
-            [(ngModel)]="orgUnitFilter"
-            (ngModelChange)="onOrgUnitFilterChange()"
-          >
-            <option value="">All Org Units</option>
-            @for (ou of uniqueOrgUnits; track ou.id) {
-              <option [value]="ou.id">{{ ou.name }}</option>
-            }
-          </select>
+          <div class="wl-org-filter">
+            <app-org-unit-select
+              size="sm"
+              [options]="uniqueOrgUnits"
+              [allowEmpty]="true"
+              emptyLabel="All Org Units"
+              placeholder="All Org Units"
+              [(ngModel)]="orgUnitFilter"
+              (ngModelChange)="onOrgUnitFilterChange()"
+            />
+          </div>
         }
       </div>
       <div class="wl-toolbar-right">
@@ -459,19 +460,15 @@
             <label for="wlOrgUnit" class="form-label">
               Organization Unit <span class="text-danger">*</span>
             </label>
-            <select
-              id="wlOrgUnit"
-              class="form-select"
+            <app-org-unit-select
+              triggerId="wlOrgUnit"
               formControlName="organizationUnit"
-              [class.is-invalid]="isInvalid('organizationUnit')"
-            >
-              <option value="">— Select an organisation unit —</option>
-              @for (unit of orgUnits; track unit.id) {
-                <option [value]="unit.id">{{ unitLabel(unit) }}</option>
-              }
-            </select>
+              [options]="orgUnits"
+              [invalid]="isInvalid('organizationUnit')"
+              placeholder="— Select an organisation unit —"
+            />
             @if (hasError('organizationUnit', 'required')) {
-              <div class="invalid-feedback">Organization unit is required.</div>
+              <div class="invalid-feedback d-block">Organization unit is required.</div>
             }
           </div>
 

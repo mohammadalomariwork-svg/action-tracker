@@ -1,0 +1,68 @@
+<div class="ous" [class.ous-open]="open()">
+  <button
+    type="button"
+    [id]="triggerId"
+    class="form-select ous-trigger d-flex align-items-center justify-content-between"
+    [class.form-select-sm]="size === 'sm'"
+    [class.form-select-lg]="size === 'lg'"
+    [class.is-invalid]="invalid"
+    [class.text-muted]="!selected()"
+    [disabled]="disabled()"
+    [attr.aria-haspopup]="'listbox'"
+    [attr.aria-expanded]="open()"
+    (click)="toggle()"
+  >
+    <span class="ous-trigger-text text-truncate">
+      @if (selected(); as s) {
+        <span class="badge ous-level-badge me-2">L{{ s.level }}</span>
+        {{ formatLabel(s) }}
+      } @else {
+        {{ placeholder }}
+      }
+    </span>
+  </button>
+
+  @if (open()) {
+    <div class="ous-panel shadow" role="listbox">
+      <div class="ous-search input-group input-group-sm p-2">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search by name, code or level…"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (click)="$event.stopPropagation()"
+        />
+      </div>
+
+      <div class="ous-options">
+        @if (allowEmpty) {
+          <button
+            type="button"
+            class="ous-option text-muted"
+            [class.ous-option-active]="!value()"
+            (click)="pick(null)"
+          >
+            {{ emptyLabel }}
+          </button>
+        }
+
+        @for (o of filtered(); track o.id) {
+          <button
+            type="button"
+            class="ous-option"
+            [class.ous-option-active]="o.id === value()"
+            [style.padding-left]="'calc(0.75rem + ' + indent(o.level) + ')'"
+            (click)="pick(o)"
+          >
+            <span class="badge ous-level-badge me-2">L{{ o.level }}</span>
+            <span class="ous-option-text">{{ formatLabel(o) }}</span>
+          </button>
+        } @empty {
+          <div class="ous-empty text-muted small px-3 py-2">No matches.</div>
+        }
+      </div>
+    </div>
+  }
+</div>

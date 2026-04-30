@@ -22,11 +22,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { OrgUnitService } from '../../services/org-unit.service';
 import { OrgUnit, OrgUnitTree } from '../../models/org-chart.models';
+import { OrgUnitSelectComponent } from '../../../../shared';
 
 @Component({
   selector: 'app-org-unit-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, OrgUnitSelectComponent],
   templateUrl: './org-unit-form.component.html',
   styleUrl: './org-unit-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

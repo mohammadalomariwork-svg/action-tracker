@@ -31,23 +31,15 @@
     <label for="ofOrgUnit" class="form-label">
       Org Unit <span class="text-danger">*</span>
     </label>
-    <select
-      id="ofOrgUnit"
-      class="form-select"
+    <app-org-unit-select
+      triggerId="ofOrgUnit"
       formControlName="orgUnitId"
-      [class.is-invalid]="hasError('orgUnitId', 'required')"
-    >
-      <option value="" disabled>Select an org unit…</option>
-      @for (entry of levelGroups() | keyvalue; track entry.key) {
-        <optgroup [label]="levelLabel(+entry.key)">
-          @for (unit of entry.value; track unit.id) {
-            <option [value]="unit.id">{{ orgUnitLabel(unit) }}</option>
-          }
-        </optgroup>
-      }
-    </select>
+      [options]="orgUnits()"
+      [invalid]="hasError('orgUnitId', 'required')"
+      placeholder="Select an org unit…"
+    />
     @if (hasError('orgUnitId', 'required')) {
-      <div class="invalid-feedback">Please select an org unit.</div>
+      <div class="invalid-feedback d-block">Please select an org unit.</div>
     }
   </div>
 

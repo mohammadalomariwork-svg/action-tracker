@@ -51,12 +51,14 @@
         @if (loadingUnits()) {
           <div class="form-control text-muted">Loading units…</div>
         } @else {
-          <select id="oufParent" class="form-select" formControlName="parentId">
-            <option value="">None — Root unit</option>
-            @for (unit of parentOptions; track unit.id) {
-              <option [value]="unit.id">{{ unitLabel(unit) }}</option>
-            }
-          </select>
+          <app-org-unit-select
+            triggerId="oufParent"
+            formControlName="parentId"
+            [options]="parentOptions"
+            [allowEmpty]="true"
+            emptyLabel="None — Root unit"
+            placeholder="None — Root unit"
+          />
         }
         <!-- Level indicator -->
         <div class="form-text d-flex align-items-center gap-2 mt-1">

@@ -29,18 +29,15 @@
 
         <!-- Org unit filter -->
         <div class="col-12 col-md-4">
-          <select
-            class="form-select form-select-sm"
+          <app-org-unit-select
+            size="sm"
+            [options]="orgUnits()"
+            [allowEmpty]="true"
+            emptyLabel="All Org Units"
+            placeholder="All Org Units"
             [ngModel]="filterOrgUnitId()"
             (ngModelChange)="onFilterOrgUnitChange($event)"
-          >
-            <option value="">All Org Units</option>
-            @for (unit of orgUnits(); track unit.id) {
-              <option [value]="unit.id">
-                @if (unit.code) { [{{ unit.code }}] } {{ unit.name }} (L{{ unit.level }})
-              </option>
-            }
-          </select>
+          />
         </div>
 
         <!-- Search -->

@@ -54,19 +54,15 @@
           <label for="wfOrgUnit" class="form-label">
             Organization Unit <span class="text-danger">*</span>
           </label>
-          <select
-            id="wfOrgUnit"
-            class="form-select"
+          <app-org-unit-select
+            triggerId="wfOrgUnit"
             formControlName="organizationUnit"
-            [class.is-invalid]="isInvalid('organizationUnit')"
-          >
-            <option value="">— Select an organisation unit —</option>
-            @for (unit of orgUnits; track unit.id) {
-              <option [value]="unit.id">{{ unitLabel(unit) }}</option>
-            }
-          </select>
+            [options]="orgUnits"
+            [invalid]="isInvalid('organizationUnit')"
+            placeholder="— Select an organisation unit —"
+          />
           @if (hasError('organizationUnit', 'required')) {
-            <div class="invalid-feedback">Organization unit is required.</div>
+            <div class="invalid-feedback d-block">Organization unit is required.</div>
           }
         </div>
 

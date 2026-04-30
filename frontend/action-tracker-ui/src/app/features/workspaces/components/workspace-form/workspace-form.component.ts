@@ -8,11 +8,12 @@ import { WorkspaceService } from '../../services/workspace.service';
 import { OrgUnitDropdownItem, UserDropdownItem, WorkspaceAdmin } from '../../models/workspace.model';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { OrgUnitSelectComponent } from '../../../../shared';
 
 @Component({
   selector: 'app-workspace-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, BreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BreadcrumbComponent, PageHeaderComponent, OrgUnitSelectComponent],
   templateUrl: './workspace-form.component.html',
   styleUrl: './workspace-form.component.scss',
 })

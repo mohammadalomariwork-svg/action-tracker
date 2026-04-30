@@ -24,11 +24,12 @@ import { StrategicObjectiveService } from '../../services/strategic-objective.se
 import { OrgUnitService }            from '../../services/org-unit.service';
 import { StrategicObjective }        from '../../models/strategic-objectives.models';
 import { OrgUnit }                   from '../../models/org-chart.models';
+import { OrgUnitSelectComponent }    from '../../../../shared';
 
 @Component({
   selector: 'app-objective-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, OrgUnitSelectComponent],
   templateUrl: './objective-form.component.html',
   styleUrl: './objective-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
