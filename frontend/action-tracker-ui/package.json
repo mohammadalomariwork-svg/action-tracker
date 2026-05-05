@@ -32,6 +32,7 @@
     "@azure/msal-angular": "^3.1.0",
     "@azure/msal-browser": "^3.30.0",
     "@microsoft/signalr": "^10.0.0",
+    "@ng-select/ng-select": "^21.8.2",
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.13.1",

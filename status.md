@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-04-14
+> Last updated: 2026-05-04
 
 ---
 
@@ -47,7 +47,7 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 ## 3. Workspaces
 
 - Container for projects and action items, associated with an org unit
-- Workspace admins assigned per workspace
+- Workspace admins assigned per workspace via searchable multi-select (ng-select) — searches name, email, and org unit
 - Summary stats (project counts, open action items)
 - Scoped to user's visible org units (Level-2 ancestor)
 - Search, sort, pagination, org-unit filter dropdown

@@ -46,7 +46,7 @@ public class StrategicObjectivesController : ControllerBase
             "GET /api/strategicobjectives page={Page} pageSize={PageSize} orgUnitId={OrgUnitId}",
             page, pageSize, orgUnitId);
 
-        var result = await _service.GetAllAsync(page, pageSize, orgUnitId, includeDeleted, ct);
+        var result = await _service.GetAllAsync(page, pageSize, orgUnitId, includeDeleted, CurrentUserId, ct);
         return Ok(ApiResponse<StrategicObjectiveListResponseDto>.Ok(result));
     }
 
@@ -63,7 +63,7 @@ public class StrategicObjectivesController : ControllerBase
     {
         _logger.LogInformation("GET /api/strategicobjectives/{Id}", id);
 
-        var result = await _service.GetByIdAsync(id, ct);
+        var result = await _service.GetByIdAsync(id, CurrentUserId, ct);
         if (result is null)
             return NotFound(ApiResponse<string>.Fail($"Strategic objective '{id}' not found."));
 
@@ -82,7 +82,7 @@ public class StrategicObjectivesController : ControllerBase
     {
         _logger.LogInformation("GET /api/strategicobjectives/by-orgunit/{OrgUnitId}", orgUnitId);
 
-        var result = await _service.GetByOrgUnitAsync(orgUnitId, ct);
+        var result = await _service.GetByOrgUnitAsync(orgUnitId, CurrentUserId, ct);
         return Ok(ApiResponse<List<StrategicObjectiveDto>>.Ok(result));
     }
 
@@ -111,6 +111,10 @@ public class StrategicObjectivesController : ControllerBase
                 nameof(GetById),
                 new { id = created.Id },
                 ApiResponse<StrategicObjectiveDto>.Ok(created));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
         }
         catch (ArgumentException ex)
         {
@@ -143,6 +147,10 @@ public class StrategicObjectivesController : ControllerBase
             var updated = await _service.UpdateAsync(id, request, CurrentUserId, ct);
             return Ok(ApiResponse<StrategicObjectiveDto>.Ok(updated));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
@@ -171,6 +179,10 @@ public class StrategicObjectivesController : ControllerBase
             await _service.SoftDeleteAsync(id, CurrentUserId, ct);
             return NoContent();
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
@@ -193,8 +205,12 @@ public class StrategicObjectivesController : ControllerBase
         try
         {
             await _service.RestoreAsync(id, CurrentUserId, ct);
-            var restored = await _service.GetByIdAsync(id, ct);
+            var restored = await _service.GetByIdAsync(id, CurrentUserId, ct);
             return Ok(ApiResponse<StrategicObjectiveDto>.Ok(restored!));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
         }
         catch (KeyNotFoundException ex)
         {

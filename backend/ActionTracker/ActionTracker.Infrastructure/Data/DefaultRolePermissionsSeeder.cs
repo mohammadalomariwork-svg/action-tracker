@@ -210,6 +210,21 @@ public static class DefaultRolePermissionsSeeder
         // Viewer — Risks: View; Notifications: View
         yield return P("Viewer", risks, view);
         yield return P("Viewer", notif, view);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Strategy Editor — scoped to user's OrgUnit (level ≥ 2) + descendants.
+        // The role grants the permissions; scope filtering is enforced in
+        // StrategicObjectiveService / KpiService at request time.
+        // ══════════════════════════════════════════════════════════════════════
+        var strategyVcde = new[] { view, create, edit, delete };
+        foreach (var area   in new[] { so, kpi })
+        foreach (var action in strategyVcde)
+            yield return P(AppRoles.StrategyEditor, area, action);
+
+        // Navigation / supporting reads
+        yield return P(AppRoles.StrategyEditor, dash,  view);
+        yield return P(AppRoles.StrategyEditor, org,   view);
+        yield return P(AppRoles.StrategyEditor, notif, view);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

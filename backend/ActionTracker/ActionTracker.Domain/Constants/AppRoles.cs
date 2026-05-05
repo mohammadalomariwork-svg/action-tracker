@@ -33,6 +33,15 @@ public static class AppRoles
     /// <summary>Assigned action items, log progress, raise issues, view project data.</summary>
     public const string TeamMember = "Team Member";
 
+    // ── Strategy roles ───────────────────────────────────────────────────────
+    /// <summary>
+    /// Edits strategic objectives and KPIs for the user's assigned org unit
+    /// (level ≥ 2) and all of its descendants. Cannot see, edit, or delete
+    /// items outside that scope. Assigning this role to a user whose org-unit
+    /// level is &lt; 2 is rejected.
+    /// </summary>
+    public const string StrategyEditor = "Strategy Editor";
+
     // ── Legacy roles (kept for backward compatibility) ───────────────────────
     /// <summary>Legacy generic manager role — preserved as originally configured in the database.</summary>
     public const string Manager = "Manager";

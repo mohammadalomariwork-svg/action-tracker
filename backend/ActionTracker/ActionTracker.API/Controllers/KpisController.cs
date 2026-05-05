@@ -44,7 +44,7 @@ public class KpisController : ControllerBase
             "GET /api/kpis page={Page} pageSize={PageSize} objectiveId={ObjectiveId}",
             page, pageSize, objectiveId);
 
-        var result = await _service.GetAllAsync(page, pageSize, objectiveId, includeDeleted, ct);
+        var result = await _service.GetAllAsync(page, pageSize, objectiveId, includeDeleted, CurrentUserId, ct);
         return Ok(ApiResponse<KpiListResponseDto>.Ok(result));
     }
 
@@ -64,7 +64,7 @@ public class KpisController : ControllerBase
     {
         _logger.LogInformation("GET /api/kpis/{Id} year={Year}", id, year);
 
-        var result = await _service.GetByIdAsync(id, year, ct);
+        var result = await _service.GetByIdAsync(id, year, CurrentUserId, ct);
         if (result is null)
             return NotFound(ApiResponse<string>.Fail($"KPI '{id}' not found."));
 
@@ -83,7 +83,7 @@ public class KpisController : ControllerBase
     {
         _logger.LogInformation("GET /api/kpis/by-objective/{ObjectiveId}", objectiveId);
 
-        var result = await _service.GetByObjectiveAsync(objectiveId, ct);
+        var result = await _service.GetByObjectiveAsync(objectiveId, CurrentUserId, ct);
         return Ok(ApiResponse<List<KpiDto>>.Ok(result));
     }
 
@@ -113,6 +113,10 @@ public class KpisController : ControllerBase
                 nameof(GetById),
                 new { id = created.Id },
                 ApiResponse<KpiDto>.Ok(created));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
         }
         catch (ArgumentException ex)
         {
@@ -145,6 +149,10 @@ public class KpisController : ControllerBase
             var updated = await _service.UpdateAsync(id, request, CurrentUserId, ct);
             return Ok(ApiResponse<KpiDto>.Ok(updated));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
@@ -169,6 +177,10 @@ public class KpisController : ControllerBase
             await _service.SoftDeleteAsync(id, CurrentUserId, ct);
             return NoContent();
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
@@ -191,8 +203,12 @@ public class KpisController : ControllerBase
         try
         {
             await _service.RestoreAsync(id, CurrentUserId, ct);
-            var restored = await _service.GetByIdAsync(id, null, ct);
+            var restored = await _service.GetByIdAsync(id, null, CurrentUserId, ct);
             return Ok(ApiResponse<KpiDto>.Ok(restored!));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
         }
         catch (KeyNotFoundException ex)
         {
@@ -225,6 +241,14 @@ public class KpisController : ControllerBase
             var result = await _service.UpsertTargetAsync(request, CurrentUserId, ct);
             return Ok(ApiResponse<KpiTargetDto>.Ok(result));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
@@ -256,6 +280,10 @@ public class KpisController : ControllerBase
             var result = await _service.BulkUpsertTargetsAsync(request, CurrentUserId, ct);
             return Ok(ApiResponse<List<KpiTargetDto>>.Ok(result));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
@@ -281,7 +309,7 @@ public class KpisController : ControllerBase
     {
         _logger.LogInformation("GET /api/kpis/{Id}/targets year={Year}", id, year);
 
-        var result = await _service.GetTargetsAsync(id, year, ct);
+        var result = await _service.GetTargetsAsync(id, year, CurrentUserId, ct);
         return Ok(ApiResponse<List<KpiTargetDto>>.Ok(result));
     }
 }

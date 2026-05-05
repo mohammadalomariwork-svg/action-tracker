@@ -6,7 +6,6 @@ import {
   DestroyRef,
   inject,
   signal,
-  computed,
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule }       from '@angular/common';
@@ -15,8 +14,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { KpiService }   from '../../services/kpi.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { DocumentService } from '../../../../core/services/document.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 import {
   Kpi,
   KpiTarget,
@@ -26,6 +27,8 @@ import {
 } from '../../models/kpi.models';
 
 interface TargetRow {
+  /** KpiTarget primary key. Undefined for months that have not been saved yet. */
+  id?: string;
   month: number;
   monthName: string;
   target: number | null;
@@ -41,6 +44,8 @@ interface TargetRow {
   updatedByName?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Number of evidence files attached to this target. */
+  evidenceCount: number;
 }
 
 const MONTH_NAMES = [
@@ -61,7 +66,7 @@ function visibleMonths(period: MeasurementPeriod): number[] {
 @Component({
   selector: 'app-kpi-targets',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BreadcrumbComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BreadcrumbComponent, PageHeaderComponent, DocumentsSectionComponent],
   templateUrl: './kpi-targets.component.html',
   styleUrl: './kpi-targets.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,11 +74,12 @@ function visibleMonths(period: MeasurementPeriod): number[] {
 export class KpiTargetsComponent implements OnInit {
   @Input() kpiId!: string;
 
-  private readonly kpiService   = inject(KpiService);
-  private readonly route        = inject(ActivatedRoute);
-  private readonly router       = inject(Router);
-  private readonly toast        = inject(ToastService);
-  private readonly destroyRef   = inject(DestroyRef);
+  private readonly kpiService      = inject(KpiService);
+  private readonly documentService = inject(DocumentService);
+  private readonly route           = inject(ActivatedRoute);
+  private readonly router          = inject(Router);
+  private readonly toast           = inject(ToastService);
+  private readonly destroyRef      = inject(DestroyRef);
 
   readonly PeriodLabels = MeasurementPeriodLabels;
 
@@ -84,21 +90,10 @@ export class KpiTargetsComponent implements OnInit {
   readonly error       = signal<string | null>(null);
   readonly selectedYear = signal(new Date().getFullYear());
 
-  // ── Summary computed values ──────────────────────────────────────────────────
-  readonly totalTarget = computed(() =>
-    this.rows().reduce((s, r) => s + (r.target ?? 0), 0)
-  );
-
-  readonly totalActual = computed(() =>
-    this.rows().reduce((s, r) => s + (r.actual ?? 0), 0)
-  );
-
-  readonly overallAchievement = computed(() => {
-    const t = this.totalTarget();
-    const a = this.totalActual();
-    if (!t) return null;
-    return ((a / t) * 100);
-  });
+  // Evidence modal state
+  readonly evidenceModalOpen = signal(false);
+  readonly evidenceTargetId  = signal<string | null>(null);
+  readonly evidenceMonthName = signal('');
 
   ngOnInit(): void {
     // Support both route param and @Input
@@ -139,6 +134,7 @@ export class KpiTargetsComponent implements OnInit {
     const rows: TargetRow[] = months.map((m) => {
       const existing = targetMap.get(m);
       return {
+        id: existing?.id,
         month: m,
         monthName: MONTH_NAMES[m],
         target: existing?.target ?? null,
@@ -152,10 +148,32 @@ export class KpiTargetsComponent implements OnInit {
         updatedByName: existing?.updatedByName,
         createdAt: existing?.createdAt,
         updatedAt: existing?.updatedAt,
+        evidenceCount: 0,
       };
     });
 
     this.rows.set(rows);
+    this.loadEvidenceCounts();
+  }
+
+  /** Fetches the evidence count for each saved target row in parallel. */
+  private loadEvidenceCounts(): void {
+    const saved = this.rows().filter(r => r.id);
+    if (saved.length === 0) return;
+
+    saved.forEach((row) => {
+      this.documentService.getByEntity('KpiTarget', row.id!)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            const count = res.data?.length ?? 0;
+            this.rows.update((rows) =>
+              rows.map(r => r.month === row.month ? { ...r, evidenceCount: count } : r)
+            );
+          },
+          error: () => { /* leave count at 0 on failure */ },
+        });
+    });
   }
 
   // ── Year navigation ──────────────────────────────────────────────────────────
@@ -263,6 +281,42 @@ export class KpiTargetsComponent implements OnInit {
           this.saving.set(false);
           this.error.set(err?.error?.message ?? 'Failed to save targets.');
         },
+      });
+  }
+
+  // ── Evidence modal ──────────────────────────────────────────────────────────
+
+  /** Opens the evidence modal for a target row. Requires the row to be saved. */
+  openEvidence(row: TargetRow): void {
+    if (!row.id) {
+      this.toast.error('Save the target first before attaching evidence.');
+      return;
+    }
+    this.evidenceTargetId.set(row.id);
+    this.evidenceMonthName.set(row.monthName);
+    this.evidenceModalOpen.set(true);
+  }
+
+  /** Closes the modal and refreshes the count for the current target. */
+  closeEvidence(): void {
+    const targetId = this.evidenceTargetId();
+    this.evidenceModalOpen.set(false);
+    this.evidenceTargetId.set(null);
+    this.evidenceMonthName.set('');
+    if (targetId) this.refreshEvidenceCount(targetId);
+  }
+
+  private refreshEvidenceCount(targetId: string): void {
+    this.documentService.getByEntity('KpiTarget', targetId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const count = res.data?.length ?? 0;
+          this.rows.update((rows) =>
+            rows.map(r => r.id === targetId ? { ...r, evidenceCount: count } : r)
+          );
+        },
+        error: () => { /* keep stale count on error */ },
       });
   }
 

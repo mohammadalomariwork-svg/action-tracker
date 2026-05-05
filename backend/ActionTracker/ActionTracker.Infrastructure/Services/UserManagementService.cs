@@ -1,5 +1,6 @@
 using ActionTracker.Application.Features.UserManagement.DTOs;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
+using ActionTracker.Domain.Constants;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
@@ -336,6 +337,30 @@ public class UserManagementService : IUserManagementService
         if (!await _roleManager.RoleExistsAsync(request.RoleName))
             throw new InvalidOperationException(
                 $"Role '{request.RoleName}' does not exist.");
+
+        // StrategyEditor must be linked to an OrgUnit at level 2 or deeper.
+        // The role's scope is the user's level-2 ancestor + descendants, so
+        // assigning it to a user with no OrgUnit (or a level-1 root unit) would
+        // either give them no scope or accidentally grant them the entire tree.
+        if (string.Equals(request.RoleName, AppRoles.StrategyEditor, StringComparison.Ordinal))
+        {
+            if (user.OrgUnitId is null)
+                throw new InvalidOperationException(
+                    "Strategy Editor role requires the user to be assigned to an org unit at level 2 or deeper.");
+
+            var unitLevel = await _context.OrgUnits
+                .Where(o => o.Id == user.OrgUnitId.Value && !o.IsDeleted)
+                .Select(o => (int?)o.Level)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (unitLevel is null)
+                throw new InvalidOperationException(
+                    "The user's org unit could not be found or has been deleted.");
+
+            if (unitLevel < 2)
+                throw new InvalidOperationException(
+                    $"Strategy Editor role cannot be assigned to a user whose org unit is at level {unitLevel}. Required level: 2 or deeper.");
+        }
 
         var currentRoles = await _userManager.GetRolesAsync(user);
         if (currentRoles.Any())

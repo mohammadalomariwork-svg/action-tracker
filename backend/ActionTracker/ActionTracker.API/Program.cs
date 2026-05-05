@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
@@ -15,6 +16,8 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -404,6 +407,43 @@ try
     // -----------------------------------------------------------------------
     // Seed bootstrap admin user (idempotent)
     await AdminBootstrapSeeder.SeedAsync(app.Services);
+
+    // -----------------------------------------------------------------------
+    // Open Swagger UI in the default browser on startup (Development only).
+    // Works whether the app is launched via `dotnet run`, Visual Studio, or
+    // VS Code — independent of launchSettings.json's launchBrowser flag.
+    // -----------------------------------------------------------------------
+    if (app.Environment.IsDevelopment())
+    {
+        app.Lifetime.ApplicationStarted.Register(() =>
+        {
+            try
+            {
+                var addresses = app.Services
+                    .GetRequiredService<IServer>()
+                    .Features
+                    .Get<IServerAddressesFeature>()?
+                    .Addresses;
+
+                // Prefer http over https locally to avoid dev-cert trust prompts.
+                var baseUrl = addresses?.FirstOrDefault(a => a.StartsWith("http://"))
+                              ?? addresses?.FirstOrDefault()
+                              ?? "http://localhost:5134";
+
+                var swaggerUrl = $"{baseUrl.TrimEnd('/')}/swagger";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = swaggerUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to launch browser to Swagger UI");
+            }
+        });
+    }
 
     // -----------------------------------------------------------------------
     // Run

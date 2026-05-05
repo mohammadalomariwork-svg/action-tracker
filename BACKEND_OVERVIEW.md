@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-04-14
+> Last updated: 2026-05-04
 
 ## Tech Stack
 
@@ -115,7 +115,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | POST | `/` | Create workspace |
 | PUT | `/{id}` | Update workspace |
 | GET | `/org-units` | Org units for dropdown |
-| GET | `/active-users` | Active users for dropdown |
+| GET | `/active-users` | Active users for the workspace admin picker — returns `{Id, DisplayName, Email, OrgUnitName}` (searchable in the multi-select) |
 | DELETE | `/{id}` | Soft delete (sets IsActive=false) |
 | PATCH | `/{id}/restore` | Restore deleted workspace |
 

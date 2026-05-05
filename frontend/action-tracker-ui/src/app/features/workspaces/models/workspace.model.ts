@@ -139,4 +139,8 @@ export interface UserDropdownItem {
   id: string;
   /** Display name shown in the dropdown. */
   displayName: string;
+  /** Email — searchable in the multi-select dropdown. */
+  email?: string;
+  /** Org unit name — shown as the dropdown subtitle. */
+  orgUnitName?: string;
 }

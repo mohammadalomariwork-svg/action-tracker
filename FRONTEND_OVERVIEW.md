@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-04-14
+> Last updated: 2026-05-04
 
 ## Tech Stack
 
@@ -9,6 +9,7 @@
 - **UI Framework:** Bootstrap 5.3.3 + Bootstrap Icons 1.13.1
 - **Charts:** ng2-charts 6.0.1 / Chart.js 4.4.7
 - **Notifications:** ngx-toastr 19.0.0
+- **Multi-select:** @ng-select/ng-select 21.x (searchable multi-select for the workspace admin picker)
 - **Real-time:** @microsoft/signalr 10.0.0
 - **Excel Export:** xlsx 0.18.5
 - **Date Utils:** date-fns 4.1.0
@@ -379,7 +380,7 @@
 
 ### Workspaces
 - Organizational container scoped to org unit (Level-2 ancestor)
-- Multiple admin users per workspace
+- Multiple admin users per workspace — picked via searchable multi-select (ng-select); search matches name, email, or org unit, and each option shows email + org unit as subtitle
 - Stats: project count, milestone count, action item counts
 - Create/edit via offcanvas side drawer
 - Org-unit filter dropdown

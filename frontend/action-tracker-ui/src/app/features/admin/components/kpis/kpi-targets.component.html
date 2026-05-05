@@ -95,6 +95,7 @@
             <th>Notes</th>
             <th style="width: 130px">Created By</th>
             <th style="width: 130px">Updated By</th>
+            <th style="width: 110px" class="text-center">Evidence</th>
             <th style="width: 70px" class="text-center">Edit</th>
           </tr>
         </thead>
@@ -202,6 +203,20 @@
                 }
               </td>
 
+              <!-- Evidence -->
+              <td class="text-center">
+                @if (row.id) {
+                  <button class="btn btn-outline-info btn-xs kt-evidence-btn"
+                          title="Manage evidence files"
+                          (click)="openEvidence(row)">
+                    <i class="bi bi-paperclip"></i>
+                    <span class="ms-1">{{ row.evidenceCount }}</span>
+                  </button>
+                } @else {
+                  <span class="text-muted small" title="Save target before attaching evidence">—</span>
+                }
+              </td>
+
               <!-- Edit / confirm / cancel -->
               <td class="text-center">
                 @if (!row.editing) {
@@ -226,33 +241,6 @@
             </tr>
           }
         </tbody>
-
-        <!-- ── Summary footer ─────────────────────────────────────────────────  -->
-        <tfoot class="table-dark">
-          <tr>
-            <td class="fw-bold">Total</td>
-            <td class="fw-bold">{{ totalTarget() }}</td>
-            <td class="fw-bold">{{ totalActual() }}</td>
-            <td class="fw-bold">
-              @if (totalTarget() > 0) {
-                <span [class.text-success]="totalActual() >= totalTarget()"
-                      [class.text-danger]="totalActual() < totalTarget()">
-                  {{ totalActual() >= totalTarget() ? '+' : '' }}{{ totalActual() - totalTarget() }}
-                </span>
-              } @else { — }
-            </td>
-            <td class="fw-bold">
-              @if (overallAchievement() !== null) {
-                <span [class.text-success]="overallAchievement()! >= 100"
-                      [class.text-warning]="overallAchievement()! >= 80 && overallAchievement()! < 100"
-                      [class.text-danger]="overallAchievement()! < 80">
-                  {{ overallAchievement()!.toFixed(1) }}%
-                </span>
-              } @else { N/A }
-            </td>
-            <td colspan="4"></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
 
@@ -274,6 +262,35 @@
           <i class="bi bi-cloud-upload"></i> Save All Targets
         }
       </button>
+    </div>
+  }
+
+  <!-- ── Evidence modal ─────────────────────────────────────────────────────────  -->
+  @if (evidenceModalOpen()) {
+    <div class="kt-modal-backdrop" (click)="closeEvidence()"></div>
+    <div class="kt-modal" role="dialog" aria-modal="true">
+      <div class="kt-modal-header">
+        <h5 class="mb-0">
+          <i class="bi bi-paperclip me-2"></i>
+          Evidence — {{ evidenceMonthName() }}
+        </h5>
+        <button type="button" class="btn-close" aria-label="Close" (click)="closeEvidence()"></button>
+      </div>
+      <div class="kt-modal-body">
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          Up to 10 files per target. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX. Max 10 MB per file.
+        </p>
+        <app-documents-section
+          entityType="KpiTarget"
+          [entityId]="evidenceTargetId()!"
+        />
+      </div>
+      <div class="kt-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeEvidence()">
+          Close
+        </button>
+      </div>
     </div>
   }
 

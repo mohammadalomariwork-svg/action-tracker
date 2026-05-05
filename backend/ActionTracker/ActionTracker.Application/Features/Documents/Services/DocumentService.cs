@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Documents.DTOs;
 using ActionTracker.Application.Features.Documents.Interfaces;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +13,20 @@ public class DocumentService : IDocumentService
 {
     private readonly IAppDbContext _dbContext;
     private readonly ILogger<DocumentService> _logger;
+    private readonly IStrategicScopeService _scopeService;
 
     private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+
+    /// <summary>
+    /// Per-entity-type upload caps. When an entity type appears here, no more
+    /// than the listed number of documents may be attached to a single owning
+    /// record. Entity types not listed have no cap.
+    /// </summary>
+    private static readonly Dictionary<string, int> MaxDocumentsPerEntity =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["KpiTarget"] = 10,
+        };
 
     private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -31,10 +44,35 @@ public class DocumentService : IDocumentService
         ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
     };
 
-    public DocumentService(IAppDbContext dbContext, ILogger<DocumentService> logger)
+    public DocumentService(
+        IAppDbContext            dbContext,
+        ILogger<DocumentService> logger,
+        IStrategicScopeService   scopeService)
     {
-        _dbContext = dbContext;
-        _logger    = logger;
+        _dbContext    = dbContext;
+        _logger       = logger;
+        _scopeService = scopeService;
+    }
+
+    /// <summary>
+    /// For document operations that target an entity guarded by the strategic
+    /// scope (currently <c>KpiTarget</c>), throws <see cref="UnauthorizedAccessException"/>
+    /// when the caller is out of scope. Returns silently for any other entity type.
+    /// </summary>
+    private async Task EnsureScopedWriteAsync(
+        string entityType, Guid entityId, string userId, CancellationToken ct)
+    {
+        if (!string.Equals(entityType, "KpiTarget", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var orgUnitId = await _dbContext.KpiTargets
+            .Where(t => t.Id == entityId)
+            .Select(t => (Guid?)t.Kpi!.StrategicObjective!.OrgUnitId)
+            .FirstOrDefaultAsync(ct);
+
+        if (orgUnitId is null) return; // KpiTarget missing — let downstream handle.
+
+        await _scopeService.EnsureCanWriteAsync(userId, orgUnitId.Value, ct);
     }
 
     public async Task<List<DocumentResponseDto>> GetByEntityAsync(
@@ -64,6 +102,8 @@ public class DocumentService : IDocumentService
         string entityType, Guid entityId, string name,
         IFormFile file, string userId, CancellationToken ct)
     {
+        await EnsureScopedWriteAsync(entityType, entityId, userId, ct);
+
         if (file.Length == 0)
             throw new ArgumentException("File is empty.");
 
@@ -76,6 +116,15 @@ public class DocumentService : IDocumentService
 
         if (!AllowedContentTypes.Contains(file.ContentType))
             throw new ArgumentException($"Content type '{file.ContentType}' is not allowed.");
+
+        if (MaxDocumentsPerEntity.TryGetValue(entityType, out var maxCount))
+        {
+            var existingCount = await _dbContext.Documents
+                .CountAsync(d => d.RelatedEntityType == entityType && d.RelatedEntityId == entityId, ct);
+            if (existingCount >= maxCount)
+                throw new ArgumentException(
+                    $"Maximum of {maxCount} files per {entityType} reached. Delete an existing file before uploading another.");
+        }
 
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms, ct);
@@ -140,6 +189,8 @@ public class DocumentService : IDocumentService
         var doc = await _dbContext.Documents
             .FirstOrDefaultAsync(d => d.Id == documentId, ct)
             ?? throw new KeyNotFoundException($"Document {documentId} not found.");
+
+        await EnsureScopedWriteAsync(doc.RelatedEntityType, doc.RelatedEntityId, userId, ct);
 
         _dbContext.Documents.Remove(doc);
         await _dbContext.SaveChangesAsync(ct);

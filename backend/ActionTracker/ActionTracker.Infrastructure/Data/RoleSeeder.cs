@@ -28,6 +28,9 @@ public static class RoleSeeder
         AppRoles.ProjectCoordinator,
         AppRoles.TeamMember,
 
+        // Strategy
+        AppRoles.StrategyEditor,
+
         // Legacy read-only role
         AppRoles.Viewer,
     ];

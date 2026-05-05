@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -58,10 +58,11 @@ export class WorkspaceListComponent implements OnInit {
   form!: FormGroup;
   orgUnits: OrgUnitDropdownItem[]  = [];
   adminUsers: UserDropdownItem[]   = [];
-  selectedAdmins: WorkspaceAdmin[] = [];
-  selectedUserId                   = '';
+  selectedAdminIds: string[]       = [];
   adminsSubmitAttempted            = false;
-  private dropdownsLoaded          = false;
+  adminDropdownOpen                = false;
+  adminSearchTerm                  = '';
+  private adminUsersLoaded         = false;
 
   ngOnInit(): void {
     this.loadData();
@@ -84,7 +85,6 @@ export class WorkspaceListComponent implements OnInit {
         this.allWorkspaces = workspaces.data ?? [];
         this.summary       = summary.data ?? null;
         this.orgUnits      = orgUnits.data ?? [];
-        this.dropdownsLoaded = true;
         this.deriveUniqueOrgUnits();
         this.applyFilters();
         this.isLoading = false;
@@ -225,8 +225,9 @@ export class WorkspaceListComponent implements OnInit {
     this.editingWorkspaceId = id;
     this.drawerError       = null;
     this.adminsSubmitAttempted = false;
-    this.selectedAdmins    = [];
-    this.selectedUserId    = '';
+    this.selectedAdminIds  = [];
+    this.adminSearchTerm   = '';
+    this.adminDropdownOpen = false;
     this.buildDrawerForm();
     this.ensureDropdownsLoaded();
     this.drawerLoading = true;
@@ -241,12 +242,7 @@ export class WorkspaceListComponent implements OnInit {
             organizationUnit: w.orgUnitId ?? w.organizationUnit,
             isActive:         w.isActive,
           });
-          this.selectedAdmins = (w.admins ?? []).map(a => ({
-            userId:      a.userId,
-            userName:    a.userName,
-            email:       a.email ?? '',
-            orgUnitName: a.orgUnitName ?? '',
-          }));
+          this.selectedAdminIds = (w.admins ?? []).map(a => a.userId);
           this.drawerLoading = false;
         },
         error: (err) => {
@@ -312,8 +308,9 @@ export class WorkspaceListComponent implements OnInit {
     this.editingWorkspaceId = null;
     this.drawerError       = null;
     this.adminsSubmitAttempted = false;
-    this.selectedAdmins    = [];
-    this.selectedUserId    = '';
+    this.selectedAdminIds  = [];
+    this.adminSearchTerm   = '';
+    this.adminDropdownOpen = false;
     this.buildDrawerForm();
     this.ensureDropdownsLoaded();
     this.showDrawer = true;
@@ -325,24 +322,37 @@ export class WorkspaceListComponent implements OnInit {
 
   // ── Drawer form helpers ───────────────────────────────────────────────────────
 
-  get availableUsers(): UserDropdownItem[] {
-    return this.adminUsers.filter(u => !this.selectedAdmins.some(a => a.userId === u.id));
-  }
-
   get hasAdminsError(): boolean {
-    return this.adminsSubmitAttempted && this.selectedAdmins.length === 0;
+    return this.adminsSubmitAttempted && this.selectedAdminIds.length === 0;
   }
 
-  addAdmin(): void {
-    if (!this.selectedUserId) return;
-    const user = this.adminUsers.find(u => u.id === this.selectedUserId);
-    if (!user) return;
-    this.selectedAdmins = [...this.selectedAdmins, { userId: user.id, userName: user.displayName, email: '', orgUnitName: '' }];
-    this.selectedUserId = '';
+  get filteredAdminUsers(): UserDropdownItem[] {
+    const term = this.adminSearchTerm.trim().toLowerCase();
+    if (!term) return this.adminUsers;
+    return this.adminUsers.filter(u =>
+      (u.displayName ?? '').toLowerCase().includes(term) ||
+      (u.email ?? '').toLowerCase().includes(term) ||
+      (u.orgUnitName ?? '').toLowerCase().includes(term)
+    );
   }
 
-  removeAdmin(userId: string): void {
-    this.selectedAdmins = this.selectedAdmins.filter(a => a.userId !== userId);
+  getAdminName(userId: string): string {
+    return this.adminUsers.find(u => u.id === userId)?.displayName ?? userId;
+  }
+
+  toggleAdmin(userId: string): void {
+    const idx = this.selectedAdminIds.indexOf(userId);
+    if (idx >= 0) this.selectedAdminIds.splice(idx, 1);
+    else          this.selectedAdminIds.push(userId);
+  }
+
+  isAdminSelected(userId: string): boolean {
+    return this.selectedAdminIds.includes(userId);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.adminDropdownOpen) this.adminDropdownOpen = false;
   }
 
   unitLabel(unit: OrgUnitDropdownItem): string {
@@ -363,7 +373,7 @@ export class WorkspaceListComponent implements OnInit {
   onDrawerSubmit(): void {
     this.adminsSubmitAttempted = true;
 
-    if (this.form.invalid || this.selectedAdmins.length === 0) {
+    if (this.form.invalid || this.selectedAdminIds.length === 0) {
       this.form.markAllAsTouched();
       return;
     }
@@ -380,20 +390,30 @@ export class WorkspaceListComponent implements OnInit {
     const selectedUnit = this.orgUnits.find(u => u.id === orgUnitId);
     const orgUnitName = selectedUnit?.name ?? orgUnitId;
 
+    const admins: WorkspaceAdmin[] = this.selectedAdminIds.map(id => {
+      const user = this.adminUsers.find(u => u.id === id);
+      return {
+        userId:      id,
+        userName:    user?.displayName ?? '',
+        email:       user?.email ?? '',
+        orgUnitName: user?.orgUnitName ?? '',
+      };
+    });
+
     const request$ = this.isEditDrawer && this.editingWorkspaceId !== null
       ? this.workspaceService.updateWorkspace(this.editingWorkspaceId, {
           id: this.editingWorkspaceId,
           title,
           organizationUnit: orgUnitName,
           orgUnitId: orgUnitId || undefined,
-          admins: this.selectedAdmins,
+          admins,
           isActive,
         })
       : this.workspaceService.createWorkspace({
           title,
           organizationUnit: orgUnitName,
           orgUnitId: orgUnitId || undefined,
-          admins: this.selectedAdmins,
+          admins,
         });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -418,19 +438,14 @@ export class WorkspaceListComponent implements OnInit {
   }
 
   private ensureDropdownsLoaded(): void {
-    if (this.dropdownsLoaded) return;
-
-    this.workspaceService.getOrgUnitsForDropdown()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => { this.orgUnits = res.data ?? []; this.dropdownsLoaded = true; },
-        error: () => { this.drawerError = 'Failed to load organisation units.'; },
-      });
+    // Org units are eagerly loaded in loadData(); only the admin user list
+    // is fetched lazily when the drawer is first opened.
+    if (this.adminUsersLoaded) return;
 
     this.workspaceService.getActiveUsersForDropdown()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => { this.adminUsers = res.data ?? []; },
+        next: (res) => { this.adminUsers = res.data ?? []; this.adminUsersLoaded = true; },
         error: () => { this.drawerError = 'Failed to load users.'; },
       });
   }

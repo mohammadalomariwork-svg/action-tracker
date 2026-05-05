@@ -5,6 +5,7 @@ using ActionTracker.Application.Features.Kpis.DTOs;
 using ActionTracker.Application.Features.Kpis.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -16,22 +17,24 @@ namespace ActionTracker.Infrastructure.Services;
 
 public class KpiService : IKpiService
 {
-    private readonly AppDbContext         _context;
-    private readonly IUserLookupService   _userLookup;
-    private readonly ILogger<KpiService>  _logger;
-    private readonly IEmailSender         _emailSender;
-    private readonly INotificationService _notificationService;
-    private readonly AppSettings          _appSettings;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly AppDbContext           _context;
+    private readonly IUserLookupService     _userLookup;
+    private readonly ILogger<KpiService>    _logger;
+    private readonly IEmailSender           _emailSender;
+    private readonly INotificationService   _notificationService;
+    private readonly AppSettings            _appSettings;
+    private readonly IServiceScopeFactory   _scopeFactory;
+    private readonly IStrategicScopeService _scopeService;
 
     public KpiService(
         AppDbContext           context,
-        IUserLookupService    userLookup,
-        ILogger<KpiService>   logger,
-        IEmailSender          emailSender,
-        INotificationService  notificationService,
-        IOptions<AppSettings> appSettings,
-        IServiceScopeFactory  scopeFactory)
+        IUserLookupService     userLookup,
+        ILogger<KpiService>    logger,
+        IEmailSender           emailSender,
+        INotificationService   notificationService,
+        IOptions<AppSettings>  appSettings,
+        IServiceScopeFactory   scopeFactory,
+        IStrategicScopeService scopeService)
     {
         _context             = context;
         _userLookup          = userLookup;
@@ -40,6 +43,25 @@ public class KpiService : IKpiService
         _notificationService = notificationService;
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
+        _scopeService        = scopeService;
+    }
+
+    /// <summary>
+    /// Looks up the OrgUnitId of the strategic objective that owns the given KPI.
+    /// Throws <see cref="KeyNotFoundException"/> when the KPI does not exist.
+    /// </summary>
+    private async Task<Guid> GetOrgUnitIdForKpiAsync(Guid kpiId, CancellationToken ct)
+    {
+        var orgUnitId = await _context.Kpis
+            .IgnoreQueryFilters()
+            .Where(k => k.Id == kpiId)
+            .Select(k => k.StrategicObjective!.OrgUnitId)
+            .FirstOrDefaultAsync(ct);
+
+        if (orgUnitId == Guid.Empty)
+            throw new KeyNotFoundException($"KPI '{kpiId}' not found.");
+
+        return orgUnitId;
     }
 
     // -------------------------------------------------------------------------
@@ -51,6 +73,7 @@ public class KpiService : IKpiService
         int               pageSize,
         Guid?             objectiveId    = null,
         bool              includeDeleted = false,
+        string?           currentUserId  = null,
         CancellationToken ct             = default)
     {
         try
@@ -63,6 +86,24 @@ public class KpiService : IKpiService
 
             if (objectiveId.HasValue)
                 query = query.Where(k => k.StrategicObjectiveId == objectiveId.Value);
+
+            // Apply role-based scope on the KPI's parent objective's OrgUnit.
+            if (currentUserId is not null)
+            {
+                var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                if (visible is not null)
+                {
+                    if (visible.Count == 0)
+                        return new KpiListResponseDto
+                        {
+                            Kpis       = new List<KpiDto>(),
+                            TotalCount = 0,
+                            Page       = page,
+                            PageSize   = pageSize,
+                        };
+                    query = query.Where(k => visible.Contains(k.StrategicObjective!.OrgUnitId));
+                }
+            }
 
             query = query
                 .OrderBy(k => k.StrategicObjectiveId)
@@ -113,8 +154,9 @@ public class KpiService : IKpiService
 
     public async Task<KpiWithTargetsDto?> GetByIdAsync(
         Guid              id,
-        int?              year = null,
-        CancellationToken ct   = default)
+        int?              year          = null,
+        string?           currentUserId = null,
+        CancellationToken ct            = default)
     {
         try
         {
@@ -124,6 +166,13 @@ public class KpiService : IKpiService
                 .FirstOrDefaultAsync(k => k.Id == id, ct);
 
             if (kpi is null) return null;
+
+            if (currentUserId is not null && kpi.StrategicObjective is not null)
+            {
+                var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                if (visible is not null && !visible.Contains(kpi.StrategicObjective.OrgUnitId))
+                    return null;
+            }
 
             var targetsQuery = _context.KpiTargets
                 .Where(t => t.KpiId == id);
@@ -185,6 +234,8 @@ public class KpiService : IKpiService
                 ?? throw new ArgumentException(
                     $"Strategic objective '{request.StrategicObjectiveId}' does not exist or has been deleted.",
                     nameof(request.StrategicObjectiveId));
+
+            await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
 
             // Auto-assign KpiNumber: max existing (including deleted) + 1.
             var maxNumber = await _context.Kpis
@@ -313,6 +364,9 @@ public class KpiService : IKpiService
                 .FirstOrDefaultAsync(k => k.Id == id, ct)
                 ?? throw new KeyNotFoundException($"KPI '{id}' not found.");
 
+            if (kpi.StrategicObjective is not null)
+                await _scopeService.EnsureCanWriteAsync(userId, kpi.StrategicObjective.OrgUnitId, ct);
+
             kpi.Name              = request.Name;
             kpi.Description       = request.Description;
             kpi.CalculationMethod = request.CalculationMethod;
@@ -349,8 +403,12 @@ public class KpiService : IKpiService
         try
         {
             var kpi = await _context.Kpis
+                .Include(k => k.StrategicObjective)
                 .FirstOrDefaultAsync(k => k.Id == id, ct)
                 ?? throw new KeyNotFoundException($"KPI '{id}' not found.");
+
+            if (kpi.StrategicObjective is not null)
+                await _scopeService.EnsureCanWriteAsync(userId, kpi.StrategicObjective.OrgUnitId, ct);
 
             var now = DateTime.UtcNow;
             kpi.IsDeleted = true;
@@ -380,8 +438,12 @@ public class KpiService : IKpiService
         {
             var kpi = await _context.Kpis
                 .IgnoreQueryFilters()
+                .Include(k => k.StrategicObjective)
                 .FirstOrDefaultAsync(k => k.Id == id, ct)
                 ?? throw new KeyNotFoundException($"KPI '{id}' not found.");
+
+            if (kpi.StrategicObjective is not null)
+                await _scopeService.EnsureCanWriteAsync(userId, kpi.StrategicObjective.OrgUnitId, ct);
 
             kpi.IsDeleted = false;
             kpi.DeletedAt = null;
@@ -405,10 +467,26 @@ public class KpiService : IKpiService
     // GetByObjectiveAsync
     // -------------------------------------------------------------------------
 
-    public async Task<List<KpiDto>> GetByObjectiveAsync(Guid objectiveId, CancellationToken ct = default)
+    public async Task<List<KpiDto>> GetByObjectiveAsync(Guid objectiveId, string? currentUserId = null, CancellationToken ct = default)
     {
         try
         {
+            // Ensure the parent objective is in scope before returning its KPIs.
+            if (currentUserId is not null)
+            {
+                var parentOrgUnitId = await _context.StrategicObjectives
+                    .Where(o => o.Id == objectiveId)
+                    .Select(o => (Guid?)o.OrgUnitId)
+                    .FirstOrDefaultAsync(ct);
+
+                if (parentOrgUnitId is not null)
+                {
+                    var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                    if (visible is not null && !visible.Contains(parentOrgUnitId.Value))
+                        return new List<KpiDto>();
+                }
+            }
+
             var kpis = await _context.Kpis
                 .Include(k => k.StrategicObjective)
                 .Where(k => k.StrategicObjectiveId == objectiveId)
@@ -447,6 +525,9 @@ public class KpiService : IKpiService
     {
         try
         {
+            var orgUnitId = await GetOrgUnitIdForKpiAsync(request.KpiId, ct);
+            await _scopeService.EnsureCanWriteAsync(userId, orgUnitId, ct);
+
             var existing = await _context.KpiTargets
                 .FirstOrDefaultAsync(t =>
                     t.KpiId == request.KpiId &&
@@ -507,11 +588,8 @@ public class KpiService : IKpiService
     {
         try
         {
-            var kpiExists = await _context.Kpis
-                .AnyAsync(k => k.Id == request.KpiId, ct);
-
-            if (!kpiExists)
-                throw new KeyNotFoundException($"KPI '{request.KpiId}' not found.");
+            var orgUnitId = await GetOrgUnitIdForKpiAsync(request.KpiId, ct);
+            await _scopeService.EnsureCanWriteAsync(userId, orgUnitId, ct);
 
             var existingTargets = await _context.KpiTargets
                 .Where(t => t.KpiId == request.KpiId && t.Year == request.Year)
@@ -577,10 +655,27 @@ public class KpiService : IKpiService
     public async Task<List<KpiTargetDto>> GetTargetsAsync(
         Guid              kpiId,
         int               year,
-        CancellationToken ct = default)
+        string?           currentUserId = null,
+        CancellationToken ct            = default)
     {
         try
         {
+            if (currentUserId is not null)
+            {
+                var parentOrgUnitId = await _context.Kpis
+                    .IgnoreQueryFilters()
+                    .Where(k => k.Id == kpiId)
+                    .Select(k => (Guid?)k.StrategicObjective!.OrgUnitId)
+                    .FirstOrDefaultAsync(ct);
+
+                if (parentOrgUnitId is not null)
+                {
+                    var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                    if (visible is not null && !visible.Contains(parentOrgUnitId.Value))
+                        return new List<KpiTargetDto>();
+                }
+            }
+
             var targets = await _context.KpiTargets
                 .Where(t => t.KpiId == kpiId && t.Year == year)
                 .OrderBy(t => t.Month)

@@ -33,6 +33,8 @@ public interface IAppDbContext
     DbSet<ProjectRisk>      ProjectRisks    { get; }
 
     DbSet<StrategicObjective> StrategicObjectives { get; }
+    DbSet<Kpi>                Kpis                { get; }
+    DbSet<KpiTarget>          KpiTargets          { get; }
 
     // ── Permissions feature sets ──────────────────────────────────────────────
     DbSet<RolePermission>         RolePermissions         { get; }

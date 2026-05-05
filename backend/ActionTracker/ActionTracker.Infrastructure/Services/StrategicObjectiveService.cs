@@ -4,6 +4,7 @@ using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     private readonly INotificationService               _notificationService;
     private readonly AppSettings                        _appSettings;
     private readonly IServiceScopeFactory               _scopeFactory;
+    private readonly IStrategicScopeService             _scopeService;
 
     public StrategicObjectiveService(
         AppDbContext                        context,
@@ -30,7 +32,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         IEmailSender                       emailSender,
         INotificationService               notificationService,
         IOptions<AppSettings>              appSettings,
-        IServiceScopeFactory               scopeFactory)
+        IServiceScopeFactory               scopeFactory,
+        IStrategicScopeService             scopeService)
     {
         _context             = context;
         _userLookup          = userLookup;
@@ -39,6 +42,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         _notificationService = notificationService;
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
+        _scopeService        = scopeService;
     }
 
     // -------------------------------------------------------------------------
@@ -50,6 +54,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         int               pageSize,
         Guid?             orgUnitId      = null,
         bool              includeDeleted = false,
+        string?           currentUserId  = null,
         CancellationToken ct             = default)
     {
         try
@@ -64,6 +69,24 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             if (orgUnitId.HasValue)
                 query = query.Where(o => o.OrgUnitId == orgUnitId.Value);
+
+            // Apply role-based scope (StrategyEditor, etc.) when caller is identified.
+            if (currentUserId is not null)
+            {
+                var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                if (visible is not null)
+                {
+                    if (visible.Count == 0)
+                        return new StrategicObjectiveListResponseDto
+                        {
+                            Objectives = new List<StrategicObjectiveDto>(),
+                            TotalCount = 0,
+                            Page       = page,
+                            PageSize   = pageSize,
+                        };
+                    query = query.Where(o => visible.Contains(o.OrgUnitId));
+                }
+            }
 
             query = query.OrderBy(o => o.ObjectiveCode);
 
@@ -101,7 +124,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     // GetByIdAsync
     // -------------------------------------------------------------------------
 
-    public async Task<StrategicObjectiveDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<StrategicObjectiveDto?> GetByIdAsync(Guid id, string? currentUserId = null, CancellationToken ct = default)
     {
         try
         {
@@ -112,6 +135,15 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .FirstOrDefaultAsync(o => o.Id == id, ct);
 
             if (objective is null) return null;
+
+            // Hide records outside the caller's scope by returning null
+            // (look-by-id should not leak existence outside scope).
+            if (currentUserId is not null)
+            {
+                var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                if (visible is not null && !visible.Contains(objective.OrgUnitId))
+                    return null;
+            }
 
             var names = await ResolveNamesAsync([objective], ct);
             return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted), names);
@@ -134,6 +166,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     {
         try
         {
+            await _scopeService.EnsureCanWriteAsync(userId, request.OrgUnitId, ct);
+
             var orgUnit = await _context.OrgUnits
                 .FirstOrDefaultAsync(o => o.Id == request.OrgUnitId, ct)
                 ?? throw new ArgumentException(
@@ -260,6 +294,11 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .FirstOrDefaultAsync(o => o.Id == id, ct)
                 ?? throw new KeyNotFoundException($"Strategic objective '{id}' not found.");
 
+            // Authorise both the existing org unit (so the user owns the record)
+            // and the requested target org unit (so they cannot reassign out of scope).
+            await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
+            await _scopeService.EnsureCanWriteAsync(userId, request.OrgUnitId, ct);
+
             var orgUnit = await _context.OrgUnits
                 .FirstOrDefaultAsync(o => o.Id == request.OrgUnitId, ct)
                 ?? throw new ArgumentException(
@@ -302,6 +341,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .FirstOrDefaultAsync(o => o.Id == id, ct)
                 ?? throw new KeyNotFoundException($"Strategic objective '{id}' not found.");
 
+            await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
+
             var now = DateTime.UtcNow;
             objective.IsDeleted = true;
             objective.DeletedAt = now;
@@ -333,6 +374,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .FirstOrDefaultAsync(o => o.Id == id, ct)
                 ?? throw new KeyNotFoundException($"Strategic objective '{id}' not found.");
 
+            await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
+
             objective.IsDeleted = false;
             objective.DeletedAt = null;
             objective.DeletedBy = null;
@@ -357,10 +400,20 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
     public async Task<List<StrategicObjectiveDto>> GetByOrgUnitAsync(
         Guid              orgUnitId,
-        CancellationToken ct = default)
+        string?           currentUserId = null,
+        CancellationToken ct            = default)
     {
         try
         {
+            // Apply role-based scope: hide the entire result if the requested
+            // org unit is outside the caller's permitted set.
+            if (currentUserId is not null)
+            {
+                var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                if (visible is not null && !visible.Contains(orgUnitId))
+                    return new List<StrategicObjectiveDto>();
+            }
+
             var objectives = await _context.StrategicObjectives
                 .Include(o => o.OrgUnit)
                 .Include(o => o.Kpis)

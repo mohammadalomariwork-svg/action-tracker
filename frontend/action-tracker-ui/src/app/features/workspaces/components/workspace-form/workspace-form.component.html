@@ -68,55 +68,58 @@
 
         <!-- Workspace Admins -->
         <div class="mb-4">
-          <label class="form-label">
+          <label for="wfAdmins" class="form-label">
             Workspace Admins <span class="text-danger">*</span>
           </label>
 
-          <!-- Add admin row -->
-          <div class="input-group mb-2">
-            <select
-              class="form-select"
-              [(ngModel)]="selectedUserId"
-              [ngModelOptions]="{ standalone: true }"
-              [class.is-invalid]="hasAdminsError && selectedAdmins.length === 0"
-            >
-              <option value="">— Select a user to add —</option>
-              @for (user of availableUsers; track user.id) {
-                <option [value]="user.id">{{ user.displayName }}</option>
+          <div class="wf-multi-select" (click)="adminDropdownOpen = !adminDropdownOpen; $event.stopPropagation()">
+            <div class="wf-multi-select__control form-select" [class.is-invalid]="hasAdminsError">
+              @if (selectedAdminIds.length === 0) {
+                <span class="text-muted">Select admins…</span>
+              } @else {
+                <div class="wf-multi-select__tags">
+                  @for (id of selectedAdminIds; track id) {
+                    <span class="wf-multi-select__tag">
+                      {{ getAdminName(id) }}
+                      <button type="button" class="wf-multi-select__tag-remove"
+                        (click)="toggleAdmin(id); $event.stopPropagation()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
               }
-            </select>
-            <button
-              type="button"
-              class="btn btn-outline-primary"
-              (click)="addAdmin()"
-              [disabled]="!selectedUserId"
-              title="Add this user as admin"
-            >
-              <i class="bi bi-plus-lg me-1"></i>Add
-            </button>
+            </div>
+            @if (adminDropdownOpen) {
+              <div class="wf-multi-select__dropdown">
+                <input type="text" class="form-control form-control-sm wf-multi-select__search"
+                       placeholder="Search users…" [(ngModel)]="adminSearchTerm"
+                       [ngModelOptions]="{ standalone: true }"
+                       (click)="$event.stopPropagation()" />
+                <div class="wf-multi-select__options">
+                  @for (u of filteredAdminUsers; track u.id) {
+                    <label class="wf-multi-select__option" (click)="$event.stopPropagation()">
+                      <input type="checkbox" [checked]="isAdminSelected(u.id)" (change)="toggleAdmin(u.id)" />
+                      <span class="wf-multi-select__avatar">{{ u.displayName.charAt(0).toUpperCase() }}</span>
+                      <div class="d-flex flex-column">
+                        <span>{{ u.displayName }}</span>
+                        @if (u.email || u.orgUnitName) {
+                          <small class="text-muted">
+                            {{ u.email || '—' }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}
+                          </small>
+                        }
+                      </div>
+                    </label>
+                  }
+                  @if (filteredAdminUsers.length === 0) {
+                    <div class="text-muted small px-3 py-2">No users found.</div>
+                  }
+                </div>
+              </div>
+            }
           </div>
 
-          <!-- Selected admins list -->
-          @if (selectedAdmins.length > 0) {
-            <ul class="list-group wf-admin-list">
-              @for (admin of selectedAdmins; track admin.userId) {
-                <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
-                  <span>
-                    <i class="bi bi-person-fill text-primary me-2"></i>
-                    {{ admin.userName }}
-                  </span>
-                  <button
-                    type="button"
-                    class="btn btn-outline-danger btn-sm"
-                    (click)="removeAdmin(admin.userId)"
-                    title="Remove admin"
-                  >
-                    <i class="bi bi-x-lg"></i>
-                  </button>
-                </li>
-              }
-            </ul>
-          }
+          <div class="form-text">Select one or more users. Search by name, email, or organisation unit.</div>
 
           @if (hasAdminsError) {
             <div class="text-danger small mt-1">

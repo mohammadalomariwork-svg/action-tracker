@@ -638,7 +638,14 @@ public class WorkspaceService : IWorkspaceService
                 .Select(u => new UserDropdownItemDto
                 {
                     Id          = u.Id,
-                    DisplayName = u.DisplayName ?? (u.FirstName + " " + u.LastName)
+                    DisplayName = u.DisplayName ?? (u.FirstName + " " + u.LastName),
+                    Email       = u.Email,
+                    OrgUnitName = u.OrgUnitId == null
+                        ? null
+                        : _db.OrgUnits
+                            .Where(o => o.Id == u.OrgUnitId)
+                            .Select(o => o.Name)
+                            .FirstOrDefault()
                 })
                 .ToListAsync();
         }

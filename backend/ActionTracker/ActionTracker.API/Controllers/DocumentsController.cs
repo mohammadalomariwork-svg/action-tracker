@@ -55,6 +55,10 @@ public class DocumentsController : ControllerBase
             var doc = await _service.UploadAsync(entityType, entityId, name, file, userId, ct);
             return Created(string.Empty, ApiResponse<DocumentResponseDto>.Ok(doc));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<DocumentResponseDto>.Fail(ex.Message));
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<DocumentResponseDto>.Fail(ex.Message));
@@ -95,6 +99,10 @@ public class DocumentsController : ControllerBase
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
             await _service.DeleteAsync(id, userId, ct);
             return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(ex.Message));
         }
         catch (KeyNotFoundException ex)
         {

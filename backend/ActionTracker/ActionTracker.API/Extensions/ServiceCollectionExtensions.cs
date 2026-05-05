@@ -123,6 +123,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEffectivePermissionService,     EffectivePermissionService>();
         services.AddScoped<IPermissionCatalogService,       PermissionCatalogService>();
         services.AddScoped<IOrgUnitScopeResolver,           InfraOrgUnitScopeResolver>();
+        services.AddScoped<IStrategicScopeService,          StrategicScopeService>();
 
         // Role Management
         services.AddScoped<IRoleManagementService,          InfraRoleManagementService>();

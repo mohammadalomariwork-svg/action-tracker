@@ -12,7 +12,14 @@
       "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"c:/Development Projects/action-tracker/backend/ActionTracker/ActionTracker.API/bin/_diag_schema_dump.ps1\")",
       "Bash(dotnet publish *)",
       "Bash(npm run *)",
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "Bash(dotnet list *)",
+      "Bash(sc query *)",
+      "Bash(powershell -NoProfile -Command \"Get-ExecutionPolicy -List | Format-Table -AutoSize\")",
+      "Bash(powershell -NoProfile -Command \"Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Get-ExecutionPolicy -List | Format-Table -AutoSize\")",
+      "PowerShell(head -30)",
+      "Bash(node -p \"require\\('./node_modules/@ng-select/ng-select/package.json'\\).version\")",
+      "Bash(Find \"c:\\\\Development Work\\\\action-tracker\\\\frontend\" -name \"*.component.ts\" -type f)"
     ]
   }
 }

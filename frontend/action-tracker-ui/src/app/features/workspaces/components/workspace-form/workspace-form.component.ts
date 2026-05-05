@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -32,12 +32,15 @@ export class WorkspaceFormComponent implements OnInit {
   orgUnits: OrgUnitDropdownItem[] = [];
   adminUsers: UserDropdownItem[]  = [];
 
-  /** Currently selected admins for this workspace. */
-  selectedAdmins: WorkspaceAdmin[] = [];
-  /** The user ID chosen in the "Add admin" dropdown. */
-  selectedUserId = '';
+  /** IDs of users currently selected as admins (drives the multi-select binding). */
+  selectedAdminIds: string[] = [];
   /** Whether the form was submitted with an empty admin list. */
   adminsSubmitAttempted = false;
+
+  /** Whether the admin multi-select dropdown is open. */
+  adminDropdownOpen = false;
+  /** Search term for filtering admin users in the dropdown. */
+  adminSearchTerm = '';
 
   form!: FormGroup;
 
@@ -58,28 +61,39 @@ export class WorkspaceFormComponent implements OnInit {
 
   // ── Admin list helpers ────────────────────────────────────────────────────────
 
-  /** Users not yet in selectedAdmins (prevents duplicates in the picker). */
-  get availableUsers(): UserDropdownItem[] {
-    return this.adminUsers.filter(u => !this.selectedAdmins.some(a => a.userId === u.id));
-  }
-
-  /** Adds the currently selected user to the admin list. */
-  addAdmin(): void {
-    if (!this.selectedUserId) return;
-    const user = this.adminUsers.find(u => u.id === this.selectedUserId);
-    if (!user) return;
-    this.selectedAdmins = [...this.selectedAdmins, { userId: user.id, userName: user.displayName, email: '', orgUnitName: '' }];
-    this.selectedUserId = '';
-  }
-
-  /** Removes an admin from the list by their user ID. */
-  removeAdmin(userId: string): void {
-    this.selectedAdmins = this.selectedAdmins.filter(a => a.userId !== userId);
-  }
-
   /** True when the admin list is empty and user has tried to submit. */
   get hasAdminsError(): boolean {
-    return this.adminsSubmitAttempted && this.selectedAdmins.length === 0;
+    return this.adminsSubmitAttempted && this.selectedAdminIds.length === 0;
+  }
+
+  /** Users matching the current search term across name, email, and org unit. */
+  get filteredAdminUsers(): UserDropdownItem[] {
+    const term = this.adminSearchTerm.trim().toLowerCase();
+    if (!term) return this.adminUsers;
+    return this.adminUsers.filter(u =>
+      (u.displayName ?? '').toLowerCase().includes(term) ||
+      (u.email ?? '').toLowerCase().includes(term) ||
+      (u.orgUnitName ?? '').toLowerCase().includes(term)
+    );
+  }
+
+  getAdminName(userId: string): string {
+    return this.adminUsers.find(u => u.id === userId)?.displayName ?? userId;
+  }
+
+  toggleAdmin(userId: string): void {
+    const idx = this.selectedAdminIds.indexOf(userId);
+    if (idx >= 0) this.selectedAdminIds.splice(idx, 1);
+    else          this.selectedAdminIds.push(userId);
+  }
+
+  isAdminSelected(userId: string): boolean {
+    return this.selectedAdminIds.includes(userId);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.adminDropdownOpen) this.adminDropdownOpen = false;
   }
 
   // ── Org unit label ────────────────────────────────────────────────────────────
@@ -146,12 +160,7 @@ export class WorkspaceFormComponent implements OnInit {
             organizationUnit: w.orgUnitId ?? w.organizationUnit,
             isActive:         w.isActive,
           });
-          this.selectedAdmins = (w.admins ?? []).map(a => ({
-            userId:     a.userId,
-            userName:   a.userName,
-            email:      a.email ?? '',
-            orgUnitName: a.orgUnitName ?? '',
-          }));
+          this.selectedAdminIds = (w.admins ?? []).map(a => a.userId);
           this.isLoading = false;
         },
         error: (err) => {
@@ -167,7 +176,7 @@ export class WorkspaceFormComponent implements OnInit {
   onSubmit(): void {
     this.adminsSubmitAttempted = true;
 
-    if (this.form.invalid || this.selectedAdmins.length === 0) {
+    if (this.form.invalid || this.selectedAdminIds.length === 0) {
       this.form.markAllAsTouched();
       return;
     }
@@ -184,20 +193,30 @@ export class WorkspaceFormComponent implements OnInit {
     const selectedUnit = this.orgUnits.find(u => u.id === orgUnitId);
     const orgUnitName = selectedUnit?.name ?? orgUnitId;
 
+    const admins: WorkspaceAdmin[] = this.selectedAdminIds.map(id => {
+      const user = this.adminUsers.find(u => u.id === id);
+      return {
+        userId:      id,
+        userName:    user?.displayName ?? '',
+        email:       user?.email ?? '',
+        orgUnitName: user?.orgUnitName ?? '',
+      };
+    });
+
     const request$ = this.isEditMode && this.workspaceId !== null
       ? this.workspaceService.updateWorkspace(this.workspaceId, {
           id: this.workspaceId,
           title,
           organizationUnit: orgUnitName,
           orgUnitId: orgUnitId || undefined,
-          admins: this.selectedAdmins,
+          admins,
           isActive,
         })
       : this.workspaceService.createWorkspace({
           title,
           organizationUnit: orgUnitName,
           orgUnitId: orgUnitId || undefined,
-          admins: this.selectedAdmins,
+          admins,
         });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

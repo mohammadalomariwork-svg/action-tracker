@@ -85,3 +85,88 @@
     border-color: var(--accent);
   }
 }
+
+// ── Multi-select dropdown (Workspace Admins) ─────────────────────────────────
+.wf-multi-select {
+  position: relative;
+
+  &__control {
+    cursor: pointer;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    height: auto;
+  }
+
+  &__tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+  &__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    background: rgba(var(--ar), 0.12);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  &__tag-remove {
+    background: none; border: none; padding: 0;
+    color: var(--accent); cursor: pointer; font-size: 0.9rem;
+    line-height: 1; display: inline-flex;
+    &:hover { color: #ef4444; }
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    z-index: 1060;
+    background: var(--bg);
+    border: 1px solid var(--bd);
+    border-radius: var(--r-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    margin-top: 2px;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__search {
+    border: none;
+    border-bottom: 1px solid var(--bd);
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+    background: var(--bg);
+    color: var(--t1);
+    &:focus { box-shadow: none; }
+    &::placeholder { color: var(--t3); }
+  }
+
+  &__options { overflow-y: auto; max-height: 270px; }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--t1);
+    transition: background 0.1s;
+    margin: 0;
+    &:hover { background: var(--sfh); }
+    input[type="checkbox"] { accent-color: var(--accent); flex-shrink: 0; }
+  }
+
+  &__avatar {
+    width: 1.5rem; height: 1.5rem;
+    border-radius: 50%;
+    background: rgba(var(--ar), 0.15);
+    color: var(--accent);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; flex-shrink: 0;
+  }
+}
