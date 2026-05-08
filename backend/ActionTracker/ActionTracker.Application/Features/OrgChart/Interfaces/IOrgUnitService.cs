@@ -27,4 +27,13 @@ public interface IOrgUnitService
 
     /// <summary>Returns all direct children of a given org unit.</summary>
     Task<List<OrgUnitDto>> GetChildrenAsync(Guid parentId, CancellationToken ct = default);
+
+    /// <summary>Returns the org unit head user (CR-001-H), or null if none.</summary>
+    Task<OrgUnitHeadDto?> GetHeadAsync(Guid orgUnitId, CancellationToken ct = default);
+
+    /// <summary>Assigns or replaces the org unit head.</summary>
+    Task<OrgUnitHeadDto> AssignHeadAsync(Guid orgUnitId, string headUserId, string actorUserId, CancellationToken ct = default);
+
+    /// <summary>Clears the org unit head.</summary>
+    Task RemoveHeadAsync(Guid orgUnitId, string actorUserId, CancellationToken ct = default);
 }

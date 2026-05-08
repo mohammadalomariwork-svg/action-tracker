@@ -1,6 +1,8 @@
 using System.Text;
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.KpiActuals.Interfaces;
+using ActionTracker.Application.Features.StrategicPlans.Workflow;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Services;
 using ActionTracker.Application.Features.EmailTemplates;
@@ -25,6 +27,7 @@ using ActionTracker.Domain.Entities;
 using ActionTracker.Application.Features.Kpis.Interfaces;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
+using ActionTracker.Application.Features.StrategicPlans.Interfaces;
 using ActionTracker.Application.Features.UserManagement.Interfaces;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -116,6 +119,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IActionItemWorkflowService, ActionItemWorkflowService>();
         services.AddScoped<IWorkflowNotificationHelper, WorkflowNotificationHelper>();
         services.AddScoped<IProjectWorkflowService, ProjectWorkflowService>();
+        services.AddScoped<IApprovalAuthorityResolver, ApprovalAuthorityResolver>();
+        services.AddScoped<IStrategicPlanWorkflowService, StrategicPlanWorkflowService>();
+        services.AddScoped<IStrategicPlanApproverService, StrategicPlanApproverService>();
+        services.AddScoped<IStrategicPlanLockGuard, StrategicPlanLockGuard>();
+
+        // KPI Actuals (CR-001-F)
+        services.AddScoped<KpiActualService>();
+        services.AddScoped<IKpiActualService>(sp => sp.GetRequiredService<KpiActualService>());
+        services.AddScoped<IKpiActualWorkflowService, KpiActualWorkflowService>();
 
         // Permissions Management
         services.AddScoped<IRolePermissionService,          RolePermissionService>();
@@ -254,6 +266,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserLookupService,         UserLookupService>();
         services.AddScoped<IOrgUnitService,            OrgUnitService>();
         services.AddScoped<IStrategicObjectiveService, StrategicObjectiveService>();
+        services.AddScoped<IStrategicPlanService,      StrategicPlanService>();
         services.AddScoped<IKpiService,                KpiService>();
         services.AddScoped<IWorkspaceService,          WorkspaceService>();
         return services;

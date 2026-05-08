@@ -73,6 +73,18 @@ function visibleMonths(period: MeasurementPeriod): number[] {
 })
 export class KpiTargetsComponent implements OnInit {
   @Input() kpiId!: string;
+  /** When true, hides breadcrumb / page header / back-button chrome so the
+   *  component can be embedded inside a drawer or modal. */
+  @Input() embedded = false;
+  /** When true, target/actual/notes are read-only and Save All is disabled.
+   *  Set this when the parent strategic plan is Approved (no in-flight Revision)
+   *  or Archived. */
+  @Input() locked = false;
+  /** Lower bound for the year picker; when both bounds are set the selector
+   *  clamps to `[planStartYear, planEndYear]`. Pass null/undefined to keep the
+   *  legacy free-navigation behaviour (full-page route). */
+  @Input() planStartYear: number | null = null;
+  @Input() planEndYear: number | null = null;
 
   private readonly kpiService      = inject(KpiService);
   private readonly documentService = inject(DocumentService);
@@ -99,7 +111,36 @@ export class KpiTargetsComponent implements OnInit {
     // Support both route param and @Input
     const routeId = this.route.snapshot.paramMap.get('kpiId');
     if (routeId) this.kpiId = routeId;
+
+    // When the parent passes a plan year range, clamp the initial selection
+    // into that range so the user lands on a year that has targets.
+    const start = this.planStartYear;
+    const end   = this.planEndYear;
+    if (start != null && end != null) {
+      const initial = this.selectedYear();
+      if (initial < start) this.selectedYear.set(start);
+      else if (initial > end) this.selectedYear.set(end);
+    }
+
     this.loadKpi();
+  }
+
+  /** True when the year picker is locked to a single year — hides the next/prev
+   *  arrows in the template. */
+  get singleYearPlan(): boolean {
+    return this.planStartYear != null
+        && this.planEndYear   != null
+        && this.planStartYear === this.planEndYear;
+  }
+
+  /** Whether navigating by `delta` would land outside `[planStartYear, planEndYear]`. */
+  isYearStepDisabled(delta: number): boolean {
+    if (this.singleYearPlan) return true;
+    const start = this.planStartYear;
+    const end   = this.planEndYear;
+    if (start == null || end == null) return false;
+    const next = this.selectedYear() + delta;
+    return next < start || next > end;
   }
 
   // ── Data loading ─────────────────────────────────────────────────────────────
@@ -179,6 +220,7 @@ export class KpiTargetsComponent implements OnInit {
   // ── Year navigation ──────────────────────────────────────────────────────────
 
   changeYear(delta: number): void {
+    if (this.isYearStepDisabled(delta)) return;
     this.selectedYear.update((y) => y + delta);
     this.loadKpi();
   }
@@ -203,9 +245,12 @@ export class KpiTargetsComponent implements OnInit {
         if (r.month !== row.month) return r;
         const t = parseFloat(r.draftTarget);
         const a = parseFloat(r.draftActual);
+        // When the parent plan is locked the Target column is read-only —
+        // pin it to the existing value regardless of any stale draftTarget.
+        const nextTarget = this.locked ? r.target : (isNaN(t) ? null : t);
         return {
           ...r,
-          target:  isNaN(t) ? null : t,
+          target:  nextTarget,
           actual:  isNaN(a) ? null : a,
           notes:   r.draftNotes,
           editing: false,

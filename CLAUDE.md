@@ -1,7 +1,7 @@
 # CLAUDE.MD — KU Action Tracker
 
 > **Purpose**: This file is read automatically by Claude Code at session start.
-> Keep it updated as features land. Last updated: 2026-04-13
+> Keep it updated as features land. Last updated: 2026-05-06
 
 ---
 
@@ -85,11 +85,32 @@ ACTION-TRACKER/
 - **ActionItem** — Core tracked item (title, description, status, priority, due date, assignee, org unit)
 - **ActionItemWorkflowRequest** — Date change and status change approval requests (pending/approved/rejected)
 - **ProjectApprovalRequest** — Project start-approval requests (pending/approved/rejected)
+- **StrategicPlan** — Time-bounded wrapper for strategic objectives; one active plan per org unit; status enum (Draft / PendingApproval / Approved / Archived)
+- **StrategicPlanApprovalRequest** — Approval request raised against a `StrategicPlan`. `RequestType` (`Initial` / `Revision`), `Status` (`Pending` / `Approved` / `Rejected`), with `AssignedReviewerUserId` resolved at submit time via `IApprovalAuthorityResolver`
+- **StrategicObjective** — Org-unit-scoped objective with optional FK to `StrategicPlan`; auto-generated `ObjectiveCode` (SO-001)
+- **Kpi** / **KpiTarget** — KPIs linked to objectives; period-aware monthly target rows. `KpiTarget` carries per-target details: `Baseline`, `DataSource`, `CalculationNotes`, and `Direction` (HigherIsBetter / LowerIsBetter / OnTarget)
+- **KpiActual** — Period-aware (Quarter / SemiAnnual / Annual) measured value of a `KpiTarget`. The actual itself acts as the workflow record (Status: Draft → PendingApproval → Approved/Rejected). Reviewer is the level-3 head from `IApprovalAuthorityResolver`. Stays editable when the parent plan is locked.
+- **Document** — Polymorphic file attachments; `KpiTarget` and `KpiActual` each capped at 10 docs and gated by strategic scope
 - **PermissionArea** — Logical grouping of permissions (e.g., "Actions", "Reports", "Admin")
 - **Permission** — Granular permission within an area (e.g., "Actions.Create", "Actions.Delete")
 - **RolePermission** — Maps a role to one or more permissions
-- **OrgUnit** — Organizational unit for scoped data access
+- **OrgUnit** — Organizational unit for scoped data access; optional `HeadUserId` (CR-001-H) — heads at level 3 act as the strategic-plan approver for their subtree
 - **User** — Synced from Azure AD; linked to roles and org units
+
+## Application Roles (`AppRoles` constants)
+
+Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeeder` deletes the deprecated **Manager** and **User** roles on every startup.
+
+- **Admin** — full access, unrestricted
+- **Workspace Admin** — workspace-scoped admin (creates workspaces, manages users in their org unit)
+- **PMO Head** — cross-portfolio visibility, approves charters
+- **PMO Analyst** — portfolio reporting / data entry, no approval
+- **Project Sponsor** — approves charter and closure
+- **Project Manager** — full project artifact and team management
+- **Project Coordinator** — supports PM (data entry, scheduling, documents)
+- **Team Member** — assigned action items, log progress
+- **Strategy Editor** — edits strategic objectives + KPIs in user's level-2 ancestor org unit and descendants only; assignment requires user OrgUnit at level ≥ 2
+- **Viewer** — legacy read-only role
 
 ---
 
@@ -102,6 +123,8 @@ ACTION-TRACKER/
 - [x] Org-unit-scoped data filtering (users see only their unit's data)
 - [x] Angular `HasPermissionDirective` for conditional UI rendering
 - [x] Role management UI
+- [x] Strategy Editor role with `IStrategicScopeService` for org-unit subtree scoping (Strategic Objectives, KPIs, KPI Targets, KpiTarget documents)
+- [x] Strategy Editor assignment guard — rejects users with no OrgUnit or OrgUnit at level < 2
 
 ### UI / UX
 - [x] Fluent / Palantir design aesthetic
@@ -128,7 +151,24 @@ ACTION-TRACKER/
 - [x] Project approval workflow (submit for approval, approve/reject, date freeze, PendingApproval status)
 - [x] Project Approvals tab on My Approvals page
 - [x] Date freeze enforcement (project, milestone, and action item dates locked after approval)
+- [x] Strategic Objectives + KPIs CRUD with role-based org-unit scoping
+- [x] Strategic Plans (CRUD, one active per org unit, time-bounded cycle, scope-aware filtering)
+- [x] Strategy page (`/strategy`) with org-unit picker and per-unit plan view (header card + objectives list, permission-gated Edit / Archive)
+- [x] PMO-initiated plan creation (Admin / PMO Head only) with fan-out notification (in-app + email) to in-scope Strategy Editors
+- [x] Cross-org-unit read access for PMO Head, PMO Analyst, Project Manager, and Workspace Admin (`StrategicPlans.View` / `StrategicObjectives.View` / `KPIs.View`); writes still gated by the standard `*.Create` / `*.Edit` / `*.Delete` policies
+- [x] Org-unit head designation (`HeadUserId`) with `IApprovalAuthorityResolver` walking to the closest level-3 ancestor for plan-approval routing (CR-001-H)
+- [x] Strategic plan approval workflow — Submit → PendingApproval → Approved/Draft, with email + in-app notifications, "Strategy Approvals" tab on My Approvals, and approval history on the Strategy page (CR-001-D)
+- [x] Post-approval edit lockdown via `IStrategicPlanLockGuard` — Approved plans block mutations to plan/objective/KPI/target unless an in-flight Revision request exists; Archived plans are always read-only (CR-001-E)
+- [x] Revision cycle — `POST /api/strategic-plans/workflow/request-revision` opens a Revision request that temporarily unlocks edits; review re-locks the plan
+- [x] Period-aware KPI Targets (Monthly/Quarterly/Semi-Annual/Yearly) with inline editing and Save All
+- [x] Per-KPI-Target details — Baseline, DataSource, CalculationNotes, Direction (Higher / Lower / OnTarget) — with null-means-no-change semantics on bulk upsert
+- [x] KPI Target evidence: up to 10 documents per target, scope-gated for Strategy Editors
+- [x] **KPI Actuals & evidence (CR-001-F)** — period-aware grid (Quarter / Semi / Annual), Strategy Editor → level-3 head approval workflow with submit/review/history, evidence attachments on each actual (10-doc cap, scope-gated), achievement % colouring driven by `KpiDirection`, period-end submit guard (`KpiPeriodCalendar`), and a "KPI Actuals" tab on My Approvals. Actuals bypass the plan lock — editable even on Approved plans.
+- [x] Workspace admin custom multi-select picker (filter across name/email/org-unit, lazy-loaded users)
+- [x] Auto-launch Swagger UI on .NET host startup in Development
 - [ ] Scheduled reminders (automated due-date reminders)
+- [ ] Audit trail / activity log
+- [ ] Advanced search (cross-entity, full-text)
 
 ---
 
@@ -168,6 +208,7 @@ ACTION-TRACKER/
 - **Migrations**: EF Core code-first migrations
 - **Connection**: SQL Server instance `localhost`, database `ActionTrackerDb`
 - **Soft deletes**: Use `IsDeleted` flag, never hard delete user data
+- **migrations**: do not do migrations that make data loose
 
 
 

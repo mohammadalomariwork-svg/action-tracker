@@ -19,7 +19,21 @@
       "Bash(powershell -NoProfile -Command \"Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Get-ExecutionPolicy -List | Format-Table -AutoSize\")",
       "PowerShell(head -30)",
       "Bash(node -p \"require\\('./node_modules/@ng-select/ng-select/package.json'\\).version\")",
-      "Bash(Find \"c:\\\\Development Work\\\\action-tracker\\\\frontend\" -name \"*.component.ts\" -type f)"
+      "Bash(Find \"c:\\\\Development Work\\\\action-tracker\\\\frontend\" -name \"*.component.ts\" -type f)",
+      "Bash(npx --no-install ng build --configuration development)",
+      "Bash(xargs grep -n \"GetByIdAsync\")",
+      "Bash(grep -i \"\\\\.cs$\")",
+      "Bash(grep -E \"\\\\.\\(ts|html\\)$\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Development Work\\\\action-tracker\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Development Work\\\\action-tracker\" -Directory)",
+      "Bash(npx tsc *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Development Work\\\\action-tracker\\\\frontend\\\\action-tracker-ui\" -Recurse -Include \"*.ts\" -Filter \"*objective-detail*\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(ls -la \"c:\\\\Development Work\\\\action-tracker\\\\\" 2>/dev/null | head -20)",
+      "Read(//c/Development Work/action-tracker\" 2>/dev/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Development Work\\\\action-tracker\\\\frontend\\\\action-tracker-ui\" -Recurse -Filter \"plan-form-dialog*\" -ErrorAction SilentlyContinue)",
+      "Bash(xargs grep -l \"IWorkflowService\\\\|WorkflowService\")"
     ]
   }
 }

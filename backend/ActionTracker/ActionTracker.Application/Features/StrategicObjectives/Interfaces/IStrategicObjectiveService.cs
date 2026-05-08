@@ -30,4 +30,12 @@ public interface IStrategicObjectiveService
 
     /// <summary>Returns all non-deleted strategic objectives belonging to the specified org unit, scoped to the caller when provided.</summary>
     Task<List<StrategicObjectiveDto>> GetByOrgUnitAsync(Guid orgUnitId, string? currentUserId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns all non-deleted strategic objectives that belong to the specified
+    /// strategic plan. Used by the strategy page to load objectives keyed to the
+    /// currently-viewed plan rather than the org unit, so legacy/orphan objectives
+    /// or objectives from other plans cannot leak into the response.
+    /// </summary>
+    Task<List<StrategicObjectiveDto>> GetByPlanAsync(Guid strategicPlanId, string? currentUserId = null, CancellationToken ct = default);
 }

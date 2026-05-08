@@ -24,15 +24,34 @@ public class StrategicScopeService : IStrategicScopeService
         _scopeResolver = scopeResolver;
     }
 
+    /// <summary>
+    /// Roles that are explicitly read-unrestricted across all org units for
+    /// strategic plans, objectives, and KPIs (CR-001-I). Write access remains
+    /// gated by the regular {Area}.{Action} permission policies.
+    /// </summary>
+    private static readonly string[] ReadUnrestrictedRoles =
+    {
+        AppRoles.Admin,
+        AppRoles.PmoHead,
+        AppRoles.PmoAnalyst,
+        AppRoles.ProjectManager,
+        AppRoles.WorkspaceAdmin,
+    };
+
     public async Task<List<Guid>?> GetVisibleOrgUnitIdsAsync(
         string userId, CancellationToken ct = default)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null) return new List<Guid>();
 
-        // Admin: unrestricted.
-        if (await _userManager.IsInRoleAsync(user, AppRoles.Admin))
-            return null;
+        // Roles that are intentionally treated as read-unrestricted (CR-001-I).
+        // Write paths are still gated by *.Create / *.Edit / *.Delete policies,
+        // so PMO/PM users with View-only permissions cannot mutate data.
+        foreach (var role in ReadUnrestrictedRoles)
+        {
+            if (await _userManager.IsInRoleAsync(user, role))
+                return null;
+        }
 
         // No StrategyEditor role: not affected by this scope (other policies apply).
         if (!await _userManager.IsInRoleAsync(user, AppRoles.StrategyEditor))

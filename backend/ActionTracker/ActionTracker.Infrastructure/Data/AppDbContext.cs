@@ -29,8 +29,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<KuEmployeeInfo>      KuEmployeeInfo       => Set<KuEmployeeInfo>();
     public DbSet<OrgUnit>             OrgUnits             => Set<OrgUnit>();
     public DbSet<StrategicObjective>  StrategicObjectives  => Set<StrategicObjective>();
+    public DbSet<StrategicPlan>       StrategicPlans       => Set<StrategicPlan>();
     public DbSet<Kpi>                 Kpis                 => Set<Kpi>();
     public DbSet<KpiTarget>           KpiTargets           => Set<KpiTarget>();
+    public DbSet<KpiActual>           KpiActuals           => Set<KpiActual>();
     public DbSet<Workspace>           Workspaces           => Set<Workspace>();
     public DbSet<WorkspaceAdmin>      WorkspaceAdmins      => Set<WorkspaceAdmin>();
 
@@ -60,6 +62,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     // ── Workflow feature sets ────────────────────────────────────────────────
     public DbSet<ActionItemWorkflowRequest> ActionItemWorkflowRequests => Set<ActionItemWorkflowRequest>();
     public DbSet<ProjectApprovalRequest> ProjectApprovalRequests => Set<ProjectApprovalRequest>();
+    public DbSet<StrategicPlanApprovalRequest> StrategicPlanApprovalRequests => Set<StrategicPlanApprovalRequest>();
+    public DbSet<StrategicPlanApprover> StrategicPlanApprovers => Set<StrategicPlanApprover>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,12 +94,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<ActionItem>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted);
+        modelBuilder.Entity<StrategicPlan>().HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
         modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted);
         modelBuilder.Entity<EmailTemplate>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ProjectRisk>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<ProjectApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
+        modelBuilder.Entity<StrategicPlanApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
+        modelBuilder.Entity<KpiActual>().HasQueryFilter(a => !a.IsDeleted);
 
         modelBuilder.Entity<Workspace>(entity =>
         {

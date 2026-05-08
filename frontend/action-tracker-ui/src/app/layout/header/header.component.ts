@@ -64,6 +64,12 @@ const NAV_LINKS: NavLink[] = [
     visibleWhen: { area: 'Workspaces', action: 'View' },
   },
   {
+    label: 'Strategy',
+    icon: 'bi-bullseye',
+    path: '/strategy',
+    visibleWhen: { area: 'StrategicPlans', action: 'View' },
+  },
+  {
     label: 'Notifications',
     icon: 'bi-bell',
     path: '/notifications',

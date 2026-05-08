@@ -86,6 +86,18 @@ public class StrategicObjectivesController : ControllerBase
         return Ok(ApiResponse<List<StrategicObjectiveDto>>.Ok(result));
     }
 
+    /// <summary>Get all strategic objectives belonging to a specific strategic plan. Used by the strategy page to scope objectives strictly to the currently-viewed plan.</summary>
+    [HttpGet("by-plan/{planId:guid}")]
+    [Authorize(Policy = PermissionPolicies.StrategicObjectivesView)]
+    [ProducesResponseType(typeof(ApiResponse<List<StrategicObjectiveDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByPlan(Guid planId, CancellationToken ct = default)
+    {
+        _logger.LogInformation("GET /api/strategicobjectives/by-plan/{PlanId}", planId);
+
+        var result = await _service.GetByPlanAsync(planId, CurrentUserId, ct);
+        return Ok(ApiResponse<List<StrategicObjectiveDto>>.Ok(result));
+    }
+
     // -------------------------------------------------------------------------
     // POST api/strategicobjectives
     // -------------------------------------------------------------------------

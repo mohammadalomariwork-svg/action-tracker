@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-05-04
+> Last updated: 2026-05-08
 
 ## Tech Stack
 
@@ -47,12 +47,16 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 ### Authorization Model
 
 **Role-Based Access Control (RBAC)**
-- Pre-seeded roles: Admin, Manager, User, Viewer
+- Centralized in `ActionTracker.Domain.Constants.AppRoles` (single source of truth)
+- Pre-seeded roles (10): **Admin**, **Workspace Admin**, **PMO Head**, **PMO Analyst**, **Project Sponsor**, **Project Manager**, **Project Coordinator**, **Team Member**, **Strategy Editor**, **Viewer**
+- Deprecated roles **Manager** and **User** are auto-deleted by `RoleSeeder` on every startup (idempotent)
 - ASP.NET Identity roles with role claims in JWT
+- `DefaultRolePermissionsSeeder` seeds a per-role permission matrix on startup, idempotent (skips rows that already exist)
+- **Strategy Editor** is granted View/Create/Edit/Delete on Strategic Objectives and KPIs, plus View on Dashboard / OrgChart / Notifications. Effective scope is enforced at the service layer via `IStrategicScopeService`
 
 **Fine-Grained Permissions (RBAC + ABAC Hybrid)**
 - Permissions defined as Area.Action pairs (e.g., `Projects.View`, `ActionItems.Delete`)
-- **15 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks
+- **17 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**
 - **7 Actions:** View, Create, Edit, Delete, Approve, Export, Assign
 - Stored in `RolePermission` (role-level) and `UserPermissionOverride` (user-level) tables
 - **Effective Permissions** = Role Permissions + User Overrides (denials take precedence)
@@ -71,6 +75,17 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 - Workspaces linked to org unit via `Workspace.OrgUnitId`
 - `IOrgUnitScopeResolver` resolves visible org units (assigned unit + all descendants)
 - Controllers filter queries by `VisibleOrgUnitIds`
+
+**Strategic Scope Service (`IStrategicScopeService`)**
+- Implementation: `Infrastructure.Services.StrategicScopeService`
+- Adds a second, role-driven layer of scoping for **Strategic Objectives**, **KPIs**, **KPI Targets**, and **`KpiTarget` documents**
+- `GetVisibleOrgUnitIdsAsync(userId)`:
+  - **Admin** → returns `null` (unrestricted)
+  - **Strategy Editor** → returns user's org-unit IDs from `IOrgUnitScopeResolver` (level-2 ancestor + descendants); empty list when user has no `OrgUnitId`
+  - Any other role → returns `null` (unrestricted; existing permission policies decide)
+- `EnsureCanWriteAsync(userId, orgUnitId)` throws `UnauthorizedAccessException` if `orgUnitId` is outside the user's visible set
+- Wired into `StrategicObjectiveService`, `KpiService`, and `DocumentService` (the latter only for `KpiTarget` documents)
+- **Strategy Editor role assignment** (`UserManagementService.UpdateRoleAsync`) is rejected unless the target user has an active org unit at level 2 or deeper
 
 ---
 
@@ -115,14 +130,20 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | POST | `/` | Create workspace |
 | PUT | `/{id}` | Update workspace |
 | GET | `/org-units` | Org units for dropdown |
-| GET | `/active-users` | Active users for the workspace admin picker — returns `{Id, DisplayName, Email, OrgUnitName}` (searchable in the multi-select) |
+| GET | `/active-users` | Active users for the workspace admin picker — returns `{Id, DisplayName, Email, OrgUnitName}` (searchable across name, email, and org unit) |
 | DELETE | `/{id}` | Soft delete (sets IsActive=false) |
 | PATCH | `/{id}/restore` | Restore deleted workspace |
 
 ### ProjectsController (`/api/projects`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Paginated, filtered projects (org-unit scoped) |
+| GET | `/` | Paginated, filtered projects (org-unit scoped). Optional `strategicObjectiveIds` query param (repeated) returns only projects linked to one of those objectives — used by the strategy page's in-page Strategic Projects section. |
+
+### StrategicObjectivesController (`/api/strategicobjectives`) — by-plan addition
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/by-plan/{planId}` | Returns all non-deleted strategic objectives that belong to the specified `StrategicPlan`. Used by the strategy page to scope objectives strictly to the currently-viewed plan; refuses to return data when the plan's owning org unit is outside the caller's role-based scope. |
+| POST | `/` | Create objective. The DTO now accepts an optional `StrategicPlanId`: when supplied, the service validates the plan exists, isn't archived, isn't locked, and the request's `OrgUnitId` is inside the plan's subtree (via `IOrgUnitScopeResolver.GetDescendantOrgUnitIdsAsync`) — then attaches the objective to that plan directly. Lets the Strategy page create objectives in sub-units that don't have their own plan while keeping them linked to the parent plan. When `StrategicPlanId` is omitted (admin / legacy flow) the service falls back to auto-linking the new row to the org unit's newest non-archived plan, or `null` if none exists. |
 | GET | `/{id}` | Single project |
 | POST | `/` | Create project (status=Draft) |
 | PUT | `/{id}` | Update project |
@@ -219,6 +240,10 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | PUT | `/{id}` | Update org unit |
 | DELETE | `/{id}` | Soft delete (cascades to descendants) |
 | POST | `/{id}/restore` | Restore deleted org unit |
+| GET | `/{id}/head` | Returns the org unit head (CR-001-H) or null |
+| PUT | `/{id}/head` | Assign or replace the org unit head — body `{ userId }`. Permission: `OrgChart.AssignHead` |
+| DELETE | `/{id}/head` | Clear the org unit head |
+| GET | `/{id}/plan-approver` | Resolves the level-3 ancestor's head (`IApprovalAuthorityResolver`) — used by the frontend to preview who will receive the approval request |
 
 ### PermissionCatalogController (`/api/permission-catalog`)
 | Method | Endpoint | Description |
@@ -261,29 +286,48 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/me/effective` | Effective permissions for current user |
 
 ### StrategicObjectivesController (`/api/strategicobjectives`)
+All endpoints scoped through `IStrategicScopeService` — Strategy Editors see only their org-unit subtree. PMO Head, PMO Analyst, Project Manager, and Workspace Admin are explicitly read-unrestricted across org units (CR-001-I); writes still gated by their permission set.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Paged list (filterable by org unit) |
-| GET | `/{id}` | Single objective |
-| GET | `/by-orgunit/{orgUnitId}` | Objectives for org unit |
-| POST | `/` | Create (auto-generates ObjectiveCode SO-001) |
-| PUT | `/{id}` | Update |
-| DELETE | `/{id}` | Soft delete |
-| POST | `/{id}/restore` | Restore |
+| GET | `/` | Paged list (filterable by org unit, scope-filtered) |
+| GET | `/{id}` | Single objective (returns 404 when out of scope). Response is enriched with parent strategic-plan context (`strategicPlanId`, `strategicPlanName`, `strategicPlanStatus`, `planStartYear`, `planEndYear`, `isPlanLocked`) so the UI can gate edits and constrain the year picker without a second round-trip; the list endpoints leave these fields null to avoid an N+1 lock-guard probe per row |
+| GET | `/by-orgunit/{orgUnitId}` | Objectives for org unit (empty list when out of scope) |
+| POST | `/` | Create (auto-generates ObjectiveCode SO-001; write scope enforced) |
+| PUT | `/{id}` | Update (scope enforced on both source and target org unit) |
+| DELETE | `/{id}` | Soft delete (write scope enforced) |
+| POST | `/{id}/restore` | Restore (write scope enforced) |
+
+### StrategicPlansController (`/api/strategic-plans`)
+All endpoints scoped through `IStrategicScopeService`. Permission policies: `StrategicPlans.{View|Create|Edit|Delete|Approve}`. Create is restricted to **Admin** and **PMO Head** only (CR-001-C); Strategy Editor holds only View + Edit.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/?orgUnitId&status&year&page&pageSize&includeDeleted` | Paged list, scope-filtered |
+| GET | `/{id}` | Single plan |
+| GET | `/by-orgunit/{orgUnitId}` | All plans for an org unit |
+| GET | `/by-orgunit/{orgUnitId}/active` | The single Approved or PendingApproval plan, or 404 |
+| POST | `/` | Create — returns 409 if an active plan already exists for the org unit; on success fires in-app + `StrategicPlan.Initiated` email to every Strategy Editor whose `OrgUnitId` is in the plan's subtree |
+| PUT | `/{id}` | Update name, start year, duration. `OrgUnitId` is now mutable on **Draft** plans only — pass it to re-assign the plan; the service rejects targets that already host another non-archived plan and verifies write scope on the destination. Linked `StrategicObjective.OrgUnitId` rows are cascaded to the new unit in the same `SaveChangesAsync` so plan + objective references stay aligned. Non-Draft statuses (PendingApproval / Approved / Archived) reject the change with a 400 |
+| GET | `/{id}/approvers` | Returns the plan's configured ordered approval chain (`StrategicPlanApproverDto[]`). Same scope rules as the rest of the strategy reads. Empty list = legacy single-level fallback (CR-001-H level-3 head). |
+| PUT | `/{id}/approvers` | Replace-the-chain upsert. Body: `{ approvers: [{ userId, order }, ...] }`. Server normalises gaps + duplicates, validates every user id maps to an active user, then wipes existing rows and re-inserts the new chain in one transaction. **Rejected** on any non-Draft status (chain freezes at submit time so in-flight requests' levels stay consistent). |
+| DELETE | `/{id}` | Soft delete — returns 409 if any non-deleted objective references the plan |
+| PATCH | `/{id}/restore` | Restore a soft-deleted plan |
 
 ### KpisController (`/api/kpis`)
+All endpoints scoped through `IStrategicScopeService` — applied via the parent strategic objective's org unit.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Paged KPIs (filterable by objective) |
-| GET | `/{id}` | Single KPI with targets (filterable by year) |
-| GET | `/by-objective/{objectiveId}` | KPIs for objective |
-| POST | `/` | Create KPI (auto-assigns KpiNumber per objective) |
-| PUT | `/{id}` | Update KPI |
-| DELETE | `/{id}` | Soft delete |
-| POST | `/{id}/restore` | Restore |
-| POST | `/targets/upsert` | Upsert single target for month |
-| POST | `/targets/bulk-upsert` | Upsert all monthly targets for KPI/year |
-| GET | `/{id}/targets` | All targets for KPI/year |
+| GET | `/` | Paged KPIs (filterable by objective, scope-filtered) |
+| GET | `/{id}` | Single KPI with targets (returns 404 when out of scope) |
+| GET | `/by-objective/{objectiveId}` | KPIs for objective (empty when out of scope) |
+| POST | `/` | Create KPI (auto-assigns KpiNumber per objective; write scope enforced) |
+| PUT | `/{id}` | Update KPI (write scope enforced) |
+| DELETE | `/{id}` | Soft delete (write scope enforced) |
+| POST | `/{id}/restore` | Restore (write scope enforced) |
+| POST | `/targets/upsert` | Upsert single target for month (write scope enforced) |
+| POST | `/targets/bulk-upsert` | Upsert all monthly targets for KPI/year (write scope enforced) |
+| GET | `/{id}/targets` | All targets for KPI/year (empty when out of scope) |
+
+Controller error mapping for KPIs and Strategic Objectives: `UnauthorizedAccessException` → 403 Forbidden, `KeyNotFoundException` → 404, `ArgumentException` → 400 Bad Request.
 
 ### CommentsController (`/api/comments`)
 | Method | Endpoint | Description |
@@ -297,9 +341,12 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Documents by entity (entityType + entityId query params) |
-| POST | `/` | Upload document (multipart, max 10MB) |
+| POST | `/` | Upload document (multipart, max 10 MB; whitelist: PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX) |
 | GET | `/{id}/download` | Download document |
 | DELETE | `/{id}` | Delete document |
+
+**Per-entity-type document caps:** `KpiTarget` is limited to 10 documents per record (`MaxDocumentsPerEntity` lookup in `DocumentService`).
+**Scope enforcement:** uploads/deletes for `entityType=KpiTarget` traverse `KpiTarget → Kpi → StrategicObjective → OrgUnit` and call `IStrategicScopeService.EnsureCanWriteAsync` — Strategy Editors cannot manipulate evidence outside their scope.
 
 ### ProfileController (`/api/profile`)
 | Method | Endpoint | Description |
@@ -330,6 +377,46 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/my-requests` | Get approval requests submitted by current user |
 | GET | `/pending-summary` | Get pending project approval count for badge |
 | GET | `/can-review/{projectId}` | Check if current user can review a project |
+
+### StrategicPlanWorkflowController (`/api/strategic-plans/workflow`)
+Mirrors the project workflow controller for strategic plans (CR-001-D + CR-001-E). **Reviewer routing**: when the plan has a configured approval chain (`PUT /api/strategic-plans/{id}/approvers`), the workflow uses sequential multi-level approval — only the level-1 reviewer gets a Pending request; on each Approve a new Pending row is created for level N+1 and the previous row is marked Approved; the plan only flips to `Approved` on the **final-level** approval. Rejection at any level rolls the plan back to `Draft`. With **no chain configured**, falls back to the legacy single-level resolver (`IApprovalAuthorityResolver` → level-3 ancestor's head). Edit-lockdown for Approved plans is enforced by `IStrategicPlanLockGuard` inside the strategy graph services (mutations return 409 when locked).
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/submit` | Submit a Draft plan for initial approval. Validates: at least one objective + one KPI per objective; if no chain is configured, the level-3 head must be configured. Stamps `Level=1` and `TotalLevels=chain.Count` (or `1` for the fallback path) on the resulting request row |
+| POST | `/request-revision` | Open a Revision request against an Approved plan (CR-001-E). Same multi-level routing as `/submit` — single in-flight revision at a time |
+| PUT | `/requests/{requestId}/review` | Approve / reject an Initial or Revision request (reviewer or Admin). Comment required on rejection. Multi-level: a non-final-level Approve creates the next-level Pending row + sends a Submit-style notification to the next approver, leaving plan-level state alone |
+| GET | `/plan/{planId}` | All approval requests for a plan (history) |
+| GET | `/pending-reviews` | Pending requests where current user is the assigned reviewer (or Admin sees all) |
+| GET | `/my-requests` | Requests submitted by the current user |
+| GET | `/pending-summary` | Pending count for the header badge aggregator |
+| GET | `/can-review/{planId}` | Whether the current user can review the plan's latest pending request |
+| GET | `/lock-state/{planId}` | `{ planId, status, isLocked, pendingRevisionId }` — drives the lock banners on the Strategy page |
+
+### KpiActualsController (`/api/kpis/actuals`)
+CR-001-F. Period-aware CRUD for `KpiActual` plus evidence document operations. All endpoints are scope-filtered through `IStrategicScopeService` based on the parent KPI's org unit.
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/by-kpi/{kpiId}?year=` | `KpiActuals.View` | All actuals for a KPI in the given year (history, all targets) |
+| GET | `/grid?kpiTargetId=&year=` | `KpiActuals.View` | One row per period slot for a target (Q1..Q4 / H1..H2 / Annual) with `current` actual + period-end metadata |
+| GET | `/history?kpiTargetId=&periodType=&periodIndex=&year=` | `KpiActuals.View` | Full history (including rejected) for a single (target, period, year) slot |
+| GET | `/{id}` | `KpiActuals.View` | Single actual with target/KPI context |
+| POST | `/` | `KpiActuals.Create` | Create a Draft. 409 if an active (non-rejected) actual exists for that slot |
+| PUT | `/{id}` | `KpiActuals.Edit` | Update Draft (rejected once `Status != Draft`) |
+| DELETE | `/{id}` | `KpiActuals.Edit` | Soft-delete Draft |
+| GET | `/{id}/documents` | `KpiActuals.View` | List evidence (delegates to `DocumentService`) |
+| POST | `/{id}/documents` | `KpiActuals.Edit` | Upload evidence; 10-doc cap (409 on overflow), scope-gated for Strategy Editors |
+| DELETE | `/{id}/documents/{documentId}` | `KpiActuals.Edit` | Remove evidence |
+
+### KpiActualsWorkflowController (`/api/kpis/actuals/workflow`)
+CR-001-F. The actual itself is the workflow record — no separate request entity. Reviewer is resolved at submit time via `IApprovalAuthorityResolver` (level-3 head). Mirrors the strategic-plan workflow shape.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/submit` | Submit a Draft. 400 if the period has not yet ended (`KpiPeriodCalendar`); 409 if no level-3 head configured |
+| PUT | `/requests/{actualId}/review` | Approve / reject. Comment required on reject. Rejected is final (submitter must create a new draft) |
+| GET | `/pending-reviews` | Pending actuals where current user is the assigned reviewer (or Admin sees all) |
+| GET | `/my-requests` | Actuals the current user submitted or created |
+| GET | `/pending-summary` | `{ pendingKpiActuals }` for the header badge aggregator |
+| GET | `/can-review/{actualId}` | Whether the current user can review the actual |
 
 ### ReportsController (`/api/reports`)
 | Method | Endpoint | Description |
@@ -451,8 +538,41 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | Code | string? | Optional code |
 | Level | int | Hierarchy depth |
 | ParentId | Guid? (FK) | Parent org unit (tree structure) |
+| HeadUserId | string? (FK → AspNetUsers, OnDelete: SetNull) | Designated head user (CR-001-H). Heads at Level 3 act as the strategic-plan approver for their subtree. |
 | IsDeleted | bool | Soft delete (cascades to descendants) |
-| **Nav:** | | Parent, Children, StrategicObjectives |
+| **Nav:** | | Parent, Children, StrategicObjectives, StrategicPlans, HeadUser |
+
+#### StrategicPlan
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| OrgUnitId | Guid (FK) | Scoped to org unit |
+| Name | string (≤ 200) | Plan name |
+| StartYear | int (2000–2100) | Cycle start year |
+| DurationYears | int (1–10) | Cycle duration |
+| EndYear | int (computed) | `StartYear + DurationYears - 1` |
+| Status | enum (StrategicPlanStatus) | Draft / PendingApproval / Approved / Archived |
+| ApprovedAtUtc | DateTime? | Set when transitioned to Approved |
+| ApprovedByUserId | string? (FK) | Approving user |
+| IsDeleted | bool | Soft delete (delete blocked while non-deleted objectives exist) |
+| **Index:** | | Filtered unique on `OrgUnitId` where `IsDeleted=0 AND Status IN (1,2)` — at most one active plan per org unit |
+| **Nav:** | | OrgUnit, Objectives (StrategicObjective) |
+
+#### StrategicPlanApprovalRequest (CR-001-D + CR-001-E)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| StrategicPlanId | Guid (FK, cascade) | Owning plan |
+| RequestType | enum (StrategicPlanApprovalRequestType) | Initial / Revision |
+| Status | enum (StrategicPlanApprovalStatus) | Pending / Approved / Rejected |
+| RequestedByUserId / RequestedByDisplayName | string | Submitter |
+| AssignedReviewerUserId / AssignedReviewerDisplayName | string? | Reviewer expected to action — resolved at submit via `IApprovalAuthorityResolver` |
+| ReviewedByUserId / ReviewedByDisplayName | string? | Actual reviewer (captured on review) |
+| Justification | string (≤ 2000) | Required reason from submitter |
+| ReviewerComment | string? (≤ 2000) | Required on rejection |
+| CreatedAt / ReviewedAt | DateTime / DateTime? | Audit timestamps |
+| IsDeleted | bool | Soft delete |
+| **Indexes:** | | `(StrategicPlanId, Status)` filtered on `IsDeleted=0`; `(AssignedReviewerUserId, Status)`; `RequestedByUserId` |
 
 #### StrategicObjective
 | Field | Type | Description |
@@ -461,8 +581,9 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | ObjectiveCode | string | Auto-generated (SO-001) |
 | Statement | string | Objective statement |
 | OrgUnitId | Guid (FK) | Scoped to org unit |
+| StrategicPlanId | Guid? (FK) | Optional FK to parent plan (nullable during the migration window — backfilled to a "Legacy Strategy" plan) |
 | IsDeleted | bool | Soft delete |
-| **Nav:** | | OrgUnit, Kpis |
+| **Nav:** | | OrgUnit, StrategicPlan, Kpis |
 
 #### Kpi
 | Field | Type | Description |
@@ -484,7 +605,36 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | KpiId | Guid (FK) | Parent KPI |
 | Year | int | Target year |
 | Month | int | Target month (1-12) |
-| TargetValue | decimal | Target value for this month |
+| Target | decimal? | Target value for this month |
+| Actual | decimal? | Actual value recorded |
+| Notes | string? (≤ 500) | Free-form notes |
+| Baseline | decimal? | Reference value used to compute progress (CR-001-G) |
+| DataSource | string? (≤ 500) | Source of the metric (CR-001-G) |
+| CalculationNotes | string? (≤ 2000) | Target-specific calculation notes (CR-001-G) |
+| Direction | enum (KpiDirection) | HigherIsBetter (default) / LowerIsBetter / OnTarget (CR-001-G) |
+
+#### KpiActual (CR-001-F)
+Period-aware measured value. Acts as its own workflow record (Status / Submitted* / Reviewed* fields live on the entity).
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| KpiTargetId | Guid (FK, cascade) | Parent target |
+| PeriodType | enum (KpiActualPeriodType) | Quarter / SemiAnnual / Annual — must match parent KPI's `MeasurementPeriod` |
+| PeriodIndex | int | Q1=1..Q4=4 / H1=1, H2=2 / Annual=1 (CHECK constraint enforces ranges) |
+| Year | int | Reporting year |
+| ActualValue | decimal(18,4) | Measured value |
+| Notes | string? (≤ 2000) | Optional notes |
+| Status | enum (KpiActualStatus) | Draft / PendingApproval / Approved / Rejected |
+| SubmittedByUserId / DisplayName | string? | Set on submit |
+| SubmittedAtUtc | DateTime? | Set on submit |
+| AssignedReviewerUserId / DisplayName | string? | Resolved at submit time via `IApprovalAuthorityResolver` |
+| ReviewedByUserId / DisplayName | string? | Set on approve/reject |
+| ReviewedAtUtc | DateTime? | Set on approve/reject |
+| ReviewerComment | string? (≤ 2000) | Required on reject |
+| IsDeleted | bool | Soft delete flag |
+| CreatedAtUtc / ModifiedAtUtc | DateTime / DateTime? | Audit timestamps |
+| **Indexes:** | | `(KpiTargetId, Year)`; `(AssignedReviewerUserId, Status)`; filtered unique `(KpiTargetId, PeriodType, PeriodIndex, Year)` where `IsDeleted=0 AND Status<>Rejected` |
+| **Nav:** | | KpiTarget |
 
 #### ApplicationUser (extends IdentityUser)
 | Field | Type | Description |
@@ -569,6 +719,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | ActionItemEscalation | Escalation tracking for overdue items |
 | ActionItemWorkflowRequest | Date change and status change approval requests (pending/approved/rejected) |
 | ProjectApprovalRequest | Project start-approval requests (pending/approved/rejected) |
+| StrategicPlanApprovalRequest | Strategic plan approval requests — `RequestType` (Initial/Revision), `Status` (Pending/Approved/Rejected), `AssignedReviewerUserId`, `ReviewedByUserId`, `Justification`, `ReviewerComment`. Cascade delete from `StrategicPlan` (CR-001-D / CR-001-E) |
 | ProjectSponsor | Sponsors linked to projects |
 | WorkspaceAdmin | Admin users per workspace |
 | RefreshToken | JWT refresh token storage with rotation |
@@ -621,6 +772,12 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | WorkflowRequestType | DateChangeRequest, StatusChangeRequest |
 | WorkflowRequestStatus | Pending, Approved, Rejected |
 | ProjectApprovalStatus | Pending, Approved, Rejected |
+| StrategicPlanStatus | Draft, PendingApproval, Approved, Archived |
+| StrategicPlanApprovalStatus | Pending, Approved, Rejected |
+| StrategicPlanApprovalRequestType | Initial, Revision |
+| KpiDirection | HigherIsBetter, LowerIsBetter, OnTarget |
+| KpiActualStatus | Draft, PendingApproval, Approved, Rejected |
+| KpiActualPeriodType | Quarter, SemiAnnual, Annual |
 
 ---
 
@@ -634,16 +791,23 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
 | `IMilestoneService` | CRUD per project, stats, baselining |
 | `IProjectRiskService` | CRUD per project, risk stats, scoring |
-| `IWorkspaceService` | CRUD, summary stats, admin assignment |
+| `IWorkspaceService` | CRUD, summary stats, admin assignment, enriched active-users dropdown (DisplayName/Email/OrgUnitName) |
 | `IDashboardService` | KPI metrics, management dashboard, team workload |
 | `INotificationService` | CRUD notifications, read/unread tracking, summary |
 | `IEmailTemplateService` | CRUD templates, delivery logging |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
-| `IUserManagementService` | CRUD users, role assignment, KU employee search, activation |
+| `IUserManagementService` | CRUD users, role assignment (with Strategy Editor org-unit-level guard), KU employee search, activation |
 | `ICommentService` | CRUD polymorphic comments (any entity type) |
-| `IDocumentService` | Upload, download, delete documents (polymorphic) |
-| `IStrategicObjectiveService` | CRUD by org unit, soft delete/restore |
-| `IKpiService` | CRUD, monthly targets, bulk upsert |
+| `IDocumentService` | Upload/download/delete documents (polymorphic); per-entity caps (`KpiTarget` and `KpiActual` each capped at 10); strategic-scope-aware writes for both target and actual evidence |
+| `IStrategicObjectiveService` | CRUD by org unit, soft delete/restore — all reads/writes go through `IStrategicScopeService` |
+| `IStrategicPlanService` | CRUD strategic plans, active-plan lookup, soft delete with delete-while-children block, uniqueness enforcement, in-app + email fan-out to in-scope Strategy Editors on creation. Update/Delete now lock-guarded (CR-001-E). |
+| `IStrategicPlanWorkflowService` | Submit / Request Revision / Review for strategic plans. Resolves reviewer via `IApprovalAuthorityResolver`, fires submit/review notifications, exposes `GetLockStateAsync` (CR-001-D + CR-001-E). |
+| `IStrategicPlanLockGuard` | `EnsureNotLockedAsync(planId)` / `EnsureNotLockedForOrgUnitAsync(orgUnitId)` (throwing) and `IsLockedAsync(planId)` / `IsLockedForOrgUnitAsync(orgUnitId)` (non-throwing) — sprinkled across plan/objective/KPI/target mutation handlers. Approved + no in-flight Revision ⇒ locked; Archived ⇒ always locked (CR-001-E). The non-throwing variants enable field-level lock decisions: `KpiService.BulkUpsertTargetsAsync` calls `IsLockedForOrgUnitAsync` and, when locked, pins `Target` / `Baseline` / `DataSource` / `CalculationNotes` / `Direction` to their stored values while accepting incoming `Actual` + `Notes` (per CR-001-F §4.5: actuals stay editable on locked plans). New month rows still throw, and any Target-value change still throws. |
+| `IApprovalAuthorityResolver` | Walks org-unit chain to closest level-3 ancestor and returns its head as the configured plan approver, or null when unconfigured (CR-001-H). |
+| `IKpiService` | CRUD, monthly targets, bulk upsert (extended with Baseline/DataSource/CalculationNotes/Direction; null-means-no-change) — all reads/writes scope-checked via parent objective's org unit, mutations lock-guarded (CR-001-E). |
+| `IKpiActualService` | CR-001-F. CRUD for KPI actuals, period-aware grid (`GetGridAsync`), per-slot history, cross-target list by KPI. Computes direction-aware achievement %. Scope-checked via parent KPI's org unit. **Does NOT call the plan lock guard** — actuals stay editable on Approved plans. |
+| `IKpiActualWorkflowService` | CR-001-F. Submit / Review for KPI actuals. Period-end gate via `KpiPeriodCalendar`. Reviewer resolved via `IApprovalAuthorityResolver` (level-3 head). Fires `KpiActual.Submitted` / `KpiActual.Reviewed` notifications + email + PMO Head cc. |
+| `IStrategicScopeService` | Resolves role-based org-unit visibility — Admin / PMO Head / PMO Analyst / Project Manager / Workspace Admin → unrestricted; Strategy Editor → user's level-2 ancestor + descendants; enforces write scope for strategic items |
 | `IOrgUnitService` | Tree, CRUD, soft delete hierarchy |
 | `IReportService` | CSV export, summary statistics |
 | `IRoleManagementService` | CRUD roles, user assignment, permission matrix |
@@ -683,9 +847,13 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 ## Database Seeding (Startup)
 
 1. **Auto-migrate** database on startup
-2. **RoleSeeder** - seeds Admin, Manager, User, Viewer roles
-3. **PermissionCatalogSeeder** - seeds permission areas, actions, area-action mappings
-4. **DefaultRolePermissionsSeeder** - seeds default permissions for each role
+2. **RoleSeeder** — seeds the 10 application roles (Admin, Workspace Admin, PMO Head, PMO Analyst, Project Sponsor, Project Manager, Project Coordinator, Team Member, Strategy Editor, Viewer); idempotent. Also deletes deprecated **Manager** and **User** roles when they are still present
+3. **PermissionCatalogSeeder** — seeds permission areas, actions, area-action mappings
+4. **DefaultRolePermissionsSeeder** — seeds default permissions for each role (idempotent — only inserts missing rows). Includes the Strategy Editor permission set (View/Create/Edit/Delete on Strategic Objectives + KPIs, View on Dashboard / OrgChart / Notifications)
+5. **AdminBootstrapSeeder** — seeds the bootstrap admin user
+
+### Developer Experience (Startup)
+- In **Development** environment, the host registers an `ApplicationStarted` callback that opens the system browser to `{baseUrl}/swagger` automatically. Works regardless of `dotnet run` / Visual Studio / VS Code launch path. `launchSettings.json` keeps `launchBrowser=false` to prevent duplicate tabs.
 
 ---
 
@@ -707,6 +875,9 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | Token Rotation | Refresh tokens invalidated on use for security |
 | Cascade Deletes | Soft-deleting projects cascades to milestones and action items |
 | SignalR | Real-time communication hub for notifications |
+| Centralized Role Constants | All role names live in `AppRoles` — no magic strings |
+| Two-Layer Org Scoping | `IOrgUnitScopeResolver` (data-tier visibility) + `IStrategicScopeService` (role-driven Strategy/KPI scope) |
+| Per-Entity Document Caps | Document attachments throttled per entity type (e.g. KpiTarget → 10 files) |
 
 ---
 

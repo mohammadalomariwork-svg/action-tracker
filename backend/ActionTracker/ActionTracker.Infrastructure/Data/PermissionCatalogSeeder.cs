@@ -28,6 +28,8 @@ public static class PermissionCatalogSeeder
     public static readonly Guid AreaRisks                   = new("10000013-0000-0000-0000-000000000000");
     public static readonly Guid AreaEmailTemplates           = new("10000014-0000-0000-0000-000000000000");
     public static readonly Guid AreaNotifications            = new("10000015-0000-0000-0000-000000000000");
+    public static readonly Guid AreaStrategicPlans           = new("10000016-0000-0000-0000-000000000000");
+    public static readonly Guid AreaKpiActuals               = new("10000017-0000-0000-0000-000000000000");
 
     // ── Action IDs (stable across re-runs) ───────────────────────────────────
 
@@ -38,6 +40,7 @@ public static class PermissionCatalogSeeder
     public static readonly Guid ActionApprove = new("20000005-0000-0000-0000-000000000000");
     public static readonly Guid ActionExport  = new("20000006-0000-0000-0000-000000000000");
     public static readonly Guid ActionAssign  = new("20000007-0000-0000-0000-000000000000");
+    public static readonly Guid ActionAssignHead = new("20000008-0000-0000-0000-000000000000");
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -82,6 +85,8 @@ public static class PermissionCatalogSeeder
             Area(AreaRisks,                 "Risks",                 "Risks",                 13),
             Area(AreaEmailTemplates,        "EmailTemplates",        "Email Templates",       14),
             Area(AreaNotifications,         "Notifications",         "Notifications",         15),
+            Area(AreaStrategicPlans,        "StrategicPlans",        "Strategic Plans",       16),
+            Area(AreaKpiActuals,            "KpiActuals",            "KPI Actuals",           17),
         };
 
         var toInsert = areas.Where(a => !existingIds.Contains(a.Id)).ToList();
@@ -111,6 +116,7 @@ public static class PermissionCatalogSeeder
             Action(ActionApprove, "Approve", "Approve", 5),
             Action(ActionExport,  "Export",  "Export",  6),
             Action(ActionAssign,  "Assign",  "Assign",  7),
+            Action(ActionAssignHead, "AssignHead", "Assign Head", 8),
         };
 
         var toInsert = actions.Where(a => !existingIds.Contains(a.Id)).ToList();
@@ -194,11 +200,12 @@ public static class PermissionCatalogSeeder
             (AreaReports, "Reports", 8, ActionDelete, "Delete", 4),
             (AreaReports, "Reports", 8, ActionExport, "Export", 6),
 
-            // OrgChart: View, Create, Edit, Delete
-            (AreaOrgChart, "OrgChart", 9, ActionView,   "View",   1),
-            (AreaOrgChart, "OrgChart", 9, ActionCreate, "Create", 2),
-            (AreaOrgChart, "OrgChart", 9, ActionEdit,   "Edit",   3),
-            (AreaOrgChart, "OrgChart", 9, ActionDelete, "Delete", 4),
+            // OrgChart: View, Create, Edit, Delete, AssignHead
+            (AreaOrgChart, "OrgChart", 9, ActionView,       "View",       1),
+            (AreaOrgChart, "OrgChart", 9, ActionCreate,     "Create",     2),
+            (AreaOrgChart, "OrgChart", 9, ActionEdit,       "Edit",       3),
+            (AreaOrgChart, "OrgChart", 9, ActionDelete,     "Delete",     4),
+            (AreaOrgChart, "OrgChart", 9, ActionAssignHead, "AssignHead", 8),
 
             // UserManagement: View, Create, Edit, Delete, Assign
             (AreaUserManagement, "UserManagement", 10, ActionView,   "View",   1),
@@ -234,6 +241,19 @@ public static class PermissionCatalogSeeder
             // Notifications: View, Delete
             (AreaNotifications, "Notifications", 15, ActionView,   "View",   1),
             (AreaNotifications, "Notifications", 15, ActionDelete, "Delete", 4),
+
+            // StrategicPlans: View, Create, Edit, Delete, Approve
+            (AreaStrategicPlans, "StrategicPlans", 16, ActionView,    "View",    1),
+            (AreaStrategicPlans, "StrategicPlans", 16, ActionCreate,  "Create",  2),
+            (AreaStrategicPlans, "StrategicPlans", 16, ActionEdit,    "Edit",    3),
+            (AreaStrategicPlans, "StrategicPlans", 16, ActionDelete,  "Delete",  4),
+            (AreaStrategicPlans, "StrategicPlans", 16, ActionApprove, "Approve", 5),
+
+            // KpiActuals (CR-001-F): View, Create, Edit, Approve
+            (AreaKpiActuals, "KpiActuals", 17, ActionView,    "View",    1),
+            (AreaKpiActuals, "KpiActuals", 17, ActionCreate,  "Create",  2),
+            (AreaKpiActuals, "KpiActuals", 17, ActionEdit,    "Edit",    3),
+            (AreaKpiActuals, "KpiActuals", 17, ActionApprove, "Approve", 5),
         };
 
         var toInsert = desiredMappings

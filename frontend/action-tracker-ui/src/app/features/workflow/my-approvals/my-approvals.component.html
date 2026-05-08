@@ -83,6 +83,26 @@
           <span class="badge bg-warning text-dark ms-1">{{ projectPendingCount() }}</span>
         }
       </button>
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'strategy'"
+        (click)="switchTab('strategy')">
+        <i class="bi bi-bullseye"></i>
+        Strategy Approvals
+        @if (strategyPendingCount() > 0) {
+          <span class="badge bg-warning text-dark ms-1">{{ strategyPendingCount() }}</span>
+        }
+      </button>
+      <button
+        class="tab-btn"
+        [class.tab-btn--active]="activeTab() === 'kpiActuals'"
+        (click)="switchTab('kpiActuals')">
+        <i class="bi bi-graph-up-arrow"></i>
+        KPI Actuals
+        @if (kpiActualPendingCount() > 0) {
+          <span class="badge bg-warning text-dark ms-1">{{ kpiActualPendingCount() }}</span>
+        }
+      </button>
     </div>
 
     <!-- Loading State -->
@@ -352,6 +372,273 @@
             }
           </div>
         }
+      </div>
+    }
+
+    <!-- Strategy Approvals Tab (CR-001-D) -->
+    @if (activeTab() === 'strategy') {
+      <div class="mt-3">
+        <h5 class="mb-3"><i class="bi bi-hourglass-split me-2"></i>Pending Strategy Reviews</h5>
+        @if (strategyPendingReviews().length === 0) {
+          <div class="empty-state mb-4">
+            <i class="bi bi-check-circle"></i>
+            <h4>No pending strategy reviews</h4>
+            <p>No strategic plans are awaiting your approval.</p>
+          </div>
+        } @else {
+          <div class="request-list mb-4">
+            @for (req of strategyPendingReviews(); track req.id) {
+              <div class="request-card">
+                <div class="request-card__header">
+                  <div class="request-card__title">
+                    <a [routerLink]="['/strategy/org-units', req.orgUnitId]">{{ req.planName }}</a>
+                    <span class="text-muted ms-2">· {{ req.orgUnitName }}</span>
+                  </div>
+                  <div class="request-badges">
+                    <span class="badge bg-info text-dark">{{ strategyRequestTypeLabel(req.requestType) }}</span>
+                    <span class="badge ms-1" [ngClass]="strategyApprovalStatusClass(req.status)">
+                      {{ strategyApprovalStatusLabel(req.status) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="request-card__body">
+                  <div class="request-card__meta">
+                    <span><strong>Requested by:</strong> {{ req.requestedByDisplayName }}</span>
+                    <span><strong>Justification:</strong> {{ req.justification }}</span>
+                    <span><strong>Submitted:</strong> {{ formatTime(req.createdAt) }}</span>
+                  </div>
+                </div>
+                <div class="request-card__actions">
+                  <button class="btn btn-success btn-sm" (click)="openStrategyReview(req, true)">
+                    <i class="bi bi-check-lg me-1"></i>Approve
+                  </button>
+                  <button class="btn btn-danger btn-sm" (click)="openStrategyReview(req, false)">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <h5 class="mb-3"><i class="bi bi-send me-2"></i>My Strategy Requests</h5>
+        @if (strategyMyRequests().length === 0) {
+          <div class="empty-state">
+            <i class="bi bi-folder2-open"></i>
+            <h4>No strategy requests</h4>
+            <p>You haven't submitted any strategic plan approval requests.</p>
+          </div>
+        } @else {
+          <div class="request-list">
+            @for (req of strategyMyRequests(); track req.id) {
+              <div class="request-card">
+                <div class="request-card__header">
+                  <div class="request-card__title">
+                    <a [routerLink]="['/strategy/org-units', req.orgUnitId]">{{ req.planName }}</a>
+                    <span class="text-muted ms-2">· {{ req.orgUnitName }}</span>
+                  </div>
+                  <div class="request-badges">
+                    <span class="badge bg-info text-dark">{{ strategyRequestTypeLabel(req.requestType) }}</span>
+                    <span class="badge ms-1" [ngClass]="strategyApprovalStatusClass(req.status)">
+                      {{ strategyApprovalStatusLabel(req.status) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="request-card__body">
+                  <div class="request-card__meta">
+                    <span><strong>Justification:</strong> {{ req.justification }}</span>
+                    @if (req.reviewedByDisplayName) {
+                      <span><strong>Reviewed by:</strong> {{ req.reviewedByDisplayName }}</span>
+                    }
+                    @if (req.reviewerComment) {
+                      <span><strong>Comment:</strong> {{ req.reviewerComment }}</span>
+                    }
+                    <span><strong>Submitted:</strong> {{ formatTime(req.createdAt) }}</span>
+                    @if (req.reviewedAt) {
+                      <span><strong>Reviewed:</strong> {{ formatTime(req.reviewedAt) }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- KPI Actuals Approvals Tab (CR-001-F) -->
+    @if (activeTab() === 'kpiActuals') {
+      <div class="mt-3">
+        <h5 class="mb-3"><i class="bi bi-hourglass-split me-2"></i>Pending KPI Actual Reviews</h5>
+        @if (kpiActualPendingReviews().length === 0) {
+          <div class="empty-state mb-4">
+            <i class="bi bi-check-circle"></i>
+            <h4>No pending KPI actual reviews</h4>
+            <p>No KPI actuals are awaiting your approval.</p>
+          </div>
+        } @else {
+          <div class="request-list mb-4">
+            @for (req of kpiActualPendingReviews(); track req.id) {
+              <div class="request-card">
+                <div class="request-card__header">
+                  <div class="request-card__title">
+                    {{ req.kpiName }}
+                    <span class="text-muted ms-2">· {{ req.orgUnitName }}</span>
+                  </div>
+                  <div class="request-badges">
+                    <span class="badge bg-info text-dark">{{ req.periodLabel }} {{ req.year }}</span>
+                    <span class="badge ms-1" [ngClass]="kpiActualStatusClass(req.status)">
+                      {{ kpiActualStatusName(req.status) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="request-card__body">
+                  <div class="request-card__meta">
+                    <span><strong>Submitted by:</strong> {{ req.submittedByDisplayName }}</span>
+                    <span><strong>Actual Value:</strong> {{ req.actualValue }}</span>
+                    @if (req.targetValue != null) {
+                      <span><strong>Target:</strong> {{ req.targetValue }}</span>
+                    }
+                    @if (req.notes) {
+                      <span><strong>Notes:</strong> {{ req.notes }}</span>
+                    }
+                    <span><strong>Submitted:</strong> {{ formatTime(req.submittedAtUtc || req.createdAtUtc) }}</span>
+                    @if (req.documentCount > 0) {
+                      <span><strong>Evidence:</strong> {{ req.documentCount }} file(s)</span>
+                    }
+                  </div>
+                </div>
+                <div class="request-card__actions">
+                  <button class="btn btn-success btn-sm" (click)="openKpiActualReview(req, true)">
+                    <i class="bi bi-check-lg me-1"></i>Approve
+                  </button>
+                  <button class="btn btn-danger btn-sm" (click)="openKpiActualReview(req, false)">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <h5 class="mb-3"><i class="bi bi-send me-2"></i>My KPI Actual Submissions</h5>
+        @if (kpiActualMyRequests().length === 0) {
+          <div class="empty-state">
+            <i class="bi bi-folder2-open"></i>
+            <h4>No KPI actual submissions</h4>
+            <p>You haven't submitted any KPI actuals yet.</p>
+          </div>
+        } @else {
+          <div class="request-list">
+            @for (req of kpiActualMyRequests(); track req.id) {
+              <div class="request-card">
+                <div class="request-card__header">
+                  <div class="request-card__title">
+                    {{ req.kpiName }}
+                    <span class="text-muted ms-2">· {{ req.orgUnitName }}</span>
+                  </div>
+                  <div class="request-badges">
+                    <span class="badge bg-info text-dark">{{ req.periodLabel }} {{ req.year }}</span>
+                    <span class="badge ms-1" [ngClass]="kpiActualStatusClass(req.status)">
+                      {{ kpiActualStatusName(req.status) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="request-card__body">
+                  <div class="request-card__meta">
+                    <span><strong>Actual Value:</strong> {{ req.actualValue }}</span>
+                    @if (req.notes) { <span><strong>Notes:</strong> {{ req.notes }}</span> }
+                    @if (req.reviewedByDisplayName) {
+                      <span><strong>Reviewed by:</strong> {{ req.reviewedByDisplayName }}</span>
+                    }
+                    @if (req.reviewerComment) {
+                      <span><strong>Comment:</strong> {{ req.reviewerComment }}</span>
+                    }
+                    <span><strong>Submitted:</strong> {{ formatTime(req.submittedAtUtc || req.createdAtUtc) }}</span>
+                    @if (req.reviewedAtUtc) {
+                      <span><strong>Reviewed:</strong> {{ formatTime(req.reviewedAtUtc) }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- KPI Actual Review Modal -->
+    @if (showKpiActualReviewModal()) {
+      <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ isKpiActualApproving() ? 'Approve' : 'Reject' }} KPI Actual</h5>
+              <button type="button" class="btn-close" (click)="closeKpiActualReviewModal()"></button>
+            </div>
+            <div class="modal-body">
+              @if (selectedKpiActual(); as req) {
+                <p><strong>KPI:</strong> {{ req.kpiName }}</p>
+                <p><strong>Period:</strong> {{ req.periodLabel }} {{ req.year }}</p>
+                <p><strong>Org unit:</strong> {{ req.orgUnitName }}</p>
+                <p><strong>Actual:</strong> {{ req.actualValue }} (target: {{ req.targetValue ?? '—' }})</p>
+              }
+              <textarea class="form-control" rows="3"
+                        [ngModel]="kpiActualReviewComment()"
+                        (ngModelChange)="kpiActualReviewComment.set($event)"
+                        [placeholder]="isKpiActualApproving() ? 'Comment (optional)' : 'Reason for rejection (required)'"
+                        maxlength="2000"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeKpiActualReviewModal()">Cancel</button>
+              <button [class]="isKpiActualApproving() ? 'btn btn-success' : 'btn btn-danger'"
+                      (click)="submitKpiActualReview()"
+                      [disabled]="isKpiActualSubmitting() || (!isKpiActualApproving() && !kpiActualReviewComment())">
+                @if (isKpiActualSubmitting()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                {{ isKpiActualApproving() ? 'Approve' : 'Reject' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Strategy Review Modal -->
+    @if (showStrategyReviewModal()) {
+      <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ isStrategyApproving() ? 'Approve' : 'Reject' }} Strategic Plan</h5>
+              <button type="button" class="btn-close" (click)="closeStrategyReviewModal()"></button>
+            </div>
+            <div class="modal-body">
+              @if (selectedStrategyRequest(); as req) {
+                <p><strong>Plan:</strong> {{ req.planName }}</p>
+                <p><strong>Org unit:</strong> {{ req.orgUnitName }}</p>
+                <p><strong>Type:</strong> {{ strategyRequestTypeLabel(req.requestType) }}</p>
+                <p><strong>Justification:</strong> {{ req.justification }}</p>
+              }
+              <textarea
+                class="form-control"
+                rows="3"
+                [ngModel]="strategyReviewComment()"
+                (ngModelChange)="strategyReviewComment.set($event)"
+                [placeholder]="isStrategyApproving() ? 'Comment (optional)' : 'Reason for rejection (required)'"
+                maxlength="2000"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeStrategyReviewModal()">Cancel</button>
+              <button
+                [class]="isStrategyApproving() ? 'btn btn-success' : 'btn btn-danger'"
+                (click)="submitStrategyReview()"
+                [disabled]="isStrategySubmitting() || (!isStrategyApproving() && !strategyReviewComment())">
+                @if (isStrategySubmitting()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                {{ isStrategyApproving() ? 'Approve' : 'Reject' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     }
 

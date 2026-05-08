@@ -45,11 +45,24 @@ public static class PermissionPolicies
     public const string StrategicObjectivesEdit   = "StrategicObjectives.Edit";
     public const string StrategicObjectivesDelete = "StrategicObjectives.Delete";
 
+    // ── Strategic Plans ───────────────────────────────────────────────────────
+    public const string StrategicPlansView    = "StrategicPlans.View";
+    public const string StrategicPlansCreate  = "StrategicPlans.Create";
+    public const string StrategicPlansEdit    = "StrategicPlans.Edit";
+    public const string StrategicPlansDelete  = "StrategicPlans.Delete";
+    public const string StrategicPlansApprove = "StrategicPlans.Approve";
+
     // ── KPIs ──────────────────────────────────────────────────────────────────
     public const string KPIsView   = "KPIs.View";
     public const string KPIsCreate = "KPIs.Create";
     public const string KPIsEdit   = "KPIs.Edit";
     public const string KPIsDelete = "KPIs.Delete";
+
+    // ── KPI Actuals (CR-001-F) ────────────────────────────────────────────────
+    public const string KpiActualsView    = "KpiActuals.View";
+    public const string KpiActualsCreate  = "KpiActuals.Create";
+    public const string KpiActualsEdit    = "KpiActuals.Edit";
+    public const string KpiActualsApprove = "KpiActuals.Approve";
 
     // ── Reports ───────────────────────────────────────────────────────────────
     public const string ReportsView   = "Reports.View";
@@ -63,6 +76,7 @@ public static class PermissionPolicies
     public const string OrgChartCreate = "OrgChart.Create";
     public const string OrgChartEdit   = "OrgChart.Edit";
     public const string OrgChartDelete = "OrgChart.Delete";
+    public const string OrgChartAssignHead = "OrgChart.AssignHead";
 
     // ── User Management ───────────────────────────────────────────────────────
     public const string UserManagementView   = "UserManagement.View";

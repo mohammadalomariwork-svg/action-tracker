@@ -26,6 +26,7 @@ export enum PermissionArea {
   Risks                 = 12,
   EmailTemplates        = 13,
   Notifications         = 14,
+  StrategicPlans        = 15,
 }
 
 export const PERMISSION_AREA_LABELS: Record<PermissionArea, string> = {
@@ -44,6 +45,7 @@ export const PERMISSION_AREA_LABELS: Record<PermissionArea, string> = {
   [PermissionArea.Risks]:                 'Risks',
   [PermissionArea.EmailTemplates]:        'EmailTemplates',
   [PermissionArea.Notifications]:         'Notifications',
+  [PermissionArea.StrategicPlans]:        'StrategicPlans',
 };
 
 // ── Permission Actions ───────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ export enum PermissionAction {
   Approve = 4,
   Export  = 5,
   Assign  = 6,
+  AssignHead = 7,
 }
 
 export const PERMISSION_ACTION_LABELS: Record<PermissionAction, string> = {
@@ -66,6 +69,7 @@ export const PERMISSION_ACTION_LABELS: Record<PermissionAction, string> = {
   [PermissionAction.Approve]: 'Approve',
   [PermissionAction.Export]:  'Export',
   [PermissionAction.Assign]:  'Assign',
+  [PermissionAction.AssignHead]: 'AssignHead',
 };
 
 // ── Org Unit Scope ───────────────────────────────────────────────────────────

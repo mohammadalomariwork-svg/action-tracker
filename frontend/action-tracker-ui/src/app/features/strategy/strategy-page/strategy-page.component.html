@@ -1,0 +1,601 @@
+<div class="sp-page">
+
+  <app-breadcrumb [items]="[
+    { label: 'Strategy', route: '/strategy' },
+    { label: orgUnit()?.name ?? 'Org unit' }
+  ]" />
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="alert alert-danger d-flex align-items-center justify-content-between" role="alert">
+      <span>
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+      </span>
+      <button class="btn btn-outline-light btn-sm" type="button" (click)="ngOnInit()">
+        Retry
+      </button>
+    </div>
+  } @else {
+
+    <!-- ── Page Header ─────────────────────────────────────────────────── -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <app-page-header
+        [title]="orgUnit()?.name ?? 'Strategy'"
+        [subtitle]="activePlan()
+          ? activePlan()!.name + ' · Cycle ' + activePlan()!.startYear + '–' + activePlan()!.endYear
+          : 'No active strategic plan for this organisation unit.'"
+        icon="bi bi-bullseye"
+      />
+      @if (activePlan(); as plan) {
+        <div class="sp-header-actions">
+          @if (canSubmit()) {
+            <button
+              *appHasPermission="'StrategicPlans'; action: 'Edit'"
+              type="button" class="btn btn-primary btn-sm"
+              (click)="openSubmitDialog()">
+              <i class="bi bi-send me-1"></i>Submit for Approval
+            </button>
+          }
+          <button
+            *appHasPermission="'StrategicPlans'; action: 'Edit'"
+            type="button" class="btn btn-outline-primary btn-sm"
+            [disabled]="isPlanLocked() || plan.status === StrategicPlanStatus.PendingApproval"
+            (click)="openEdit()">
+            <i class="bi bi-pencil me-1"></i>Edit plan
+            @if (isPlanLocked()) {
+              <i class="bi bi-lock-fill ms-1" title="Plan is approved. Request a revision to edit."></i>
+            }
+          </button>
+          @if (canManageApprovers()) {
+            <button
+              *appHasPermission="'StrategicPlans'; action: 'Edit'"
+              type="button" class="btn btn-outline-primary btn-sm"
+              (click)="openApproversDialog()">
+              <i class="bi bi-people me-1"></i>Manage approvers
+            </button>
+          }
+          <button
+            *appHasPermission="'StrategicPlans'; action: 'Delete'"
+            type="button" class="btn btn-outline-danger btn-sm"
+            [disabled]="isPlanLocked() || plan.status === StrategicPlanStatus.PendingApproval"
+            (click)="archivePlan()">
+            <i class="bi bi-archive me-1"></i>Archive plan
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- ── Banners (workflow state) ────────────────────────────────────── -->
+    @if (activePlan(); as plan) {
+      @if (plan.status === StrategicPlanStatus.PendingApproval) {
+        <div class="sp-banner sp-banner--warning">
+          <i class="bi bi-hourglass-split"></i>
+          <span>
+            This plan is awaiting approval
+            @if (approverPreview(); as a) { from <strong>{{ a.displayName }}</strong> }.
+            Edits are temporarily disabled.
+          </span>
+        </div>
+      } @else if (hasPendingRevision()) {
+        <div class="sp-banner sp-banner--warning">
+          <i class="bi bi-pencil-square"></i>
+          <span>
+            Revision pending review
+            @if (approverPreview(); as a) { by <strong>{{ a.displayName }}</strong> }.
+            Edits are temporarily enabled.
+          </span>
+        </div>
+      } @else if (isPlanLocked()) {
+        <div class="sp-banner sp-banner--locked">
+          <span>
+            <i class="bi bi-lock-fill"></i>
+            This plan is approved and locked. To edit, request a revision.
+          </span>
+          <button
+            *appHasPermission="'StrategicPlans'; action: 'Edit'"
+            type="button" class="btn btn-outline-primary btn-sm"
+            (click)="openRevisionDialog()">
+            Request Revision
+          </button>
+        </div>
+      }
+    }
+
+    <!-- ── Summary stat cards ──────────────────────────────────────────── -->
+    @if (activePlan()) {
+      <div class="sp-stats-row">
+        <!-- Plan status — informational, not clickable -->
+        <div class="sp-stat-card">
+          <div class="sp-stat-icon sp-stat-icon--indigo"><i class="bi bi-bullseye"></i></div>
+          <div class="sp-stat-body">
+            <span class="sp-stat-value">{{ statusLabel() }}</span>
+            <span class="sp-stat-label">Plan Status</span>
+          </div>
+        </div>
+        <!-- Strategic Objectives — scroll to the objectives section below -->
+        <button type="button"
+                class="sp-stat-card sp-stat-card--clickable"
+                (click)="scrollToObjectives()"
+                [attr.aria-label]="'Show ' + objectives().length + ' strategic objectives'">
+          <div class="sp-stat-icon sp-stat-icon--purple"><i class="bi bi-flag"></i></div>
+          <div class="sp-stat-body">
+            <span class="sp-stat-value">{{ objectives().length }}</span>
+            <span class="sp-stat-label">Strategic Objectives</span>
+          </div>
+          <i class="bi bi-arrow-down-circle sp-stat-arrow" aria-hidden="true"></i>
+        </button>
+        <!-- KPIs — scroll to the in-page KPIs section below -->
+        <button type="button"
+                class="sp-stat-card sp-stat-card--clickable"
+                (click)="scrollToKpis()"
+                [attr.aria-label]="'Show ' + totalKpis() + ' KPIs linked to this plan'">
+          <div class="sp-stat-icon sp-stat-icon--blue"><i class="bi bi-graph-up-arrow"></i></div>
+          <div class="sp-stat-body">
+            <span class="sp-stat-value">{{ totalKpis() }}</span>
+            <span class="sp-stat-label">KPIs</span>
+          </div>
+          <i class="bi bi-arrow-down-circle sp-stat-arrow" aria-hidden="true"></i>
+        </button>
+        <!-- Strategic Projects — scroll to the in-page projects section below -->
+        <button type="button"
+                class="sp-stat-card sp-stat-card--clickable"
+                (click)="scrollToProjects()"
+                [attr.aria-label]="'Show ' + totalProjects() + ' strategic projects linked to this plan'">
+          <div class="sp-stat-icon sp-stat-icon--teal"><i class="bi bi-kanban"></i></div>
+          <div class="sp-stat-body">
+            <span class="sp-stat-value">{{ totalProjects() }}</span>
+            <span class="sp-stat-label">Strategic Projects</span>
+          </div>
+          <i class="bi bi-arrow-down-circle sp-stat-arrow" aria-hidden="true"></i>
+        </button>
+      </div>
+    }
+
+    <!-- ── Plan detail card ────────────────────────────────────────────── -->
+    @if (activePlan(); as plan) {
+      <section class="sp-detail-card">
+        <div class="sp-detail-row">
+          <div class="sp-detail-cell">
+            <span class="sp-detail-label">Plan</span>
+            <span class="sp-detail-value">
+              {{ plan.name }}
+              <span class="sp-status-pill" [ngClass]="'sp-status-pill--' + statusBadgeClass()">
+                <span class="sp-status-dot"></span>{{ statusLabel() }}
+              </span>
+            </span>
+          </div>
+          <div class="sp-detail-cell">
+            <span class="sp-detail-label">Cycle</span>
+            <span class="sp-detail-value">
+              <i class="bi bi-calendar-range"></i>
+              {{ plan.startYear }}&ndash;{{ plan.endYear }}
+              <span class="sp-detail-sub">({{ plan.durationYears }} year{{ plan.durationYears === 1 ? '' : 's' }})</span>
+            </span>
+          </div>
+          <div class="sp-detail-cell">
+            <span class="sp-detail-label">Approver</span>
+            <span class="sp-detail-value">
+              @if (approverPreview(); as a) {
+                <i class="bi bi-person-check"></i>
+                <strong>{{ a.displayName }}</strong>
+                <span class="sp-detail-sub">head of {{ a.sourceOrgUnitName }}</span>
+              } @else if (plan.status === StrategicPlanStatus.Draft) {
+                <i class="bi bi-exclamation-triangle text-warning"></i>
+                <span class="text-warning">Not yet configured</span>
+              } @else {
+                <span class="sp-detail-sub">—</span>
+              }
+            </span>
+          </div>
+          @if (orgUnit()?.code) {
+            <div class="sp-detail-cell">
+              <span class="sp-detail-label">Org unit code</span>
+              <span class="sp-detail-value sp-detail-mono">{{ orgUnit()!.code }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    } @else {
+      <!-- Empty state when no plan exists -->
+      <div class="sp-empty">
+        <i class="bi bi-bullseye sp-empty-icon"></i>
+        <h3>No active strategic plan</h3>
+        <p class="text-muted mb-3">There is no active plan for this org unit yet.</p>
+        <button
+          *appHasPermission="'StrategicPlans'; action: 'Create'"
+          type="button" class="btn btn-primary"
+          (click)="openCreate()">
+          <i class="bi bi-plus-lg me-1"></i>Create strategic plan
+        </button>
+      </div>
+    }
+
+    <!-- ── Approval chain ──────────────────────────────────────────────── -->
+    @if (activePlan() && approvers().length > 0) {
+      <section class="sp-section sp-chain-section">
+        <header class="sp-section-header">
+          <h3>Approval chain</h3>
+          <span class="sp-count-badge">{{ approvers().length }} {{ approvers().length === 1 ? 'level' : 'levels' }}</span>
+        </header>
+
+        <ol class="sp-chain" aria-label="Sequential approval chain">
+          @for (a of approvers(); track a.userId; let i = $index) {
+            @let cur = currentPendingRequest();
+            @let isCurrent = !!cur && cur.level === (i + 1);
+            @let isPast = !!cur ? (i + 1) < cur.level : false;
+            @let chainState =
+              isCurrent ? 'current' :
+              isPast    ? 'past'    :
+              'upcoming';
+            <li class="sp-chain-item" [attr.data-state]="chainState">
+              <span class="sp-chain-level">L{{ i + 1 }}</span>
+              <div class="sp-chain-body">
+                <div class="sp-chain-name">{{ a.displayName }}</div>
+                <div class="sp-chain-meta">
+                  @if (a.email) { <span><i class="bi bi-envelope"></i> {{ a.email }}</span> }
+                  @if (a.orgUnitName) { <span class="ms-2"><i class="bi bi-building"></i> {{ a.orgUnitName }}</span> }
+                </div>
+              </div>
+              <span class="sp-chain-state">
+                @if (isCurrent) {
+                  <i class="bi bi-hourglass-split"></i> Reviewing
+                } @else if (isPast) {
+                  <i class="bi bi-check-circle-fill"></i> Approved
+                } @else {
+                  <i class="bi bi-circle"></i> Upcoming
+                }
+              </span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+
+    <!-- ── Objectives section ──────────────────────────────────────────── -->
+    @if (activePlan()) {
+      <section class="sp-section" id="sp-objectives-section" #objectivesSection>
+        <header class="sp-section-header">
+          <h3>Strategic objectives</h3>
+          <span class="sp-count-badge">{{ objectives().length }}</span>
+          @if (canAddObjective()) {
+            <button
+              *appHasPermission="'StrategicObjectives'; action: 'Create'"
+              type="button" class="btn btn-primary btn-sm ms-auto"
+              (click)="openAddObjective()">
+              <i class="bi bi-plus-lg me-1"></i>Add Strategic Objective
+            </button>
+          }
+        </header>
+
+        @if (objectives().length === 0) {
+          <p class="sp-section-empty">No objectives have been added to this org unit yet.</p>
+        } @else {
+          <ul class="sp-objectives-list" role="list">
+            @for (obj of pagedObjectives(); track obj.id) {
+              <li class="sp-objective-item">
+                <div class="sp-objective-code">{{ obj.objectiveCode }}</div>
+                <div class="sp-objective-body">
+                  <div class="sp-objective-statement" [title]="obj.statement">{{ obj.statement }}</div>
+                  <div class="sp-objective-meta">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    {{ obj.kpiCount }} KPI{{ obj.kpiCount === 1 ? '' : 's' }}
+                  </div>
+                </div>
+                <div class="sp-objective-actions">
+                  @if (canEditObjective()) {
+                    <button
+                      *appHasPermission="'StrategicObjectives'; action: 'Edit'"
+                      type="button" class="sp-objective-link sp-objective-link--ghost"
+                      (click)="openEditObjective(obj)"
+                      [attr.aria-label]="'Edit objective ' + obj.objectiveCode">
+                      <i class="bi bi-pencil"></i> Edit
+                    </button>
+                  }
+                  <a class="sp-objective-link"
+                     [routerLink]="['/strategy/objectives', obj.id]">
+                    View objective <i class="bi bi-arrow-right"></i>
+                  </a>
+                </div>
+              </li>
+            }
+          </ul>
+          @if (objectivesPageCount() > 1) {
+            <nav class="sp-pager" aria-label="Strategic objectives pagination">
+              <button type="button" class="sp-pager-btn"
+                      [disabled]="objectivesPage() === 1"
+                      (click)="setObjectivesPage(objectivesPage() - 1)">
+                <i class="bi bi-chevron-left"></i> Prev
+              </button>
+              <span class="sp-pager-info">
+                Page {{ objectivesPage() }} of {{ objectivesPageCount() }}
+                <span class="sp-detail-sub">· {{ objectives().length }} total</span>
+              </span>
+              <button type="button" class="sp-pager-btn"
+                      [disabled]="objectivesPage() === objectivesPageCount()"
+                      (click)="setObjectivesPage(objectivesPage() + 1)">
+                Next <i class="bi bi-chevron-right"></i>
+              </button>
+            </nav>
+          }
+        }
+      </section>
+    }
+
+    <!-- ── KPIs section ────────────────────────────────────────────────── -->
+    @if (activePlan()) {
+      <section class="sp-section" id="sp-kpis-section">
+        <header class="sp-section-header">
+          <h3>KPIs</h3>
+          <span class="sp-count-badge">{{ kpis().length }}</span>
+        </header>
+
+        @if (kpisLoading()) {
+          <p class="sp-section-empty">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Loading KPIs…
+          </p>
+        } @else if (kpisError()) {
+          <p class="sp-section-empty text-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ kpisError() }}
+          </p>
+        } @else if (objectives().length === 0) {
+          <p class="sp-section-empty">
+            Add strategic objectives first — KPIs are defined under each objective.
+          </p>
+        } @else if (kpis().length === 0) {
+          <p class="sp-section-empty">No KPIs have been added under this plan's objectives yet.</p>
+        } @else {
+          <ul class="sp-objectives-list" role="list">
+            @for (kpi of pagedKpis(); track kpi.id) {
+              <li class="sp-objective-item">
+                <div class="sp-objective-code">{{ kpi.objectiveCode }}-K{{ kpi.kpiNumber }}</div>
+                <div class="sp-objective-body">
+                  <div class="sp-objective-statement" [title]="kpi.name">{{ kpi.name }}</div>
+                  <div class="sp-objective-meta">
+                    <span class="sp-pill sp-pill--info">{{ MeasurementPeriodLabels[kpi.periodValue] }}</span>
+                    @if (kpi.unit) {
+                      <span class="sp-detail-sub ms-2">
+                        <i class="bi bi-rulers"></i> {{ kpi.unit }}
+                      </span>
+                    }
+                    <span class="sp-detail-sub ms-2" [title]="kpi.objectiveStatement">
+                      <i class="bi bi-flag"></i> {{ kpi.objectiveStatement }}
+                    </span>
+                    <span class="sp-detail-sub ms-2">
+                      <i class="bi bi-bullseye"></i>
+                      {{ kpi.targetCount }} target{{ kpi.targetCount === 1 ? '' : 's' }}
+                    </span>
+                  </div>
+                </div>
+                <a class="sp-objective-link"
+                   [routerLink]="['/strategy/objectives', kpi.strategicObjectiveId]">
+                  View objective <i class="bi bi-arrow-right"></i>
+                </a>
+              </li>
+            }
+          </ul>
+          @if (kpisPageCount() > 1) {
+            <nav class="sp-pager" aria-label="KPIs pagination">
+              <button type="button" class="sp-pager-btn"
+                      [disabled]="kpisPage() === 1"
+                      (click)="setKpisPage(kpisPage() - 1)">
+                <i class="bi bi-chevron-left"></i> Prev
+              </button>
+              <span class="sp-pager-info">
+                Page {{ kpisPage() }} of {{ kpisPageCount() }}
+                <span class="sp-detail-sub">· {{ kpis().length }} total</span>
+              </span>
+              <button type="button" class="sp-pager-btn"
+                      [disabled]="kpisPage() === kpisPageCount()"
+                      (click)="setKpisPage(kpisPage() + 1)">
+                Next <i class="bi bi-chevron-right"></i>
+              </button>
+            </nav>
+          }
+        }
+      </section>
+    }
+
+    <!-- ── Strategic projects section ──────────────────────────────────── -->
+    @if (activePlan()) {
+      <section class="sp-section" id="sp-projects-section">
+        <header class="sp-section-header">
+          <h3>Strategic projects</h3>
+          <span class="sp-count-badge">{{ projects().length }}</span>
+        </header>
+
+        @if (projectsLoading()) {
+          <p class="sp-section-empty">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Loading projects…
+          </p>
+        } @else if (projectsError()) {
+          <p class="sp-section-empty text-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ projectsError() }}
+          </p>
+        } @else if (objectives().length === 0) {
+          <p class="sp-section-empty">
+            Add strategic objectives first — projects link to objectives in this plan.
+          </p>
+        } @else if (projects().length === 0) {
+          <p class="sp-section-empty">No projects are linked to this plan's objectives yet.</p>
+        } @else {
+          <ul class="sp-objectives-list" role="list">
+            @for (proj of pagedProjects(); track proj.id) {
+              <li class="sp-objective-item">
+                <div class="sp-objective-code">{{ proj.projectCode }}</div>
+                <div class="sp-objective-body">
+                  <div class="sp-objective-statement" [title]="proj.name">{{ proj.name }}</div>
+                  <div class="sp-objective-meta">
+                    <span class="sp-pill"
+                          [class.sp-pill--info]="proj.status === ProjectStatus.Active"
+                          [class.sp-pill--warning]="proj.status === ProjectStatus.PendingApproval || proj.status === ProjectStatus.OnHold"
+                          [class.sp-pill--success]="proj.status === ProjectStatus.Completed"
+                          [class.sp-pill--danger]="proj.status === ProjectStatus.Cancelled">
+                      {{ proj.statusLabel }}
+                    </span>
+                    @if (proj.strategicObjectiveStatement) {
+                      <span class="sp-detail-sub ms-2" [title]="proj.strategicObjectiveStatement">
+                        <i class="bi bi-flag"></i> {{ proj.strategicObjectiveStatement }}
+                      </span>
+                    }
+                    @if (proj.projectManagerName) {
+                      <span class="sp-detail-sub ms-2">
+                        <i class="bi bi-person"></i> {{ proj.projectManagerName }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                <a class="sp-objective-link" [routerLink]="['/projects', proj.id]">
+                  View project <i class="bi bi-arrow-right"></i>
+                </a>
+              </li>
+            }
+          </ul>
+          @if (projectsPageCount() > 1) {
+            <nav class="sp-pager" aria-label="Strategic projects pagination">
+              <button type="button" class="sp-pager-btn"
+                      [disabled]="projectsPage() === 1"
+                      (click)="setProjectsPage(projectsPage() - 1)">
+                <i class="bi bi-chevron-left"></i> Prev
+              </button>
+              <span class="sp-pager-info">
+                Page {{ projectsPage() }} of {{ projectsPageCount() }}
+                <span class="sp-detail-sub">· {{ projects().length }} total</span>
+              </span>
+              <button type="button" class="sp-pager-btn"
+                      [disabled]="projectsPage() === projectsPageCount()"
+                      (click)="setProjectsPage(projectsPage() + 1)">
+                Next <i class="bi bi-chevron-right"></i>
+              </button>
+            </nav>
+          }
+        }
+      </section>
+    }
+
+    <!-- ── Approval history ────────────────────────────────────────────── -->
+    @if (activePlan() && approvalHistory().length > 0) {
+      <section class="sp-section">
+        <header class="sp-section-header">
+          <h3>Approval history</h3>
+          <span class="sp-count-badge">{{ approvalHistory().length }}</span>
+        </header>
+
+        <div class="sp-table-wrapper">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>TYPE</th>
+                <th>LEVEL</th>
+                <th>STATUS</th>
+                <th>REQUESTED BY</th>
+                <th>SUBMITTED</th>
+                <th>REVIEWER</th>
+                <th>REVIEWED</th>
+                <th>COMMENT</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (req of approvalHistory(); track req.id) {
+                <tr>
+                  <td>
+                    <span class="sp-pill sp-pill--info">{{ req.requestTypeName }}</span>
+                  </td>
+                  <td>
+                    @if (req.totalLevels > 1) {
+                      <span class="sp-pill">L{{ req.level }} / {{ req.totalLevels }}</span>
+                    } @else {
+                      <span class="sp-detail-sub">—</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="sp-pill"
+                          [class.sp-pill--warning]="req.statusName === 'Pending'"
+                          [class.sp-pill--success]="req.statusName === 'Approved'"
+                          [class.sp-pill--danger]="req.statusName === 'Rejected'">
+                      {{ req.statusName }}
+                    </span>
+                  </td>
+                  <td>{{ req.requestedByDisplayName }}</td>
+                  <td>{{ req.createdAt | date:'short' }}</td>
+                  <td>{{ req.reviewedByDisplayName ?? req.assignedReviewerDisplayName ?? '—' }}</td>
+                  <td>{{ req.reviewedAt ? (req.reviewedAt | date:'short') : '—' }}</td>
+                  <td>{{ req.reviewerComment ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+</div>
+
+@if (dialogOpen()) {
+  <app-plan-form-dialog
+    [mode]="dialogMode()"
+    [plan]="activePlan()"
+    [orgUnitOptions]="dialogOrgUnitOptions()"
+    [errorMessage]="dialogError()"
+    (cancel)="closeDialog()"
+    (save)="onSavePlan($event)">
+  </app-plan-form-dialog>
+}
+
+@if (approversDialogOpen() && activePlan(); as plan) {
+  <app-manage-approvers-dialog
+    [planId]="plan.id"
+    [existingApprovers]="approvers()"
+    (cancel)="closeApproversDialog()"
+    (saved)="onApproversSaved($event)" />
+}
+
+@if (justificationOpen()) {
+  <app-justification-dialog
+    [title]="justificationMode() === 'submit' ? 'Submit for Approval' : 'Request Revision'"
+    [submitLabel]="justificationMode() === 'submit' ? 'Submit' : 'Request Revision'"
+    [errorMessage]="justificationError()"
+    [submitting]="justificationSubmitting()"
+    (cancel)="closeJustificationDialog()"
+    (submit)="onJustificationSubmit($event)">
+  </app-justification-dialog>
+}
+
+<!-- Add/Edit-objective offcanvas (slides in from the right; Draft plans only) -->
+<div class="offcanvas offcanvas-end sp-offcanvas"
+     [class.show]="objectiveOffcanvasOpen()"
+     [style.visibility]="objectiveOffcanvasOpen() ? 'visible' : 'hidden'"
+     tabindex="-1">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title">
+      @if (editingObjective(); as obj) {
+        <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Strategic Objective
+        <span class="sp-offcanvas-sub"> · {{ obj.objectiveCode }}</span>
+      } @else {
+        <i class="bi bi-plus-circle-fill text-success me-2"></i>New Strategic Objective
+      }
+    </h5>
+    <button type="button" class="btn-close" (click)="closeObjectiveOffcanvas()"></button>
+  </div>
+  <div class="offcanvas-body">
+    @if (objectiveOffcanvasOpen()) {
+      <app-objective-form
+        [existingObjective]="editingObjective()"
+        [restrictToOrgUnitSubtree]="orgUnitId()"
+        [strategicPlanId]="activePlan()?.id ?? null"
+        (saved)="onObjectiveSaved($event)"
+        (cancelled)="closeObjectiveOffcanvas()"
+      />
+    }
+  </div>
+</div>
+
+@if (objectiveOffcanvasOpen()) {
+  <div class="offcanvas-backdrop fade show" (click)="closeObjectiveOffcanvas()"></div>
+}

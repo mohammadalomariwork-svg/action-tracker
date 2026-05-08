@@ -36,6 +36,13 @@ import { StrategicObjective }        from '../../models/strategic-objectives.mod
 export class KpiFormComponent implements OnInit, OnChanges {
   @Input() existingKpi: Kpi | null = null;
   @Input() preselectedObjectiveId: string | null = null;
+  /**
+   * When set (in create mode), the objective dropdown is **locked** to this single
+   * objective: only that objective is fetched (via `getById`) and rendered as the
+   * only option, and the form control is disabled. Used by the per-objective
+   * Strategy view, where the KPI must belong to the objective the user is on.
+   */
+  @Input() restrictToObjectiveId: string | null = null;
 
   @Output() saved     = new EventEmitter<Kpi>();
   @Output() cancelled = new EventEmitter<void>();
@@ -98,19 +105,45 @@ export class KpiFormComponent implements OnInit, OnChanges {
       this.form.get('strategicObjectiveId')?.disable();
     } else {
       this.form.reset({
-        strategicObjectiveId: this.preselectedObjectiveId ?? '',
+        strategicObjectiveId:
+          this.restrictToObjectiveId ?? this.preselectedObjectiveId ?? '',
         name: '',
         description: '',
         calculationMethod: '',
         period: null,
         unit: '',
       });
-      this.form.get('strategicObjectiveId')?.enable();
+      // Lock the field when the parent restricts the form to a single objective;
+      // otherwise allow the user to pick from the loaded list.
+      if (this.restrictToObjectiveId) {
+        this.form.get('strategicObjectiveId')?.disable();
+      } else {
+        this.form.get('strategicObjectiveId')?.enable();
+      }
     }
     this.error.set(null);
   }
 
   private loadObjectives(): void {
+    // Restricted mode (create only): fetch just the single allowed objective so
+    // the dropdown shows only that one option. The control is already disabled
+    // by patchForm; we only need to populate the option list and ensure the
+    // value matches.
+    if (this.restrictToObjectiveId && !this.isEditMode) {
+      this.objectiveService
+        .getById(this.restrictToObjectiveId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (obj) => {
+            this.objectives.set([obj]);
+            this.form.get('strategicObjectiveId')?.setValue(obj.id);
+            this.form.get('strategicObjectiveId')?.disable();
+          },
+          error: () => this.error.set('Failed to load strategic objective.'),
+        });
+      return;
+    }
+
     this.objectiveService
       .getAll(1, 200)
       .pipe(takeUntilDestroyed(this.destroyRef))

@@ -33,8 +33,10 @@ public interface IAppDbContext
     DbSet<ProjectRisk>      ProjectRisks    { get; }
 
     DbSet<StrategicObjective> StrategicObjectives { get; }
+    DbSet<StrategicPlan>      StrategicPlans      { get; }
     DbSet<Kpi>                Kpis                { get; }
     DbSet<KpiTarget>          KpiTargets          { get; }
+    DbSet<KpiActual>          KpiActuals          { get; }
 
     // ── Permissions feature sets ──────────────────────────────────────────────
     DbSet<RolePermission>         RolePermissions         { get; }
@@ -53,6 +55,8 @@ public interface IAppDbContext
     // ── Workflow feature sets ────────────────────────────────────────────────
     DbSet<ActionItemWorkflowRequest> ActionItemWorkflowRequests { get; }
     DbSet<ProjectApprovalRequest> ProjectApprovalRequests { get; }
+    DbSet<StrategicPlanApprovalRequest> StrategicPlanApprovalRequests { get; }
+    DbSet<StrategicPlanApprover>        StrategicPlanApprovers        { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

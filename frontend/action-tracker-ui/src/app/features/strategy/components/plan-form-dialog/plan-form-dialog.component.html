@@ -1,0 +1,76 @@
+<div class="dialog-backdrop" (click)="onBackdropClick($event)">
+  <aside class="dialog-panel" role="dialog" aria-modal="true">
+    <header class="dialog-header">
+      <h3>{{ mode === 'create' ? 'Create strategic plan' : 'Edit strategic plan' }}</h3>
+      <button class="btn-icon" type="button" (click)="cancel.emit()" aria-label="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    @if (errorMessage) {
+      <div class="alert alert-danger">{{ errorMessage }}</div>
+    }
+
+    <div class="dialog-body">
+      @if (showOrgUnitPicker()) {
+        <div class="form-group">
+          <label for="plan-org-unit">Organisation unit</label>
+          <app-org-unit-select
+            triggerId="plan-org-unit"
+            placeholder="— Select an organisation unit —"
+            [options]="orgUnitOptions"
+            [ngModel]="orgUnitId()"
+            (ngModelChange)="orgUnitId.set($event)" />
+        </div>
+      }
+
+      <div class="form-group">
+        <label for="plan-name">Plan name</label>
+        <input
+          id="plan-name"
+          type="text"
+          class="form-control"
+          maxlength="200"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="plan-start-year">Start year</label>
+          <input
+            id="plan-start-year"
+            type="number"
+            class="form-control"
+            min="2000"
+            max="2100"
+            [ngModel]="startYear()"
+            (ngModelChange)="startYear.set(+$event)" />
+        </div>
+
+        <div class="form-group">
+          <label for="plan-duration">Duration (years)</label>
+          <input
+            id="plan-duration"
+            type="number"
+            class="form-control"
+            min="1"
+            max="10"
+            [ngModel]="durationYears()"
+            (ngModelChange)="durationYears.set(+$event)" />
+        </div>
+      </div>
+
+      <p class="end-year-hint">
+        Cycle: {{ startYear() }}–{{ startYear() + durationYears() - 1 }}
+      </p>
+    </div>
+
+    <footer class="dialog-footer">
+      <button class="btn btn-outline-secondary" type="button" (click)="cancel.emit()">Cancel</button>
+      <button class="btn btn-primary" type="button" [disabled]="!isValid()" (click)="onSave()">
+        {{ mode === 'create' ? 'Create plan' : 'Save changes' }}
+      </button>
+    </footer>
+  </aside>
+</div>

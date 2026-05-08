@@ -1,3 +1,5 @@
+using ActionTracker.Domain.Enums;
+
 namespace ActionTracker.Application.Features.Kpis.DTOs;
 
 public class KpiTargetDto
@@ -10,6 +12,10 @@ public class KpiTargetDto
     public decimal? Target { get; set; }
     public decimal? Actual { get; set; }
     public string? Notes { get; set; }
+    public decimal? Baseline { get; set; }
+    public string? DataSource { get; set; }
+    public string? CalculationNotes { get; set; }
+    public KpiDirection Direction { get; set; } = KpiDirection.HigherIsBetter;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string? CreatedBy { get; set; }

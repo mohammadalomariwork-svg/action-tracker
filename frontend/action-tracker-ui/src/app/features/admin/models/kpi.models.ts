@@ -32,6 +32,18 @@ export interface Kpi {
   targetCount: number;
 }
 
+export enum KpiDirection {
+  HigherIsBetter = 0,
+  LowerIsBetter = 1,
+  OnTarget = 2,
+}
+
+export const KpiDirectionLabels: Record<KpiDirection, string> = {
+  [KpiDirection.HigherIsBetter]: 'Higher is better',
+  [KpiDirection.LowerIsBetter]: 'Lower is better',
+  [KpiDirection.OnTarget]: 'On target',
+};
+
 export interface KpiTarget {
   id: string;
   kpiId: string;
@@ -41,6 +53,10 @@ export interface KpiTarget {
   target?: number;
   actual?: number;
   notes?: string;
+  baseline?: number | null;
+  dataSource?: string | null;
+  calculationNotes?: string | null;
+  direction: KpiDirection;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
@@ -75,6 +91,10 @@ export interface MonthTarget {
   target?: number;
   actual?: number;
   notes?: string;
+  baseline?: number | null;
+  dataSource?: string | null;
+  calculationNotes?: string | null;
+  direction?: KpiDirection | null;
 }
 
 export interface BulkUpsertKpiTargetsRequest {

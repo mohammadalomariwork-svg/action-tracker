@@ -1,0 +1,41 @@
+<div class="dialog-backdrop" (click)="onBackdropClick($event)">
+  <aside class="dialog-panel" role="dialog" aria-modal="true">
+    <header class="dialog-header">
+      <h3>{{ title }}</h3>
+      <button class="btn-icon" type="button" (click)="cancel.emit()" aria-label="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    @if (errorMessage) {
+      <div class="alert alert-danger">{{ errorMessage }}</div>
+    }
+
+    <div class="dialog-body">
+      <div class="form-group">
+        <label for="justification">Justification <span class="text-danger">*</span></label>
+        <textarea
+          id="justification"
+          rows="4"
+          class="form-control"
+          maxlength="2000"
+          placeholder="Explain why this plan is ready for approval…"
+          [ngModel]="justification()"
+          (ngModelChange)="justification.set($event)"></textarea>
+        <small class="text-muted">{{ justification().length }} / 2000</small>
+      </div>
+    </div>
+
+    <footer class="dialog-footer">
+      <button class="btn btn-outline-secondary" type="button" (click)="cancel.emit()">Cancel</button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="!isValid() || submitting"
+        (click)="onSubmit()">
+        @if (submitting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+        {{ submitLabel }}
+      </button>
+    </footer>
+  </aside>
+</div>

@@ -26,6 +26,7 @@ public class DocumentService : IDocumentService
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["KpiTarget"] = 10,
+            ["KpiActual"] = 10,
         };
 
     private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -62,17 +63,29 @@ public class DocumentService : IDocumentService
     private async Task EnsureScopedWriteAsync(
         string entityType, Guid entityId, string userId, CancellationToken ct)
     {
-        if (!string.Equals(entityType, "KpiTarget", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(entityType, "KpiTarget", StringComparison.OrdinalIgnoreCase))
+        {
+            var orgUnitId = await _dbContext.KpiTargets
+                .Where(t => t.Id == entityId)
+                .Select(t => (Guid?)t.Kpi!.StrategicObjective!.OrgUnitId)
+                .FirstOrDefaultAsync(ct);
+
+            if (orgUnitId is null) return;
+            await _scopeService.EnsureCanWriteAsync(userId, orgUnitId.Value, ct);
             return;
+        }
 
-        var orgUnitId = await _dbContext.KpiTargets
-            .Where(t => t.Id == entityId)
-            .Select(t => (Guid?)t.Kpi!.StrategicObjective!.OrgUnitId)
-            .FirstOrDefaultAsync(ct);
+        if (string.Equals(entityType, "KpiActual", StringComparison.OrdinalIgnoreCase))
+        {
+            // Walk KpiActual → KpiTarget → Kpi → StrategicObjective → OrgUnitId.
+            var orgUnitId = await _dbContext.KpiActuals
+                .Where(a => a.Id == entityId)
+                .Select(a => (Guid?)a.KpiTarget!.Kpi!.StrategicObjective!.OrgUnitId)
+                .FirstOrDefaultAsync(ct);
 
-        if (orgUnitId is null) return; // KpiTarget missing — let downstream handle.
-
-        await _scopeService.EnsureCanWriteAsync(userId, orgUnitId.Value, ct);
+            if (orgUnitId is null) return;
+            await _scopeService.EnsureCanWriteAsync(userId, orgUnitId.Value, ct);
+        }
     }
 
     public async Task<List<DocumentResponseDto>> GetByEntityAsync(

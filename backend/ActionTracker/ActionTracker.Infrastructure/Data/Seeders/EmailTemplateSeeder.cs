@@ -309,6 +309,67 @@ public static class EmailTemplateSeeder
                 CreatedAt = now,
             },
 
+            // ── Strategic Plan template (CR-001-C) ───────────────────────────
+            new()
+            {
+                Id          = new Guid("e5f6a7b8-0002-4000-8000-000000000002"),
+                TemplateKey = "StrategicPlan.Initiated",
+                Name        = "Strategic Plan Initiated",
+                Subject     = "New strategic plan for {{OrgUnitName}}: {{PlanName}}",
+                Description = "Sent to Strategy Editors in scope when a PMO Head or Admin initiates a new strategic plan.",
+                HtmlBody    = BuildStrategicPlanInitiatedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+
+            // ── Strategic Plan Approval Workflow templates (CR-001-D) ────────
+            new()
+            {
+                Id          = new Guid("e5f6a7b8-0003-4000-8000-000000000003"),
+                TemplateKey = "StrategicPlan.Submitted",
+                Name        = "Strategic Plan Submitted for Approval",
+                Subject     = "Strategic plan {{PlanName}} awaiting your approval",
+                Description = "Sent to the level-3 org-unit head when a Strategy Editor submits a plan (initial or revision) for approval.",
+                HtmlBody    = BuildStrategicPlanSubmittedBody(),
+                IsActive    = true,
+                CreatedAt   = now,
+            },
+            new()
+            {
+                Id          = new Guid("e5f6a7b8-0004-4000-8000-000000000004"),
+                TemplateKey = "StrategicPlan.Reviewed",
+                Name        = "Strategic Plan Reviewed",
+                Subject     = "Strategic plan {{PlanName}} {{Decision}}",
+                Description = "Sent to the submitter after a strategic plan / revision has been approved or rejected.",
+                HtmlBody    = BuildStrategicPlanReviewedBody(),
+                IsActive    = true,
+                CreatedAt   = now,
+            },
+
+            // ── KPI Actuals templates (CR-001-F) ─────────────────────────────
+            new()
+            {
+                Id          = new Guid("e5f6a7b8-0005-4000-8000-000000000005"),
+                TemplateKey = "KpiActual.Submitted",
+                Name        = "KPI Actual Submitted for Approval",
+                Subject     = "KPI actual for {{PeriodLabel}} {{Year}} awaiting your approval",
+                Description = "Sent to the level-3 org-unit head when a Strategy Editor submits a KPI actual for approval.",
+                HtmlBody    = BuildKpiActualSubmittedBody(),
+                IsActive    = true,
+                CreatedAt   = now,
+            },
+            new()
+            {
+                Id          = new Guid("e5f6a7b8-0006-4000-8000-000000000006"),
+                TemplateKey = "KpiActual.Reviewed",
+                Name        = "KPI Actual Reviewed",
+                Subject     = "KPI actual for {{PeriodLabel}} {{Year}} {{Decision}}",
+                Description = "Sent to the submitter once a KPI actual has been approved or rejected.",
+                HtmlBody    = BuildKpiActualReviewedBody(),
+                IsActive    = true,
+                CreatedAt   = now,
+            },
+
             // ── KPI template ───────────────────────��─────────────────────────
             new()
             {
@@ -474,6 +535,53 @@ public static class EmailTemplateSeeder
         </div>
         """;
 
+    private static string BuildStrategicPlanSubmittedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Strategic Plan Awaiting Your Approval</h2>" +
+        "<p>Hi,</p>" +
+        "<p><strong>{{RequestedByName}}</strong> has submitted a strategic plan for your approval ({{RequestType}}).</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Plan Name:</td><td style=\"padding: 8px;\">{{PlanName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Organisation Unit:</td><td style=\"padding: 8px;\">{{OrgUnitName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Request Type:</td><td style=\"padding: 8px;\">{{RequestType}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Justification:</td><td style=\"padding: 8px;\">{{Justification}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{PlanUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Plan</a>" +
+        "&nbsp;&nbsp;" +
+        "<a href=\"{{ApprovalUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #28a745; color: #fff; text-decoration: none; border-radius: 4px;\">Review Request</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildStrategicPlanReviewedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">Strategic Plan {{Decision}}</h2>" +
+        "<p>Hi,</p>" +
+        "<p>Your strategic plan {{RequestType}} request has been <strong>{{Decision}}</strong> by <strong>{{ReviewedByName}}</strong>.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Plan Name:</td><td style=\"padding: 8px;\">{{PlanName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Organisation Unit:</td><td style=\"padding: 8px;\">{{OrgUnitName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Request Type:</td><td style=\"padding: 8px;\">{{RequestType}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Decision:</td><td style=\"padding: 8px;\">{{Decision}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Comment:</td><td style=\"padding: 8px;\">{{ReviewerComment}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{PlanUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Plan</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildStrategicPlanInitiatedBody() => """
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0F52BA;">New Strategic Plan Initiated</h2>
+          <p>A new strategic plan has been initiated for your organisational unit. As a Strategy Editor in scope you may now begin populating the plan with strategic objectives and KPIs.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+            <tr><td style="padding: 8px; font-weight: 600; width: 140px;">Plan Name:</td><td style="padding: 8px;">{{PlanName}}</td></tr>
+            <tr><td style="padding: 8px; font-weight: 600;">Cycle:</td><td style="padding: 8px;">{{StartYear}}–{{EndYear}} ({{DurationYears}} year(s))</td></tr>
+            <tr><td style="padding: 8px; font-weight: 600;">Organisation Unit:</td><td style="padding: 8px;">{{OrgUnitName}}</td></tr>
+            <tr><td style="padding: 8px; font-weight: 600;">Initiated By:</td><td style="padding: 8px;">{{CreatedByDisplayName}}</td></tr>
+          </table>
+          <a href="{{PlanUrl}}" style="display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;">Open the plan</a>
+        </div>
+        """;
+
     private static string BuildKpiBody() => """
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #0F52BA;">New KPI Created</h2>
@@ -609,6 +717,39 @@ public static class EmailTemplateSeeder
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Comment:</td><td style=\"padding: 8px;\">{{ReviewComment}}</td></tr>" +
         "</table>" +
         "<a href=\"{{ProjectUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Project</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildKpiActualSubmittedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">KPI Actual Awaiting Your Approval</h2>" +
+        "<p>Hi,</p>" +
+        "<p><strong>{{RequestedByName}}</strong> has submitted a KPI actual for your approval.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">KPI:</td><td style=\"padding: 8px;\">{{KpiName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Organisation Unit:</td><td style=\"padding: 8px;\">{{OrgUnitName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Period:</td><td style=\"padding: 8px;\">{{PeriodLabel}} {{Year}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Actual Value:</td><td style=\"padding: 8px;\">{{ActualValue}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{PlanUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">Open Plan</a>" +
+        "&nbsp;&nbsp;" +
+        "<a href=\"{{ApprovalUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #28a745; color: #fff; text-decoration: none; border-radius: 4px;\">Review Request</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildKpiActualReviewedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">KPI Actual {{Decision}}</h2>" +
+        "<p>Hi,</p>" +
+        "<p>Your KPI actual has been <strong>{{Decision}}</strong> by <strong>{{ReviewedByName}}</strong>.</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">KPI:</td><td style=\"padding: 8px;\">{{KpiName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Organisation Unit:</td><td style=\"padding: 8px;\">{{OrgUnitName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Period:</td><td style=\"padding: 8px;\">{{PeriodLabel}} {{Year}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Decision:</td><td style=\"padding: 8px;\">{{Decision}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Comment:</td><td style=\"padding: 8px;\">{{ReviewerComment}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{PlanUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">Open Plan</a>" +
         "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
         "</div>";
 

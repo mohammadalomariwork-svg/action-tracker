@@ -1,18 +1,20 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-05-04
+> Last updated: 2026-05-08
 
 ## Tech Stack
 
 - **Framework:** Angular 20.3 (Standalone Components, no NgModules)
-- **Build Tool:** Vite with Angular CLI 20.3.17
+- **Build Tool:** Vite with Angular CLI 20.3.17 (`analytics: false` in `angular.json`)
 - **UI Framework:** Bootstrap 5.3.3 + Bootstrap Icons 1.13.1
 - **Charts:** ng2-charts 6.0.1 / Chart.js 4.4.7
 - **Notifications:** ngx-toastr 19.0.0
-- **Multi-select:** @ng-select/ng-select 21.x (searchable multi-select for the workspace admin picker)
+- **Multi-select:** @ng-select/ng-select 21.8+ (theme CSS bundled via `angular.json`)
 - **Real-time:** @microsoft/signalr 10.0.0
 - **Excel Export:** xlsx 0.18.5
 - **Date Utils:** date-fns 4.1.0
+- **Animations:** @angular/animations 20.3.16
+- **Popper:** @popperjs/core 2.11.8
 - **Auth:** @azure/msal-browser 3.30+ / @azure/msal-angular 3.1+
 
 ---
@@ -82,6 +84,7 @@
 | `/admin/objectives` | Strategic objectives | StrategicObjectives.View |
 | `/admin/kpis` | KPI management | KPIs.View |
 | `/admin/kpis/:kpiId/targets` | KPI monthly targets | KPIs.View |
+| `/admin/kpis/:kpiId/targets/:targetId/actuals` | Period-aware KPI Actuals grid (CR-001-F) | KpiActuals.View |
 | `/admin/email-templates` | Email templates | EmailTemplates.View |
 | `/admin/permissions/roles` | Role permission matrix | PermissionsManagement.View |
 | `/admin/permissions/users` | User permission overrides | PermissionsManagement.View |
@@ -89,10 +92,13 @@
 | `/admin/roles/:roleName/permissions` | Edit role permissions | Roles.Edit |
 | `/admin/roles/:roleName/users` | Assign users to role | Roles.Assign |
 | `/admin/users` | User management | UserManagement.View |
+| `/strategy` | Strategy home — card grid of in-flight plans across the user's visible org units, with "New Strategy" creator | StrategicPlans.View |
+| `/strategy/org-units/:orgUnitId` | Per-org-unit strategy page (plan header + objectives list) | StrategicPlans.View |
+| `/strategy/objectives/:objectiveId` | Strategic objective detail with inline KPIs and current-year targets | StrategicObjectives.View |
 
 ---
 
-## Components (~70 Total)
+## Components (~73 Total)
 
 ### Layout
 | Component | Description |
@@ -111,6 +117,7 @@
 | Reports | `/reports` | Reports.View |
 | Team Actions | `/management` | ActionItems.View |
 | Workspaces | `/workspaces` | Workspaces.View |
+| Strategy | `/strategy` | StrategicPlans.View |
 | Notifications | `/notifications` | All authenticated users |
 | My Approvals | `/approvals` | All authenticated users (with pending count badge) |
 | Admin Panel | `/admin` | Admin role only |
@@ -160,8 +167,8 @@
 ### Workspaces (3)
 | Component | Description |
 |-----------|-------------|
-| `WorkspaceListComponent` | All workspaces with filters, org-unit dropdown, stats (projects, milestones, action items), export/print |
-| `WorkspaceFormComponent` | Create/edit workspace with org unit and admin user selection (offcanvas drawer) |
+| `WorkspaceListComponent` | All workspaces with filters, org-unit dropdown, stats (projects, milestones, action items), export/print, **inline create/edit drawer** with custom searchable multi-select admin picker (filters across name, email, org unit; chip-style selected display); admin users loaded lazily on first drawer open. Reads `?orgUnitId=<id>` on init so deep-links from `StrategyPageComponent`'s "Projects" stat card land on a pre-filtered list |
+| `WorkspaceFormComponent` | Standalone create/edit workspace screen (kept for direct routes) — also uses the same custom multi-select admin picker as the list drawer |
 | `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print |
 
 ### Projects (7)
@@ -184,7 +191,7 @@
 ### Workflow (1)
 | Component | Description |
 |-----------|-------------|
-| `MyApprovalsComponent` | My Approvals page with two tabs (Pending Reviews, My Requests), stat cards, approve/reject with comments, pagination. Pending reviews show date/status change details, requester info, and action buttons. My Requests shows review outcomes |
+| `MyApprovalsComponent` | My Approvals page with five tabs (Pending Reviews, My Requests, Project Approvals, **Strategy Approvals**, **KPI Actuals**), stat cards, approve/reject with comments, pagination. Pending reviews show date/status change details; Project / Strategy / KPI Actual tabs each split into Pending and My Requests/Submissions sections, each with an inline review modal (rejection requires comment). Strategy tab shows the request type badge (Initial / Revision) and the org-unit name. KPI Actuals tab (CR-001-F) shows the period label, actual vs target, and evidence count |
 
 ### Admin Panel (9)
 | Component | Description |
@@ -193,10 +200,10 @@
 | `OrgChartListComponent` | Org unit hierarchy list (up to 10 levels) |
 | `OrgUnitFormComponent` | Create/edit org unit |
 | `ObjectivesListComponent` | Strategic objectives list (paginated, filterable by org unit) |
-| `ObjectiveFormComponent` | Create/edit strategic objective |
+| `ObjectiveFormComponent` | Create/edit strategic objective. Three create-mode inputs: `defaultOrgUnitId` pre-fills the picker (admin flow); `restrictToOrgUnitSubtree` runs a parentId BFS over the loaded units and **filters the dropdown to root + descendants only**, defaulted to the root; `strategicPlanId` is forwarded in the create payload so the new objective is explicitly attached to that plan instead of relying on the backend's "active plan for the picked org unit" auto-resolve. The Strategy page passes both restrict + plan-id so a user can drop objectives on any sub-unit of the strategy's org unit while staying linked to the parent plan |
 | `KpiListComponent` | KPI management list |
-| `KpiFormComponent` | Create/edit KPI |
-| `KpiTargetsComponent` | Monthly KPI targets management (12 months/year) |
+| `KpiFormComponent` | Create/edit KPI. Two ways to drive the objective field: `[preselectedObjectiveId]` pre-fills the dropdown but leaves it editable (admin filter flow); `[restrictToObjectiveId]` fetches **only** that one objective via `getById`, renders it as the sole option, and disables the control (used by `ObjectiveDetailComponent` so the inline "Add KPI" form can't be retargeted to an unrelated objective). Edit mode disables the field regardless |
+| `KpiTargetsComponent` | Period-aware target management (12 / 4 / 2 / 1 row(s) per year by KPI period); inline edit with Enter/Esc keybindings, year navigation, variance + % achievement colour coding, Save All bulk upsert. Per-row evidence button opens an `app-documents-section` modal scoped to the saved `KpiTarget` (max 10 files, PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX, 10 MB cap). Reusable in two modes: standalone (`/admin/kpis/:kpiId/targets`) and embedded (passed `[embedded]`, `[locked]`, `[planStartYear]`, `[planEndYear]` from `ObjectiveDetailComponent`). When `locked` is true the component applies field-level read-only — the Target cell renders as a lock-decorated span (no input, even mid-edit), `commitEdit` pins the existing target value, the banner explains "target values are read-only but Actual / Notes / Evidence remain editable", and the Save All button is relabeled "Save Actuals & Notes". When the year-range inputs are set the year picker clamps navigation and hides both chevrons for single-year plans. Below 576 px the table collapses into stacked label/value cards via `data-label` attributes + a `::before` rule for full mobile readability |
 | `EmailTemplatesPageComponent` | Email template management |
 | `EmailTemplateEditComponent` | Edit email template subject and HTML body |
 
@@ -237,6 +244,17 @@
 |-----------|-------------|
 | `ProfileComponent` | User profile showing display name, email, login provider, assigned roles, employee info |
 
+### Strategy (4) — CR-001-B / CR-001-D / CR-001-E
+| Component | Description |
+|-----------|-------------|
+| `StrategyShellComponent` | `/strategy` home page. Lists existing in-flight strategic plans across the user's visible org units as a card grid (workspaces-themed). Page header has a "New Strategy" button (gated by `StrategicPlans.Create`) that opens `PlanFormDialogComponent` with an org-unit selector restricted to in-scope units without an in-flight plan; the button is disabled when every unit in scope already has one. Summary cards show total / approved / pending / draft counts; toolbar includes a search box matching plan name, org-unit name, and code. Empty states for "no org units in scope" and "no plans yet" |
+| `ObjectiveDetailComponent` | `/strategy/objectives/:objectiveId`. Objective + KPIs + targets viewer, opened via the "View objective" link on `StrategyPageComponent`. Breadcrumb `Strategy → {OrgUnit} → {ObjectiveCode}`; 3-up summary (KPIs, Targets in current year, Objective code); detail card with statement / description / org unit; per-KPI card with code, name, period badge, unit, YTD achievement % (averaged across slots that have both target + actual; colour-coded good ≥90% / warn ≥60% / bad <60%), and a period-aware target table (Monthly = 12 rows, Quarterly = Q1..Q4, Semi-Annual = H1..H2, Yearly = Annual). "Manage targets" button on each KPI opens `KpiTargetsComponent` in a right-side offcanvas drawer (`embedded` mode strips the breadcrumb / page-header / back-button chrome); the drawer is wired with `[locked]` / `[planStartYear]` / `[planEndYear]` from the enriched objective DTO (see Admin entry for `KpiTargetsComponent`) so it renders read-only when the parent plan is Approved/Archived and clamps the year picker to the plan cycle. On close the objective + KPI targets reload so saved changes appear on the cards. The standalone full-page route `/admin/kpis/:kpiId/targets` is still available for direct deep-links. **Inline KPI creation + edit**: when the parent plan is in **Draft**, the "KPIs & targets" section header shows an "Add KPI" button (gated by `KPIs.Create`) and each KPI card carries a ghost-style "Edit" button (gated by `KPIs.Edit`). Both open the same narrower offcanvas (`.od-offcanvas--narrow`, 520 px) hosting `KpiFormComponent`; Add binds `[restrictToObjectiveId]` only (locks the objective dropdown to the page's objective), Edit also binds `[existingKpi]`. After a *create* the page auto-opens the targets drawer for the new KPI; after an *edit* it just refreshes the cards. **Inline objective edit**: an "Edit objective" button next to the page header opens a separate offcanvas hosting `ObjectiveFormComponent` with `[existingObjective]` bound — also Draft-gated, also re-uses the same `load()` refresh path so plan-status / lock fields are reconciled after save. On save, the page reloads its objective + KPIs + targets and **auto-opens the targets drawer for the newly-created KPI** so the user can add targets without a second click |
+| `StrategyPageComponent` | `/strategy/org-units/:orgUnitId` per-unit view, themed to match `MyProjects`. Uses shared `app-breadcrumb` (`Strategy → {OrgUnit}`) and `app-page-header`; right-slot action buttons cover Submit for Approval / Edit / Archive / Request Revision (all permission- and lock-gated). The whole page is strictly scoped to the **selected strategy** — once the active plan is resolved, objectives are loaded via the dedicated `GET /api/strategicobjectives/by-plan/:planId` endpoint (server-side scoping, no client-side filter) and the KPIs + Strategic Projects sections derive from those plan-scoped objective ids. Page load is two-phase: org unit + plan list + workspace summary first, then objectives → projects + KPIs once the plan id is known. 4-up stat cards: Plan Status (informational, not interactive), Strategic Objectives, KPIs (sum of `objective.kpiCount` across filtered objectives), **Strategic Projects** (count of all non-deleted **strategic-type** projects, any status, whose `StrategicObjectiveId` matches one of this plan's objectives, fetched via `GET /api/projects?projectType=strategic&strategicObjectiveIds=…` — operational projects are excluded). All three clickable cards smooth-scroll to dedicated in-page sections (`#sp-objectives-section`, `#sp-kpis-section`, `#sp-projects-section`). Themed plan-detail card with status pill, cycle, approver preview, and org-unit code. Themed objectives, **KPIs** (objective code + KPI number, name, period pill, unit, parent objective statement, target count, "View objective" link — populated by fanning out `GET /api/kpis/by-objective/:objectiveId` per plan-linked objective and merging), **strategic-projects** (project code + name + status pill + linked objective + PM, with a "View project" link to `/projects/:id`), and approval-history sections. **Each of the three lists (objectives / KPIs / projects) paginates client-side at 5 rows per page** with a Prev / "Page X of Y · N total" / Next pager footer; pages reset to 1 on data reload. Pending-approval / approved-and-locked / revision-pending banners surface workflow state. **Inline objective creation**: when the active plan is in **Draft**, the objectives section header shows an "Add Strategic Objective" button (gated by `StrategicObjectives.Create`) that opens a right-side offcanvas hosting `ObjectiveFormComponent`, pre-filled with the page's `orgUnitId`. On save, the plan-scoped objective list refreshes and KPIs/projects re-derive |
+| `KpiActualsGridComponent` | CR-001-F. Period-aware actuals grid at `/admin/kpis/:kpiId/targets/:targetId/actuals`. Rows are Q1..Q4 / H1..H2 / Annual depending on the parent KPI's measurement period. Each row shows period label, target value, inline-editable actual + notes (only when Draft), evidence chip count + "Manage" modal (reuses `DocumentsSectionComponent` with `entityType=KpiActual`), status badge, direction-aware achievement % (only when Approved), and actions: Save Draft / Submit for Approval / Delete / History. The Submit button is disabled with a tooltip ("Available after {Label} ends on {Date}") when the period has not yet ended (server still enforces). History modal lists all prior actuals (including Rejected) for that slot |
+| `PlanFormDialogComponent` | Right-side dialog used for both create and edit plan flows. Validates name (≤ 200), startYear (2000–2100), durationYears (1–10); previews the cycle (`StartYear`–`EndYear`) inline; surfaces 409 conflicts (existing active plan) inline. Renders the `app-org-unit-select` whenever `orgUnitOptions` is non-empty — `StrategyShellComponent` passes available units in create mode, and `StrategyPageComponent.openEdit()` lazy-loads visible units (current + units without a non-archived plan) for edit mode so the user can re-assign a Draft plan. SCSS uses the project design tokens (`--el` / `--bd` / `--t1` / `--t2` / `--inp` / `--accent`) to match the visual language of `ObjectiveFormComponent` and `KpiFormComponent` in both themes |
+| `JustificationDialogComponent` | Reusable right-side dialog with a single 2000-char justification textarea. Reused by both Submit for Approval and Request Revision flows; the title and primary button label are inputs (CR-001-D + CR-001-E) |
+| `ManageApproversDialogComponent` | Right-side dialog for configuring the per-plan **sequential approval chain**. Inputs: `planId`, `existingApprovers`. Uses `WorkspaceService.getActiveUsersForDropdown()` for the active-users picker (search by name / email / org-unit, filters out users already in the chain). Add via picker, reorder with up/down arrows, remove with ×. Save calls `PUT /api/strategic-plans/{id}/approvers` (replace-the-chain). Backend rejects edits while the plan is not in Draft, so the parent only mounts this dialog when `canManageApprovers()` is true |
+
 ### Reports (1)
 | Component | Description |
 |-----------|-------------|
@@ -275,14 +293,17 @@
 | `PermissionStateService` | `GET /user-permissions/me/effective`, `GET /users/me/org-units`; manages permission state, loads via APP_INITIALIZER |
 | `RolePermissionService` | Role-level permission assignment |
 | `UserPermissionService` | User permission overrides and effective permissions |
-| `KpiService` | Full CRUD on `/kpis`, plus `/targets/bulk-upsert`, `/:id/targets` |
+| `KpiService` | Full CRUD on `/kpis`, plus `/targets/bulk-upsert`, `/:id/targets`. Bulk upsert request now carries optional `Baseline`, `DataSource`, `CalculationNotes`, and `Direction` per target row (null preserves the existing value) |
 | `StrategicObjectiveService` | Full CRUD on `/strategicobjectives`, plus `/by-orgunit/:id` |
-| `OrgUnitService` | Org unit CRUD and tree |
+| `StrategicPlanService` | Full CRUD on `/strategic-plans` plus `/by-orgunit/:id`, `/by-orgunit/:id/active`, and `PATCH /:id/restore` |
+| `StrategicPlanWorkflowService` | Strategic plan approval workflow on `/strategic-plans/workflow` — `submit`, `requestRevision`, `review`, `getForPlan`, `getPendingReviews`, `getMyRequests`, `getPendingSummary`, `canReview`, `getLockState` (CR-001-D + CR-001-E) |
+| `KpiActualsService` | CR-001-F. KPI actuals CRUD + workflow on `/kpis/actuals` and `/kpis/actuals/workflow` — `getGrid`, `listByKpi`, `getHistory`, `getById`, `create`, `update`, `delete`, `submit`, `review`, `getPendingReviews`, `getMyRequests`, `getPendingSummary`, `canReview` |
+| `OrgUnitService` | Org unit CRUD and tree, plus org-unit head endpoints (`getHead` / `assignHead` / `removeHead` / `getPlanApprover`) for CR-001-H |
 | `RoleManagementService` | Role listing, user assignment, permission matrix |
 | `UserManagementService` | User CRUD, `/register-external`, `/register-ad`, `/search-employees`, role/org-unit assignment |
 | `WorkflowService` | Full CRUD on `/action-items/workflow` (date/status change requests, review, escalate, give direction, pending summary) |
 | `ProjectWorkflowService` | Project approval workflow: submit for approval, review, get pending/my requests, pending summary, can-review check |
-| `WorkflowStateService` | Shared pending approval count (BehaviorSubject) — combines action item + project workflow counts, refreshed on SignalR events and 60s interval |
+| `WorkflowStateService` | Shared pending approval count (BehaviorSubject) — combines action item + project + strategic plan + **KPI actual** pending counts, refreshed on SignalR events and 60s interval. Catches 403 from `StrategicPlanWorkflowService.getPendingSummary()` and `KpiActualsService.getPendingSummary()` for users without the corresponding View permissions |
 | `ThemeService` | Dark/light theme toggle (persisted to localStorage) |
 
 ---
@@ -318,11 +339,21 @@
 | `RiskRating` (enum) | Critical, High, Medium, Low |
 | `RiskStatus` (enum) | Open, Mitigated, Closed |
 | `EmailTemplate` | id, templateKey, name, subject, htmlBody, isActive |
-| `PermissionArea` (enum) | Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks |
-| `PermissionAction` (enum) | View, Create, Edit, Delete, Approve, Export, Assign |
+| `PermissionArea` (enum) | Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans** |
+| `PermissionAction` (enum) | View, Create, Edit, Delete, Approve, Export, Assign, **AssignHead** |
 | `Kpi` | id, kpiNumber, name, calculationMethod, period, unit, strategicObjectiveId |
+| `KpiTarget` | id, kpiId, year, month, target, actual, notes, **baseline**, **dataSource**, **calculationNotes**, **direction** (KpiDirection) |
+| `KpiDirection` (enum) | HigherIsBetter (0), LowerIsBetter (1), OnTarget (2) |
+| `KpiActual` (CR-001-F) | id, kpiTargetId, kpiId, kpiName, orgUnitId, periodType, periodIndex, year, periodLabel, actualValue, targetValue, achievementPercent, notes, status, submittedBy*, assignedReviewer*, reviewedBy*, reviewerComment, documentCount |
+| `KpiActualStatus` (enum) | Draft, PendingApproval, Approved, Rejected |
+| `KpiActualPeriodType` (enum) | Quarter (0), SemiAnnual (1), Annual (2) |
+| `KpiActualGridResponse` | kpiId, kpiTargetId, kpiName, periodType, year, rows[] (`{ periodLabel, periodIndex, targetValue, direction, current?, periodEndUtc, periodHasEnded }`) |
 | `StrategicObjective` | id, objectiveCode, statement, description, orgUnitId |
-| `OrgUnit` | id, name, code, level, parentId |
+| `StrategicPlan` | id, name, orgUnitId, startYear, durationYears, endYear, status, approvedAtUtc, approvedByUserId, objectiveCount |
+| `StrategicPlanStatus` (enum) | Draft (0), PendingApproval (1), Approved (2), Archived (3) |
+| `OrgUnit` | id, name, code, level, parentId, **headUserId**, **headDisplayName**, **headEmail** |
+| `OrgUnitHead` (CR-001-H) | orgUnitId, orgUnitName, orgUnitLevel, userId, displayName, email |
+| `OrgUnitPlanApprover` (CR-001-H) | userId, displayName, email, sourceOrgUnitId, sourceOrgUnitLevel, sourceOrgUnitName |
 | `WorkflowRequest` | id, actionItemId, actionItemCode, actionItemTitle, requestType, status, requester/reviewer info, date/status change details, reason, reviewComment |
 | `WorkflowRequestSummary` | pendingDateChanges, pendingStatusChanges, totalPending |
 | `WorkflowRequestType` (enum) | DateChangeRequest, StatusChangeRequest |
@@ -332,6 +363,14 @@
 | `ProjectApprovalStatus` (enum) | Pending, Approved, Rejected |
 | `SubmitProjectApprovalRequest` | projectId, reason |
 | `ReviewProjectApprovalRequest` | requestId, isApproved, reviewComment |
+| `StrategicPlanApprovalRequest` (CR-001-D) | id, strategicPlanId, planName, orgUnitId, orgUnitName, requestType (Initial/Revision), status (Pending/Approved/Rejected), requester/reviewer info, justification, reviewerComment, timestamps |
+| `StrategicPlanApprovalSummary` | pendingPlanApprovals |
+| `StrategicPlanApprovalStatus` (enum) | Pending, Approved, Rejected |
+| `StrategicPlanApprovalRequestType` (enum) | Initial, Revision |
+| `StrategicPlanLockState` (CR-001-E) | planId, status, isLocked, pendingRevisionId |
+| `SubmitStrategicPlanApprovalRequest` | planId, justification |
+| `RequestStrategicPlanRevision` | planId, justification |
+| `ReviewStrategicPlanApprovalRequest` | requestId, isApproved, reviewComment |
 
 ---
 
@@ -380,10 +419,11 @@
 
 ### Workspaces
 - Organizational container scoped to org unit (Level-2 ancestor)
-- Multiple admin users per workspace — picked via searchable multi-select (ng-select); search matches name, email, or org unit, and each option shows email + org unit as subtitle
+- Multiple admin users per workspace — picked via custom searchable multi-select dropdown that filters across name, email, and org-unit name; each option renders display name with email/org-unit subtitle, and selected admins appear as removable chips
+- Admin users dropdown lazy-loaded on first drawer open; org units eagerly loaded so the toolbar filter is responsive immediately
 - Stats: project count, milestone count, action item counts
-- Create/edit via offcanvas side drawer
-- Org-unit filter dropdown
+- Create/edit via offcanvas side drawer (consolidated into the list page)
+- Org-unit filter dropdown (sorted by org-unit level)
 - Soft delete and restore
 - Excel export and PDF print
 
@@ -399,8 +439,9 @@
 
 ### Admin Panel
 - **Org Chart:** Hierarchical org unit management (up to 10 levels)
-- **Strategic Objectives:** Tied to org units, auto-generated codes (SO-001)
-- **KPIs:** Tied to strategic objectives, monthly targets (12 months/year), bulk upsert, calculation methods
+- **Strategic Objectives:** Tied to org units, auto-generated codes (SO-001); reads/writes scope-filtered to the user's org-unit subtree for Strategy Editors
+- **KPIs:** Tied to strategic objectives, period-aware targets (12 / 4 / 2 / 1 rows/year), bulk upsert, calculation methods
+- **KPI Target Evidence:** modal-driven document attachments per target row — up to 10 files, PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX, 10 MB max; paperclip badge shows current file count
 - **Email Templates:** Template management with subject/HTML body editing, active/inactive toggle, delivery logs
 
 ### Permission System
@@ -420,6 +461,7 @@
 - Register AD users (search KU employee directory)
 - Register external/local users with email/password
 - Paginated user list with search and inline editing
+- **Strategy Editor role guard:** the backend rejects assignment unless the user has an active org unit at level 2 or deeper; UI surfaces the validation error inline
 
 ### Export & Reporting
 - Excel export (.xlsx) on all major pages (actions, workspaces, projects, milestones)
@@ -464,9 +506,12 @@
 | Package | Version |
 |---------|---------|
 | @angular/core | ^20.3.0 |
+| @angular/animations | ^20.3.16 |
 | @azure/msal-angular | ^3.1.0 |
 | @azure/msal-browser | ^3.30.0 |
 | @microsoft/signalr | ^10.0.0 |
+| @ng-select/ng-select | ^21.8.2 |
+| @popperjs/core | ^2.11.8 |
 | bootstrap | ^5.3.3 |
 | bootstrap-icons | ^1.13.1 |
 | chart.js | ^4.4.7 |

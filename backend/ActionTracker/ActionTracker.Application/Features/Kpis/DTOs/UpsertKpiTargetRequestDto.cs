@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ActionTracker.Domain.Enums;
 
 namespace ActionTracker.Application.Features.Kpis.DTOs;
 
@@ -20,4 +21,15 @@ public class UpsertKpiTargetRequestDto
 
     [MaxLength(500)]
     public string? Notes { get; set; }
+
+    public decimal? Baseline { get; set; }
+
+    [MaxLength(500)]
+    public string? DataSource { get; set; }
+
+    [MaxLength(2000)]
+    public string? CalculationNotes { get; set; }
+
+    /// <summary>If null, the existing direction is preserved.</summary>
+    public KpiDirection? Direction { get; set; }
 }

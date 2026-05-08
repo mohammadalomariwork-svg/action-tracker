@@ -106,6 +106,13 @@ export const routes: Routes = [
           import('./features/workspaces/workspace.routes').then(m => m.default),
       },
       {
+        path: 'strategy',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'StrategicPlans', requiredAction: 'View' },
+        loadChildren: () =>
+          import('./features/strategy/strategy.routes').then(m => m.STRATEGY_ROUTES),
+      },
+      {
         path: 'projects',
         loadChildren: () =>
           import('./features/projects/project.routes').then(m => m.default),

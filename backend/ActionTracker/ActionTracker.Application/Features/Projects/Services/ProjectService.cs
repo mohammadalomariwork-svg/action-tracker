@@ -74,6 +74,14 @@ public class ProjectService : IProjectService
                 (p.Description != null && p.Description.ToLower().Contains(term)));
         }
 
+        if (filter.StrategicObjectiveIds != null && filter.StrategicObjectiveIds.Count > 0)
+        {
+            var objIds = filter.StrategicObjectiveIds;
+            query = query.Where(p =>
+                p.StrategicObjectiveId.HasValue &&
+                objIds.Contains(p.StrategicObjectiveId.Value));
+        }
+
         // Filter projects whose workspace belongs to a visible org unit.
         if (filter.VisibleOrgUnitIds != null && filter.VisibleOrgUnitIds.Count > 0)
         {

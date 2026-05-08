@@ -37,6 +37,19 @@ public class KpiTargetConfiguration : IEntityTypeConfiguration<KpiTarget>
         builder.Property(t => t.Notes)
             .HasMaxLength(500);
 
+        builder.Property(t => t.Baseline)
+            .HasColumnType("decimal(18,4)");
+
+        builder.Property(t => t.DataSource)
+            .HasMaxLength(500);
+
+        builder.Property(t => t.CalculationNotes)
+            .HasMaxLength(2000);
+
+        builder.Property(t => t.Direction)
+            .HasConversion<int>()
+            .HasDefaultValue(Domain.Enums.KpiDirection.HigherIsBetter);
+
         builder.Property(t => t.CreatedAt)
             .HasDefaultValueSql("GETUTCDATE()");
 

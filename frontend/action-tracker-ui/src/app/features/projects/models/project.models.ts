@@ -105,6 +105,8 @@ export interface ProjectFilter {
   sortBy: string;
   sortDescending: boolean;
   includeDeleted?: boolean;
+  /** When set, the API returns only projects linked to one of these objectives. */
+  strategicObjectiveIds?: string[];
 }
 
 export interface StrategicObjectiveOption {

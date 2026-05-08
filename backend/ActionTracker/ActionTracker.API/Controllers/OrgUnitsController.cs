@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ActionTracker.API.Models;
+using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.OrgChart.DTOs;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
 using ActionTracker.Infrastructure.Authorization;
@@ -14,11 +15,16 @@ namespace ActionTracker.API.Controllers;
 public class OrgUnitsController : ControllerBase
 {
     private readonly IOrgUnitService          _orgUnitService;
+    private readonly IApprovalAuthorityResolver _approvalAuthorityResolver;
     private readonly ILogger<OrgUnitsController> _logger;
 
-    public OrgUnitsController(IOrgUnitService orgUnitService, ILogger<OrgUnitsController> logger)
+    public OrgUnitsController(
+        IOrgUnitService orgUnitService,
+        IApprovalAuthorityResolver approvalAuthorityResolver,
+        ILogger<OrgUnitsController> logger)
     {
         _orgUnitService = orgUnitService;
+        _approvalAuthorityResolver = approvalAuthorityResolver;
         _logger         = logger;
     }
 
@@ -229,4 +235,92 @@ public class OrgUnitsController : ControllerBase
             return NotFound(ApiResponse<string>.Fail(ex.Message));
         }
     }
+
+    // -------------------------------------------------------------------------
+    // CR-001-H: Org-unit head endpoints
+    // -------------------------------------------------------------------------
+
+    /// <summary>Get the user designated as this org unit's head.</summary>
+    [HttpGet("{id:guid}/head")]
+    [Authorize(Policy = PermissionPolicies.OrgChartView)]
+    [ProducesResponseType(typeof(ApiResponse<OrgUnitHeadDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),         StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetHead(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            var head = await _orgUnitService.GetHeadAsync(id, ct);
+            return Ok(ApiResponse<OrgUnitHeadDto?>.Ok(head));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Assign or replace the org unit head.</summary>
+    [HttpPut("{id:guid}/head")]
+    [Authorize(Policy = PermissionPolicies.OrgChartAssignHead)]
+    [ProducesResponseType(typeof(ApiResponse<OrgUnitHeadDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),         StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<string>),         StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignHead(
+        Guid id,
+        [FromBody] AssignOrgUnitHeadRequestDto request,
+        CancellationToken ct = default)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.UserId))
+            return BadRequest(ApiResponse<string>.Fail("UserId is required."));
+
+        try
+        {
+            var head = await _orgUnitService.AssignHeadAsync(id, request.UserId, CurrentUserId, ct);
+            return Ok(ApiResponse<OrgUnitHeadDto>.Ok(head));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Clear the org unit head assignment.</summary>
+    [HttpDelete("{id:guid}/head")]
+    [Authorize(Policy = PermissionPolicies.OrgChartAssignHead)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveHead(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await _orgUnitService.RemoveHeadAsync(id, CurrentUserId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Returns the user who would receive a strategic-plan approval request
+    /// authored within this org unit (the level-3 ancestor's head).
+    /// Returns 200 with null body when no approver can be resolved.
+    /// </summary>
+    [HttpGet("{id:guid}/plan-approver")]
+    [Authorize(Policy = PermissionPolicies.StrategicPlansView)]
+    [ProducesResponseType(typeof(ApiResponse<ApprovalAuthorityDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPlanApprover(Guid id, CancellationToken ct = default)
+    {
+        var approver = await _approvalAuthorityResolver.ResolvePlanApproverAsync(id, ct);
+        return Ok(ApiResponse<ApprovalAuthorityDto?>.Ok(approver));
+    }
+}
+
+public class AssignOrgUnitHeadRequestDto
+{
+    public string UserId { get; set; } = string.Empty;
 }

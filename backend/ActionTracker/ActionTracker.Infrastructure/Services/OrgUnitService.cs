@@ -3,6 +3,7 @@ using ActionTracker.Application.Features.OrgChart.DTOs;
 using ActionTracker.Application.Features.OrgChart.Interfaces;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -13,15 +14,18 @@ public class OrgUnitService : IOrgUnitService
     private readonly AppDbContext              _context;
     private readonly IUserLookupService        _userLookup;
     private readonly ILogger<OrgUnitService>   _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public OrgUnitService(
         AppDbContext            context,
         IUserLookupService      userLookup,
-        ILogger<OrgUnitService> logger)
+        ILogger<OrgUnitService> logger,
+        UserManager<ApplicationUser> userManager)
     {
         _context    = context;
         _userLookup = userLookup;
         _logger     = logger;
+        _userManager = userManager;
     }
 
     // -------------------------------------------------------------------------
@@ -501,7 +505,8 @@ public class OrgUnitService : IOrgUnitService
         OrgUnit                    u,
         string?                    parentName,
         int                        childrenCount,
-        Dictionary<string, string> names) =>
+        Dictionary<string, string> names,
+        ApplicationUser?           head = null) =>
         new()
         {
             Id            = u.Id,
@@ -522,7 +527,87 @@ public class OrgUnitService : IOrgUnitService
             UpdatedByName = Resolve(u.UpdatedBy, names),
             DeletedByName = Resolve(u.DeletedBy, names),
             ChildrenCount = childrenCount,
+            HeadUserId      = u.HeadUserId,
+            HeadDisplayName = head?.FullName,
+            HeadEmail       = head?.Email,
         };
+
+    // -------------------------------------------------------------------------
+    // CR-001-H: Org-unit head management
+    // -------------------------------------------------------------------------
+
+    public async Task<OrgUnitHeadDto?> GetHeadAsync(Guid orgUnitId, CancellationToken ct = default)
+    {
+        var unit = await _context.OrgUnits
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == orgUnitId, ct)
+            ?? throw new KeyNotFoundException($"Org unit '{orgUnitId}' not found.");
+
+        if (string.IsNullOrEmpty(unit.HeadUserId)) return null;
+
+        var head = await _userManager.FindByIdAsync(unit.HeadUserId);
+        if (head is null) return null;
+
+        return new OrgUnitHeadDto
+        {
+            OrgUnitId = unit.Id,
+            OrgUnitName = unit.Name,
+            OrgUnitLevel = unit.Level,
+            UserId = head.Id,
+            DisplayName = head.FullName,
+            Email = head.Email ?? string.Empty,
+        };
+    }
+
+    public async Task<OrgUnitHeadDto> AssignHeadAsync(
+        Guid orgUnitId, string headUserId, string actorUserId, CancellationToken ct = default)
+    {
+        var unit = await _context.OrgUnits
+            .FirstOrDefaultAsync(o => o.Id == orgUnitId, ct)
+            ?? throw new KeyNotFoundException($"Org unit '{orgUnitId}' not found.");
+
+        var user = await _userManager.FindByIdAsync(headUserId)
+            ?? throw new ArgumentException($"User '{headUserId}' does not exist.", nameof(headUserId));
+
+        if (!user.IsActive)
+            throw new ArgumentException(
+                "Cannot assign a deactivated user as an org unit head.", nameof(headUserId));
+
+        unit.HeadUserId = headUserId;
+        unit.UpdatedAt = DateTime.UtcNow;
+        unit.UpdatedBy = actorUserId;
+
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Assigned user {HeadUserId} as head of OrgUnit {OrgUnitId} (level {Level}).",
+            headUserId, orgUnitId, unit.Level);
+
+        return new OrgUnitHeadDto
+        {
+            OrgUnitId = unit.Id,
+            OrgUnitName = unit.Name,
+            OrgUnitLevel = unit.Level,
+            UserId = user.Id,
+            DisplayName = user.FullName,
+            Email = user.Email ?? string.Empty,
+        };
+    }
+
+    public async Task RemoveHeadAsync(Guid orgUnitId, string actorUserId, CancellationToken ct = default)
+    {
+        var unit = await _context.OrgUnits
+            .FirstOrDefaultAsync(o => o.Id == orgUnitId, ct)
+            ?? throw new KeyNotFoundException($"Org unit '{orgUnitId}' not found.");
+
+        unit.HeadUserId = null;
+        unit.UpdatedAt = DateTime.UtcNow;
+        unit.UpdatedBy = actorUserId;
+
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Removed head from OrgUnit {OrgUnitId}.", orgUnitId);
+    }
 
     private static OrgUnitTreeDto MapToTreeDto(
         OrgUnit                    node,

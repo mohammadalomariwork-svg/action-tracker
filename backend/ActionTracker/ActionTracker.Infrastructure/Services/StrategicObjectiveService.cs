@@ -4,8 +4,10 @@ using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.DTOs;
 using ActionTracker.Application.Features.StrategicObjectives.Interfaces;
+using ActionTracker.Application.Features.StrategicPlans.Workflow;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
+using ActionTracker.Domain.Enums;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +26,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     private readonly AppSettings                        _appSettings;
     private readonly IServiceScopeFactory               _scopeFactory;
     private readonly IStrategicScopeService             _scopeService;
+    private readonly IStrategicPlanLockGuard            _lockGuard;
+    private readonly IOrgUnitScopeResolver              _orgScopeResolver;
 
     public StrategicObjectiveService(
         AppDbContext                        context,
@@ -33,7 +37,9 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         INotificationService               notificationService,
         IOptions<AppSettings>              appSettings,
         IServiceScopeFactory               scopeFactory,
-        IStrategicScopeService             scopeService)
+        IStrategicScopeService             scopeService,
+        IStrategicPlanLockGuard            lockGuard,
+        IOrgUnitScopeResolver              orgScopeResolver)
     {
         _context             = context;
         _userLookup          = userLookup;
@@ -43,6 +49,8 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
         _scopeService        = scopeService;
+        _lockGuard           = lockGuard;
+        _orgScopeResolver    = orgScopeResolver;
     }
 
     // -------------------------------------------------------------------------
@@ -132,6 +140,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 .IgnoreQueryFilters()
                 .Include(o => o.OrgUnit)
                 .Include(o => o.Kpis)
+                .Include(o => o.StrategicPlan)
                 .FirstOrDefaultAsync(o => o.Id == id, ct);
 
             if (objective is null) return null;
@@ -145,8 +154,14 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                     return null;
             }
 
+            // Compute parent-plan lock state when the objective is wired to a plan
+            // (StrategicPlanId is nullable during the migration window).
+            bool? isPlanLocked = null;
+            if (objective.StrategicPlanId is Guid planId)
+                isPlanLocked = await _lockGuard.IsLockedAsync(planId, ct);
+
             var names = await ResolveNamesAsync([objective], ct);
-            return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted), names);
+            return MapToDto(objective, kpiCount: objective.Kpis.Count(k => !k.IsDeleted), names, isPlanLocked);
         }
         catch (Exception ex)
         {
@@ -168,6 +183,51 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         {
             await _scopeService.EnsureCanWriteAsync(userId, request.OrgUnitId, ct);
 
+            Guid? targetPlanId;
+
+            if (request.StrategicPlanId.HasValue)
+            {
+                // Caller is explicitly attaching to a known plan (Strategy page
+                // flow). Validate that the plan exists, isn't archived, isn't
+                // locked, and that the requested OrgUnitId falls inside the
+                // plan's subtree (the plan's own unit or a descendant).
+                var plan = await _context.StrategicPlans
+                    .Where(p => p.Id == request.StrategicPlanId.Value)
+                    .Select(p => new { p.Id, p.OrgUnitId, p.Status })
+                    .FirstOrDefaultAsync(ct)
+                    ?? throw new ArgumentException(
+                        $"Strategic plan '{request.StrategicPlanId}' does not exist.",
+                        nameof(request.StrategicPlanId));
+
+                if (plan.Status == StrategicPlanStatus.Archived)
+                    throw new InvalidOperationException(
+                        "Cannot add objectives to an archived strategic plan.");
+
+                await _lockGuard.EnsureNotLockedAsync(plan.Id, ct);
+
+                var descendants = await _orgScopeResolver.GetDescendantOrgUnitIdsAsync(plan.OrgUnitId);
+                var allowed = new HashSet<Guid>(descendants) { plan.OrgUnitId };
+                if (!allowed.Contains(request.OrgUnitId))
+                    throw new InvalidOperationException(
+                        "The selected organisation unit is not within the strategic plan's subtree.");
+
+                targetPlanId = plan.Id;
+            }
+            else
+            {
+                // Fallback (admin / legacy flow): auto-resolve the active plan
+                // for the requested OrgUnitId via the org-unit-keyed lock guard,
+                // then pick the newest non-archived plan for that unit.
+                await _lockGuard.EnsureNotLockedForOrgUnitAsync(request.OrgUnitId, ct);
+
+                targetPlanId = await _context.StrategicPlans
+                    .Where(p => p.OrgUnitId == request.OrgUnitId
+                             && p.Status != StrategicPlanStatus.Archived)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => (Guid?)p.Id)
+                    .FirstOrDefaultAsync(ct);
+            }
+
             var orgUnit = await _context.OrgUnits
                 .FirstOrDefaultAsync(o => o.Id == request.OrgUnitId, ct)
                 ?? throw new ArgumentException(
@@ -182,14 +242,15 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             var objective = new StrategicObjective
             {
-                Id            = Guid.NewGuid(),
-                ObjectiveCode = objectiveCode,
-                Statement     = request.Statement,
-                Description   = request.Description,
-                OrgUnitId     = request.OrgUnitId,
-                IsDeleted     = false,
-                CreatedAt     = DateTime.UtcNow,
-                CreatedBy     = userId,
+                Id              = Guid.NewGuid(),
+                ObjectiveCode   = objectiveCode,
+                Statement       = request.Statement,
+                Description     = request.Description,
+                OrgUnitId       = request.OrgUnitId,
+                StrategicPlanId = targetPlanId,
+                IsDeleted       = false,
+                CreatedAt       = DateTime.UtcNow,
+                CreatedBy       = userId,
             };
 
             _context.StrategicObjectives.Add(objective);
@@ -298,6 +359,9 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             // and the requested target org unit (so they cannot reassign out of scope).
             await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
             await _scopeService.EnsureCanWriteAsync(userId, request.OrgUnitId, ct);
+            await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
+            if (request.OrgUnitId != objective.OrgUnitId)
+                await _lockGuard.EnsureNotLockedForOrgUnitAsync(request.OrgUnitId, ct);
 
             var orgUnit = await _context.OrgUnits
                 .FirstOrDefaultAsync(o => o.Id == request.OrgUnitId, ct)
@@ -342,6 +406,7 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 ?? throw new KeyNotFoundException($"Strategic objective '{id}' not found.");
 
             await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
+            await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
 
             var now = DateTime.UtcNow;
             objective.IsDeleted = true;
@@ -435,6 +500,54 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     }
 
     // -------------------------------------------------------------------------
+    // GetByPlanAsync
+    // -------------------------------------------------------------------------
+
+    public async Task<List<StrategicObjectiveDto>> GetByPlanAsync(
+        Guid              strategicPlanId,
+        string?           currentUserId = null,
+        CancellationToken ct            = default)
+    {
+        try
+        {
+            // Resolve the plan first so we can scope-check against its OrgUnit.
+            // Returning empty (rather than throwing) when the plan is missing or
+            // out-of-scope mirrors GetByOrgUnitAsync's behaviour.
+            var plan = await _context.StrategicPlans
+                .Where(p => p.Id == strategicPlanId)
+                .Select(p => new { p.Id, p.OrgUnitId })
+                .FirstOrDefaultAsync(ct);
+            if (plan is null)
+                return new List<StrategicObjectiveDto>();
+
+            if (currentUserId is not null)
+            {
+                var visible = await _scopeService.GetVisibleOrgUnitIdsAsync(currentUserId, ct);
+                if (visible is not null && !visible.Contains(plan.OrgUnitId))
+                    return new List<StrategicObjectiveDto>();
+            }
+
+            var objectives = await _context.StrategicObjectives
+                .Include(o => o.OrgUnit)
+                .Include(o => o.Kpis)
+                .Where(o => o.StrategicPlanId == strategicPlanId)
+                .OrderBy(o => o.ObjectiveCode)
+                .ToListAsync(ct);
+
+            var names = await ResolveNamesAsync(objectives, ct);
+
+            return objectives
+                .Select(o => MapToDto(o, kpiCount: o.Kpis.Count(k => !k.IsDeleted), names))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving strategic objectives for Plan {PlanId}", strategicPlanId);
+            throw;
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 
@@ -454,28 +567,37 @@ public class StrategicObjectiveService : IStrategicObjectiveService
         => userId != null && names.TryGetValue(userId, out var n) ? n : null;
 
     private static StrategicObjectiveDto MapToDto(
-        StrategicObjective      o,
-        int                     kpiCount,
-        Dictionary<string, string> names) =>
+        StrategicObjective         o,
+        int                        kpiCount,
+        Dictionary<string, string> names,
+        bool?                      isPlanLocked = null) =>
         new()
         {
-            Id             = o.Id,
-            ObjectiveCode  = o.ObjectiveCode,
-            Statement      = o.Statement,
-            Description    = o.Description,
-            OrgUnitId      = o.OrgUnitId,
-            OrgUnitName    = o.OrgUnit?.Name ?? string.Empty,
-            OrgUnitCode    = o.OrgUnit?.Code,
-            IsDeleted      = o.IsDeleted,
-            CreatedAt      = o.CreatedAt,
-            UpdatedAt      = o.UpdatedAt,
-            DeletedAt      = o.DeletedAt,
-            CreatedBy      = o.CreatedBy,
-            UpdatedBy      = o.UpdatedBy,
-            DeletedBy      = o.DeletedBy,
-            CreatedByName  = Resolve(o.CreatedBy, names),
-            UpdatedByName  = Resolve(o.UpdatedBy, names),
-            DeletedByName  = Resolve(o.DeletedBy, names),
-            KpiCount       = kpiCount,
+            Id                  = o.Id,
+            ObjectiveCode       = o.ObjectiveCode,
+            Statement           = o.Statement,
+            Description         = o.Description,
+            OrgUnitId           = o.OrgUnitId,
+            OrgUnitName         = o.OrgUnit?.Name ?? string.Empty,
+            OrgUnitCode         = o.OrgUnit?.Code,
+            IsDeleted           = o.IsDeleted,
+            CreatedAt           = o.CreatedAt,
+            UpdatedAt           = o.UpdatedAt,
+            DeletedAt           = o.DeletedAt,
+            CreatedBy           = o.CreatedBy,
+            UpdatedBy           = o.UpdatedBy,
+            DeletedBy           = o.DeletedBy,
+            CreatedByName       = Resolve(o.CreatedBy, names),
+            UpdatedByName       = Resolve(o.UpdatedBy, names),
+            DeletedByName       = Resolve(o.DeletedBy, names),
+            KpiCount            = kpiCount,
+            // Parent plan info (only populated when the StrategicPlan navigation is included
+            // and a non-null plan id is present).
+            StrategicPlanId     = o.StrategicPlanId,
+            StrategicPlanName   = o.StrategicPlan?.Name,
+            StrategicPlanStatus = o.StrategicPlan?.Status,
+            PlanStartYear       = o.StrategicPlan?.StartYear,
+            PlanEndYear         = o.StrategicPlan?.EndYear,
+            IsPlanLocked        = isPlanLocked,
         };
 }

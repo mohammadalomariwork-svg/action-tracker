@@ -1,27 +1,29 @@
-<div class="kt-page">
+<div class="kt-page" [class.kt-page--embedded]="embedded">
 
-  <!-- ── Breadcrumb ────────────────────────────────────────────────────────────  -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a routerLink="/dashboard">Home</a></li>
-      <li class="breadcrumb-item"><a routerLink="/admin">Admin</a></li>
-      <li class="breadcrumb-item"><a routerLink="/admin/strategic-objectives">Strategic Objectives</a></li>
-      @if (kpi()) {
-        <li class="breadcrumb-item">
-          <a [routerLink]="['/admin/kpis']" [queryParams]="{ objectiveId: kpi()!.strategicObjectiveId }">
-            <span class="badge bg-dark font-monospace me-1">{{ kpi()!.objectiveCode }}</span>KPIs
-          </a>
-        </li>
-      }
-      <li class="breadcrumb-item active" aria-current="page">Targets</li>
-    </ol>
-  </nav>
+  @if (!embedded) {
+    <!-- ── Breadcrumb ────────────────────────────────────────────────────────────  -->
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a routerLink="/dashboard">Home</a></li>
+        <li class="breadcrumb-item"><a routerLink="/admin">Admin</a></li>
+        <li class="breadcrumb-item"><a routerLink="/admin/strategic-objectives">Strategic Objectives</a></li>
+        @if (kpi()) {
+          <li class="breadcrumb-item">
+            <a [routerLink]="['/admin/kpis']" [queryParams]="{ objectiveId: kpi()!.strategicObjectiveId }">
+              <span class="badge bg-dark font-monospace me-1">{{ kpi()!.objectiveCode }}</span>KPIs
+            </a>
+          </li>
+        }
+        <li class="breadcrumb-item active" aria-current="page">Targets</li>
+      </ol>
+    </nav>
 
-  <app-page-header
-    title="KPI Targets"
-    subtitle="Manage targets and track actuals"
-    icon="bi bi-bullseye"
-  />
+    <app-page-header
+      title="KPI Targets"
+      subtitle="Manage targets and track actuals"
+      icon="bi bi-bullseye"
+    />
+  }
 
   <!-- ── Error ─────────────────────────────────────────────────────────────────  -->
   @if (error()) {
@@ -40,45 +42,67 @@
   }
 
   @if (!loading() && kpi()) {
-    <!-- ── KPI header card ──────────────────────────────────────────────────────  -->
-    <div class="card mb-4 kt-header-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-          <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <span class="badge bg-dark font-monospace kt-code">
-                {{ kpi()!.objectiveCode }}-KPI-{{ kpi()!.kpiNumber }}
-              </span>
-              <span class="badge" [ngClass]="
-                kpi()!.periodValue === 1 ? 'bg-primary' :
-                kpi()!.periodValue === 2 ? 'bg-info text-dark' :
-                kpi()!.periodValue === 3 ? 'bg-warning text-dark' : 'bg-success'
-              ">{{ PeriodLabels[kpi()!.periodValue] }}</span>
-              @if (kpi()!.unit) {
-                <span class="badge bg-secondary">{{ kpi()!.unit }}</span>
-              }
+    @if (!embedded) {
+      <!-- ── KPI header card ──────────────────────────────────────────────────────  -->
+      <div class="card mb-4 kt-header-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-dark font-monospace kt-code">
+                  {{ kpi()!.objectiveCode }}-KPI-{{ kpi()!.kpiNumber }}
+                </span>
+                <span class="badge" [ngClass]="
+                  kpi()!.periodValue === 1 ? 'bg-primary' :
+                  kpi()!.periodValue === 2 ? 'bg-info text-dark' :
+                  kpi()!.periodValue === 3 ? 'bg-warning text-dark' : 'bg-success'
+                ">{{ PeriodLabels[kpi()!.periodValue] }}</span>
+                @if (kpi()!.unit) {
+                  <span class="badge bg-secondary">{{ kpi()!.unit }}</span>
+                }
+              </div>
+              <h4 class="mb-1">{{ kpi()!.name }}</h4>
+              <p class="text-muted small mb-0">{{ kpi()!.objectiveStatement }}</p>
             </div>
-            <h4 class="mb-1">{{ kpi()!.name }}</h4>
-            <p class="text-muted small mb-0">{{ kpi()!.objectiveStatement }}</p>
+            <button class="btn btn-outline-secondary btn-sm flex-shrink-0" (click)="goBack()">
+              <i class="bi bi-arrow-left me-1"></i>Back to KPIs
+            </button>
           </div>
-          <button class="btn btn-outline-secondary btn-sm flex-shrink-0" (click)="goBack()">
-            <i class="bi bi-arrow-left me-1"></i>Back to KPIs
-          </button>
         </div>
       </div>
-    </div>
+    }
+
+    @if (locked) {
+      <!-- ── Locked banner (Approved plan, no in-flight Revision) ────────────  -->
+      <div class="alert alert-warning d-flex align-items-center py-2 mb-3 kt-locked-banner">
+        <i class="bi bi-lock-fill me-2"></i>
+        <span>
+          This strategic plan is approved &mdash; <strong>Target</strong> values are read-only.
+          You can still update <strong>Actual</strong>, <strong>Notes</strong>, and
+          <strong>Evidence</strong>. Submit a revision request from the Strategy page to change targets.
+        </span>
+      </div>
+    }
 
     <!-- ── Year selector ────────────────────────────────────────────────────────  -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
       <h5 class="mb-0"><i class="bi bi-calendar3 me-2 text-muted"></i>Monthly Targets</h5>
       <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-secondary btn-sm" (click)="changeYear(-1)">
-          <i class="bi bi-chevron-left"></i>
-        </button>
+        @if (!singleYearPlan) {
+          <button class="btn btn-outline-secondary btn-sm"
+                  [disabled]="isYearStepDisabled(-1)"
+                  (click)="changeYear(-1)">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+        }
         <span class="fw-semibold fs-5 px-2">{{ selectedYear() }}</span>
-        <button class="btn btn-outline-secondary btn-sm" (click)="changeYear(1)">
-          <i class="bi bi-chevron-right"></i>
-        </button>
+        @if (!singleYearPlan) {
+          <button class="btn btn-outline-secondary btn-sm"
+                  [disabled]="isYearStepDisabled(1)"
+                  (click)="changeYear(1)">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        }
       </div>
     </div>
 
@@ -104,11 +128,11 @@
             <tr [class]="varianceClass(row)">
 
               <!-- Month -->
-              <td class="fw-medium">{{ row.monthName }}</td>
+              <td class="fw-medium" data-label="Month">{{ row.monthName }}</td>
 
-              <!-- Target -->
-              <td>
-                @if (row.editing) {
+              <!-- Target — read-only when the parent plan is locked -->
+              <td [attr.data-label]="'Target' + (kpi()!.unit ? ' (' + kpi()!.unit + ')' : '')">
+                @if (row.editing && !locked) {
                   <input
                     type="number"
                     class="form-control form-control-sm kt-inline-input"
@@ -119,13 +143,18 @@
                     step="any"
                     autofocus
                   />
+                } @else if (locked) {
+                  <span class="kt-readonly-value" title="Target is locked — submit a revision to change it">
+                    <i class="bi bi-lock-fill text-muted me-1"></i>
+                    {{ row.target !== null ? row.target : '—' }}
+                  </span>
                 } @else {
                   <span class="kt-value">{{ row.target !== null ? row.target : '—' }}</span>
                 }
               </td>
 
               <!-- Actual -->
-              <td>
+              <td [attr.data-label]="'Actual' + (kpi()!.unit ? ' (' + kpi()!.unit + ')' : '')">
                 @if (row.editing) {
                   <input
                     type="number"
@@ -142,7 +171,7 @@
               </td>
 
               <!-- Variance -->
-              <td>
+              <td data-label="Variance">
                 @if (variance(row) !== null) {
                   <span [class.kt-positive-text]="variance(row)! >= 0"
                         [class.kt-negative-text]="variance(row)! < 0"
@@ -155,7 +184,7 @@
               </td>
 
               <!-- % Achievement -->
-              <td>
+              <td data-label="% Achievement">
                 @if (achievement(row) !== null) {
                   <span class="fw-medium" [class.text-success]="+(achievement(row)!) >= 100"
                                           [class.text-warning]="+(achievement(row)!) >= 80 && +(achievement(row)!) < 100"
@@ -168,7 +197,7 @@
               </td>
 
               <!-- Notes -->
-              <td>
+              <td data-label="Notes">
                 @if (row.editing) {
                   <input
                     type="text"
@@ -184,7 +213,7 @@
               </td>
 
               <!-- Created By -->
-              <td class="text-muted small">
+              <td class="text-muted small" data-label="Created By">
                 @if (row.createdByName) {
                   {{ row.createdByName }}<br>
                   <span style="font-size: 0.75em">{{ row.createdAt | date:'dd MMM y' }}</span>
@@ -194,7 +223,7 @@
               </td>
 
               <!-- Updated By -->
-              <td class="text-muted small">
+              <td class="text-muted small" data-label="Updated By">
                 @if (row.updatedByName) {
                   {{ row.updatedByName }}<br>
                   <span style="font-size: 0.75em">{{ row.updatedAt | date:'dd MMM y' }}</span>
@@ -204,7 +233,7 @@
               </td>
 
               <!-- Evidence -->
-              <td class="text-center">
+              <td class="text-center" data-label="Evidence">
                 @if (row.id) {
                   <button class="btn btn-outline-info btn-xs kt-evidence-btn"
                           title="Manage evidence files"
@@ -217,10 +246,11 @@
                 }
               </td>
 
-              <!-- Edit / confirm / cancel -->
-              <td class="text-center">
+              <!-- Edit / confirm / cancel — Actual + Notes remain editable even when locked -->
+              <td class="text-center" data-label="Edit">
                 @if (!row.editing) {
-                  <button class="btn btn-outline-secondary btn-xs kt-edit-btn" title="Edit row"
+                  <button class="btn btn-outline-secondary btn-xs kt-edit-btn"
+                          [title]="locked ? 'Edit Actual / Notes' : 'Edit row'"
                           (click)="startEdit(row)">
                     <i class="bi bi-pencil"></i>
                   </button>
@@ -244,11 +274,15 @@
       </table>
     </div>
 
-    <!-- ── Save all button ───────────────────────────────────────────────────────  -->
-    <div class="d-flex justify-content-end gap-2 mt-2">
+    <!-- ── Save all button ─────────────────────────────────────────────────────  -->
+    <div class="d-flex justify-content-end gap-2 mt-2 flex-wrap">
       <p class="text-muted small mb-0 align-self-center me-auto">
         <i class="bi bi-info-circle me-1"></i>
-        Click <kbd>Edit</kbd> on a row to modify inline, then <kbd>Enter</kbd> to confirm.
+        @if (locked) {
+          Target values are locked — only Actual + Notes can be saved.
+        } @else {
+          Click <kbd>Edit</kbd> on a row to modify inline, then <kbd>Enter</kbd> to confirm.
+        }
       </p>
       <button
         class="btn btn-primary d-inline-flex align-items-center gap-2"
@@ -259,7 +293,8 @@
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           Saving…
         } @else {
-          <i class="bi bi-cloud-upload"></i> Save All Targets
+          <i class="bi bi-cloud-upload"></i>
+          @if (locked) { Save Actuals &amp; Notes } @else { Save All Targets }
         }
       </button>
     </div>

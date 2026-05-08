@@ -7,6 +7,11 @@ public class StrategicObjective
     public string Statement { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public Guid OrgUnitId { get; set; }
+
+    /// <summary>FK to the parent StrategicPlan. Nullable during the migration window;
+    /// will be tightened to non-nullable in a follow-up migration after the data backfill runs.</summary>
+    public Guid? StrategicPlanId { get; set; }
+
     public bool IsDeleted { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -17,5 +22,6 @@ public class StrategicObjective
 
     // Navigation
     public OrgUnit OrgUnit { get; set; } = null!;
+    public StrategicPlan? StrategicPlan { get; set; }
     public ICollection<Kpi> Kpis { get; set; } = new List<Kpi>();
 }

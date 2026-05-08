@@ -20,4 +20,9 @@ public class OrgUnitDto
     public string? UpdatedByName { get; set; }
     public string? DeletedByName { get; set; }
     public int ChildrenCount { get; set; }
+
+    /// <summary>The user designated as this org unit's head (CR-001-H).</summary>
+    public string? HeadUserId { get; set; }
+    public string? HeadDisplayName { get; set; }
+    public string? HeadEmail { get; set; }
 }

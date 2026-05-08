@@ -1,7 +1,7 @@
 import { Component, OnInit, DestroyRef, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
@@ -23,6 +23,7 @@ import { OrgUnitSelectComponent } from '../../../../shared';
 export class WorkspaceListComponent implements OnInit {
   private readonly workspaceService   = inject(WorkspaceService);
   private readonly router             = inject(Router);
+  private readonly route              = inject(ActivatedRoute);
   private readonly destroyRef         = inject(DestroyRef);
   private readonly fb                 = inject(FormBuilder);
 
@@ -65,6 +66,11 @@ export class WorkspaceListComponent implements OnInit {
   private adminUsersLoaded         = false;
 
   ngOnInit(): void {
+    // Honour `?orgUnitId=<id>` so deep-links from the Strategy page
+    // (Projects stat card) land on a pre-filtered list.
+    const initialOrgUnit = this.route.snapshot.queryParamMap.get('orgUnitId');
+    if (initialOrgUnit) this.orgUnitFilter = initialOrgUnit;
+
     this.loadData();
   }
 

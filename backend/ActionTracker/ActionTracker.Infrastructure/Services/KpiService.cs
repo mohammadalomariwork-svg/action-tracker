@@ -5,6 +5,7 @@ using ActionTracker.Application.Features.Kpis.DTOs;
 using ActionTracker.Application.Features.Kpis.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.StrategicPlans.Workflow;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
@@ -25,6 +26,7 @@ public class KpiService : IKpiService
     private readonly AppSettings            _appSettings;
     private readonly IServiceScopeFactory   _scopeFactory;
     private readonly IStrategicScopeService _scopeService;
+    private readonly IStrategicPlanLockGuard _lockGuard;
 
     public KpiService(
         AppDbContext           context,
@@ -34,7 +36,8 @@ public class KpiService : IKpiService
         INotificationService   notificationService,
         IOptions<AppSettings>  appSettings,
         IServiceScopeFactory   scopeFactory,
-        IStrategicScopeService scopeService)
+        IStrategicScopeService scopeService,
+        IStrategicPlanLockGuard lockGuard)
     {
         _context             = context;
         _userLookup          = userLookup;
@@ -44,6 +47,7 @@ public class KpiService : IKpiService
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
         _scopeService        = scopeService;
+        _lockGuard           = lockGuard;
     }
 
     /// <summary>
@@ -236,6 +240,7 @@ public class KpiService : IKpiService
                     nameof(request.StrategicObjectiveId));
 
             await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
+            await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
 
             // Auto-assign KpiNumber: max existing (including deleted) + 1.
             var maxNumber = await _context.Kpis
@@ -365,7 +370,10 @@ public class KpiService : IKpiService
                 ?? throw new KeyNotFoundException($"KPI '{id}' not found.");
 
             if (kpi.StrategicObjective is not null)
+            {
                 await _scopeService.EnsureCanWriteAsync(userId, kpi.StrategicObjective.OrgUnitId, ct);
+                await _lockGuard.EnsureNotLockedForOrgUnitAsync(kpi.StrategicObjective.OrgUnitId, ct);
+            }
 
             kpi.Name              = request.Name;
             kpi.Description       = request.Description;
@@ -408,7 +416,10 @@ public class KpiService : IKpiService
                 ?? throw new KeyNotFoundException($"KPI '{id}' not found.");
 
             if (kpi.StrategicObjective is not null)
+            {
                 await _scopeService.EnsureCanWriteAsync(userId, kpi.StrategicObjective.OrgUnitId, ct);
+                await _lockGuard.EnsureNotLockedForOrgUnitAsync(kpi.StrategicObjective.OrgUnitId, ct);
+            }
 
             var now = DateTime.UtcNow;
             kpi.IsDeleted = true;
@@ -527,6 +538,7 @@ public class KpiService : IKpiService
         {
             var orgUnitId = await GetOrgUnitIdForKpiAsync(request.KpiId, ct);
             await _scopeService.EnsureCanWriteAsync(userId, orgUnitId, ct);
+            await _lockGuard.EnsureNotLockedForOrgUnitAsync(orgUnitId, ct);
 
             var existing = await _context.KpiTargets
                 .FirstOrDefaultAsync(t =>
@@ -540,6 +552,12 @@ public class KpiService : IKpiService
                 existing.Target    = request.Target;
                 existing.Actual    = request.Actual;
                 existing.Notes     = request.Notes;
+                // Null-means-no-change semantics for the extended details — only
+                // overwrite when the caller explicitly provided a value.
+                if (request.Baseline.HasValue)         existing.Baseline         = request.Baseline;
+                if (request.DataSource is not null)    existing.DataSource       = request.DataSource;
+                if (request.CalculationNotes is not null) existing.CalculationNotes = request.CalculationNotes;
+                if (request.Direction.HasValue)        existing.Direction        = request.Direction.Value;
                 existing.UpdatedAt = now;
                 existing.UpdatedBy = userId;
             }
@@ -547,15 +565,19 @@ public class KpiService : IKpiService
             {
                 existing = new KpiTarget
                 {
-                    Id        = Guid.NewGuid(),
-                    KpiId     = request.KpiId,
-                    Year      = request.Year,
-                    Month     = request.Month,
-                    Target    = request.Target,
-                    Actual    = request.Actual,
-                    Notes     = request.Notes,
-                    CreatedAt = now,
-                    CreatedBy = userId,
+                    Id               = Guid.NewGuid(),
+                    KpiId            = request.KpiId,
+                    Year             = request.Year,
+                    Month            = request.Month,
+                    Target           = request.Target,
+                    Actual           = request.Actual,
+                    Notes            = request.Notes,
+                    Baseline         = request.Baseline,
+                    DataSource       = request.DataSource,
+                    CalculationNotes = request.CalculationNotes,
+                    Direction        = request.Direction ?? Domain.Enums.KpiDirection.HigherIsBetter,
+                    CreatedAt        = now,
+                    CreatedBy        = userId,
                 };
                 _context.KpiTargets.Add(existing);
             }
@@ -591,6 +613,13 @@ public class KpiService : IKpiService
             var orgUnitId = await GetOrgUnitIdForKpiAsync(request.KpiId, ct);
             await _scopeService.EnsureCanWriteAsync(userId, orgUnitId, ct);
 
+            // Field-level lock: when the parent plan is locked, target planning
+            // numbers (Target, Baseline, DataSource, CalculationNotes, Direction)
+            // are pinned to the approved values, but Actual + Notes remain editable
+            // since they represent ongoing reporting. Adding new month rows is
+            // also blocked because that would change the target plan.
+            var isLocked = await _lockGuard.IsLockedForOrgUnitAsync(orgUnitId, ct);
+
             var existingTargets = await _context.KpiTargets
                 .Where(t => t.KpiId == request.KpiId && t.Year == request.Year)
                 .ToListAsync(ct);
@@ -603,26 +632,56 @@ public class KpiService : IKpiService
             {
                 if (existingByMonth.TryGetValue(monthDto.Month, out var existing))
                 {
-                    existing.Target    = monthDto.Target;
-                    existing.Actual    = monthDto.Actual;
-                    existing.Notes     = monthDto.Notes;
+                    if (isLocked)
+                    {
+                        // Reject any attempt to modify the planning numbers.
+                        // Compare nullable decimals via Equals to handle null vs null.
+                        if (!Nullable.Equals(existing.Target, monthDto.Target))
+                            throw new InvalidOperationException(
+                                "Plan is approved and locked. Target values cannot be modified — submit a revision request to change them.");
+
+                        // Actual + Notes pass through; everything else is preserved.
+                        existing.Actual    = monthDto.Actual;
+                        existing.Notes     = monthDto.Notes;
+                    }
+                    else
+                    {
+                        existing.Target    = monthDto.Target;
+                        existing.Actual    = monthDto.Actual;
+                        existing.Notes     = monthDto.Notes;
+                        // Null-means-no-change for the extended details so partial
+                        // updates (TargetValue only) do not wipe CalculationNotes etc.
+                        if (monthDto.Baseline.HasValue)            existing.Baseline         = monthDto.Baseline;
+                        if (monthDto.DataSource is not null)       existing.DataSource       = monthDto.DataSource;
+                        if (monthDto.CalculationNotes is not null) existing.CalculationNotes = monthDto.CalculationNotes;
+                        if (monthDto.Direction.HasValue)           existing.Direction        = monthDto.Direction.Value;
+                    }
+
                     existing.UpdatedAt = now;
                     existing.UpdatedBy = userId;
                     upserted.Add(existing);
                 }
                 else
                 {
+                    if (isLocked)
+                        throw new InvalidOperationException(
+                            "Plan is approved and locked. New target rows cannot be added — submit a revision request to change the target plan.");
+
                     var newTarget = new KpiTarget
                     {
-                        Id        = Guid.NewGuid(),
-                        KpiId     = request.KpiId,
-                        Year      = request.Year,
-                        Month     = monthDto.Month,
-                        Target    = monthDto.Target,
-                        Actual    = monthDto.Actual,
-                        Notes     = monthDto.Notes,
-                        CreatedAt = now,
-                        CreatedBy = userId,
+                        Id               = Guid.NewGuid(),
+                        KpiId            = request.KpiId,
+                        Year             = request.Year,
+                        Month            = monthDto.Month,
+                        Target           = monthDto.Target,
+                        Actual           = monthDto.Actual,
+                        Notes            = monthDto.Notes,
+                        Baseline         = monthDto.Baseline,
+                        DataSource       = monthDto.DataSource,
+                        CalculationNotes = monthDto.CalculationNotes,
+                        Direction        = monthDto.Direction ?? Domain.Enums.KpiDirection.HigherIsBetter,
+                        CreatedAt        = now,
+                        CreatedBy        = userId,
                     };
                     _context.KpiTargets.Add(newTarget);
                     upserted.Add(newTarget);
@@ -748,19 +807,23 @@ public class KpiService : IKpiService
     private static KpiTargetDto MapToTargetDto(KpiTarget t, Dictionary<string, string> names) =>
         new()
         {
-            Id            = t.Id,
-            KpiId         = t.KpiId,
-            Year          = t.Year,
-            Month         = t.Month,
-            MonthName     = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(t.Month),
-            Target        = t.Target,
-            Actual        = t.Actual,
-            Notes         = t.Notes,
-            CreatedAt     = t.CreatedAt,
-            UpdatedAt     = t.UpdatedAt,
-            CreatedBy     = t.CreatedBy,
-            UpdatedBy     = t.UpdatedBy,
-            CreatedByName = Resolve(t.CreatedBy, names),
-            UpdatedByName = Resolve(t.UpdatedBy, names),
+            Id               = t.Id,
+            KpiId            = t.KpiId,
+            Year             = t.Year,
+            Month            = t.Month,
+            MonthName        = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(t.Month),
+            Target           = t.Target,
+            Actual           = t.Actual,
+            Notes            = t.Notes,
+            Baseline         = t.Baseline,
+            DataSource       = t.DataSource,
+            CalculationNotes = t.CalculationNotes,
+            Direction        = t.Direction,
+            CreatedAt        = t.CreatedAt,
+            UpdatedAt        = t.UpdatedAt,
+            CreatedBy        = t.CreatedBy,
+            UpdatedBy        = t.UpdatedBy,
+            CreatedByName    = Resolve(t.CreatedBy, names),
+            UpdatedByName    = Resolve(t.UpdatedBy, names),
         };
 }

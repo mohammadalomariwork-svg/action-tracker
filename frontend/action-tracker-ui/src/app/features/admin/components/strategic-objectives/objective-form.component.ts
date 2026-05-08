@@ -36,6 +36,23 @@ import { OrgUnitSelectComponent }    from '../../../../shared';
 })
 export class ObjectiveFormComponent implements OnInit, OnChanges {
   @Input() existingObjective: StrategicObjective | null = null;
+  /** Pre-fills the org unit picker on create. Ignored in edit mode. */
+  @Input() defaultOrgUnitId: string | null = null;
+  /**
+   * When set (create mode), the org-unit dropdown is filtered to **this unit
+   * and its descendants only**. Used by the Strategy page so an objective
+   * created against a parent plan can land on the parent unit or any sub-unit,
+   * but never on an unrelated branch. Also pre-fills the dropdown to the root.
+   */
+  @Input() restrictToOrgUnitSubtree: string | null = null;
+  /**
+   * When set (create mode), the new objective is explicitly attached to this
+   * `StrategicPlan` instead of relying on the backend's "find the active plan
+   * for the picked org unit" fallback. Required when the user can pick a
+   * sub-unit that may not have its own plan — without it, the objective would
+   * land with `StrategicPlanId = null` and disappear from the parent plan's view.
+   */
+  @Input() strategicPlanId: string | null = null;
 
   @Output() saved     = new EventEmitter<StrategicObjective>();
   @Output() cancelled = new EventEmitter<void>();
@@ -86,7 +103,12 @@ export class ObjectiveFormComponent implements OnInit, OnChanges {
         description: this.existingObjective.description,
       });
     } else {
-      this.form.reset({ orgUnitId: '', statement: '', description: '' });
+      this.form.reset({
+        orgUnitId:
+          this.restrictToOrgUnitSubtree ?? this.defaultOrgUnitId ?? '',
+        statement: '',
+        description: '',
+      });
     }
     this.error.set(null);
   }
@@ -97,7 +119,25 @@ export class ObjectiveFormComponent implements OnInit, OnChanges {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          const units = res.orgUnits.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+          let units = res.orgUnits.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+
+          // When the parent restricts the form to a single subtree, walk the
+          // parentId chain client-side and keep only the root + descendants.
+          // The full list comes from `getAll()` (already scope-filtered by the
+          // backend for the caller), so this is a cheap in-memory narrow. Also
+          // applied in edit mode so the strategy-page Edit flow can't move an
+          // objective out of the parent plan's subtree.
+          if (this.restrictToOrgUnitSubtree) {
+            const subtreeIds = this.computeSubtreeIds(units, this.restrictToOrgUnitSubtree);
+            // In edit mode, defensively keep the existing objective's unit in
+            // the list even if it falls outside the subtree (e.g. legacy data),
+            // so the dropdown can still display the current selection.
+            if (this.isEditMode && this.existingObjective?.orgUnitId) {
+              subtreeIds.add(this.existingObjective.orgUnitId);
+            }
+            units = units.filter((u) => subtreeIds.has(u.id));
+          }
+
           this.orgUnits.set(units);
 
           // Build level groups for optgroup rendering
@@ -110,6 +150,29 @@ export class ObjectiveFormComponent implements OnInit, OnChanges {
         },
         error: () => this.error.set('Failed to load org units.'),
       });
+  }
+
+  /** BFS over `parentId` to collect the root + all descendant ids. */
+  private computeSubtreeIds(units: OrgUnit[], rootId: string): Set<string> {
+    const childrenByParent = new Map<string, OrgUnit[]>();
+    for (const u of units) {
+      if (u.parentId) {
+        if (!childrenByParent.has(u.parentId)) childrenByParent.set(u.parentId, []);
+        childrenByParent.get(u.parentId)!.push(u);
+      }
+    }
+    const result = new Set<string>([rootId]);
+    const queue: string[] = [rootId];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      for (const child of childrenByParent.get(id) ?? []) {
+        if (!result.has(child.id)) {
+          result.add(child.id);
+          queue.push(child.id);
+        }
+      }
+    }
+    return result;
   }
 
   submit(): void {
@@ -129,7 +192,11 @@ export class ObjectiveFormComponent implements OnInit, OnChanges {
 
     const request$ = this.isEditMode
       ? this.objectiveService.update(this.existingObjective!.id, { orgUnitId, statement, description })
-      : this.objectiveService.create({ orgUnitId, statement, description });
+      : this.objectiveService.create(
+          this.strategicPlanId
+            ? { orgUnitId, statement, description, strategicPlanId: this.strategicPlanId }
+            : { orgUnitId, statement, description },
+        );
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (obj) => {

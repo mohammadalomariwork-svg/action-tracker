@@ -49,5 +49,15 @@ public class StrategicObjectiveConfiguration : IEntityTypeConfiguration<Strategi
             .WithMany(o => o.StrategicObjectives)
             .HasForeignKey(s => s.OrgUnitId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(s => s.StrategicPlanId)
+            .HasColumnType("uniqueidentifier");
+
+        builder.HasIndex(s => s.StrategicPlanId);
+
+        builder.HasOne(s => s.StrategicPlan)
+            .WithMany(p => p.Objectives)
+            .HasForeignKey(s => s.StrategicPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

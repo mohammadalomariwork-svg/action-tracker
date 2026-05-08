@@ -1,0 +1,258 @@
+<app-breadcrumb
+  [items]="[
+    { label: 'KPIs', route: '/admin/kpis' },
+    { label: 'Targets', route: '/admin/kpis/' + kpiId() + '/targets' },
+    { label: 'Actuals' }
+  ]"
+></app-breadcrumb>
+
+<app-page-header
+  [title]="grid()?.kpiName || 'KPI Actuals'"
+  [subtitle]="'Period: ' + (grid()?.periodTypeName || '') + ' • Year: ' + year()"
+></app-page-header>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+  <label class="form-label mb-0 me-2">Year</label>
+  <input
+    type="number"
+    class="form-control"
+    style="width: 120px;"
+    [ngModel]="year()"
+    (ngModelChange)="changeYear($event)"
+  />
+  <button class="btn btn-outline-primary btn-sm" (click)="load()" [disabled]="loading()">
+    <i class="bi bi-arrow-clockwise"></i> Refresh
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+} @else if (!hasRows()) {
+  <div class="alert alert-info">No reporting periods configured for this KPI.</div>
+} @else {
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 80px;">Period</th>
+          <th>Target</th>
+          <th>Actual</th>
+          <th>Notes</th>
+          <th>Evidence</th>
+          <th>Status</th>
+          <th>Achievement %</th>
+          <th class="text-end" style="min-width: 220px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track trackByPeriod($index, row)) {
+          <tr>
+            <td class="fw-semibold">{{ row.periodLabel }}</td>
+            <td>{{ row.targetValue ?? '—' }}</td>
+            <td>
+              @if (isEditable(row)) {
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  [(ngModel)]="row.draftActual"
+                  step="0.01"
+                />
+              } @else {
+                {{ row.current?.actualValue ?? '—' }}
+              }
+            </td>
+            <td>
+              @if (isEditable(row)) {
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  [(ngModel)]="row.draftNotes"
+                  maxlength="2000"
+                />
+              } @else {
+                {{ row.current?.notes || '—' }}
+              }
+            </td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                (click)="openEvidence(row)"
+                [disabled]="!row.current"
+                [title]="row.current ? 'Manage evidence' : 'Save a draft to attach evidence'"
+              >
+                <i class="bi bi-paperclip"></i>
+                {{ row.current?.documentCount ?? 0 }}
+              </button>
+            </td>
+            <td>
+              @if (row.current) {
+                <span class="badge" [class]="statusClass(row.current.status)">
+                  {{ statusName(row.current.status) }}
+                </span>
+              } @else {
+                <span class="text-muted small">—</span>
+              }
+            </td>
+            <td>
+              @if (row.current && statusName(row.current.status) === 'Approved' && row.current.achievementPercent != null) {
+                <span [class]="achievementClass(row)">
+                  {{ row.current.achievementPercent | number:'1.0-2' }}%
+                </span>
+              } @else {
+                <span class="text-muted">—</span>
+              }
+            </td>
+            <td class="text-end">
+              @if (isEditable(row)) {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary me-1"
+                  *hasPermission="'KpiActuals.Edit'"
+                  (click)="saveDraft(row)"
+                  [disabled]="row.saving"
+                >
+                  <i class="bi bi-save"></i> Save Draft
+                </button>
+                @if (row.current) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-success me-1"
+                    *hasPermission="'KpiActuals.Create'"
+                    (click)="submitForApproval(row)"
+                    [disabled]="row.submitting || !row.periodHasEnded"
+                    [title]="row.periodHasEnded
+                              ? 'Submit for approval'
+                              : 'Available after ' + row.periodLabel + ' ends on ' + formatDate(row.periodEndUtc)"
+                  >
+                    <i class="bi bi-send-check"></i> Submit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger me-1"
+                    *hasPermission="'KpiActuals.Edit'"
+                    (click)="deleteDraft(row)"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                }
+              }
+              <button type="button" class="btn btn-sm btn-link" (click)="openHistory(row)">
+                History
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<!-- Evidence modal -->
+@if (evidenceModalOpen()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.4);">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Evidence — {{ evidenceLabel() }}</h5>
+          <button type="button" class="btn-close" (click)="closeEvidence()"></button>
+        </div>
+        <div class="modal-body">
+          @if (evidenceActualId()) {
+            <app-documents-section
+              [entityType]="'KpiActual'"
+              [entityId]="evidenceActualId()!"
+            ></app-documents-section>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeEvidence()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- History modal -->
+@if (historyModalOpen()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.4);">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">History — {{ historyLabel() }}</h5>
+          <button type="button" class="btn-close" (click)="closeHistory()"></button>
+        </div>
+        <div class="modal-body">
+          @if (historyRows().length === 0) {
+            <div class="text-muted">No prior versions.</div>
+          } @else {
+            <table class="table table-sm">
+              <thead><tr>
+                <th>Status</th><th>Value</th><th>Submitter</th><th>Reviewer</th>
+                <th>Reviewed At</th><th>Comment</th>
+              </tr></thead>
+              <tbody>
+                @for (h of historyRows(); track trackByActualId($index, h)) {
+                  <tr>
+                    <td><span class="badge" [class]="statusClass(h.status)">{{ statusName(h.status) }}</span></td>
+                    <td>{{ h.actualValue }}</td>
+                    <td>{{ h.submittedByDisplayName || '—' }}</td>
+                    <td>{{ h.reviewedByDisplayName || '—' }}</td>
+                    <td>{{ h.reviewedAtUtc ? formatDate(h.reviewedAtUtc) : '—' }}</td>
+                    <td>{{ h.reviewerComment || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeHistory()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Review modal -->
+@if (reviewModalOpen() && reviewActual(); as actual) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.4);">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ isApproving() ? 'Approve' : 'Reject' }} — {{ actual.periodLabel }} {{ actual.year }}</h5>
+          <button type="button" class="btn-close" (click)="closeReview()"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>{{ actual.kpiName }}</strong></p>
+          <p>Actual: {{ actual.actualValue }}</p>
+          <div class="mb-3">
+            <label class="form-label">
+              Comment {{ isApproving() ? '(optional)' : '(required)' }}
+            </label>
+            <textarea
+              class="form-control"
+              rows="3"
+              [ngModel]="reviewComment()"
+              (ngModelChange)="reviewComment.set($event)"
+              maxlength="2000"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeReview()">Cancel</button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-success]="isApproving()"
+            [class.btn-danger]="!isApproving()"
+            (click)="submitReview()"
+            [disabled]="reviewSubmitting()"
+          >
+            {{ isApproving() ? 'Approve' : 'Reject' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -39,6 +39,14 @@ export const ADMIN_ROUTES: Routes = [
     data: { requiredArea: 'KPIs', requiredAction: 'View' },
   },
   {
+    path: 'kpis/:kpiId/targets/:targetId/actuals',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'KpiActuals', requiredAction: 'View' },
+    loadComponent: () =>
+      import('./kpi-actuals/kpi-actuals-grid.component')
+        .then(m => m.KpiActualsGridComponent),
+  },
+  {
     path: 'email-templates',
     canActivate: [adminGuard],
     loadComponent: () =>

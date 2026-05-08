@@ -31,6 +31,11 @@ export class ProjectService {
     if (filter.priority) params = params.set('priority', filter.priority);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
     if (filter.includeDeleted) params = params.set('includeDeleted', filter.includeDeleted);
+    if (filter.strategicObjectiveIds?.length) {
+      for (const id of filter.strategicObjectiveIds) {
+        params = params.append('strategicObjectiveIds', id);
+      }
+    }
 
     return this.http.get<ApiResponse<PagedResult<ProjectResponse>>>(this.apiUrl, { params });
   }

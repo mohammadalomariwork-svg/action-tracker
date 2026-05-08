@@ -88,15 +88,18 @@ public static class DefaultRolePermissionsSeeder
         var risks   = (PermissionCatalogSeeder.AreaRisks,                 "Risks");
         var emailT  = (PermissionCatalogSeeder.AreaEmailTemplates,        "EmailTemplates");
         var notif   = (PermissionCatalogSeeder.AreaNotifications,         "Notifications");
+        var sp      = (PermissionCatalogSeeder.AreaStrategicPlans,        "StrategicPlans");
+        var ka      = (PermissionCatalogSeeder.AreaKpiActuals,            "KpiActuals");
 
         // Actions
-        var view    = (PermissionCatalogSeeder.ActionView,    "View");
-        var create  = (PermissionCatalogSeeder.ActionCreate,  "Create");
-        var edit    = (PermissionCatalogSeeder.ActionEdit,    "Edit");
-        var delete  = (PermissionCatalogSeeder.ActionDelete,  "Delete");
-        var approve = (PermissionCatalogSeeder.ActionApprove, "Approve");
-        var export  = (PermissionCatalogSeeder.ActionExport,  "Export");
-        var assign  = (PermissionCatalogSeeder.ActionAssign,  "Assign");
+        var view       = (PermissionCatalogSeeder.ActionView,       "View");
+        var create     = (PermissionCatalogSeeder.ActionCreate,     "Create");
+        var edit       = (PermissionCatalogSeeder.ActionEdit,       "Edit");
+        var delete     = (PermissionCatalogSeeder.ActionDelete,     "Delete");
+        var approve    = (PermissionCatalogSeeder.ActionApprove,    "Approve");
+        var export     = (PermissionCatalogSeeder.ActionExport,     "Export");
+        var assign     = (PermissionCatalogSeeder.ActionAssign,     "Assign");
+        var assignHead = (PermissionCatalogSeeder.ActionAssignHead, "AssignHead");
 
         var allActions = new[] { view, create, edit, delete, approve, export, assign };
 
@@ -108,7 +111,7 @@ public static class DefaultRolePermissionsSeeder
             => (role, area.Id, area.Name, action.Id, action.Name);
 
         // ── Admin — every area × every action ─────────────────────────────────
-        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif };
+        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif, sp, ka };
         foreach (var area   in allAreas)
         foreach (var action in allActions)
             yield return P(AppRoles.Admin, area, action);
@@ -225,6 +228,59 @@ public static class DefaultRolePermissionsSeeder
         yield return P(AppRoles.StrategyEditor, dash,  view);
         yield return P(AppRoles.StrategyEditor, org,   view);
         yield return P(AppRoles.StrategyEditor, notif, view);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Strategic Plans (CR-001-A baseline).
+        // CR-001-C tightens Create to Admin/PMO Head only and removes any
+        // Strategy Editor Create permission via the cleanup step in SeedAsync.
+        // ══════════════════════════════════════════════════════════════════════
+        // Admin already gets all strategic-plan actions via the allAreas loop above.
+
+        // PMO Head: View only here. (Create is granted in CR-001-C cleanup section
+        //  via explicit yield to keep this seeder one-pass.)
+        yield return P(AppRoles.PmoHead, sp, view);
+        yield return P(AppRoles.PmoHead, sp, create);
+
+        // PMO Analyst: View
+        yield return P(AppRoles.PmoAnalyst, sp, view);
+
+        // Project Manager: View
+        yield return P(AppRoles.ProjectManager, sp, view);
+
+        // Workspace Admin: View
+        yield return P(AppRoles.WorkspaceAdmin, sp, view);
+
+        // Strategy Editor: View + Edit (no Create / Delete / Approve)
+        yield return P(AppRoles.StrategyEditor, sp, view);
+        yield return P(AppRoles.StrategyEditor, sp, edit);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // CR-001-H — Org-unit head assignment.
+        // Admin already gets OrgChart.AssignHead via the allAreas × allActions
+        // loop above. PMO Head needs the dedicated AssignHead action explicitly
+        // because allActions does not include it.
+        // ══════════════════════════════════════════════════════════════════════
+        yield return P(AppRoles.Admin,   org, assignHead);
+        yield return P(AppRoles.PmoHead, org, assignHead);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // CR-001-F — KPI Actuals.
+        // Admin already gets all KpiActual actions via the allAreas loop. Approve
+        // is a safety net — actual reviewer authority is the AssignedReviewerUserId
+        // check inside the workflow service.
+        // ══════════════════════════════════════════════════════════════════════
+        // PMO Head: View
+        yield return P(AppRoles.PmoHead, ka, view);
+        // PMO Analyst: View
+        yield return P(AppRoles.PmoAnalyst, ka, view);
+        // Project Manager: View (read-only)
+        yield return P(AppRoles.ProjectManager, ka, view);
+        // Workspace Admin: View (read-only)
+        yield return P(AppRoles.WorkspaceAdmin, ka, view);
+        // Strategy Editor: View + Create + Edit (no Approve)
+        yield return P(AppRoles.StrategyEditor, ka, view);
+        yield return P(AppRoles.StrategyEditor, ka, create);
+        yield return P(AppRoles.StrategyEditor, ka, edit);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

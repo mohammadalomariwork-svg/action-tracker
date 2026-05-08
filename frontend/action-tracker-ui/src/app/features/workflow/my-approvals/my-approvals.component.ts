@@ -8,6 +8,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { WorkflowService } from '../../../services/workflow.service';
 import { WorkflowStateService } from '../../../services/workflow-state.service';
 import { ProjectWorkflowService } from '../../../services/project-workflow.service';
+import { StrategicPlanWorkflowService } from '../../../services/strategic-plan-workflow.service';
+import { KpiActualsService } from '../../../services/kpi-actuals.service';
+import {
+  KpiActual,
+  KPI_ACTUAL_STATUS_CONFIG,
+  statusName as kpiActualStatusName,
+} from '../../../models/kpi-actual.model';
 import {
   WorkflowRequest,
   WorkflowRequestSummary,
@@ -15,6 +22,10 @@ import {
   WORKFLOW_TYPE_LABELS,
 } from '../../../models/workflow.model';
 import { ProjectApprovalRequest } from '../../../features/projects/models/project-approval.models';
+import {
+  StrategicPlanApprovalRequest,
+  STRATEGIC_PLAN_APPROVAL_STATUS_CONFIG,
+} from '../../../models/strategic-plan-workflow.model';
 import { PagedResult } from '../../../core/models/api-response.model';
 import { ToastService } from '../../../core/services/toast.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -31,11 +42,13 @@ export class MyApprovalsComponent implements OnInit, OnDestroy {
   private readonly workflowSvc = inject(WorkflowService);
   private readonly workflowState = inject(WorkflowStateService);
   private readonly projectWorkflowSvc = inject(ProjectWorkflowService);
+  private readonly strategyWorkflowSvc = inject(StrategicPlanWorkflowService);
+  private readonly kpiActualsSvc = inject(KpiActualsService);
   private readonly toastSvc = inject(ToastService);
   private readonly destroy$ = new Subject<void>();
 
   // ── Tab state ──────────────────────────────────────────
-  readonly activeTab = signal<'pending' | 'my' | 'projects'>('pending');
+  readonly activeTab = signal<'pending' | 'my' | 'projects' | 'strategy' | 'kpiActuals'>('pending');
 
   // ── Data signals ───────────────────────────────────────
   readonly pendingReviews = signal<WorkflowRequest[]>([]);
@@ -77,9 +90,31 @@ export class MyApprovalsComponent implements OnInit, OnDestroy {
   readonly isProjectApproving = signal(true);
   readonly isProjectSubmitting = signal(false);
 
+  // ── Strategy approval signals (CR-001-D) ───────────────
+  readonly strategyPendingReviews = signal<StrategicPlanApprovalRequest[]>([]);
+  readonly strategyMyRequests = signal<StrategicPlanApprovalRequest[]>([]);
+  readonly strategyPendingCount = signal(0);
+  readonly selectedStrategyRequest = signal<StrategicPlanApprovalRequest | null>(null);
+  readonly showStrategyReviewModal = signal(false);
+  readonly strategyReviewComment = signal('');
+  readonly isStrategyApproving = signal(true);
+  readonly isStrategySubmitting = signal(false);
+
+  // ── KPI Actuals approval signals (CR-001-F) ───────────
+  readonly kpiActualPendingReviews = signal<KpiActual[]>([]);
+  readonly kpiActualMyRequests = signal<KpiActual[]>([]);
+  readonly kpiActualPendingCount = signal(0);
+  readonly selectedKpiActual = signal<KpiActual | null>(null);
+  readonly showKpiActualReviewModal = signal(false);
+  readonly kpiActualReviewComment = signal('');
+  readonly isKpiActualApproving = signal(true);
+  readonly isKpiActualSubmitting = signal(false);
+  readonly KPI_ACTUAL_STATUS_CONFIG = KPI_ACTUAL_STATUS_CONFIG;
+
   // ── Template constants ─────────────────────────────────
   readonly WORKFLOW_STATUS_CONFIG = WORKFLOW_STATUS_CONFIG;
   readonly WORKFLOW_TYPE_LABELS = WORKFLOW_TYPE_LABELS;
+  readonly STRATEGIC_PLAN_APPROVAL_STATUS_CONFIG = STRATEGIC_PLAN_APPROVAL_STATUS_CONFIG;
   readonly PAGE_SIZE_OPTIONS = [10, 20, 50];
 
   // ── Lifecycle ──────────────────────────────────────────
@@ -142,7 +177,7 @@ export class MyApprovalsComponent implements OnInit, OnDestroy {
   }
 
   // ── Tab switching ──────────────────────────────────────
-  switchTab(tab: 'pending' | 'my' | 'projects'): void {
+  switchTab(tab: 'pending' | 'my' | 'projects' | 'strategy' | 'kpiActuals'): void {
     if (this.activeTab() === tab) return;
     this.activeTab.set(tab);
     this.page.set(1);
@@ -150,8 +185,12 @@ export class MyApprovalsComponent implements OnInit, OnDestroy {
       this.loadPendingReviews();
     } else if (tab === 'my') {
       this.loadMyRequests();
-    } else {
+    } else if (tab === 'projects') {
       this.loadProjectApprovals();
+    } else if (tab === 'strategy') {
+      this.loadStrategyApprovals();
+    } else {
+      this.loadKpiActualApprovals();
     }
   }
 
@@ -275,6 +314,141 @@ export class MyApprovalsComponent implements OnInit, OnDestroy {
       case 'Rejected': return 'badge bg-danger';
       default:         return 'badge bg-secondary';
     }
+  }
+
+  // ── Strategy approvals (CR-001-D) ──────────────────────
+  loadStrategyApprovals(): void {
+    this.strategyWorkflowSvc.getPendingReviews().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { if (r.success) this.strategyPendingReviews.set(r.data); },
+      error: () => {},
+    });
+    this.strategyWorkflowSvc.getMyRequests().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { if (r.success) this.strategyMyRequests.set(r.data); },
+      error: () => {},
+    });
+    this.strategyWorkflowSvc.getPendingSummary().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { if (r.success) this.strategyPendingCount.set(r.data.pendingPlanApprovals); },
+      error: () => {},
+    });
+  }
+
+  openStrategyReview(request: StrategicPlanApprovalRequest, isApprove: boolean): void {
+    this.selectedStrategyRequest.set(request);
+    this.isStrategyApproving.set(isApprove);
+    this.strategyReviewComment.set('');
+    this.showStrategyReviewModal.set(true);
+  }
+
+  closeStrategyReviewModal(): void {
+    this.showStrategyReviewModal.set(false);
+    this.selectedStrategyRequest.set(null);
+    this.strategyReviewComment.set('');
+  }
+
+  submitStrategyReview(): void {
+    const request = this.selectedStrategyRequest();
+    if (!request) return;
+    this.isStrategySubmitting.set(true);
+    this.strategyWorkflowSvc.review(request.id, {
+      requestId: request.id,
+      isApproved: this.isStrategyApproving(),
+      reviewComment: this.strategyReviewComment() || null,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        const action = this.isStrategyApproving() ? 'approved' : 'rejected';
+        this.toastSvc.success(`Strategic plan ${action} successfully.`);
+        this.isStrategySubmitting.set(false);
+        this.closeStrategyReviewModal();
+        this.loadStrategyApprovals();
+        this.workflowState.refreshPendingCount();
+      },
+      error: err => {
+        this.isStrategySubmitting.set(false);
+        this.toastSvc.error(err?.error?.message ?? 'Failed to submit review.');
+      },
+    });
+  }
+
+  strategyApprovalStatusClass(status: string | number): string {
+    const key = typeof status === 'number'
+      ? (['Pending', 'Approved', 'Rejected'][status] ?? 'Pending')
+      : status;
+    return STRATEGIC_PLAN_APPROVAL_STATUS_CONFIG[key]?.cssClass ?? 'bg-secondary';
+  }
+
+  strategyApprovalStatusLabel(status: string | number): string {
+    const key = typeof status === 'number'
+      ? (['Pending', 'Approved', 'Rejected'][status] ?? 'Pending')
+      : status;
+    return STRATEGIC_PLAN_APPROVAL_STATUS_CONFIG[key]?.label ?? key;
+  }
+
+  strategyRequestTypeLabel(value: string | number): string {
+    if (typeof value === 'number') {
+      return value === 1 ? 'Revision' : 'Initial';
+    }
+    return value || 'Initial';
+  }
+
+  // ── KPI Actuals approvals (CR-001-F) ───────────────────
+  loadKpiActualApprovals(): void {
+    this.kpiActualsSvc.getPendingReviews().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { if (r.success) this.kpiActualPendingReviews.set(r.data); },
+      error: () => {},
+    });
+    this.kpiActualsSvc.getMyRequests().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { if (r.success) this.kpiActualMyRequests.set(r.data); },
+      error: () => {},
+    });
+    this.kpiActualsSvc.getPendingSummary().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => { if (r.success) this.kpiActualPendingCount.set(r.data.pendingKpiActuals); },
+      error: () => {},
+    });
+  }
+
+  openKpiActualReview(actual: KpiActual, isApprove: boolean): void {
+    this.selectedKpiActual.set(actual);
+    this.isKpiActualApproving.set(isApprove);
+    this.kpiActualReviewComment.set('');
+    this.showKpiActualReviewModal.set(true);
+  }
+
+  closeKpiActualReviewModal(): void {
+    this.showKpiActualReviewModal.set(false);
+    this.selectedKpiActual.set(null);
+    this.kpiActualReviewComment.set('');
+  }
+
+  submitKpiActualReview(): void {
+    const actual = this.selectedKpiActual();
+    if (!actual) return;
+    this.isKpiActualSubmitting.set(true);
+    this.kpiActualsSvc.review(actual.id, {
+      actualId: actual.id,
+      isApproved: this.isKpiActualApproving(),
+      reviewComment: this.kpiActualReviewComment() || null,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        const action = this.isKpiActualApproving() ? 'approved' : 'rejected';
+        this.toastSvc.success(`KPI actual ${action} successfully.`);
+        this.isKpiActualSubmitting.set(false);
+        this.closeKpiActualReviewModal();
+        this.loadKpiActualApprovals();
+        this.workflowState.refreshPendingCount();
+      },
+      error: err => {
+        this.isKpiActualSubmitting.set(false);
+        this.toastSvc.error(err?.error?.message ?? 'Failed to submit review.');
+      },
+    });
+  }
+
+  kpiActualStatusName(value: string | number): string {
+    return kpiActualStatusName(value as any);
+  }
+
+  kpiActualStatusClass(value: string | number): string {
+    return this.KPI_ACTUAL_STATUS_CONFIG[this.kpiActualStatusName(value)]?.cssClass ?? 'bg-secondary';
   }
 
   // ── Helpers ────────────────────────────────────────────

@@ -124,4 +124,11 @@ public class ProjectFilterDto
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public List<Guid>? VisibleOrgUnitIds { get; set; }
+
+    /// <summary>
+    /// When non-null and non-empty, only projects whose StrategicObjectiveId is
+    /// in this list are returned. Used by the strategy page to fetch projects
+    /// linked to the objectives of the currently-viewed strategic plan.
+    /// </summary>
+    public List<Guid>? StrategicObjectiveIds { get; set; }
 }

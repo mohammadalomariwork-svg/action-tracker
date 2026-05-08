@@ -75,4 +75,44 @@ export class OrgUnitService {
       .post<ApiResponse<OrgUnit>>(`${this.base}/${id}/restore`, null)
       .pipe(map((res) => res.data));
   }
+
+  // ── CR-001-H: Org-unit head + plan-approver preview ─────────────────────
+
+  /** Returns the user designated as this org unit's head, or null. */
+  getHead(orgUnitId: string): Observable<ApiResponse<OrgUnitHead | null>> {
+    return this.http.get<ApiResponse<OrgUnitHead | null>>(`${this.base}/${orgUnitId}/head`);
+  }
+
+  /** Assigns or replaces the org unit head. */
+  assignHead(orgUnitId: string, userId: string): Observable<ApiResponse<OrgUnitHead>> {
+    return this.http.put<ApiResponse<OrgUnitHead>>(`${this.base}/${orgUnitId}/head`, { userId });
+  }
+
+  /** Clears the org unit head. */
+  removeHead(orgUnitId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${orgUnitId}/head`);
+  }
+
+  /** Returns the resolved plan approver (level-3 ancestor head), or null. */
+  getPlanApprover(orgUnitId: string): Observable<ApiResponse<OrgUnitPlanApprover | null>> {
+    return this.http.get<ApiResponse<OrgUnitPlanApprover | null>>(`${this.base}/${orgUnitId}/plan-approver`);
+  }
+}
+
+export interface OrgUnitHead {
+  orgUnitId: string;
+  orgUnitName: string;
+  orgUnitLevel: number;
+  userId: string;
+  displayName: string;
+  email: string;
+}
+
+export interface OrgUnitPlanApprover {
+  userId: string;
+  displayName: string;
+  email: string;
+  sourceOrgUnitId: string;
+  sourceOrgUnitLevel: number;
+  sourceOrgUnitName: string;
 }

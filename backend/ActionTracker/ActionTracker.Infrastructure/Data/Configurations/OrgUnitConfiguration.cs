@@ -39,6 +39,17 @@ public class OrgUnitConfiguration : IEntityTypeConfiguration<OrgUnit>
         builder.Property(o => o.ParentId)
             .IsRequired(false);
 
+        builder.Property(o => o.HeadUserId)
+            .HasMaxLength(450)
+            .IsRequired(false);
+
+        builder.HasIndex(o => o.HeadUserId);
+
+        builder.HasOne(o => o.HeadUser)
+            .WithMany()
+            .HasForeignKey(o => o.HeadUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Property(o => o.IsDeleted)
             .HasDefaultValue(false);
 

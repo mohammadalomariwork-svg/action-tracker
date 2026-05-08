@@ -1,0 +1,330 @@
+// ── Page shell ────────────────────────────────────────────────────────────────
+.st-page {
+  padding: 1.5rem;
+  min-height: 100%;
+}
+
+// ── Summary Stat Cards ────────────────────────────────────────────────────────
+.st-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 1199px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 767px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 479px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.st-stat-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius, 12px);
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+  }
+}
+
+.st-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+
+  &--blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+  &--green  { background: rgba(34, 197, 94, 0.12);  color: #22c55e; }
+  &--teal   { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
+  &--yellow { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+  &--indigo { background: rgba(var(--ar), 0.12);    color: var(--accent); }
+  &--purple {
+    background: rgba(var(--a2r, 124, 92, 252), 0.12);
+    color: var(--accent2, #7c5cfc);
+  }
+}
+
+.st-stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.st-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--t1);
+  line-height: 1;
+}
+
+.st-stat-label {
+  font-size: 0.8rem;
+  color: var(--t2);
+  margin-top: 0.25rem;
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────────────────
+.st-toolbar {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius, 12px);
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(16px);
+}
+
+.st-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.st-toolbar-right {
+  font-size: 0.85rem;
+}
+
+.st-search-box {
+  position: relative;
+  min-width: 240px;
+
+  i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--t3);
+    font-size: 0.85rem;
+  }
+
+  input {
+    width: 100%;
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem 0.45rem 2.1rem;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s;
+    color: var(--t1);
+    background: var(--inp);
+
+    &:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(var(--ar), 0.15);
+    }
+
+    &::placeholder { color: var(--t3); }
+  }
+}
+
+// ── Cards grid ────────────────────────────────────────────────────────────────
+.st-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.st-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--border-radius, 12px);
+  padding: 1.1rem 1.25rem;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    box-shadow: var(--neon), 0 0 0 3px rgba(var(--ar), 0.25);
+  }
+}
+
+.st-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.st-card-title {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-card-meta {
+  font-size: 0.78rem;
+  color: var(--t3);
+  margin-top: 0.15rem;
+}
+
+.st-meta-sep { margin: 0 0.25rem; }
+
+// ── Org chip ──────────────────────────────────────────────────────────────────
+.st-org-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--el);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--t2);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  i {
+    font-size: 0.75rem;
+    color: var(--t3);
+  }
+}
+
+.st-org-code { color: var(--t3); }
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+.st-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--draft {
+    background: rgba(100, 116, 139, 0.14);
+    color: #64748b;
+
+    .st-status-dot { background: #64748b; }
+  }
+
+  &--pending {
+    background: rgba(245, 158, 11, 0.14);
+    color: #f59e0b;
+
+    .st-status-dot { background: #f59e0b; }
+  }
+
+  &--approved {
+    background: rgba(34, 197, 94, 0.14);
+    color: #22c55e;
+
+    .st-status-dot { background: #22c55e; }
+  }
+
+  &--archived {
+    background: var(--el);
+    color: var(--t2);
+
+    .st-status-dot { background: var(--t3); }
+  }
+}
+
+.st-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+// ── Card footer ───────────────────────────────────────────────────────────────
+.st-card-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--bd);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.st-card-created {
+  color: var(--t3);
+
+  i { margin-right: 0.25rem; }
+}
+
+.st-card-cta {
+  color: var(--accent);
+  font-weight: 500;
+
+  i {
+    margin-left: 0.25rem;
+    transition: transform 0.15s;
+  }
+
+  .st-card:hover &,
+  .st-card:focus-visible & {
+    i { transform: translateX(2px); }
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.st-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  border: 2px dashed var(--bd);
+  border-radius: var(--border-radius, 12px);
+  background: var(--sf);
+  margin-top: 1rem;
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--t1);
+    margin-bottom: 0.25rem;
+  }
+}
+
+.st-empty-icon {
+  font-size: 3rem;
+  display: block;
+}
+
+.text-muted { color: var(--t2); }
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+.min-w-0 { min-width: 0; }

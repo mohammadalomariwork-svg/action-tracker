@@ -2,6 +2,13 @@
 .kt-page {
   padding: 1.5rem;
   min-height: 100%;
+
+  // When embedded inside a drawer/modal, drop outer padding so the host's
+  // .offcanvas-body padding is the only spacing.
+  &--embedded {
+    padding: 0;
+    min-height: 0;
+  }
 }
 
 // ── Header card ───────────────────────────────────────────────────────────────
@@ -26,7 +33,12 @@
 .kt-table-wrapper {
   border-radius: var(--border-radius, 0.5rem);
   box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
-  overflow: hidden;
+  // Allow horizontal scroll inside the rounded card on narrow viewports
+  // (the targets table has 10 columns and won't fit in mobile widths).
+  // Bootstrap's `.table-responsive` sets `overflow-x: auto` on the same element
+  // already; this just makes the round-corner clipping work without hiding it.
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--sf);
   border: 1px solid var(--bd);
 }
@@ -273,4 +285,100 @@ tr:hover .kt-edit-btn { opacity: 1; }
   justify-content: flex-end;
   gap: 0.5rem;
   background: var(--el);
+}
+
+// ── Locked banner ────────────────────────────────────────────────────────────
+.kt-locked-banner {
+  border-radius: var(--border-radius, 0.5rem);
+}
+
+// Read-only target value (rendered when the parent plan is locked). Visually
+// distinct from .kt-value so the user understands it can't be edited.
+.kt-readonly-value {
+  display: inline-flex;
+  align-items: center;
+  color: var(--t1);
+  cursor: not-allowed;
+
+  i { font-size: 0.85em; }
+}
+
+// ── Mobile responsive: stacked rows ──────────────────────────────────────────
+// At narrow widths the 10-column table can't fit even with horizontal scroll
+// inside the drawer body, so we collapse rows into vertically-stacked
+// label/value pairs (à la Bootstrap's "card view" pattern).
+@media (max-width: 576px) {
+  .kt-table-wrapper {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  .kt-table {
+    border: 0 !important;
+
+    thead { display: none; }
+
+    tbody { display: block; }
+
+    tr {
+      display: block;
+      margin-bottom: 0.75rem;
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--border-radius, 0.5rem);
+      padding: 0.5rem 0.25rem;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100% !important;
+      padding: 0.55rem 0.85rem !important;
+      border: 0 !important;
+      border-bottom: 1px dashed var(--bd) !important;
+      text-align: right;
+
+      &:last-child { border-bottom: 0 !important; }
+
+      // Inject a left-side label sourced from the matching <th> via [data-label].
+      // The template doesn't set data-label today; use ::before with content
+      // pulled from a data attribute we add inline (next edit) or rely on the
+      // first cell holding the month name.
+      &::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--t3);
+        text-align: left;
+        flex: 0 0 auto;
+        min-width: 6.5rem;
+      }
+
+      // The first cell is the month name — render it as a card header without label.
+      &:first-child {
+        justify-content: flex-start;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--t1);
+        background: var(--el);
+        border-radius: calc(var(--border-radius, 0.5rem) - 1px) calc(var(--border-radius, 0.5rem) - 1px) 0 0;
+        margin: -0.5rem -0.25rem 0.25rem;
+        padding: 0.65rem 0.85rem !important;
+
+        &::before { display: none; }
+      }
+    }
+  }
+
+  // Inline edit inputs need to grow to fill the available width on mobile.
+  .kt-inline-input { max-width: 100%; min-width: 0; flex: 1; }
+  .kt-notes        { max-width: 60%; }
+  .kt-edit-btn     { opacity: 1 !important; }
 }

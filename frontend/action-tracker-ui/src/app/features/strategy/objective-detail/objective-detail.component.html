@@ -1,0 +1,307 @@
+<div class="od-page">
+
+  <app-breadcrumb [items]="[
+    { label: 'Strategy', route: '/strategy' },
+    { label: objective()?.orgUnitName ?? 'Org unit',
+      route: objective()?.orgUnitId ? '/strategy/org-units/' + objective()!.orgUnitId : undefined },
+    { label: objective()?.objectiveCode ?? 'Objective' }
+  ]" />
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error() }}
+    </div>
+  } @else if (objective(); as obj) {
+
+    <!-- ── Page Header ─────────────────────────────────────────────────── -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <app-page-header
+        [title]="obj.objectiveCode + ' · ' + obj.statement"
+        [subtitle]="obj.orgUnitName + (obj.orgUnitCode ? ' · ' + obj.orgUnitCode : '')"
+        icon="bi bi-flag"
+      />
+      @if (canEdit()) {
+        <button
+          *appHasPermission="'StrategicObjectives'; action: 'Edit'"
+          type="button" class="btn btn-outline-primary btn-sm"
+          (click)="openEditObjective()">
+          <i class="bi bi-pencil me-1"></i>Edit objective
+        </button>
+      }
+    </div>
+
+    <!-- ── Stats row ───────────────────────────────────────────────────── -->
+    <div class="od-stats-row">
+      <div class="od-stat-card">
+        <div class="od-stat-icon od-stat-icon--blue"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="od-stat-body">
+          <span class="od-stat-value">{{ blocks().length }}</span>
+          <span class="od-stat-label">KPIs</span>
+        </div>
+      </div>
+      <div class="od-stat-card">
+        <div class="od-stat-icon od-stat-icon--teal"><i class="bi bi-bullseye"></i></div>
+        <div class="od-stat-body">
+          <span class="od-stat-value">{{ totalTargets() }}</span>
+          <span class="od-stat-label">Targets in {{ currentYear }}</span>
+        </div>
+      </div>
+      <div class="od-stat-card">
+        <div class="od-stat-icon od-stat-icon--purple"><i class="bi bi-flag"></i></div>
+        <div class="od-stat-body">
+          <span class="od-stat-value">{{ obj.objectiveCode }}</span>
+          <span class="od-stat-label">Objective code</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Objective detail card ──────────────────────────────────────── -->
+    <section class="od-detail-card">
+      <div class="od-detail-row">
+        <div class="od-detail-cell od-detail-cell--full">
+          <span class="od-detail-label">Statement</span>
+          <span class="od-detail-value">{{ obj.statement }}</span>
+        </div>
+        @if (obj.description) {
+          <div class="od-detail-cell od-detail-cell--full">
+            <span class="od-detail-label">Description</span>
+            <span class="od-detail-value od-detail-value--multiline">{{ obj.description }}</span>
+          </div>
+        }
+        <div class="od-detail-cell">
+          <span class="od-detail-label">Organisation unit</span>
+          <span class="od-detail-value">
+            <i class="bi bi-building"></i>
+            {{ obj.orgUnitName }}
+            @if (obj.orgUnitCode) {
+              <span class="od-detail-sub">({{ obj.orgUnitCode }})</span>
+            }
+          </span>
+        </div>
+        @if (obj.createdByName) {
+          <div class="od-detail-cell">
+            <span class="od-detail-label">Created by</span>
+            <span class="od-detail-value">{{ obj.createdByName }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── KPIs section ───────────────────────────────────────────────── -->
+    <section class="od-section">
+      <header class="od-section-header">
+        <h3>KPIs &amp; targets</h3>
+        <span class="od-count-badge">{{ blocks().length }}</span>
+        @if (canAddKpi()) {
+          <button
+            *appHasPermission="'KPIs'; action: 'Create'"
+            type="button" class="btn btn-primary btn-sm ms-auto"
+            (click)="openAddKpi()">
+            <i class="bi bi-plus-lg me-1"></i>Add KPI
+          </button>
+        }
+      </header>
+
+      @if (blocks().length === 0) {
+        <p class="od-section-empty">
+          No KPIs have been added to this objective yet.
+        </p>
+      } @else {
+        <div class="od-kpi-list">
+          @for (block of blocks(); track block.kpi.id) {
+            <article class="od-kpi-card">
+              <header class="od-kpi-head">
+                <div class="od-kpi-title-row">
+                  <span class="od-kpi-code">{{ kpiCode(block.kpi) }}</span>
+                  <h4 class="od-kpi-name">{{ block.kpi.name }}</h4>
+                  <span class="od-kpi-period">{{ PeriodLabels[block.kpi.periodValue] }}</span>
+                  @if (block.kpi.unit) {
+                    <span class="od-kpi-unit">Unit: <strong>{{ block.kpi.unit }}</strong></span>
+                  }
+                </div>
+                <div class="od-kpi-head-right">
+                  <div class="od-pct" [ngClass]="achievementClass(block.achievementPct)">
+                    @if (block.achievementPct == null) {
+                      <span class="od-pct-value">—</span>
+                    } @else {
+                      <span class="od-pct-value">{{ block.achievementPct }}%</span>
+                    }
+                    <span class="od-pct-label">YTD achievement</span>
+                  </div>
+                  @if (canEdit()) {
+                    <button *appHasPermission="'KPIs'; action: 'Edit'"
+                            type="button"
+                            class="od-manage-btn od-manage-btn--ghost"
+                            (click)="openEditKpi(block.kpi)"
+                            [attr.aria-label]="'Edit KPI ' + kpiCode(block.kpi)">
+                      <i class="bi bi-pencil"></i> Edit
+                    </button>
+                  }
+                  <button *appHasPermission="'KPIs'; action: 'View'"
+                          type="button"
+                          class="od-manage-btn"
+                          (click)="openTargetsDrawer(block.kpi)">
+                    <i class="bi bi-pencil-square"></i> Manage targets
+                  </button>
+                </div>
+              </header>
+
+              @if (block.kpi.description) {
+                <p class="od-kpi-desc">{{ block.kpi.description }}</p>
+              }
+
+              <div class="od-table-wrapper">
+                <table class="table align-middle mb-0 od-target-table">
+                  <thead>
+                    <tr>
+                      <th>PERIOD</th>
+                      <th class="text-end">TARGET</th>
+                      <th class="text-end">ACTUAL</th>
+                      <th class="text-end">% ACHIEVEMENT</th>
+                      <th>NOTES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (slot of block.slots; track slot.month) {
+                      @let target = block.targetsByMonth.get(slot.month);
+                      <tr>
+                        <td class="od-cell-period">
+                          {{ slot.label }}
+                          <span class="od-cell-year">{{ currentYear }}</span>
+                        </td>
+                        <td class="text-end od-cell-num">
+                          {{ formatTargetCell(target?.target, block.kpi.unit) }}
+                        </td>
+                        <td class="text-end od-cell-num">
+                          {{ formatTargetCell(target?.actual, block.kpi.unit) }}
+                        </td>
+                        <td class="text-end">
+                          @if (target?.target != null && target?.actual != null && target!.target! !== 0) {
+                            @let pct = (target!.actual! / target!.target!) * 100;
+                            <span class="od-pct-pill" [ngClass]="achievementClass(pct)">
+                              {{ pct | number:'1.0-0' }}%
+                            </span>
+                          } @else {
+                            <span class="text-muted">—</span>
+                          }
+                        </td>
+                        <td class="od-cell-notes" [title]="target?.notes ?? ''">
+                          {{ target?.notes || '—' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ── Offcanvas drawer: Manage targets ───────────────────────────────── -->
+  <div class="od-offcanvas offcanvas offcanvas-end"
+       [class.show]="drawerOpen()"
+       [style.visibility]="drawerOpen() ? 'visible' : 'hidden'"
+       tabindex="-1">
+
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title">
+        <i class="bi bi-bullseye text-primary me-2"></i>
+        Manage targets
+        @if (drawerKpiName()) {
+          <span class="od-offcanvas-sub"> · {{ drawerKpiName() }}</span>
+        }
+      </h5>
+      <button type="button" class="btn-close" (click)="closeTargetsDrawer()"></button>
+    </div>
+
+    <div class="offcanvas-body">
+      @if (drawerOpen() && drawerKpiId(); as id) {
+        <app-kpi-targets
+          [kpiId]="id"
+          [embedded]="true"
+          [locked]="isPlanLocked()"
+          [planStartYear]="objective()?.planStartYear ?? null"
+          [planEndYear]="objective()?.planEndYear ?? null" />
+      }
+    </div>
+  </div>
+
+  @if (drawerOpen()) {
+    <div class="offcanvas-backdrop fade show" (click)="closeTargetsDrawer()"></div>
+  }
+
+  <!-- ── Offcanvas: Add / Edit KPI (Draft plans only) ───────────────────── -->
+  <div class="od-offcanvas od-offcanvas--narrow offcanvas offcanvas-end"
+       [class.show]="kpiFormOpen()"
+       [style.visibility]="kpiFormOpen() ? 'visible' : 'hidden'"
+       tabindex="-1">
+
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title">
+        @if (editingKpi(); as kpi) {
+          <i class="bi bi-pencil-fill text-primary me-2"></i>Edit KPI
+          <span class="od-offcanvas-sub"> · {{ kpiCode(kpi) }}</span>
+        } @else {
+          <i class="bi bi-plus-circle-fill text-success me-2"></i>New KPI
+          @if (objective(); as obj) {
+            <span class="od-offcanvas-sub"> · {{ obj.objectiveCode }}</span>
+          }
+        }
+      </h5>
+      <button type="button" class="btn-close" (click)="closeKpiForm()"></button>
+    </div>
+
+    <div class="offcanvas-body">
+      @if (kpiFormOpen() && objective(); as obj) {
+        <app-kpi-form
+          [existingKpi]="editingKpi()"
+          [restrictToObjectiveId]="obj.id"
+          (saved)="onKpiSaved($event)"
+          (cancelled)="closeKpiForm()" />
+      }
+    </div>
+  </div>
+
+  @if (kpiFormOpen()) {
+    <div class="offcanvas-backdrop fade show" (click)="closeKpiForm()"></div>
+  }
+
+  <!-- ── Offcanvas: Edit Strategic Objective (Draft plans only) ─────────── -->
+  <div class="od-offcanvas od-offcanvas--narrow offcanvas offcanvas-end"
+       [class.show]="objectiveFormOpen()"
+       [style.visibility]="objectiveFormOpen() ? 'visible' : 'hidden'"
+       tabindex="-1">
+
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title">
+        <i class="bi bi-pencil-fill text-primary me-2"></i>Edit Strategic Objective
+        @if (objective(); as obj) {
+          <span class="od-offcanvas-sub"> · {{ obj.objectiveCode }}</span>
+        }
+      </h5>
+      <button type="button" class="btn-close" (click)="closeObjectiveForm()"></button>
+    </div>
+
+    <div class="offcanvas-body">
+      @if (objectiveFormOpen() && objective(); as obj) {
+        <app-objective-form
+          [existingObjective]="obj"
+          (saved)="onObjectiveSaved($event)"
+          (cancelled)="closeObjectiveForm()" />
+      }
+    </div>
+  </div>
+
+  @if (objectiveFormOpen()) {
+    <div class="offcanvas-backdrop fade show" (click)="closeObjectiveForm()"></div>
+  }
+</div>

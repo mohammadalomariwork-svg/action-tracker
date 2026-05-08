@@ -1,0 +1,165 @@
+// Right-side modal dialog used for create / edit Strategic Plan.
+// Tokenized to match the offcanvas-based forms (ObjectiveForm, KpiForm) so the
+// dialog reads as part of the same family in both dark + light themes. Avoid
+// hardcoded fallbacks like #fff / #e5e7eb — they were forcing a light look in
+// dark mode.
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1050;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-panel {
+  width: min(520px, 100%);
+  height: 100%;
+  background: var(--el);
+  border-left: 1px solid var(--bd);
+  backdrop-filter: blur(24px);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+  color: var(--t1);
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: 576px) { width: 100vw; }
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--bd);
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--t1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.btn-icon {
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--t3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--sfh);
+    color: var(--t1);
+  }
+}
+
+.dialog-body {
+  padding: 1rem 1.25rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--t2);
+  }
+}
+
+// Match ObjectiveForm / KpiForm input theming so the dialog inputs aren't
+// rendered with the light global defaults.
+.form-control,
+.form-select {
+  background: var(--inp);
+  border: 1px solid var(--bd);
+  color: var(--t1);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+
+  &::placeholder { color: var(--t3); }
+
+  &:hover:not(:disabled) { border-color: var(--bdh); }
+
+  &:focus {
+    background: var(--inpf);
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.end-year-hint {
+  margin: 0;
+  color: var(--t3);
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  i { color: var(--accent); }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--bd);
+}
+
+// Buttons — use the global `.btn-primary` accent that the rest of the app uses,
+// but make sure the outline-secondary variant reads correctly on the elevated
+// dark background instead of the Bootstrap defaults.
+.btn-outline-secondary {
+  border-color: var(--bd);
+  color: var(--t1);
+  background: transparent;
+
+  &:hover:not(:disabled) {
+    background: var(--sfh);
+    border-color: var(--bdh);
+    color: var(--t1);
+  }
+}
+
+.alert {
+  margin: 1rem 1.25rem 0;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}

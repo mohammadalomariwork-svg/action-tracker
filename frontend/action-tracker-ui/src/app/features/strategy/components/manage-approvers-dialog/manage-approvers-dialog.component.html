@@ -1,0 +1,117 @@
+<div class="dialog-backdrop" (click)="onCancel()"></div>
+
+<aside class="ma-panel" role="dialog" aria-modal="true">
+  <header class="ma-header">
+    <h3>
+      <i class="bi bi-people-fill text-primary me-2"></i>Manage approvers
+    </h3>
+    <button class="ma-icon-btn" type="button" (click)="onCancel()" aria-label="Close">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </header>
+
+  <div class="ma-body">
+
+    @if (error()) {
+      <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3">
+        <i class="bi bi-exclamation-triangle-fill"></i>{{ error() }}
+      </div>
+    }
+
+    <p class="ma-help">
+      Approvers review the strategy <strong>in order</strong>. Level 1 reviews first;
+      on approval the request advances to level 2, and so on. A rejection at any
+      level returns the plan to Draft. Edits are locked once the plan is submitted.
+    </p>
+
+    <!-- ── Current chain ──────────────────────────────────────────────── -->
+    @if (chain().length === 0) {
+      <div class="ma-empty">
+        <i class="bi bi-people"></i>
+        <p>No approvers configured yet. Add the first approver below.</p>
+      </div>
+    } @else {
+      <ol class="ma-chain" aria-label="Approval chain">
+        @for (a of chain(); track a.userId; let i = $index) {
+          <li class="ma-chain-item">
+            <span class="ma-level-badge">L{{ i + 1 }}</span>
+            <div class="ma-chain-body">
+              <div class="ma-chain-name">{{ a.displayName }}</div>
+              <div class="ma-chain-meta">
+                @if (a.email) { <span><i class="bi bi-envelope"></i> {{ a.email }}</span> }
+                @if (a.orgUnitName) { <span class="ms-2"><i class="bi bi-building"></i> {{ a.orgUnitName }}</span> }
+              </div>
+            </div>
+            <div class="ma-chain-actions">
+              <button type="button" class="ma-icon-btn" [disabled]="i === 0"
+                      (click)="moveUp(i)" [attr.aria-label]="'Move ' + a.displayName + ' up'">
+                <i class="bi bi-arrow-up"></i>
+              </button>
+              <button type="button" class="ma-icon-btn" [disabled]="i === chain().length - 1"
+                      (click)="moveDown(i)" [attr.aria-label]="'Move ' + a.displayName + ' down'">
+                <i class="bi bi-arrow-down"></i>
+              </button>
+              <button type="button" class="ma-icon-btn ma-icon-btn--danger"
+                      (click)="removeAt(i)" [attr.aria-label]="'Remove ' + a.displayName">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </li>
+        }
+      </ol>
+    }
+
+    <!-- ── Add approver picker ────────────────────────────────────────── -->
+    <div class="ma-picker">
+      <button type="button" class="ma-add-btn" (click)="togglePicker()" [attr.aria-expanded]="pickerOpen()">
+        <i class="bi bi-plus-lg"></i> Add approver
+        <i class="bi bi-chevron-down ms-auto" [class.ma-rot]="pickerOpen()"></i>
+      </button>
+
+      @if (pickerOpen()) {
+        <div class="ma-picker-panel">
+          <input type="text"
+                 class="form-control ma-picker-search"
+                 placeholder="Search by name, email, or org unit…"
+                 [ngModel]="searchTerm()"
+                 (ngModelChange)="searchTerm.set($event)"
+                 autocomplete="off" />
+
+          @if (availableUsers().length === 0) {
+            <p class="ma-picker-empty">No matching users.</p>
+          } @else {
+            <ul class="ma-picker-list" role="listbox">
+              @for (u of availableUsers(); track u.id) {
+                <li class="ma-picker-item" role="option" tabindex="0"
+                    (click)="addApprover(u)"
+                    (keyup.enter)="addApprover(u)">
+                  <div class="ma-picker-name">{{ u.displayName }}</div>
+                  <div class="ma-picker-meta">
+                    @if (u.email) { <span>{{ u.email }}</span> }
+                    @if (u.orgUnitName) { <span class="ms-2">· {{ u.orgUnitName }}</span> }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <footer class="ma-footer">
+    <button class="btn btn-outline-secondary" type="button" (click)="onCancel()" [disabled]="submitting()">
+      Cancel
+    </button>
+    <button class="btn btn-primary" type="button"
+            [disabled]="!canSave() || submitting()"
+            (click)="save()">
+      @if (submitting()) {
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        Saving…
+      } @else {
+        <i class="bi bi-check-lg me-1"></i>Save chain
+      }
+    </button>
+  </footer>
+</aside>

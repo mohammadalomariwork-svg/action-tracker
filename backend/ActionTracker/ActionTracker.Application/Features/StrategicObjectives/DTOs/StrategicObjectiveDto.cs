@@ -1,3 +1,5 @@
+using ActionTracker.Domain.Enums;
+
 namespace ActionTracker.Application.Features.StrategicObjectives.DTOs;
 
 public class StrategicObjectiveDto
@@ -20,4 +22,15 @@ public class StrategicObjectiveDto
     public string? UpdatedByName { get; set; }
     public string? DeletedByName { get; set; }
     public int KpiCount { get; set; }
+
+    // Parent strategic-plan context (populated by GetByIdAsync only — list responses leave these null
+    // to avoid an N+1 plan + lock-guard probe per row).
+    public Guid? StrategicPlanId { get; set; }
+    public string? StrategicPlanName { get; set; }
+    public StrategicPlanStatus? StrategicPlanStatus { get; set; }
+    public int? PlanStartYear { get; set; }
+    public int? PlanEndYear { get; set; }
+    /// <summary>True when the parent plan is locked (Approved without a pending revision request,
+    /// or Archived). Null means the field was not enriched.</summary>
+    public bool? IsPlanLocked { get; set; }
 }
