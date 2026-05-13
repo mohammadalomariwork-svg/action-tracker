@@ -28,6 +28,12 @@ public class CreateWorkspaceDto
     public Guid? OrgUnitId { get; set; }
 
     /// <summary>
+    /// Optional strategic plan to attach to the workspace at creation time.
+    /// Pass <c>null</c> for workspaces with no strategy.
+    /// </summary>
+    public Guid? StrategicPlanId { get; set; }
+
+    /// <summary>
     /// One or more admin users to assign to the workspace.
     /// At least one admin is required.
     /// </summary>

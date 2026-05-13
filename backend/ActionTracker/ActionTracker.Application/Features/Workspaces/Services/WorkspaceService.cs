@@ -57,7 +57,7 @@ public class WorkspaceService : IWorkspaceService
     /// <summary>
     /// Returns all workspaces (active and inactive) ordered alphabetically by title.
     /// </summary>
-    public async Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleOrgUnitIds = null)
+    public async Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleWorkspaceIds = null)
     {
         try
         {
@@ -65,10 +65,15 @@ public class WorkspaceService : IWorkspaceService
                 .Include(w => w.Admins)
                 .AsQueryable();
 
-            // Apply org unit scope filter when the user has a scoped org unit.
-            // Only workspaces explicitly mapped to a visible org unit are returned.
-            if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0)
-                baseQuery = baseQuery.Where(w => w.OrgUnitId != null && visibleOrgUnitIds.Contains(w.OrgUnitId.Value));
+            // Workspace-membership scoping: regular users only see workspaces
+            // where they're a member or admin. A null list means no restriction.
+            if (visibleWorkspaceIds != null)
+            {
+                if (visibleWorkspaceIds.Count == 0)
+                    baseQuery = baseQuery.Where(_ => false);
+                else
+                    baseQuery = baseQuery.Where(w => visibleWorkspaceIds.Contains(w.Id));
+            }
 
             var list = await baseQuery
                 .OrderByDescending(w => w.CreatedAt)
@@ -99,19 +104,18 @@ public class WorkspaceService : IWorkspaceService
     }
 
     /// <inheritdoc />
-    public async Task<WorkspaceSummaryDto> GetSummaryAsync(List<Guid>? visibleOrgUnitIds = null)
+    public async Task<WorkspaceSummaryDto> GetSummaryAsync(List<Guid>? visibleWorkspaceIds = null)
     {
         try
         {
             // Short-circuit: caller explicitly passed an empty scope list → no access.
-            if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count == 0)
+            if (visibleWorkspaceIds != null && visibleWorkspaceIds.Count == 0)
                 return new WorkspaceSummaryDto();
 
             // Build the scoped workspace query (mirrors GetAllWorkspacesAsync logic).
             IQueryable<Workspace> workspaceScope = _db.Workspaces;
-            if (visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0)
-                workspaceScope = workspaceScope.Where(
-                    w => w.OrgUnitId != null && visibleOrgUnitIds.Contains(w.OrgUnitId.Value));
+            if (visibleWorkspaceIds != null)
+                workspaceScope = workspaceScope.Where(w => visibleWorkspaceIds.Contains(w.Id));
 
             // All project / action-item counts are filtered through the scoped workspace IDs.
             var scopedWorkspaceIds = workspaceScope.Select(w => w.Id);
@@ -275,12 +279,23 @@ public class WorkspaceService : IWorkspaceService
         {
             var workspace = await _db.Workspaces
                 .Include(w => w.Admins)
+                .Include(w => w.Members)
                 .FirstOrDefaultAsync(w => w.Id == id);
 
             if (workspace is null) return null;
 
             var dto = ToResponseDto(workspace);
             await EnrichAdminDtosAsync(dto.Admins);
+            await EnrichMemberDtosAsync(dto.Members);
+
+            if (workspace.StrategicPlanId.HasValue)
+            {
+                dto.StrategicPlanName = await _db.StrategicPlans
+                    .Where(p => p.Id == workspace.StrategicPlanId.Value)
+                    .Select(p => p.Name)
+                    .FirstOrDefaultAsync();
+            }
+
             return dto;
         }
         catch (Exception ex)
@@ -363,6 +378,7 @@ public class WorkspaceService : IWorkspaceService
                 Title            = dto.Title,
                 OrganizationUnit = dto.OrganizationUnit,
                 OrgUnitId        = dto.OrgUnitId,
+                StrategicPlanId  = dto.StrategicPlanId,
                 CreatedAt        = DateTime.UtcNow,
                 IsActive         = true
             };
@@ -478,6 +494,7 @@ public class WorkspaceService : IWorkspaceService
             workspace.Title            = dto.Title;
             workspace.OrganizationUnit = dto.OrganizationUnit;
             workspace.OrgUnitId        = dto.OrgUnitId;
+            workspace.StrategicPlanId  = dto.StrategicPlanId;
             workspace.IsActive         = dto.IsActive;
             workspace.UpdatedAt        = DateTime.UtcNow;
 
@@ -776,8 +793,17 @@ public class WorkspaceService : IWorkspaceService
         Title            = w.Title,
         OrganizationUnit = w.OrganizationUnit,
         OrgUnitId        = w.OrgUnitId,
+        StrategicPlanId  = w.StrategicPlanId,
         Admins           = w.Admins
                             .Select(a => new WorkspaceAdminDto { UserId = a.AdminUserId, UserName = a.AdminUserName })
+                            .ToList(),
+        Members          = w.Members
+                            .Select(m => new WorkspaceMemberDto
+                            {
+                                UserId   = m.UserId,
+                                UserName = m.UserName,
+                                AddedAt  = m.AddedAt,
+                            })
                             .ToList(),
         IsActive         = w.IsActive,
         CreatedAt        = w.CreatedAt,
@@ -793,4 +819,161 @@ public class WorkspaceService : IWorkspaceService
         IsActive         = w.IsActive,
         CreatedAt        = w.CreatedAt
     };
+
+    // -------------------------------------------------------------------------
+    // Members CRUD
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<WorkspaceMemberDto>> GetMembersAsync(Guid workspaceId)
+    {
+        var members = await _db.WorkspaceMembers
+            .Where(m => m.WorkspaceId == workspaceId)
+            .OrderBy(m => m.UserName)
+            .Select(m => new WorkspaceMemberDto
+            {
+                UserId   = m.UserId,
+                UserName = m.UserName,
+                AddedAt  = m.AddedAt,
+            })
+            .ToListAsync();
+
+        await EnrichMemberDtosAsync(members);
+        return members;
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkspaceMemberDto?> AddMemberAsync(Guid workspaceId, AddWorkspaceMemberDto dto, string? addedByUserId)
+    {
+        var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
+        if (!workspaceExists) return null;
+
+        var alreadyExists = await _db.WorkspaceMembers
+            .AnyAsync(m => m.WorkspaceId == workspaceId && m.UserId == dto.UserId);
+        if (alreadyExists) return null;
+
+        var member = new WorkspaceMember
+        {
+            WorkspaceId   = workspaceId,
+            UserId        = dto.UserId,
+            UserName      = dto.UserName,
+            AddedAt       = DateTime.UtcNow,
+            AddedByUserId = addedByUserId,
+        };
+        _db.WorkspaceMembers.Add(member);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Added user {UserId} to workspace {WorkspaceId}", dto.UserId, workspaceId);
+
+        var result = new WorkspaceMemberDto
+        {
+            UserId   = member.UserId,
+            UserName = member.UserName,
+            AddedAt  = member.AddedAt,
+        };
+        await EnrichMemberDtosAsync(new List<WorkspaceMemberDto> { result });
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RemoveMemberAsync(Guid workspaceId, string userId)
+    {
+        var member = await _db.WorkspaceMembers
+            .FirstOrDefaultAsync(m => m.WorkspaceId == workspaceId && m.UserId == userId);
+        if (member is null) return false;
+
+        _db.WorkspaceMembers.Remove(member);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Removed user {UserId} from workspace {WorkspaceId}", userId, workspaceId);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkspaceResponseDto?> SetStrategyAsync(Guid workspaceId, Guid? strategicPlanId)
+    {
+        var workspace = await _db.Workspaces
+            .Include(w => w.Admins)
+            .Include(w => w.Members)
+            .FirstOrDefaultAsync(w => w.Id == workspaceId);
+        if (workspace is null) return null;
+
+        if (strategicPlanId.HasValue)
+        {
+            var planExists = await _db.StrategicPlans.AnyAsync(p => p.Id == strategicPlanId.Value);
+            if (!planExists)
+                throw new KeyNotFoundException($"Strategic plan '{strategicPlanId}' not found.");
+        }
+
+        workspace.StrategicPlanId = strategicPlanId;
+        workspace.UpdatedAt       = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Workspace {WorkspaceId} strategic plan set to {StrategicPlanId}",
+            workspaceId, strategicPlanId);
+
+        var dto = ToResponseDto(workspace);
+        await EnrichAdminDtosAsync(dto.Admins);
+        await EnrichMemberDtosAsync(dto.Members);
+        if (workspace.StrategicPlanId.HasValue)
+        {
+            dto.StrategicPlanName = await _db.StrategicPlans
+                .Where(p => p.Id == workspace.StrategicPlanId.Value)
+                .Select(p => p.Name)
+                .FirstOrDefaultAsync();
+        }
+        return dto;
+    }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<StrategicPlanDropdownItemDto>> GetStrategicPlansForDropdownAsync()
+    {
+        return await _db.StrategicPlans
+            .OrderByDescending(p => p.StartYear)
+            .ThenBy(p => p.Name)
+            .Select(p => new StrategicPlanDropdownItemDto
+            {
+                Id          = p.Id,
+                Name        = p.Name,
+                OrgUnitId   = p.OrgUnitId,
+                OrgUnitName = p.OrgUnit != null ? p.OrgUnit.Name : string.Empty,
+                StartYear   = p.StartYear,
+                EndYear     = p.StartYear + p.DurationYears - 1,
+                Status      = p.Status.ToString(),
+            })
+            .ToListAsync();
+    }
+
+    private async Task EnrichMemberDtosAsync(List<WorkspaceMemberDto> members)
+    {
+        if (members.Count == 0) return;
+
+        var userIds = members.Select(m => m.UserId).ToList();
+        var users = await _db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email, u.OrgUnitId })
+            .ToListAsync();
+
+        var orgUnitIds = users
+            .Where(u => u.OrgUnitId.HasValue)
+            .Select(u => u.OrgUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        var orgUnits = orgUnitIds.Count > 0
+            ? await _db.OrgUnits
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .Select(o => new { o.Id, o.Name })
+                .ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<Guid, string>();
+
+        foreach (var m in members)
+        {
+            var u = users.FirstOrDefault(x => x.Id == m.UserId);
+            if (u is null) continue;
+            m.Email       = u.Email ?? string.Empty;
+            m.OrgUnitName = u.OrgUnitId.HasValue && orgUnits.TryGetValue(u.OrgUnitId.Value, out var name)
+                ? name : string.Empty;
+        }
+    }
 }

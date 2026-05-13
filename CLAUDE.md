@@ -1,7 +1,8 @@
 # CLAUDE.MD — KU Action Tracker
 
 > **Purpose**: This file is read automatically by Claude Code at session start.
-> Keep it updated as features land. Last updated: 2026-05-06
+> Keep it updated as features land. Last updated: 2026-05-13
+
 
 ---
 
@@ -95,6 +96,7 @@ ACTION-TRACKER/
 - **Permission** — Granular permission within an area (e.g., "Actions.Create", "Actions.Delete")
 - **RolePermission** — Maps a role to one or more permissions
 - **OrgUnit** — Organizational unit for scoped data access; optional `HeadUserId` (CR-001-H) — heads at level 3 act as the strategic-plan approver for their subtree
+- **WorkspaceMember** — Direct user-to-workspace assignment. Members get read access to the workspace's projects/action items via `IWorkspaceAccessResolver`, independent of org-unit scoping
 - **User** — Synced from Azure AD; linked to roles and org units
 
 ## Application Roles (`AppRoles` constants)
@@ -137,7 +139,10 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] My Actions page (scoped to current user, stats cards, show-deleted toggle)
 - [x] Created by Me section in My Actions
 - [x] Default assignee on action items
-- [x] Workspaces with org-unit scoping and summary stats
+- [x] Workspaces with workspace-membership access control (`IWorkspaceAccessResolver`) — privileged roles (Admin / PMO Head / PMO Analyst) see everything; everyone else only sees workspaces where they are an admin or member. Projects and action items inherit the same scoping.
+- [x] Workspace direct user assignment (`WorkspaceMember` table + `GET/POST/DELETE /api/workspaces/{id}/members`; workspace detail page uses a searchable multi-select picker to add several members in one click)
+- [x] Optional Workspace ↔ Strategic Plan link (`Workspace.StrategicPlanId`, `PUT /api/workspaces/{id}/strategy`) — strategic-objective dropdown on project create is restricted to objectives from that plan; workspaces with no plan cannot create strategic projects
+- [x] Workspaces with summary stats
 - [x] Projects with role-based access (My Projects page)
 - [x] Milestones with validation on status transitions
 - [x] Dashboard with stat cards

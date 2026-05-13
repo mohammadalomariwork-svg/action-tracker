@@ -9,18 +9,17 @@ namespace ActionTracker.Application.Features.Workspaces.Interfaces;
 public interface IWorkspaceService
 {
     /// <summary>
-    /// Returns a lightweight list of workspaces, optionally filtered by org unit scope.
-    /// Pass a non-empty list to restrict results to those org units (and their children).
-    /// Pass null or empty to return all workspaces.
+    /// Returns a lightweight list of workspaces. When <paramref name="visibleWorkspaceIds"/>
+    /// is non-null the result is restricted to those IDs (an empty list yields no rows).
+    /// A <c>null</c> value means "no restriction".
     /// </summary>
-    Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleOrgUnitIds = null);
+    Task<IEnumerable<WorkspaceListDto>> GetAllWorkspacesAsync(List<Guid>? visibleWorkspaceIds = null);
 
     /// <summary>
-    /// Returns aggregate statistics scoped to the given org unit IDs.
-    /// Pass a non-empty list to restrict to those org units (same scoping as GetAllWorkspacesAsync).
-    /// Pass null or empty to return global statistics.
+    /// Returns aggregate statistics scoped to the given workspace IDs. A <c>null</c>
+    /// value means "no restriction"; an empty list yields zeros.
     /// </summary>
-    Task<WorkspaceSummaryDto> GetSummaryAsync(List<Guid>? visibleOrgUnitIds = null);
+    Task<WorkspaceSummaryDto> GetSummaryAsync(List<Guid>? visibleWorkspaceIds = null);
 
     /// <summary>Returns per-workspace statistics for the workspace detail dashboard.</summary>
     /// <param name="workspaceId">Primary key of the workspace.</param>
@@ -83,4 +82,32 @@ public interface IWorkspaceService
     /// admin dropdown, ordered alphabetically by display name.
     /// </summary>
     Task<IEnumerable<UserDropdownItemDto>> GetActiveUsersForDropdownAsync();
+
+    /// <summary>
+    /// Returns approved strategic plans for the workspace strategy dropdown.
+    /// </summary>
+    Task<IEnumerable<StrategicPlanDropdownItemDto>> GetStrategicPlansForDropdownAsync();
+
+    /// <summary>
+    /// Returns the regular (non-admin) members of a workspace.
+    /// </summary>
+    Task<IEnumerable<WorkspaceMemberDto>> GetMembersAsync(Guid workspaceId);
+
+    /// <summary>
+    /// Adds a regular member to a workspace. Returns the new member,
+    /// or <c>null</c> if the workspace does not exist or the user is already a member.
+    /// </summary>
+    Task<WorkspaceMemberDto?> AddMemberAsync(Guid workspaceId, AddWorkspaceMemberDto dto, string? addedByUserId);
+
+    /// <summary>
+    /// Removes a regular member from a workspace.
+    /// Returns <c>true</c> on success, <c>false</c> when the membership did not exist.
+    /// </summary>
+    Task<bool> RemoveMemberAsync(Guid workspaceId, string userId);
+
+    /// <summary>
+    /// Links or unlinks the strategic plan attached to a workspace.
+    /// Returns the updated workspace, or <c>null</c> if not found.
+    /// </summary>
+    Task<WorkspaceResponseDto?> SetStrategyAsync(Guid workspaceId, Guid? strategicPlanId);
 }

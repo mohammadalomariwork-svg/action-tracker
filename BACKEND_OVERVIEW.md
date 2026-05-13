@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-05-08
+> Last updated: 2026-05-13
 
 ## Tech Stack
 
@@ -122,15 +122,20 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 ### WorkspacesController (`/api/workspaces`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | All active workspaces (org-unit scoped) |
-| GET | `/summary` | Aggregate stats (scoped to user's visible org units) |
-| GET | `/{id}` | Workspace details |
+| GET | `/` | All active workspaces scoped via `IWorkspaceAccessResolver` (admin/member-driven, with Admin / PMO Head / PMO Analyst unrestricted) |
+| GET | `/summary` | Aggregate stats scoped to the caller's visible workspaces. Optional `workspaceId` query narrows to a single workspace. |
+| GET | `/{id}` | Workspace details (includes `members`, `strategicPlanId`, `strategicPlanName`) |
 | GET | `/{id}/stats` | Workspace statistics (projects, action items, completion rates) |
 | GET | `/by-admin/{adminUserId}` | Workspaces for specific admin |
-| POST | `/` | Create workspace |
-| PUT | `/{id}` | Update workspace |
+| POST | `/` | Create workspace (accepts optional `strategicPlanId`) |
+| PUT | `/{id}` | Update workspace (accepts optional `strategicPlanId`) |
 | GET | `/org-units` | Org units for dropdown |
 | GET | `/active-users` | Active users for the workspace admin picker — returns `{Id, DisplayName, Email, OrgUnitName}` (searchable across name, email, and org unit) |
+| GET | `/strategic-plans` | Strategic plans for the workspace strategy dropdown |
+| GET | `/{id}/members` | Regular (non-admin) members of a workspace |
+| POST | `/{id}/members` | Add a regular member to a workspace (gated by `Workspaces.Edit`) |
+| DELETE | `/{id}/members/{userId}` | Remove a regular member from a workspace |
+| PUT | `/{id}/strategy` | Link or unlink a strategic plan (`{ strategicPlanId: Guid? }`, gated by `Workspaces.Edit`) |
 | DELETE | `/{id}` | Soft delete (sets IsActive=false) |
 | PATCH | `/{id}/restore` | Restore deleted workspace |
 
@@ -527,8 +532,20 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | Title | string(200) | Workspace title |
 | OrganizationUnit | string(200) | Organization unit name |
 | OrgUnitId | Guid? (FK) | Org unit for access scoping |
+| StrategicPlanId | Guid? (FK) | Optional linked strategic plan — drives the strategic objectives available to projects in this workspace |
 | IsActive | bool | Active flag (default true) |
-| **Nav:** | | Admins (WorkspaceAdmin), Projects, ActionItems |
+| **Nav:** | | Admins (WorkspaceAdmin), Members (WorkspaceMember), Projects, ActionItems |
+
+#### WorkspaceMember (join table for direct user assignment)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | int (PK) | Identity |
+| WorkspaceId | Guid (FK) | Parent workspace (cascade delete) |
+| UserId | string(450) | AspNetUsers.Id of the member |
+| UserName | string(256) | Denormalized display name |
+| AddedAt | DateTime | When the user was added (UTC) |
+| AddedByUserId | string(450)? | The actor who added the member |
+| **Unique index:** | | (WorkspaceId, UserId) — a user can be a member at most once per workspace |
 
 #### OrgUnit
 | Field | Type | Description |
@@ -722,6 +739,7 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | StrategicPlanApprovalRequest | Strategic plan approval requests — `RequestType` (Initial/Revision), `Status` (Pending/Approved/Rejected), `AssignedReviewerUserId`, `ReviewedByUserId`, `Justification`, `ReviewerComment`. Cascade delete from `StrategicPlan` (CR-001-D / CR-001-E) |
 | ProjectSponsor | Sponsors linked to projects |
 | WorkspaceAdmin | Admin users per workspace |
+| WorkspaceMember | Regular (non-admin) members assigned to a workspace; drives `IWorkspaceAccessResolver` for read access to projects/action items |
 | RefreshToken | JWT refresh token storage with rotation |
 | KuEmployeeInfo | KU employee directory integration |
 
@@ -791,7 +809,8 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
 | `IMilestoneService` | CRUD per project, stats, baselining |
 | `IProjectRiskService` | CRUD per project, risk stats, scoring |
-| `IWorkspaceService` | CRUD, summary stats, admin assignment, enriched active-users dropdown (DisplayName/Email/OrgUnitName) |
+| `IWorkspaceService` | CRUD, summary stats, admin assignment, **member CRUD (add/remove/list)**, **strategic-plan link/unlink**, enriched active-users + strategic-plans dropdowns |
+| `IWorkspaceAccessResolver` | Returns the set of workspace IDs visible to a user; `null` means unrestricted (Admin / PMO Head / PMO Analyst). Drives workspace + project + action-item list filtering. |
 | `IDashboardService` | KPI metrics, management dashboard, team workload |
 | `INotificationService` | CRUD notifications, read/unread tracking, summary |
 | `IEmailTemplateService` | CRUD templates, delivery logging |

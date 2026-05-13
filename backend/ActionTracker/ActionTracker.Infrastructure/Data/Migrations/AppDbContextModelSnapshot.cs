@@ -2324,6 +2324,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid?>("StrategicPlanId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -2335,6 +2338,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationUnit");
+
+                    b.HasIndex("StrategicPlanId");
 
                     b.ToTable("Workspaces", (string)null);
                 });
@@ -2367,6 +2372,48 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.HasIndex("WorkspaceId");
 
                     b.ToTable("WorkspaceAdmins", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("AddedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WorkspaceId");
+
+                    b.HasIndex("WorkspaceId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("WorkspaceMembers", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -2832,6 +2879,17 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Workspace");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceMember", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
+                        .WithMany("Members")
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -2937,6 +2995,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.Workspace", b =>
                 {
                     b.Navigation("Admins");
+
+                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }

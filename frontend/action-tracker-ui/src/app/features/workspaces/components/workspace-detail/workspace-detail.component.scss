@@ -384,6 +384,16 @@
   }
 }
 
+// ── Member multi-select (inline picker in the Members section header) ───────
+.wd-member-multi-select {
+  min-width: 260px;
+
+  .wa-multi-select__control {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
 // ── Table wrapper ────────────────────────────────────────────────────────────
 .wa-table-wrapper {
   border-radius: var(--border-radius, 0.5rem);

@@ -23,5 +23,10 @@ public class Workspace
     /// <summary>Foreign key to the OrgUnit this workspace belongs to (for access scoping).</summary>
     public Guid? OrgUnitId { get; set; }
 
+    /// <summary>Optional strategic plan whose objectives this workspace's projects may pull from.</summary>
+    public Guid? StrategicPlanId { get; set; }
+
     public ICollection<WorkspaceAdmin> Admins { get; set; } = new List<WorkspaceAdmin>();
+
+    public ICollection<WorkspaceMember> Members { get; set; } = new List<WorkspaceMember>();
 }

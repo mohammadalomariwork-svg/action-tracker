@@ -12,6 +12,10 @@ import {
   UpdateWorkspace,
   OrgUnitDropdownItem,
   UserDropdownItem,
+  WorkspaceMember,
+  AddWorkspaceMember,
+  SetWorkspaceStrategy,
+  StrategicPlanDropdownItem,
 } from '../models/workspace.model';
 
 /**
@@ -113,5 +117,31 @@ export class WorkspaceService {
    */
   getActiveUsersForDropdown(): Observable<ApiResponse<UserDropdownItem[]>> {
     return this.http.get<ApiResponse<UserDropdownItem[]>>(`${this.apiUrl}/active-users`);
+  }
+
+  // ── Members ────────────────────────────────────────────
+
+  getMembers(workspaceId: string): Observable<ApiResponse<WorkspaceMember[]>> {
+    return this.http.get<ApiResponse<WorkspaceMember[]>>(`${this.apiUrl}/${workspaceId}/members`);
+  }
+
+  addMember(workspaceId: string, payload: AddWorkspaceMember): Observable<ApiResponse<WorkspaceMember>> {
+    return this.http.post<ApiResponse<WorkspaceMember>>(`${this.apiUrl}/${workspaceId}/members`, payload);
+  }
+
+  removeMember(workspaceId: string, userId: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(
+      `${this.apiUrl}/${workspaceId}/members/${encodeURIComponent(userId)}`
+    );
+  }
+
+  // ── Strategy linking ───────────────────────────────────
+
+  getStrategicPlansForDropdown(): Observable<ApiResponse<StrategicPlanDropdownItem[]>> {
+    return this.http.get<ApiResponse<StrategicPlanDropdownItem[]>>(`${this.apiUrl}/strategic-plans`);
+  }
+
+  setStrategy(workspaceId: string, payload: SetWorkspaceStrategy): Observable<ApiResponse<Workspace>> {
+    return this.http.put<ApiResponse<Workspace>>(`${this.apiUrl}/${workspaceId}/strategy`, payload);
   }
 }

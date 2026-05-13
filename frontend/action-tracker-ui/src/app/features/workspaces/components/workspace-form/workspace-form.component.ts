@@ -28,6 +28,8 @@ export class WorkspaceFormComponent implements OnInit {
   workspaceId: string | null = null;
   isLoading     = false;
   errorMessage: string | null = null;
+  /** Preserves the workspace's linked strategy across edits (managed on the detail page). */
+  private existingStrategicPlanId?: string;
 
   orgUnits: OrgUnitDropdownItem[] = [];
   adminUsers: UserDropdownItem[]  = [];
@@ -161,6 +163,7 @@ export class WorkspaceFormComponent implements OnInit {
             isActive:         w.isActive,
           });
           this.selectedAdminIds = (w.admins ?? []).map(a => a.userId);
+          this.existingStrategicPlanId = w.strategicPlanId;
           this.isLoading = false;
         },
         error: (err) => {
@@ -209,6 +212,7 @@ export class WorkspaceFormComponent implements OnInit {
           title,
           organizationUnit: orgUnitName,
           orgUnitId: orgUnitId || undefined,
+          strategicPlanId: this.existingStrategicPlanId,
           admins,
           isActive,
         })

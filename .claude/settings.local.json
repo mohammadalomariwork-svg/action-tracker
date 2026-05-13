@@ -33,7 +33,8 @@
       "Bash(ls -la \"c:\\\\Development Work\\\\action-tracker\\\\\" 2>/dev/null | head -20)",
       "Read(//c/Development Work/action-tracker\" 2>/dev/**)",
       "Bash(Get-ChildItem -Path \"c:\\\\Development Work\\\\action-tracker\\\\frontend\\\\action-tracker-ui\" -Recurse -Filter \"plan-form-dialog*\" -ErrorAction SilentlyContinue)",
-      "Bash(xargs grep -l \"IWorkflowService\\\\|WorkflowService\")"
+      "Bash(xargs grep -l \"IWorkflowService\\\\|WorkflowService\")",
+      "Bash(Select-Object Name)"
     ]
   }
 }

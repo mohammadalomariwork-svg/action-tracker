@@ -35,6 +35,11 @@ public class UpdateWorkspaceDto
     public Guid? OrgUnitId { get; set; }
 
     /// <summary>
+    /// Optional strategic plan linked to the workspace. Pass <c>null</c> to clear.
+    /// </summary>
+    public Guid? StrategicPlanId { get; set; }
+
+    /// <summary>
     /// Replacement admin user list. The existing admin list is fully replaced
     /// by this set. At least one admin is required.
     /// </summary>

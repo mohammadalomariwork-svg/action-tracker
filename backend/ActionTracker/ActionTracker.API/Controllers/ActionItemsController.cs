@@ -15,14 +15,14 @@ namespace ActionTracker.API.Controllers;
 public class ActionItemsController : ControllerBase
 {
     private readonly IActionItemService _service;
-    private readonly IOrgUnitScopeResolver _scopeResolver;
+    private readonly IWorkspaceAccessResolver _accessResolver;
     private readonly ILogger<ActionItemsController> _logger;
 
-    public ActionItemsController(IActionItemService service, IOrgUnitScopeResolver scopeResolver, ILogger<ActionItemsController> logger)
+    public ActionItemsController(IActionItemService service, IWorkspaceAccessResolver accessResolver, ILogger<ActionItemsController> logger)
     {
-        _service       = service;
-        _scopeResolver = scopeResolver;
-        _logger        = logger;
+        _service        = service;
+        _accessResolver = accessResolver;
+        _logger         = logger;
     }
 
     // -------------------------------------------------------------------------
@@ -36,12 +36,9 @@ public class ActionItemsController : ControllerBase
         [FromQuery] ActionItemFilterDto filter, CancellationToken ct)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        if (!string.IsNullOrEmpty(userId))
-        {
-            var visibleIds = await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
-            if (visibleIds.Count > 0)
-                filter.VisibleOrgUnitIds = visibleIds;
-        }
+        filter.VisibleWorkspaceIds = string.IsNullOrEmpty(userId)
+            ? new List<Guid>()
+            : await _accessResolver.GetVisibleWorkspaceIdsAsync(userId);
 
         var result = await _service.GetAllAsync(filter, ct);
         return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
@@ -68,6 +65,7 @@ public class ActionItemsController : ControllerBase
         // regardless of which workspace/org-unit it belongs to.
         filter.AssigneeId        = userId;
         filter.VisibleOrgUnitIds = null;
+        filter.VisibleWorkspaceIds = null;
 
         _logger.LogInformation("GET /api/action-items/my-actions userId={UserId}", userId);
 
@@ -93,6 +91,7 @@ public class ActionItemsController : ControllerBase
 
         filter.CreatedById       = userId;
         filter.VisibleOrgUnitIds = null;
+        filter.VisibleWorkspaceIds = null;
 
         _logger.LogInformation("GET /api/action-items/created-by-me userId={UserId}", userId);
 

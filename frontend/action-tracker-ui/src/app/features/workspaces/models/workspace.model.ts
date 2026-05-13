@@ -13,6 +13,22 @@ export interface WorkspaceAdmin {
 }
 
 /**
+ * Represents a regular user assigned to a workspace.
+ */
+export interface WorkspaceMember {
+  /** The AspNetUsers.Id of the member. */
+  userId: string;
+  /** Display name of the member. */
+  userName: string;
+  /** Email address of the member. */
+  email: string;
+  /** Name of the org unit the member belongs to. */
+  orgUnitName: string;
+  /** UTC timestamp when the user was added to the workspace. */
+  addedAt: string;
+}
+
+/**
  * Full workspace representation returned from GET /api/workspaces/{id}.
  */
 export interface Workspace {
@@ -24,8 +40,14 @@ export interface Workspace {
   organizationUnit: string;
   /** ID of the organisational unit (for access scoping). */
   orgUnitId?: string;
+  /** Optional strategic plan linked to this workspace. */
+  strategicPlanId?: string;
+  /** Display name of the linked strategic plan. */
+  strategicPlanName?: string;
   /** All admin users assigned to this workspace. */
   admins: WorkspaceAdmin[];
+  /** Regular members assigned to this workspace. */
+  members: WorkspaceMember[];
   /** Whether the workspace is currently active. */
   isActive: boolean;
   /** UTC timestamp when the workspace was created. */
@@ -95,6 +117,8 @@ export interface CreateWorkspace {
   organizationUnit: string;
   /** ID of the organisational unit (for access scoping). */
   orgUnitId?: string;
+  /** Optional strategic plan to link at creation. */
+  strategicPlanId?: string;
   /** One or more admin users to assign (at least one required). */
   admins: WorkspaceAdmin[];
 }
@@ -111,10 +135,36 @@ export interface UpdateWorkspace {
   organizationUnit: string;
   /** ID of the organisational unit (for access scoping). */
   orgUnitId?: string;
+  /** Optional strategic plan to link to the workspace. */
+  strategicPlanId?: string;
   /** Replacement admin user list (replaces the entire existing list). */
   admins: WorkspaceAdmin[];
   /** Set to `false` to deactivate the workspace. */
   isActive: boolean;
+}
+
+/**
+ * Lightweight strategic plan item returned by GET /api/workspaces/strategic-plans.
+ */
+export interface StrategicPlanDropdownItem {
+  id: string;
+  name: string;
+  orgUnitId: string;
+  orgUnitName: string;
+  startYear: number;
+  endYear: number;
+  status: string;
+}
+
+/** Payload for POST /api/workspaces/{id}/members. */
+export interface AddWorkspaceMember {
+  userId: string;
+  userName: string;
+}
+
+/** Payload for PUT /api/workspaces/{id}/strategy. */
+export interface SetWorkspaceStrategy {
+  strategicPlanId: string | null;
 }
 
 /**

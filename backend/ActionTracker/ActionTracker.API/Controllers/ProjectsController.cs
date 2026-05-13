@@ -15,20 +15,20 @@ namespace ActionTracker.API.Controllers;
 public class ProjectsController : ControllerBase
 {
     private readonly IProjectService _service;
-    private readonly IOrgUnitScopeResolver _scopeResolver;
+    private readonly IWorkspaceAccessResolver _accessResolver;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ProjectsController> _logger;
 
     public ProjectsController(
         IProjectService service,
-        IOrgUnitScopeResolver scopeResolver,
+        IWorkspaceAccessResolver accessResolver,
         IServiceScopeFactory scopeFactory,
         ILogger<ProjectsController> logger)
     {
-        _service       = service;
-        _scopeResolver = scopeResolver;
-        _scopeFactory  = scopeFactory;
-        _logger        = logger;
+        _service        = service;
+        _accessResolver = accessResolver;
+        _scopeFactory   = scopeFactory;
+        _logger         = logger;
     }
 
     /// <summary>Returns a paginated, filtered list of projects.</summary>
@@ -38,12 +38,9 @@ public class ProjectsController : ControllerBase
         [FromQuery] ProjectFilterDto filter, CancellationToken ct)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        if (!string.IsNullOrEmpty(userId))
-        {
-            var visibleIds = await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
-            if (visibleIds.Count > 0)
-                filter.VisibleOrgUnitIds = visibleIds;
-        }
+        filter.VisibleWorkspaceIds = string.IsNullOrEmpty(userId)
+            ? new List<Guid>()
+            : await _accessResolver.GetVisibleWorkspaceIdsAsync(userId);
 
         var result = await _service.GetAllAsync(filter, ct);
         return Ok(ApiResponse<PagedResult<ProjectResponseDto>>.Ok(result));

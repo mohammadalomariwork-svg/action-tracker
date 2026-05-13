@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-05-08
+> Last updated: 2026-05-13
 
 ## Tech Stack
 
@@ -169,7 +169,7 @@
 |-----------|-------------|
 | `WorkspaceListComponent` | All workspaces with filters, org-unit dropdown, stats (projects, milestones, action items), export/print, **inline create/edit drawer** with custom searchable multi-select admin picker (filters across name, email, org unit; chip-style selected display); admin users loaded lazily on first drawer open. Reads `?orgUnitId=<id>` on init so deep-links from `StrategyPageComponent`'s "Projects" stat card land on a pre-filtered list |
 | `WorkspaceFormComponent` | Standalone create/edit workspace screen (kept for direct routes) — also uses the same custom multi-select admin picker as the list drawer |
-| `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print |
+| `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print, **Members management section** (custom searchable multi-select picker to add multiple users at once; remove individually), **Linked Strategic Plan section** (dropdown of all plans; sets/clears the workspace's `strategicPlanId` via `/api/workspaces/{id}/strategy`) |
 
 ### Projects (7)
 | Component | Description |
@@ -284,7 +284,7 @@
 
 | Service | Key Endpoints |
 |---------|--------------|
-| `WorkspaceService` | Full CRUD on `/workspaces`, plus `/summary`, `/stats`, `/org-units`, `/active-users` |
+| `WorkspaceService` | Full CRUD on `/workspaces`, plus `/summary`, `/stats`, `/org-units`, `/active-users`, **`/strategic-plans`**, **`/{id}/members` (GET/POST/DELETE)**, **`/{id}/strategy` (PUT)** |
 | `ProjectService` | Full CRUD on `/projects`, plus `/stats`, `/strategic-objectives-for-workspace/:id` |
 | `MilestoneService` | Full CRUD on `/projects/:id/milestones`, plus `/stats`, `/baseline` |
 | `ProjectRiskService` | Full CRUD on `/projects/:id/risks`, plus `/stats` |
@@ -328,7 +328,9 @@
 ### Feature Models (in `models/` or feature folders)
 | Model | Key Fields |
 |-------|-----------|
-| `Workspace` | id, title, organizationUnit, orgUnitId, isActive, admins |
+| `Workspace` | id, title, organizationUnit, orgUnitId, **strategicPlanId**, **strategicPlanName**, isActive, admins, **members** |
+| `WorkspaceMember` | userId, userName, email, orgUnitName, addedAt |
+| `StrategicPlanDropdownItem` | id, name, orgUnitId, orgUnitName, startYear, endYear, status |
 | `WorkspaceSummary` | totalWorkspaces, activeWorkspaces, strategicProjects, operationalProjects |
 | `Project` | id, projectCode (PRJ-YYYY-001), name, workspaceId, projectType, projectStatus, priority, projectManagerUserId, sponsors, budget, isBaselined |
 | `ProjectType` (enum) | Operational, Strategic |

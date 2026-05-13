@@ -84,7 +84,54 @@
             <i class="bi bi-clock-history me-1 text-muted"></i>{{ workspace.updatedAt | date:'mediumDate' }}
           </span>
         </div>
+
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Strategic Plan</span>
+          <span class="wd-detail-value">
+            @if (workspace.strategicPlanName) {
+              <i class="bi bi-flag me-1 text-primary"></i>{{ workspace.strategicPlanName }}
+            } @else {
+              <span class="text-muted">— None —</span>
+            }
+          </span>
+        </div>
       </div>
+    </div>
+
+    <!-- ── Strategy Section (admin/edit gated) ───────────────────────────── -->
+    <div class="wd-section mb-4" *hasPermission="'Workspaces.Edit'">
+      <div class="wd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-flag-fill me-2 text-primary"></i>Linked Strategic Plan
+        </h5>
+        <div class="wd-add-admin">
+          <select
+            class="form-select form-select-sm"
+            [(ngModel)]="selectedStrategicPlanId"
+            [disabled]="isSavingStrategy"
+          >
+            <option [ngValue]="''">-- No strategy --</option>
+            @for (plan of strategicPlanOptions; track plan.id) {
+              <option [ngValue]="plan.id">
+                {{ plan.name }} ({{ plan.orgUnitName }} · {{ plan.startYear }}-{{ plan.endYear }})
+              </option>
+            }
+          </select>
+          <button
+            class="btn btn-primary btn-sm"
+            (click)="onSaveStrategy()"
+            [disabled]="isSavingStrategy || selectedStrategicPlanId === (workspace.strategicPlanId ?? '')"
+          >
+            @if (isSavingStrategy) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-save me-1"></i>Save
+          </button>
+        </div>
+      </div>
+      <p class="text-muted small mb-0 mt-2">
+        When a plan is linked, strategic projects in this workspace can only reference objectives from that plan.
+      </p>
     </div>
 
     <!-- ── Workspace Admins Section ──────────────────────────────────────── -->
@@ -152,6 +199,116 @@
         <div class="wd-empty text-center py-5">
           <i class="bi bi-people wd-empty-icon text-muted"></i>
           <p class="text-muted mt-3 mb-0">No admins assigned to this workspace.</p>
+        </div>
+      }
+    </div>
+
+    <!-- ── Workspace Members Section ─────────────────────────────────────── -->
+    <div class="wd-section mb-4">
+      <div class="wd-section-header">
+        <h5 class="mb-0">
+          <i class="bi bi-person-lines-fill me-2 text-primary"></i>Workspace Members
+          <span class="badge bg-secondary ms-2">{{ workspaceMembers.length }}</span>
+        </h5>
+
+        @if (canManage) {
+          <div class="wd-add-admin">
+            <div class="wa-multi-select wd-member-multi-select"
+                 (click)="memberDropdownOpen = !memberDropdownOpen; $event.stopPropagation()">
+              <div class="wa-multi-select__control form-select form-select-sm">
+                @if (selectedMemberUserIds.length === 0) {
+                  <span class="text-muted">Select users…</span>
+                } @else {
+                  <div class="wa-multi-select__tags">
+                    @for (id of selectedMemberUserIds; track id) {
+                      <span class="wa-multi-select__tag">
+                        {{ getMemberName(id) }}
+                        <button type="button" class="wa-multi-select__tag-remove"
+                                (click)="toggleMember(id); $event.stopPropagation()">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+              @if (memberDropdownOpen) {
+                <div class="wa-multi-select__dropdown">
+                  <input type="text"
+                         class="form-control form-control-sm wa-multi-select__search"
+                         placeholder="Search users…"
+                         [(ngModel)]="memberSearchTerm"
+                         (click)="$event.stopPropagation()" />
+                  <div class="wa-multi-select__options">
+                    @for (u of filteredAvailableMembers; track u.id) {
+                      <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
+                        <input type="checkbox"
+                               [checked]="isMemberSelected(u.id)"
+                               (change)="toggleMember(u.id)" />
+                        <span class="wa-multi-select__avatar">{{ u.displayName.charAt(0).toUpperCase() }}</span>
+                        <div class="d-flex flex-column">
+                          <span>{{ u.displayName }}</span>
+                          @if (u.email || u.orgUnitName) {
+                            <small class="text-muted">
+                              {{ u.email || '—' }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}
+                            </small>
+                          }
+                        </div>
+                      </label>
+                    }
+                    @if (filteredAvailableMembers.length === 0) {
+                      <div class="text-muted small px-3 py-2">No users found.</div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="onAddMember(); $event.stopPropagation()"
+              [disabled]="selectedMemberUserIds.length === 0 || isAddingMember"
+            >
+              @if (isAddingMember) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+              }
+              <i class="bi bi-plus-circle me-1"></i>Add
+            </button>
+          </div>
+        }
+      </div>
+
+      @if (workspaceMembers.length > 0) {
+        <div class="wd-admins-grid">
+          @for (member of workspaceMembers; track member.userId) {
+            <div class="wd-admin-card">
+              <div class="wd-admin-avatar">
+                {{ member.userName.charAt(0).toUpperCase() || '?' }}
+              </div>
+              <div class="wd-admin-info">
+                <span class="wd-admin-name">{{ member.userName }}</span>
+                <span class="wd-admin-detail">
+                  <i class="bi bi-envelope me-1"></i>{{ member.email || '—' }}
+                </span>
+                <span class="wd-admin-detail">
+                  <i class="bi bi-building me-1"></i>{{ member.orgUnitName || '—' }}
+                </span>
+              </div>
+              @if (canManage) {
+                <button
+                  class="btn btn-outline-danger btn-sm wd-admin-remove-btn"
+                  (click)="onRemoveMember(member)"
+                  title="Remove member"
+                >
+                  <i class="bi bi-person-dash me-1"></i>Remove
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="wd-empty text-center py-5">
+          <i class="bi bi-people wd-empty-icon text-muted"></i>
+          <p class="text-muted mt-3 mb-0">No members assigned. Members can access projects and action items in this workspace.</p>
         </div>
       }
     </div>

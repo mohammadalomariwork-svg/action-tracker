@@ -20,8 +20,17 @@ public class WorkspaceResponseDto
     /// <summary>ID of the organisational unit (for access scoping).</summary>
     public Guid? OrgUnitId { get; set; }
 
+    /// <summary>Optional strategic plan linked to this workspace.</summary>
+    public Guid? StrategicPlanId { get; set; }
+
+    /// <summary>Display name of the linked strategic plan (when one is set).</summary>
+    public string? StrategicPlanName { get; set; }
+
     /// <summary>All admin users assigned to this workspace.</summary>
     public List<WorkspaceAdminDto> Admins { get; set; } = new();
+
+    /// <summary>Regular members assigned to this workspace.</summary>
+    public List<WorkspaceMemberDto> Members { get; set; } = new();
 
     /// <summary>Whether the workspace is currently active.</summary>
     public bool IsActive { get; set; }

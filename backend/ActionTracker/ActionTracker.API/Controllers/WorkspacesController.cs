@@ -19,16 +19,16 @@ namespace ActionTracker.API.Controllers;
 public class WorkspacesController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
-    private readonly IOrgUnitScopeResolver _scopeResolver;
+    private readonly IWorkspaceAccessResolver _accessResolver;
     private readonly ILogger<WorkspacesController> _logger;
 
     public WorkspacesController(
         IWorkspaceService workspaceService,
-        IOrgUnitScopeResolver scopeResolver,
+        IWorkspaceAccessResolver accessResolver,
         ILogger<WorkspacesController> logger)
     {
         _workspaceService = workspaceService;
-        _scopeResolver    = scopeResolver;
+        _accessResolver   = accessResolver;
         _logger           = logger;
     }
 
@@ -45,12 +45,11 @@ public class WorkspacesController : ControllerBase
         _logger.LogInformation("GET /api/workspaces");
 
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        var visibleOrgUnitIds = string.IsNullOrEmpty(userId)
-            ? null
-            : await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+        var visibleWorkspaceIds = string.IsNullOrEmpty(userId)
+            ? new List<Guid>()
+            : await _accessResolver.GetVisibleWorkspaceIdsAsync(userId);
 
-        var workspaces = await _workspaceService.GetAllWorkspacesAsync(
-            visibleOrgUnitIds?.Count > 0 ? visibleOrgUnitIds : null);
+        var workspaces = await _workspaceService.GetAllWorkspacesAsync(visibleWorkspaceIds);
         return Ok(ApiResponse<IEnumerable<WorkspaceListDto>>.Ok(workspaces));
     }
 
@@ -66,32 +65,32 @@ public class WorkspacesController : ControllerBase
     [HttpGet("summary")]
     [Authorize(Policy = PermissionPolicies.WorkspacesView)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceSummaryDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSummary([FromQuery] Guid? orgUnitId = null)
+    public async Task<IActionResult> GetSummary([FromQuery] Guid? workspaceId = null)
     {
-        _logger.LogInformation("GET /api/workspaces/summary orgUnitId={OrgUnitId}", orgUnitId);
+        _logger.LogInformation("GET /api/workspaces/summary workspaceId={WorkspaceId}", workspaceId);
 
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        var visibleOrgUnitIds = string.IsNullOrEmpty(userId)
-            ? null
-            : await _scopeResolver.GetUserOrgUnitIdsAsync(userId);
+        var visibleWorkspaceIds = string.IsNullOrEmpty(userId)
+            ? new List<Guid>()
+            : await _accessResolver.GetVisibleWorkspaceIdsAsync(userId);
 
-        // Determine the effective scope: user's visible org units, optionally narrowed
-        // down to a single org unit chosen in the UI.
-        List<Guid>? effectiveOrgUnitIds;
-        if (orgUnitId.HasValue)
+        // Determine the effective scope: caller's visible workspaces, optionally
+        // narrowed down to a single workspace chosen in the UI.
+        List<Guid>? effectiveWorkspaceIds;
+        if (workspaceId.HasValue)
         {
-            var hasScope = visibleOrgUnitIds != null && visibleOrgUnitIds.Count > 0;
-            if (!hasScope || visibleOrgUnitIds!.Contains(orgUnitId.Value))
-                effectiveOrgUnitIds = new List<Guid> { orgUnitId.Value };
+            var unrestricted = visibleWorkspaceIds == null;
+            if (unrestricted || visibleWorkspaceIds!.Contains(workspaceId.Value))
+                effectiveWorkspaceIds = new List<Guid> { workspaceId.Value };
             else
-                effectiveOrgUnitIds = new List<Guid>(); // requested org unit not in scope → zeros
+                effectiveWorkspaceIds = new List<Guid>(); // requested workspace not in scope → zeros
         }
         else
         {
-            effectiveOrgUnitIds = visibleOrgUnitIds?.Count > 0 ? visibleOrgUnitIds : null;
+            effectiveWorkspaceIds = visibleWorkspaceIds;
         }
 
-        var summary = await _workspaceService.GetSummaryAsync(effectiveOrgUnitIds);
+        var summary = await _workspaceService.GetSummaryAsync(effectiveWorkspaceIds);
         return Ok(ApiResponse<WorkspaceSummaryDto>.Ok(summary));
     }
 
@@ -281,5 +280,84 @@ public class WorkspacesController : ControllerBase
             return NotFound(ApiResponse<string>.Fail($"Workspace '{id}' not found."));
 
         return NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // Members
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns the regular members of a workspace.</summary>
+    [HttpGet("{id:guid}/members")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WorkspaceMemberDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMembers(Guid id)
+    {
+        var members = await _workspaceService.GetMembersAsync(id);
+        return Ok(ApiResponse<IEnumerable<WorkspaceMemberDto>>.Ok(members));
+    }
+
+    /// <summary>Assigns a regular user to a workspace.</summary>
+    [HttpPost("{id:guid}/members")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceMemberDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<string>),             StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddMember(Guid id, [FromBody] AddWorkspaceMemberDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
+
+        var addedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var member = await _workspaceService.AddMemberAsync(id, dto, addedBy);
+        if (member is null)
+            return BadRequest(ApiResponse<string>.Fail("Workspace not found or user already a member."));
+
+        return Created(string.Empty, ApiResponse<WorkspaceMemberDto>.Ok(member));
+    }
+
+    /// <summary>Removes a regular member from a workspace.</summary>
+    [HttpDelete("{id:guid}/members/{userId}")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveMember(Guid id, string userId)
+    {
+        var removed = await _workspaceService.RemoveMemberAsync(id, userId);
+        if (!removed)
+            return NotFound(ApiResponse<string>.Fail("Member not found."));
+        return NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // Strategy linking
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns strategic plans available for assignment to a workspace.</summary>
+    [HttpGet("strategic-plans")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<StrategicPlanDropdownItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStrategicPlansForDropdown()
+    {
+        var items = await _workspaceService.GetStrategicPlansForDropdownAsync();
+        return Ok(ApiResponse<IEnumerable<StrategicPlanDropdownItemDto>>.Ok(items));
+    }
+
+    /// <summary>Links or unlinks the strategic plan attached to a workspace.</summary>
+    [HttpPut("{id:guid}/strategy")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetStrategy(Guid id, [FromBody] SetWorkspaceStrategyDto dto)
+    {
+        try
+        {
+            var updated = await _workspaceService.SetStrategyAsync(id, dto.StrategicPlanId);
+            if (updated is null)
+                return NotFound(ApiResponse<string>.Fail($"Workspace '{id}' not found."));
+            return Ok(ApiResponse<WorkspaceResponseDto>.Ok(updated));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
     }
 }

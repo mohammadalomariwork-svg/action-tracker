@@ -35,6 +35,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<KpiActual>           KpiActuals           => Set<KpiActual>();
     public DbSet<Workspace>           Workspaces           => Set<Workspace>();
     public DbSet<WorkspaceAdmin>      WorkspaceAdmins      => Set<WorkspaceAdmin>();
+    public DbSet<WorkspaceMember>     WorkspaceMembers     => Set<WorkspaceMember>();
 
     // ── Permissions feature sets ──────────────────────────────────────────────
     public DbSet<RolePermission>         RolePermissions         => Set<RolePermission>();
@@ -134,10 +135,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
                   .HasDefaultValue(true);
 
             entity.HasIndex(e => e.OrganizationUnit);
+            entity.HasIndex(e => e.StrategicPlanId);
 
             entity.HasMany(e => e.Admins)
                   .WithOne(a => a.Workspace)
                   .HasForeignKey(a => a.WorkspaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Members)
+                  .WithOne(m => m.Workspace)
+                  .HasForeignKey(m => m.WorkspaceId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -159,6 +166,34 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
             entity.HasIndex(e => e.WorkspaceId);
             entity.HasIndex(e => e.AdminUserId);
+        });
+
+        modelBuilder.Entity<WorkspaceMember>(entity =>
+        {
+            entity.ToTable("WorkspaceMembers");
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                  .UseIdentityColumn();
+
+            entity.Property(e => e.UserId)
+                  .IsRequired()
+                  .HasMaxLength(450);
+
+            entity.Property(e => e.UserName)
+                  .IsRequired()
+                  .HasMaxLength(256);
+
+            entity.Property(e => e.AddedAt)
+                  .IsRequired()
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.AddedByUserId)
+                  .HasMaxLength(450);
+
+            entity.HasIndex(e => e.WorkspaceId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.WorkspaceId, e.UserId }).IsUnique();
         });
 
         

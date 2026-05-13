@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-05-08
+> Last updated: 2026-05-13
 
 ---
 
@@ -109,11 +109,14 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - Workspace admins assigned per workspace via custom searchable multi-select dropdown — searches name, email, and org unit; chip-style display for selected admins; ng-select theme CSS bundled
 - Active-users dropdown (`/api/workspaces/active-users`) returns `{Id, DisplayName, Email, OrgUnitName}` so the picker can disambiguate users by email or department
 - Summary stats (project counts, open action items)
-- Scoped to user's visible org units (Level-2 ancestor)
+- **Workspace-membership access control** — `IWorkspaceAccessResolver` returns the workspaces visible to a user: privileged roles (Admin / PMO Head / PMO Analyst) see everything; everyone else only sees workspaces where they are an admin or member. Replaces the prior org-unit scoping for `GET /api/workspaces`, `GET /api/projects`, and `GET /api/action-items` (My Actions / Created By Me still bypass the filter).
+- **Workspace members (`WorkspaceMember`)** — separate from `WorkspaceAdmin`, lets workspace admins assign regular users via `GET/POST/DELETE /api/workspaces/{id}/members`. Members get read access to the workspace's projects, milestones, and action items without needing org-unit privileges. Members are added through a searchable multi-select picker on the workspace detail page that supports adding several users at once (one POST per user in parallel).
+- **Workspace ↔ Strategic Plan link** — optional `Workspace.StrategicPlanId` set via `PUT /api/workspaces/{id}/strategy`. When set, the project form's strategic-objective dropdown is restricted to objectives from that plan; when not set, no strategic objectives are available (strategic projects in that workspace are disabled).
 - Search, sort, pagination, org-unit filter dropdown
 - Archive/restore (soft-delete)
 - Export to Excel and Print to PDF
 - Create/edit via right-side offcanvas drawer (consolidated into list page — no longer routes to a separate form)
+- Workspace detail page has dedicated Members and Linked Strategic Plan sections (admin-only edit, gated by `Workspaces.Edit`)
 
 ---
 

@@ -34,4 +34,12 @@ public class ActionItemFilterDto
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public List<Guid>? VisibleOrgUnitIds { get; set; }
+
+    /// <summary>
+    /// When non-null, only action items belonging to one of these workspace IDs are
+    /// returned. Populated server-side from <c>IWorkspaceAccessResolver</c>; a
+    /// <c>null</c> value means "no workspace restriction" (privileged role).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<Guid>? VisibleWorkspaceIds { get; set; }
 }

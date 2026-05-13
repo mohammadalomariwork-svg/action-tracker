@@ -35,6 +35,7 @@ using ActionTracker.Application.Permissions.Services;
 using ActionTracker.Application.RoleManagement.Services;
 using ActionTracker.Application.Features.Workspaces.Services;
 using InfraOrgUnitScopeResolver = ActionTracker.Infrastructure.Services.OrgUnitScopeResolver;
+using InfraWorkspaceAccessResolver = ActionTracker.Infrastructure.Services.WorkspaceAccessResolver;
 using InfraRoleManagementService = ActionTracker.Infrastructure.RoleManagement.RoleManagementService;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Infrastructure.Data;
@@ -135,6 +136,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEffectivePermissionService,     EffectivePermissionService>();
         services.AddScoped<IPermissionCatalogService,       PermissionCatalogService>();
         services.AddScoped<IOrgUnitScopeResolver,           InfraOrgUnitScopeResolver>();
+        services.AddScoped<IWorkspaceAccessResolver,        InfraWorkspaceAccessResolver>();
         services.AddScoped<IStrategicScopeService,          StrategicScopeService>();
 
         // Role Management

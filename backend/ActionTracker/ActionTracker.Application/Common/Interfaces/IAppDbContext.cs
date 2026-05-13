@@ -25,6 +25,7 @@ public interface IAppDbContext
     DbSet<OrgUnit>             OrgUnits       { get; }
     DbSet<Workspace>           Workspaces     { get; }
     DbSet<WorkspaceAdmin>      WorkspaceAdmins { get; }
+    DbSet<WorkspaceMember>     WorkspaceMembers { get; }
 
     // ── Projects feature sets ─────────────────────────────────────────────────
     DbSet<Project>          Projects        { get; }

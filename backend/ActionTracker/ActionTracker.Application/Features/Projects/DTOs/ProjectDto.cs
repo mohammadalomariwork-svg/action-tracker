@@ -126,6 +126,14 @@ public class ProjectFilterDto
     public List<Guid>? VisibleOrgUnitIds { get; set; }
 
     /// <summary>
+    /// When non-null, only projects belonging to one of these workspace IDs are
+    /// returned. Populated server-side from <c>IWorkspaceAccessResolver</c>; a
+    /// <c>null</c> value means "no workspace restriction" (privileged role).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<Guid>? VisibleWorkspaceIds { get; set; }
+
+    /// <summary>
     /// When non-null and non-empty, only projects whose StrategicObjectiveId is
     /// in this list are returned. Used by the strategy page to fetch projects
     /// linked to the objectives of the currently-viewed strategic plan.

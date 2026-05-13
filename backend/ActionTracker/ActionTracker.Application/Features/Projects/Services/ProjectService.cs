@@ -82,15 +82,15 @@ public class ProjectService : IProjectService
                 objIds.Contains(p.StrategicObjectiveId.Value));
         }
 
-        // Filter projects whose workspace belongs to a visible org unit.
-        if (filter.VisibleOrgUnitIds != null && filter.VisibleOrgUnitIds.Count > 0)
+        // Workspace-membership scoping: regular users only see projects in workspaces
+        // they're a member/admin of. Privileged roles pass null (no restriction).
+        if (filter.VisibleWorkspaceIds != null)
         {
-            var ids = filter.VisibleOrgUnitIds;
-            query = query.Where(p =>
-                _db.Workspaces.Any(w =>
-                    w.Id == p.WorkspaceId &&
-                    w.OrgUnitId != null &&
-                    ids.Contains(w.OrgUnitId.Value)));
+            var wsIds = filter.VisibleWorkspaceIds;
+            if (wsIds.Count == 0)
+                query = query.Where(p => false);
+            else
+                query = query.Where(p => wsIds.Contains(p.WorkspaceId));
         }
 
         // Sorting
@@ -497,46 +497,22 @@ public class ProjectService : IProjectService
         var workspace = await _db.Workspaces.FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
             ?? throw new KeyNotFoundException($"Workspace {workspaceId} not found.");
 
-        // Find the OrgUnit matching the workspace's OrganizationUnit name
-        var orgUnit = await _db.OrgUnits
-            .FirstOrDefaultAsync(o => o.Name == workspace.OrganizationUnit, ct);
-
-        if (orgUnit is null)
+        // Workspace must be explicitly linked to a strategic plan for its
+        // projects to surface strategic objectives. Workspaces with no plan
+        // return an empty list.
+        if (!workspace.StrategicPlanId.HasValue)
             return new List<StrategicObjectiveOptionDto>();
 
-        // Walk up the org unit hierarchy until we find strategic objectives
-        var currentOrgUnitId = orgUnit.Id;
-        Guid? currentParentId = orgUnit.ParentId;
-
-        while (true)
-        {
-            var objectives = await _db.StrategicObjectives
-                .Where(so => so.OrgUnitId == currentOrgUnitId)
-                .OrderBy(so => so.ObjectiveCode)
-                .Select(so => new StrategicObjectiveOptionDto
-                {
-                    Id            = so.Id,
-                    ObjectiveCode = so.ObjectiveCode,
-                    Statement     = so.Statement,
-                })
-                .ToListAsync(ct);
-
-            if (objectives.Count > 0)
-                return objectives;
-
-            // No objectives found — try parent
-            if (!currentParentId.HasValue)
-                return new List<StrategicObjectiveOptionDto>();
-
-            var parent = await _db.OrgUnits
-                .FirstOrDefaultAsync(o => o.Id == currentParentId.Value, ct);
-
-            if (parent is null)
-                return new List<StrategicObjectiveOptionDto>();
-
-            currentOrgUnitId = parent.Id;
-            currentParentId = parent.ParentId;
-        }
+        return await _db.StrategicObjectives
+            .Where(so => so.StrategicPlanId == workspace.StrategicPlanId.Value)
+            .OrderBy(so => so.ObjectiveCode)
+            .Select(so => new StrategicObjectiveOptionDto
+            {
+                Id            = so.Id,
+                ObjectiveCode = so.ObjectiveCode,
+                Statement     = so.Statement,
+            })
+            .ToListAsync(ct);
     }
 
     public async Task<ProjectStatsDto> GetStatsAsync(Guid projectId, CancellationToken ct)

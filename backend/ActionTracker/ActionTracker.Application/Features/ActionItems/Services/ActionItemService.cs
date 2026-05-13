@@ -85,14 +85,15 @@ public class ActionItemService : IActionItemService
         if (!string.IsNullOrWhiteSpace(filter.CreatedById))
             query = query.Where(a => a.CreatedByUserId == filter.CreatedById);
 
-        // Filter action items whose workspace belongs to a visible org unit.
-        if (filter.VisibleOrgUnitIds != null && filter.VisibleOrgUnitIds.Count > 0)
+        // Workspace-membership scoping: regular users only see action items in
+        // workspaces they're a member/admin of. Privileged roles pass null.
+        if (filter.VisibleWorkspaceIds != null)
         {
-            var ids = filter.VisibleOrgUnitIds;
-            query = query.Where(a =>
-                a.Workspace != null &&
-                a.Workspace.OrgUnitId != null &&
-                ids.Contains(a.Workspace.OrgUnitId.Value));
+            var wsIds = filter.VisibleWorkspaceIds;
+            if (wsIds.Count == 0)
+                query = query.Where(a => false);
+            else
+                query = query.Where(a => wsIds.Contains(a.WorkspaceId));
         }
 
         // Full-text search across title, description, and assignee identity
