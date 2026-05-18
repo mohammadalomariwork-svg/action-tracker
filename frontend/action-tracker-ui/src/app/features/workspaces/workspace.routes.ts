@@ -4,6 +4,7 @@ import { permissionGuard } from '../../core/guards/permission-data.guard';
 import { WorkspaceListComponent } from './components/workspace-list/workspace-list.component';
 import { WorkspaceFormComponent } from './components/workspace-form/workspace-form.component';
 import { WorkspaceDetailComponent } from './components/workspace-detail/workspace-detail.component';
+import { WorkspaceSettingsComponent } from './components/workspace-settings/workspace-settings.component';
 
 const workspaceRoutes: Routes = [
   {
@@ -23,6 +24,12 @@ const workspaceRoutes: Routes = [
     component: WorkspaceFormComponent,
     canActivate: [permissionGuard],
     data: { requiredArea: 'Workspaces', requiredAction: 'Edit' },
+  },
+  {
+    path: ':id/settings',
+    component: WorkspaceSettingsComponent,
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Workspaces', requiredAction: 'View' },
   },
   {
     path: ':id',

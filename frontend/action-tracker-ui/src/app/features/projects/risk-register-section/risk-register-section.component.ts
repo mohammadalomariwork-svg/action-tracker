@@ -47,6 +47,7 @@ const RATINGS = ['Critical', 'High', 'Medium', 'Low'];
 })
 export class RiskRegisterSectionComponent implements OnInit {
   readonly projectId = input.required<string>();
+  readonly workspaceId = input.required<string>();
 
   @ViewChild('deleteConfirm') deleteConfirm!: ConfirmDialogComponent;
 

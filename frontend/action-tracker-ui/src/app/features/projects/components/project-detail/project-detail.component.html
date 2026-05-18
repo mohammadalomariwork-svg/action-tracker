@@ -565,7 +565,7 @@
 
     <!-- ── Risk Register Section ─────────────────────── -->
     <div class="mb-4">
-      <app-risk-register-section [projectId]="project.id" />
+      <app-risk-register-section [projectId]="project.id" [workspaceId]="project.workspaceId" />
     </div>
 
     <!-- ── Comments Section ───────────────────────────── -->
@@ -688,8 +688,8 @@
         <label class="form-label">Project Manager <span class="text-danger">*</span></label>
         <select class="form-select" [(ngModel)]="editForm.projectManagerUserId">
           <option value="">-- Select --</option>
-          @for (user of allUsers; track user.id) {
-            <option [value]="user.id">{{ user.fullName }}</option>
+          @for (user of allUsers; track user.userId) {
+            <option [value]="user.userId">{{ user.userName }}</option>
           }
         </select>
         @if (!editForm.projectManagerUserId) {
@@ -724,12 +724,12 @@
                      placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
                      (click)="$event.stopPropagation()" />
               <div class="wa-multi-select__options">
-                @for (u of filteredSponsorUsers; track u.id) {
+                @for (u of filteredSponsorUsers; track u.userId) {
                   <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isSponsorSelected(u.id)"
-                           (change)="toggleSponsor(u.id)" />
-                    <span class="wa-multi-select__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
-                    <span>{{ u.fullName }}</span>
+                    <input type="checkbox" [checked]="isSponsorSelected(u.userId)"
+                           (change)="toggleSponsor(u.userId)" />
+                    <span class="wa-multi-select__avatar">{{ u.userName.charAt(0).toUpperCase() }}</span>
+                    <span>{{ u.userName }}</span>
                   </label>
                 }
                 @if (filteredSponsorUsers.length === 0) {

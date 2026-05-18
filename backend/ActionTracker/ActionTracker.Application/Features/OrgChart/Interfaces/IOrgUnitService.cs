@@ -36,4 +36,7 @@ public interface IOrgUnitService
 
     /// <summary>Clears the org unit head.</summary>
     Task RemoveHeadAsync(Guid orgUnitId, string actorUserId, CancellationToken ct = default);
+
+    /// <summary>Returns every user currently assigned to this org unit.</summary>
+    Task<List<OrgUnitMemberDto>> GetUsersAsync(Guid orgUnitId, CancellationToken ct = default);
 }

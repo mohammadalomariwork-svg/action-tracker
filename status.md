@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-05-13
+> Last updated: 2026-05-18 (workspace-scoped assignable-users for all user pickers; legacy unscoped endpoint removed)
 
 ---
 
@@ -50,6 +50,8 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - Cascade soft-delete for child units
 - Users assigned to org units for data scoping
 - **Org unit head (CR-001-H):** optional `HeadUserId` (FK → `AspNetUsers`, `OnDelete: SetNull`) per unit. Heads at level 3 are resolved by `IApprovalAuthorityResolver` as the strategic-plan approver for their subtree. Manage via `GET/PUT/DELETE /api/orgunits/{id}/head` (gated by `OrgChart.AssignHead`, granted to Admin and PMO Head). The level-3 head preview for a given unit is exposed via `GET /api/orgunits/{id}/plan-approver`.
+- **Org-unit member management (admin UI):** in the Organization Chart page, each node now has a "Members" button (gated by `OrgChart.Edit`) that opens a side panel listing current members (with remove) and a typeahead picker to add users. Backed by `GET /api/orgunits/{id}/users` plus the existing `PUT /api/users/{id}/assign-org-unit`. Reassigning a user already in a different unit prompts a move-confirmation since `ApplicationUser.OrgUnitId` is single-valued.
+- **Bulk-add workspace members from an org unit:** on the Workspace Settings page, the Members section has an org-unit picker + "Add org unit users" button (next to the existing per-user picker). One server-side call enrolls every active user assigned to the chosen unit, skipping anyone who is already a member. Backed by `POST /api/workspaces/{id}/members/from-org-unit` (body `{ orgUnitId }`), gated by `Workspaces.Edit`. The returned summary drives the toast: "Added N member(s) (M already members, skipped)".
 
 ### Strategic Objectives
 - Linked to org units
@@ -110,7 +112,10 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - Active-users dropdown (`/api/workspaces/active-users`) returns `{Id, DisplayName, Email, OrgUnitName}` so the picker can disambiguate users by email or department
 - Summary stats (project counts, open action items)
 - **Workspace-membership access control** — `IWorkspaceAccessResolver` returns the workspaces visible to a user: privileged roles (Admin / PMO Head / PMO Analyst) see everything; everyone else only sees workspaces where they are an admin or member. Replaces the prior org-unit scoping for `GET /api/workspaces`, `GET /api/projects`, and `GET /api/action-items` (My Actions / Created By Me still bypass the filter).
-- **Workspace members (`WorkspaceMember`)** — separate from `WorkspaceAdmin`, lets workspace admins assign regular users via `GET/POST/DELETE /api/workspaces/{id}/members`. Members get read access to the workspace's projects, milestones, and action items without needing org-unit privileges. Members are added through a searchable multi-select picker on the workspace detail page that supports adding several users at once (one POST per user in parallel).
+- **Workspace members (`WorkspaceMember`)** — separate from `WorkspaceAdmin`, lets workspace admins assign regular users via `GET/POST/DELETE /api/workspaces/{id}/members`. Members get read access to the workspace's projects, milestones, and action items without needing org-unit privileges. Members are added through a searchable multi-select picker (one POST per user in parallel) on the **Workspace Settings page**.
+- **Workspace Settings page (`/workspaces/:id/settings`)** — dedicated home for managing Admins, Members, **Project Managers**, **Strategic Project Approvers** (ordered chain with up/down reorder), and the **Linked Strategic Plan**. Replaces the inline editors that used to live on the workspace detail page; the detail page now shows a read-only access summary + a "Configure Workspace" button gated by `Workspaces.Edit`.
+- **Workspace Project Managers (`WorkspaceProjectManager`)** — workspace-scoped whitelist of users eligible to be picked as Project Manager. Managed via `GET/POST/DELETE /api/workspaces/{id}/project-managers`. The PM dropdown on the project form (both the workspace-detail drawer and the standalone `/projects/new` form) pulls from this list. Backend rejects project create/edit when the chosen PM isn't on the workspace's list. Adding a user to the PM list also auto-grants them the `Project Manager` Identity role (no-op if they already have it).
+- **Strategic Project Approvers (`WorkspaceStrategicProjectApprover`)** — workspace-scoped sequential approval chain for strategic projects. Managed via `GET/POST/DELETE /api/workspaces/{id}/strategic-project-approvers` and `PUT .../reorder`. On strategic-project submit, a single `ProjectApprovalRequest` is created at level 1 (mirrors the strategic-plan workflow); each Approve advances to the next chain entry and the project only goes Active when the final level approves. Rejection at any level sends the project back to Draft. Operational projects bypass the chain entirely — their submit short-circuits Draft → Active with a self-approved historical request stamped "Auto-approved: operational project (PM authority)."
 - **Workspace ↔ Strategic Plan link** — optional `Workspace.StrategicPlanId` set via `PUT /api/workspaces/{id}/strategy`. When set, the project form's strategic-objective dropdown is restricted to objectives from that plan; when not set, no strategic objectives are available (strategic projects in that workspace are disabled).
 - Search, sort, pagination, org-unit filter dropdown
 - Archive/restore (soft-delete)
@@ -169,7 +174,7 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - **Statuses:** ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled
 - Priority levels, start/due dates, progress (0-100 auto-clamped)
 - Can be standalone or linked to workspace/project/milestone
-- Multi-user assignee support
+- Multi-user assignee support — the Assignee(s) picker on the action-item create/edit form (and the inline edit panel on the action-item detail page, the workspace-detail page's New Action Item drawer, and the My Actions list panel) is scoped to the chosen workspace's admins, members, and project managers via `GET /api/workspaces/{id}/assignable-users`, instead of every active user in the system. Cascade behavior: empty state shown until a workspace is picked; changing the workspace clears stale assignee selections and surfaces a toast prompting re-selection; already-assigned users who are no longer on the workspace's people lists stay visible in edit mode so they can be deselected. The same workspace-scoped endpoint also powers Sponsor pickers on project create/edit, Assignee pickers on milestone-detail and the milestone-section action create form, the Risk Owner dropdown on the risk form, and the legacy unscoped `/api/action-items/assignable-users` endpoint has been removed.
 - Escalation tracking
 - Created-by tracking (`CreatedByUserId`)
 - **My Actions page:**

@@ -89,9 +89,11 @@ export interface ActionItemCreate {
 }
 
 export interface AssignableUser {
-  id: string;
-  fullName: string;
+  userId: string;
+  userName: string;
   email: string;
+  orgUnitName?: string | null;
+  sources: ('Admin' | 'Member' | 'ProjectManager')[];
 }
 
 export interface ActionItemMyStats {

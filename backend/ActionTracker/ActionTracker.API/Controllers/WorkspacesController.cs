@@ -1,6 +1,7 @@
 using System;
 using System.Security.Claims;
 using ActionTracker.API.Models;
+using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -296,6 +297,21 @@ public class WorkspacesController : ControllerBase
         return Ok(ApiResponse<IEnumerable<WorkspaceMemberDto>>.Ok(members));
     }
 
+    /// <summary>
+    /// Returns the active users eligible to be assigned to an action item in
+    /// this workspace (union of admins, members, and project managers).
+    /// Used by the action-item create/edit form to restrict the Assignee(s)
+    /// picker to workspace people.
+    /// </summary>
+    [HttpGet("{id:guid}/assignable-users")]
+    [Authorize(Policy = "LocalOrAzureAD")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<AssignableUserDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAssignableUsers(Guid id)
+    {
+        var users = await _workspaceService.GetAssignableUsersAsync(id);
+        return Ok(ApiResponse<IEnumerable<AssignableUserDto>>.Ok(users));
+    }
+
     /// <summary>Assigns a regular user to a workspace.</summary>
     [HttpPost("{id:guid}/members")]
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
@@ -325,6 +341,29 @@ public class WorkspacesController : ControllerBase
         if (!removed)
             return NotFound(ApiResponse<string>.Fail("Member not found."));
         return NoContent();
+    }
+
+    /// <summary>
+    /// Bulk-adds every active user assigned to the specified org unit as a
+    /// workspace member. Already-existing members are skipped.
+    /// </summary>
+    [HttpPost("{id:guid}/members/from-org-unit")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(typeof(ApiResponse<AddMembersFromOrgUnitResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),                         StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<string>),                         StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddMembersFromOrgUnit(
+        Guid id, [FromBody] AddMembersFromOrgUnitRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
+
+        var addedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var result  = await _workspaceService.AddMembersFromOrgUnitAsync(id, dto.OrgUnitId, addedBy);
+        if (result is null)
+            return NotFound(ApiResponse<string>.Fail("Workspace or org unit not found."));
+
+        return Ok(ApiResponse<AddMembersFromOrgUnitResultDto>.Ok(result));
     }
 
     // -------------------------------------------------------------------------
@@ -359,5 +398,118 @@ public class WorkspacesController : ControllerBase
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Project Managers (gating list for project create/edit)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns the users eligible to be picked as Project Manager in this workspace.</summary>
+    [HttpGet("{id:guid}/project-managers")]
+    [Authorize(Policy = "LocalOrAzureAD")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WorkspaceProjectManagerDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProjectManagers(Guid id)
+    {
+        var rows = await _workspaceService.GetProjectManagersAsync(id);
+        return Ok(ApiResponse<IEnumerable<WorkspaceProjectManagerDto>>.Ok(rows));
+    }
+
+    /// <summary>Adds a user to the workspace's project-manager list.</summary>
+    [HttpPost("{id:guid}/project-managers")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceProjectManagerDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<string>),                    StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddProjectManager(Guid id, [FromBody] AddWorkspaceProjectManagerDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
+
+        var addedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var row = await _workspaceService.AddProjectManagerAsync(id, dto, addedBy);
+        if (row is null)
+            return BadRequest(ApiResponse<string>.Fail("Workspace not found or user already a project manager."));
+
+        return Created(string.Empty, ApiResponse<WorkspaceProjectManagerDto>.Ok(row));
+    }
+
+    /// <summary>Removes a user from the workspace's project-manager list.</summary>
+    [HttpDelete("{id:guid}/project-managers/{userId}")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveProjectManager(Guid id, string userId)
+    {
+        var removed = await _workspaceService.RemoveProjectManagerAsync(id, userId);
+        if (!removed)
+            return NotFound(ApiResponse<string>.Fail("Project manager not found."));
+        return NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // Strategic Project Approvers (sequential approval chain)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns the ordered approval chain for strategic projects in this workspace.</summary>
+    [HttpGet("{id:guid}/strategic-project-approvers")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<WorkspaceStrategicProjectApproverDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStrategicProjectApprovers(Guid id)
+    {
+        var rows = await _workspaceService.GetStrategicProjectApproversAsync(id);
+        return Ok(ApiResponse<IEnumerable<WorkspaceStrategicProjectApproverDto>>.Ok(rows));
+    }
+
+    /// <summary>Appends a user to the workspace's strategic-project approver chain.</summary>
+    [HttpPost("{id:guid}/strategic-project-approvers")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceStrategicProjectApproverDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<string>),                              StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddStrategicProjectApprover(
+        Guid id, [FromBody] AddWorkspaceStrategicProjectApproverDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
+
+        var addedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var row = await _workspaceService.AddStrategicProjectApproverAsync(id, dto, addedBy);
+        if (row is null)
+            return BadRequest(ApiResponse<string>.Fail("Workspace not found or user already an approver."));
+
+        return Created(string.Empty, ApiResponse<WorkspaceStrategicProjectApproverDto>.Ok(row));
+    }
+
+    /// <summary>Removes a user from the workspace's strategic-project approver chain.</summary>
+    [HttpDelete("{id:guid}/strategic-project-approvers/{userId}")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveStrategicProjectApprover(Guid id, string userId)
+    {
+        var removed = await _workspaceService.RemoveStrategicProjectApproverAsync(id, userId);
+        if (!removed)
+            return NotFound(ApiResponse<string>.Fail("Approver not found."));
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reorders the workspace's strategic-project approver chain. Body must list
+    /// every current approver's UserId in the desired (1-based) order.
+    /// </summary>
+    [HttpPut("{id:guid}/strategic-project-approvers/reorder")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ReorderStrategicProjectApprovers(
+        Guid id, [FromBody] ReorderWorkspaceStrategicProjectApproversDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
+
+        var ok = await _workspaceService.ReorderStrategicProjectApproversAsync(id, dto.UserIds);
+        if (!ok)
+            return BadRequest(ApiResponse<string>.Fail(
+                "Reorder rejected: the UserId list must include every current approver exactly once."));
+
+        return NoContent();
     }
 }

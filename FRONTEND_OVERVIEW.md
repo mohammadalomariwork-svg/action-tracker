@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-05-13
+> Last updated: 2026-05-18 (workspace-scoped assignable-users for all user pickers; AssignableUser fields renamed to userId/userName + new orgUnitName/sources)
 
 ## Tech Stack
 
@@ -71,6 +71,7 @@
 | `/workspaces/new` | Create workspace | Workspaces.Create |
 | `/workspaces/edit/:id` | Edit workspace | Workspaces.Edit |
 | `/workspaces/:id` | Workspace detail | Workspaces.View |
+| `/workspaces/:id/settings` | Workspace settings — admins, members, PMs, strategic approvers, strategic plan link | Workspaces.View (write actions still need Workspaces.Edit) |
 | `/projects/my` | My Projects | - |
 | `/projects/new` | Create project | Projects.Create |
 | `/projects/edit/:id` | Edit project | Projects.Edit |
@@ -161,15 +162,17 @@
 | Component | Description |
 |-----------|-------------|
 | `ActionListComponent` | "My Actions" list with filters (status, priority, workspace), pagination, stats cards, "Created by Me" section, show-deleted toggle, export to Excel, PDF print. Create/edit via offcanvas panel |
-| `ActionFormComponent` | Create/edit form with multi-assignee dropdown, status, priority, dates, escalation, workspace/project/milestone linking |
-| `ActionDetailComponent` | Detail view with comments and documents sections |
+| `ActionFormComponent` | Create/edit form with multi-assignee dropdown, status, priority, dates, escalation, workspace/project/milestone linking. The Assignee(s) chips are loaded per-workspace from `GET /api/workspaces/{id}/assignable-users` (admins + members + PMs) instead of every active user. The list is empty until a workspace is picked; changing the workspace clears any assignees no longer eligible and shows a toast; on edit, already-assigned users no longer on the workspace's people lists are merged in so they stay visible. |
+| `ActionDetailComponent` | Detail view with comments and documents sections. The inline edit form's assignee picker pulls from the same workspace-scoped endpoint keyed off the action item's `workspaceId`. |
+| `ActionListComponent` | The inline create/edit panel's Assignee(s) picker now cascades from the Workspace dropdown — disabled until a workspace is picked, refreshed when it changes, with any stale selections cleared. |
 
-### Workspaces (3)
+### Workspaces (4)
 | Component | Description |
 |-----------|-------------|
 | `WorkspaceListComponent` | All workspaces with filters, org-unit dropdown, stats (projects, milestones, action items), export/print, **inline create/edit drawer** with custom searchable multi-select admin picker (filters across name, email, org unit; chip-style selected display); admin users loaded lazily on first drawer open. Reads `?orgUnitId=<id>` on init so deep-links from `StrategyPageComponent`'s "Projects" stat card land on a pre-filtered list |
 | `WorkspaceFormComponent` | Standalone create/edit workspace screen (kept for direct routes) — also uses the same custom multi-select admin picker as the list drawer |
-| `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print, **Members management section** (custom searchable multi-select picker to add multiple users at once; remove individually), **Linked Strategic Plan section** (dropdown of all plans; sets/clears the workspace's `strategicPlanId` via `/api/workspaces/{id}/strategy`) |
+| `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print. Access management (admins, members, project managers, strategic-project approvers, strategic plan link) is **no longer** inline — replaced by a read-only access summary (admin/member counts) and a **"Configure Workspace"** button that routes to `/workspaces/:id/settings`. The PM dropdown in the create/edit project drawer is restricted to the workspace's Project Managers list. |
+| `WorkspaceSettingsComponent` | Dedicated `/workspaces/:id/settings` page that owns all access configuration: Linked Strategic Plan, Admins, Members, **Project Managers**, and **Strategic Project Approvers** (sequential chain with up/down arrows to reorder; level-1 badge on each entry). Every section uses the same searchable multi-select picker pattern, supporting bulk add. Operational projects bypass the approver chain — only strategic submissions consult it. The Members section also exposes a bulk **"Add org unit users"** action — an org-unit picker (uses `getOrgUnitsForDropdown()`) + button that calls `POST /api/workspaces/{id}/members/from-org-unit` and appends the returned members in one round-trip (existing members are skipped server-side). |
 
 ### Projects (7)
 | Component | Description |
@@ -199,6 +202,7 @@
 | `AdminPanelComponent` | Admin dashboard home with feature cards |
 | `OrgChartListComponent` | Org unit hierarchy list (up to 10 levels) |
 | `OrgUnitFormComponent` | Create/edit org unit |
+| `OrgUnitMembersComponent` | Side panel on the Org Chart page (mode `members`) — lists users assigned to the selected org unit with a "remove from unit" button per row, and a typeahead search (debounced 250 ms, min 2 chars, calls `userMgmt.getUsers(1, 20, term)`) to add new members. Uses `orgUnitService.getUsers(id)` + `userMgmt.assignOrgUnit(userId, { orgUnitId })`. When the picked user is already in a different unit, prompts a move-confirmation since `OrgUnitId` is single-valued |
 | `ObjectivesListComponent` | Strategic objectives list (paginated, filterable by org unit) |
 | `ObjectiveFormComponent` | Create/edit strategic objective. Three create-mode inputs: `defaultOrgUnitId` pre-fills the picker (admin flow); `restrictToOrgUnitSubtree` runs a parentId BFS over the loaded units and **filters the dropdown to root + descendants only**, defaulted to the root; `strategicPlanId` is forwarded in the create payload so the new objective is explicitly attached to that plan instead of relying on the backend's "active plan for the picked org unit" auto-resolve. The Strategy page passes both restrict + plan-id so a user can drop objectives on any sub-unit of the strategy's org unit while staying linked to the parent plan |
 | `KpiListComponent` | KPI management list |
@@ -269,7 +273,7 @@
 | Service | Key Endpoints |
 |---------|--------------|
 | `AuthService` | `POST /auth/login`, `/azure-login`, `/refresh-token`, `/logout` |
-| `ActionItemService` | Full CRUD on `/action-items`, plus `/my-actions`, `/created-by-me`, `/my-stats`, `/assignable-users`, `/process-overdue`, comments CRUD |
+| `ActionItemService` | Full CRUD on `/action-items`, plus `/my-actions`, `/created-by-me`, `/my-stats`, `/process-overdue`, comments CRUD. Assignee lookup now lives on `WorkspaceService.getAssignableUsers(workspaceId)` — the legacy unscoped `/api/action-items/assignable-users` endpoint was removed. |
 | `DashboardService` | `GET /dashboard/kpis`, `/management`, `/team-workload`, `/status-breakdown` |
 | `ReportService` | `GET /reports/export-csv`, `/summary` |
 | `DocumentService` | `GET/POST/DELETE /documents`, `GET /documents/:id/download` |
@@ -284,8 +288,8 @@
 
 | Service | Key Endpoints |
 |---------|--------------|
-| `WorkspaceService` | Full CRUD on `/workspaces`, plus `/summary`, `/stats`, `/org-units`, `/active-users`, **`/strategic-plans`**, **`/{id}/members` (GET/POST/DELETE)**, **`/{id}/strategy` (PUT)** |
-| `ProjectService` | Full CRUD on `/projects`, plus `/stats`, `/strategic-objectives-for-workspace/:id` |
+| `WorkspaceService` | Full CRUD on `/workspaces`, plus `/summary`, `/stats`, `/org-units`, `/active-users`, `/strategic-plans`, `/{id}/members` (GET/POST/DELETE), `/{id}/assignable-users` (GET — admins + members + PMs; called by every workspace-context user picker: action items, project sponsors, milestone assignees, risk owners), `/{id}/strategy` (PUT), **`/{id}/project-managers` (GET/POST/DELETE)**, **`/{id}/strategic-project-approvers` (GET/POST/DELETE + `/reorder` PUT)** |
+| `ProjectService` | Full CRUD on `/projects`, plus `/stats`, `/strategic-objectives-for-workspace/:id`. Assignee lookup was removed — callers now use `WorkspaceService.getAssignableUsers(workspaceId)`. |
 | `MilestoneService` | Full CRUD on `/projects/:id/milestones`, plus `/stats`, `/baseline` |
 | `ProjectRiskService` | Full CRUD on `/projects/:id/risks`, plus `/stats` |
 | `EmailTemplateService` | `GET /email-templates`, `PUT /email-templates/:id`, `GET /email-templates/logs` |
@@ -328,8 +332,10 @@
 ### Feature Models (in `models/` or feature folders)
 | Model | Key Fields |
 |-------|-----------|
-| `Workspace` | id, title, organizationUnit, orgUnitId, **strategicPlanId**, **strategicPlanName**, isActive, admins, **members** |
+| `Workspace` | id, title, organizationUnit, orgUnitId, **strategicPlanId**, **strategicPlanName**, isActive, admins, members, **projectManagers**, **strategicProjectApprovers** |
 | `WorkspaceMember` | userId, userName, email, orgUnitName, addedAt |
+| `WorkspaceProjectManager` | userId, userName, email, orgUnitName, addedAt — drives the workspace-scoped PM dropdown on the project form |
+| `WorkspaceStrategicProjectApprover` | userId, userName, email, orgUnitName, **order**, addedAt — one entry per level in the workspace's sequential strategic-project approval chain |
 | `StrategicPlanDropdownItem` | id, name, orgUnitId, orgUnitName, startYear, endYear, status |
 | `WorkspaceSummary` | totalWorkspaces, activeWorkspaces, strategicProjects, operationalProjects |
 | `Project` | id, projectCode (PRJ-YYYY-001), name, workspaceId, projectType, projectStatus, priority, projectManagerUserId, sponsors, budget, isBaselined |

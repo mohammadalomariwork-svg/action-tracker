@@ -11,8 +11,8 @@ export class ThemeService {
   readonly isDark$: Observable<boolean> = this.currentTheme$.pipe(map(t => t === 'dark'));
 
   initTheme(): void {
-    // Force dark mode until light mode is enhanced
-    this.applyTheme('dark');
+    const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
+    this.applyTheme(saved === 'light' || saved === 'dark' ? saved : 'dark');
   }
 
   toggleTheme(): void {

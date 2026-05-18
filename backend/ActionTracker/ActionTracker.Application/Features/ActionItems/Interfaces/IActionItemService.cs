@@ -14,7 +14,6 @@ public interface IActionItemService
     Task                                     RestoreAsync(Guid id, CancellationToken ct);
     Task                                     UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct);
     Task<int>                                ProcessOverdueItemsAsync(CancellationToken ct);
-    Task<List<AssignableUserDto>>             GetAssignableUsersAsync(CancellationToken ct);
 
     /// <summary>
     /// Returns aggregate statistics for all action items assigned to the specified user.

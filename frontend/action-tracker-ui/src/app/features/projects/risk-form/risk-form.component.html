@@ -99,8 +99,8 @@
           <label class="form-label fw-semibold">Risk Owner</label>
           <select class="form-select" formControlName="riskOwnerUserId">
             <option value="">— None —</option>
-            @for (u of users(); track u.id) {
-              <option [value]="u.id">{{ u.fullName }} ({{ u.email }})</option>
+            @for (u of users(); track u.userId) {
+              <option [value]="u.userId">{{ u.userName }} ({{ u.email }})</option>
             }
           </select>
         </div>

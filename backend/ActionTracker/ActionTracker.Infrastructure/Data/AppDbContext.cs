@@ -36,6 +36,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<Workspace>           Workspaces           => Set<Workspace>();
     public DbSet<WorkspaceAdmin>      WorkspaceAdmins      => Set<WorkspaceAdmin>();
     public DbSet<WorkspaceMember>     WorkspaceMembers     => Set<WorkspaceMember>();
+    public DbSet<WorkspaceProjectManager>           WorkspaceProjectManagers           => Set<WorkspaceProjectManager>();
+    public DbSet<WorkspaceStrategicProjectApprover> WorkspaceStrategicProjectApprovers => Set<WorkspaceStrategicProjectApprover>();
 
     // ── Permissions feature sets ──────────────────────────────────────────────
     public DbSet<RolePermission>         RolePermissions         => Set<RolePermission>();
@@ -146,6 +148,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
                   .WithOne(m => m.Workspace)
                   .HasForeignKey(m => m.WorkspaceId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.ProjectManagers)
+                  .WithOne(p => p.Workspace)
+                  .HasForeignKey(p => p.WorkspaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.StrategicProjectApprovers)
+                  .WithOne(a => a.Workspace)
+                  .HasForeignKey(a => a.WorkspaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<WorkspaceAdmin>(entity =>
@@ -196,8 +208,71 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.HasIndex(e => new { e.WorkspaceId, e.UserId }).IsUnique();
         });
 
-        
-        
+        modelBuilder.Entity<WorkspaceProjectManager>(entity =>
+        {
+            entity.ToTable("WorkspaceProjectManagers");
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).UseIdentityColumn();
+
+            entity.Property(e => e.UserId)
+                  .IsRequired()
+                  .HasMaxLength(450);
+
+            entity.Property(e => e.UserName)
+                  .IsRequired()
+                  .HasMaxLength(256);
+
+            entity.Property(e => e.AddedAt)
+                  .IsRequired()
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.AddedByUserId)
+                  .HasMaxLength(450);
+
+            entity.HasIndex(e => e.WorkspaceId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.WorkspaceId, e.UserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<WorkspaceStrategicProjectApprover>(entity =>
+        {
+            entity.ToTable("WorkspaceStrategicProjectApprovers");
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).UseIdentityColumn();
+
+            entity.Property(e => e.UserId)
+                  .IsRequired()
+                  .HasMaxLength(450);
+
+            entity.Property(e => e.UserName)
+                  .IsRequired()
+                  .HasMaxLength(256);
+
+            entity.Property(e => e.Order)
+                  .IsRequired();
+
+            entity.Property(e => e.AddedAt)
+                  .IsRequired()
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.AddedByUserId)
+                  .HasMaxLength(450);
+
+            entity.HasIndex(e => e.WorkspaceId);
+            entity.HasIndex(e => new { e.WorkspaceId, e.UserId }).IsUnique();
+            entity.HasIndex(e => new { e.WorkspaceId, e.Order });
+        });
+
+        modelBuilder.Entity<ProjectApprovalRequest>(entity =>
+        {
+            entity.Property(e => e.AssignedReviewerUserId).HasMaxLength(450);
+            entity.Property(e => e.AssignedReviewerDisplayName).HasMaxLength(256);
+            entity.Property(e => e.Level).HasDefaultValue(1);
+            entity.Property(e => e.TotalLevels).HasDefaultValue(1);
+            entity.HasIndex(e => e.AssignedReviewerUserId);
+        });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

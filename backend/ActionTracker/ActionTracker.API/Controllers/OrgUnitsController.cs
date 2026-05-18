@@ -305,6 +305,30 @@ public class OrgUnitsController : ControllerBase
         }
     }
 
+    // -------------------------------------------------------------------------
+    // GET api/orgunits/{id}/users — list users assigned to an org unit
+    // -------------------------------------------------------------------------
+
+    /// <summary>List every user currently assigned to this org unit.</summary>
+    [HttpGet("{id:guid}/users")]
+    [Authorize(Policy = PermissionPolicies.OrgChartView)]
+    [ProducesResponseType(typeof(ApiResponse<List<OrgUnitMemberDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),                 StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUsers(Guid id, CancellationToken ct = default)
+    {
+        _logger.LogInformation("GET /api/orgunits/{Id}/users", id);
+
+        try
+        {
+            var members = await _orgUnitService.GetUsersAsync(id, ct);
+            return Ok(ApiResponse<List<OrgUnitMemberDto>>.Ok(members));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
     /// <summary>
     /// Returns the user who would receive a strategic-plan approval request
     /// authored within this org unit (the level-3 ancestor's head).

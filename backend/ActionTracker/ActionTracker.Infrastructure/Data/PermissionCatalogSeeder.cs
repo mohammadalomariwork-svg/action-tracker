@@ -30,6 +30,7 @@ public static class PermissionCatalogSeeder
     public static readonly Guid AreaNotifications            = new("10000015-0000-0000-0000-000000000000");
     public static readonly Guid AreaStrategicPlans           = new("10000016-0000-0000-0000-000000000000");
     public static readonly Guid AreaKpiActuals               = new("10000017-0000-0000-0000-000000000000");
+    public static readonly Guid AreaManagementDashboard      = new("10000018-0000-0000-0000-000000000000");
 
     // ── Action IDs (stable across re-runs) ───────────────────────────────────
 
@@ -87,6 +88,7 @@ public static class PermissionCatalogSeeder
             Area(AreaNotifications,         "Notifications",         "Notifications",         15),
             Area(AreaStrategicPlans,        "StrategicPlans",        "Strategic Plans",       16),
             Area(AreaKpiActuals,            "KpiActuals",            "KPI Actuals",           17),
+            Area(AreaManagementDashboard,   "ManagementDashboard",   "Management Dashboard",  18),
         };
 
         var toInsert = areas.Where(a => !existingIds.Contains(a.Id)).ToList();
@@ -254,6 +256,11 @@ public static class PermissionCatalogSeeder
             (AreaKpiActuals, "KpiActuals", 17, ActionCreate,  "Create",  2),
             (AreaKpiActuals, "KpiActuals", 17, ActionEdit,    "Edit",    3),
             (AreaKpiActuals, "KpiActuals", 17, ActionApprove, "Approve", 5),
+
+            // Management Dashboard (Team Actions page at /management): View only.
+            // Deliberately NOT auto-assigned to any role — must be granted manually
+            // via Admin → Roles → permission matrix.
+            (AreaManagementDashboard, "ManagementDashboard", 18, ActionView, "View", 1),
         };
 
         var toInsert = desiredMappings

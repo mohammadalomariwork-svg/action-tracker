@@ -97,6 +97,8 @@ ACTION-TRACKER/
 - **RolePermission** — Maps a role to one or more permissions
 - **OrgUnit** — Organizational unit for scoped data access; optional `HeadUserId` (CR-001-H) — heads at level 3 act as the strategic-plan approver for their subtree
 - **WorkspaceMember** — Direct user-to-workspace assignment. Members get read access to the workspace's projects/action items via `IWorkspaceAccessResolver`, independent of org-unit scoping
+- **WorkspaceProjectManager** — Whitelist of users eligible to be picked as PM for projects in a workspace. The PM dropdown on the project form is restricted to this list; create/edit is rejected when the chosen PM isn't on it.
+- **WorkspaceStrategicProjectApprover** — Sequential approver chain (1-based `Order`) for strategic projects in a workspace. Mirrors the strategic-plan pattern: a single `ProjectApprovalRequest` is created at level 1, each Approve advances the chain, and rejection at any level sends the project back to Draft. Operational projects bypass the chain — their submit short-circuits Draft → Active with a self-approved historical request.
 - **User** — Synced from Azure AD; linked to roles and org units
 
 ## Application Roles (`AppRoles` constants)
@@ -140,7 +142,9 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] Created by Me section in My Actions
 - [x] Default assignee on action items
 - [x] Workspaces with workspace-membership access control (`IWorkspaceAccessResolver`) — privileged roles (Admin / PMO Head / PMO Analyst) see everything; everyone else only sees workspaces where they are an admin or member. Projects and action items inherit the same scoping.
-- [x] Workspace direct user assignment (`WorkspaceMember` table + `GET/POST/DELETE /api/workspaces/{id}/members`; workspace detail page uses a searchable multi-select picker to add several members in one click)
+- [x] Workspace direct user assignment (`WorkspaceMember` table + `GET/POST/DELETE /api/workspaces/{id}/members`)
+- [x] **Workspace Settings page** (`/workspaces/:id/settings`) — single home for managing Admins, Members, **Project Managers**, **Strategic Project Approvers** (ordered chain with up/down reorder), and the Linked Strategic Plan. The workspace detail page now shows a read-only access summary + a "Configure Workspace" button (gated by `Workspaces.Edit`) instead of inline editors.
+- [x] PM-list gating — project create/edit rejects PMs that aren't on the workspace's `WorkspaceProjectManager` list. The PM dropdown on the project form pulls from `GET /api/workspaces/{id}/project-managers`.
 - [x] Optional Workspace ↔ Strategic Plan link (`Workspace.StrategicPlanId`, `PUT /api/workspaces/{id}/strategy`) — strategic-objective dropdown on project create is restricted to objectives from that plan; workspaces with no plan cannot create strategic projects
 - [x] Workspaces with summary stats
 - [x] Projects with role-based access (My Projects page)
@@ -153,7 +157,7 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] My Approvals page (pending reviews, my requests, approve/reject with comments)
 - [x] Real-time workflow notifications via SignalR with toast popups
 - [x] In-app notification system (grouped by date, filter by type/read status, mark as read, delete)
-- [x] Project approval workflow (submit for approval, approve/reject, date freeze, PendingApproval status)
+- [x] Project approval workflow — strategic projects use the workspace's sequential `WorkspaceStrategicProjectApprover` chain (one Pending request at level 1, each Approve advances). Operational projects bypass approval (PM is the sole authority — submit goes Draft → Active immediately). Old "sponsors + PM's line manager" resolver remains as fallback for legacy rows. (`ProjectWorkflowService`)
 - [x] Project Approvals tab on My Approvals page
 - [x] Date freeze enforcement (project, milestone, and action item dates locked after approval)
 - [x] Strategic Objectives + KPIs CRUD with role-based org-unit scoping

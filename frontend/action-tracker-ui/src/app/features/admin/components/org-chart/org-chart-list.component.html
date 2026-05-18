@@ -69,15 +69,22 @@
       </div>
     </div>
 
-    <!-- ── Right panel: form ─────────────────────────────────────────────────── -->
-    @if (mode()) {
+    <!-- ── Right panel: form OR members ──────────────────────────────────────── -->
+    @if (mode() === 'add' || mode() === 'edit') {
       <div class="col-12 col-lg-6">
         <app-org-unit-form
-          [mode]="mode()!"
+          [mode]="mode() === 'add' ? 'add' : 'edit'"
           [parentUnit]="mode() === 'add' ? parentForAdd() : (selectedNode() ? getParentNode(selectedNode()!) : null)"
           [existingUnit]="mode() === 'edit' ? selectedNode() : null"
           (saved)="onFormSaved($event)"
           (cancelled)="onFormCancelled()"
+        />
+      </div>
+    } @else if (mode() === 'members' && selectedNode()) {
+      <div class="col-12 col-lg-6">
+        <app-org-unit-members
+          [unit]="selectedNode()!"
+          (closed)="onFormCancelled()"
         />
       </div>
     }
@@ -140,6 +147,11 @@
           </button>
         }
         @if (!node.isDeleted) {
+          <button *appHasPermission="'OrgChart'; action: 'Edit'"
+                  class="btn btn-outline-info btn-xs" title="Manage members"
+                  (click)="onManageMembers(node); $event.stopPropagation()">
+            <i class="bi bi-people"></i>
+          </button>
           <button *appHasPermission="'OrgChart'; action: 'Edit'"
                   class="btn btn-outline-primary btn-xs" title="Edit"
                   (click)="onEdit(node); $event.stopPropagation()">

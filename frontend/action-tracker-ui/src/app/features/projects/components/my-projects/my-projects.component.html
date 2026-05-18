@@ -457,8 +457,8 @@
           <select class="form-select" formControlName="projectManagerUserId"
                   [class.is-invalid]="formIsInvalid('projectManagerUserId')">
             <option value="">-- Select --</option>
-            @for (user of availableUsers; track user.id) {
-              <option [value]="user.id">{{ user.fullName }}</option>
+            @for (user of availableUsers; track user.userId) {
+              <option [value]="user.userId">{{ user.userName }}</option>
             }
           </select>
           @if (formHasError('projectManagerUserId', 'required')) {
@@ -493,11 +493,11 @@
                        placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
                        [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
                 <div class="mp-multi-select__options">
-                  @for (u of filteredSponsorUsers; track u.id) {
+                  @for (u of filteredSponsorUsers; track u.userId) {
                     <label class="mp-multi-select__option" (click)="$event.stopPropagation()">
-                      <input type="checkbox" [checked]="isSponsorSelected(u.id)"
-                             (change)="toggleSponsor(u.id)" />
-                      <span>{{ u.fullName }}</span>
+                      <input type="checkbox" [checked]="isSponsorSelected(u.userId)"
+                             (change)="toggleSponsor(u.userId)" />
+                      <span>{{ u.userName }}</span>
                     </label>
                   }
                   @if (filteredSponsorUsers.length === 0) {
@@ -655,8 +655,8 @@
             <select class="form-select" formControlName="projectManagerUserId"
                     [class.is-invalid]="editFormIsInvalid('projectManagerUserId')">
               <option value="">-- Select --</option>
-              @for (user of availableUsers; track user.id) {
-                <option [value]="user.id">{{ user.fullName }}</option>
+              @for (user of availableUsers; track user.userId) {
+                <option [value]="user.userId">{{ user.userName }}</option>
               }
             </select>
             @if (editFormHasError('projectManagerUserId', 'required')) {
@@ -691,11 +691,11 @@
                          placeholder="Search users..." [(ngModel)]="editSponsorSearchTerm"
                          [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
                   <div class="mp-multi-select__options">
-                    @for (u of filteredEditSponsorUsers; track u.id) {
+                    @for (u of filteredEditSponsorUsers; track u.userId) {
                       <label class="mp-multi-select__option" (click)="$event.stopPropagation()">
-                        <input type="checkbox" [checked]="isEditSponsorSelected(u.id)"
-                               (change)="toggleEditSponsor(u.id)" />
-                        <span>{{ u.fullName }}</span>
+                        <input type="checkbox" [checked]="isEditSponsorSelected(u.userId)"
+                               (change)="toggleEditSponsor(u.userId)" />
+                        <span>{{ u.userName }}</span>
                       </label>
                     }
                     @if (filteredEditSponsorUsers.length === 0) {

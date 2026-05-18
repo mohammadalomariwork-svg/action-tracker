@@ -609,6 +609,43 @@ public class OrgUnitService : IOrgUnitService
         _logger.LogInformation("Removed head from OrgUnit {OrgUnitId}.", orgUnitId);
     }
 
+    // -------------------------------------------------------------------------
+    // GetUsersAsync
+    // -------------------------------------------------------------------------
+
+    public async Task<List<OrgUnitMemberDto>> GetUsersAsync(
+        Guid              orgUnitId,
+        CancellationToken ct = default)
+    {
+        var unitExists = await _context.OrgUnits
+            .AsNoTracking()
+            .AnyAsync(o => o.Id == orgUnitId, ct);
+
+        if (!unitExists)
+            throw new KeyNotFoundException($"Org unit '{orgUnitId}' not found.");
+
+        var users = await _userManager.Users
+            .Where(u => u.OrgUnitId == orgUnitId)
+            .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+            .ToListAsync(ct);
+
+        var members = new List<OrgUnitMemberDto>(users.Count);
+        foreach (var u in users)
+        {
+            var roles = await _userManager.GetRolesAsync(u);
+            members.Add(new OrgUnitMemberDto
+            {
+                UserId   = u.Id,
+                FullName = u.FullName,
+                Email    = u.Email ?? string.Empty,
+                Roles    = roles.ToArray(),
+                IsActive = u.IsActive,
+            });
+        }
+
+        return members;
+    }
+
     private static OrgUnitTreeDto MapToTreeDto(
         OrgUnit                    node,
         List<OrgUnit>              all,

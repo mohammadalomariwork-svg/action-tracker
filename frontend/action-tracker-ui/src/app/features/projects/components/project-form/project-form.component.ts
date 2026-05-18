@@ -17,7 +17,7 @@ import { forkJoin } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { MilestoneService } from '../../services/milestone.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
-import { WorkspaceList } from '../../../workspaces/models/workspace.model';
+import { WorkspaceList, WorkspaceProjectManager } from '../../../workspaces/models/workspace.model';
 import {
   ProjectType,
   ProjectStatus,
@@ -66,6 +66,10 @@ export class ProjectFormComponent implements OnInit {
   strategicObjectives: StrategicObjectiveOption[] = [];
   availableUsers: AssignableUser[] = [];
 
+  /** PM dropdown is restricted to the workspace's Project Managers list. */
+  workspacePms: WorkspaceProjectManager[] = [];
+  workspacePmsLoaded = false;
+
   // Sponsor multi-select
   selectedSponsorIds: string[] = [];
   sponsorDropdownOpen = false;
@@ -103,7 +107,11 @@ export class ProjectFormComponent implements OnInit {
     }
 
     this.buildForm();
-    this.loadUsers();
+
+    if (this.workspaceId) {
+      this.loadUsers(this.workspaceId);
+      this.loadWorkspacePms(this.workspaceId);
+    }
 
     if (this.needsWorkspaceSelector) {
       this.loadWorkspaces();
@@ -138,7 +146,7 @@ export class ProjectFormComponent implements OnInit {
   get filteredSponsorUsers(): AssignableUser[] {
     if (!this.sponsorSearchTerm.trim()) return this.availableUsers;
     const term = this.sponsorSearchTerm.toLowerCase();
-    return this.availableUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.availableUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   toggleSponsor(userId: string): void {
@@ -152,7 +160,7 @@ export class ProjectFormComponent implements OnInit {
   }
 
   getSponsorName(userId: string): string {
-    return this.availableUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.availableUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   @HostListener('document:click')
@@ -332,6 +340,25 @@ export class ProjectFormComponent implements OnInit {
     }
 
     this.form = this.fb.group(formConfig, { validators: dateRangeValidator });
+
+    // When the user picks a workspace in the selector, re-load its PM list and
+    // clear the PM selection (the old value almost certainly isn't on the new
+    // workspace's list).
+    if (this.needsWorkspaceSelector) {
+      this.form.get('selectedWorkspaceId')!.valueChanges
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((wsId: string) => {
+          this.form.patchValue({ projectManagerUserId: '' });
+          // Sponsors are workspace-scoped — drop any stale selections.
+          this.selectedSponsorIds = [];
+          this.loadUsers(wsId);
+          this.loadWorkspacePms(wsId);
+          if (this.isStrategic) {
+            this.form.patchValue({ strategicObjectiveId: null });
+            this.loadStrategicObjectives();
+          }
+        });
+    }
   }
 
   private loadWorkspaces(): void {
@@ -360,12 +387,38 @@ export class ProjectFormComponent implements OnInit {
       });
   }
 
-  private loadUsers(): void {
-    this.projectSvc.getAssignableUsers()
+  private loadUsers(workspaceId: string): void {
+    if (!workspaceId) {
+      this.availableUsers = [];
+      return;
+    }
+    this.workspaceSvc.getAssignableUsers(workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.availableUsers = res.data ?? [],
         error: () => this.errorMessage = 'Failed to load users.',
+      });
+  }
+
+  /** Loads the workspace's Project Managers — the PM dropdown is bound to this. */
+  loadWorkspacePms(workspaceId: string): void {
+    if (!workspaceId) {
+      this.workspacePms = [];
+      this.workspacePmsLoaded = false;
+      return;
+    }
+    this.workspacePmsLoaded = false;
+    this.workspaceSvc.getProjectManagers(workspaceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.workspacePms = res.data ?? [];
+          this.workspacePmsLoaded = true;
+        },
+        error: () => {
+          this.workspacePms = [];
+          this.workspacePmsLoaded = true;
+        },
       });
   }
 
@@ -393,6 +446,8 @@ export class ProjectFormComponent implements OnInit {
           this.isBaselined = p.isBaselined;
           this.originalStatus = p.status;
           this.selectedSponsorIds = p.sponsors.map(s => s.userId);
+          this.loadUsers(this.workspaceId);
+          this.loadWorkspacePms(this.workspaceId);
 
           this.form.patchValue({
             name: p.name,

@@ -14,6 +14,7 @@ import { OrgUnitService } from '../../services/org-unit.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { OrgUnit, OrgUnitTree } from '../../models/org-chart.models';
 import { OrgUnitFormComponent }      from './org-unit-form.component';
+import { OrgUnitMembersComponent }   from './org-unit-members.component';
 import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }       from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective }    from '../../../../shared';
@@ -21,7 +22,7 @@ import { HasPermissionDirective }    from '../../../../shared';
 @Component({
   selector: 'app-org-chart-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, AdminBreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, NgTemplateOutlet, OrgUnitFormComponent, OrgUnitMembersComponent, AdminBreadcrumbComponent, PageHeaderComponent, HasPermissionDirective],
   templateUrl: './org-chart-list.component.html',
   styleUrl: './org-chart-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,7 +36,7 @@ export class OrgChartListComponent implements OnInit {
   readonly tree         = signal<OrgUnitTree | null>(null);
   readonly loading      = signal(false);
   readonly selectedNode = signal<OrgUnitTree | null>(null);
-  readonly mode         = signal<'add' | 'edit' | null>(null);
+  readonly mode         = signal<'add' | 'edit' | 'members' | null>(null);
   readonly parentForAdd = signal<OrgUnitTree | null>(null);
   readonly showDeleted  = signal(false);
 
@@ -114,6 +115,12 @@ export class OrgChartListComponent implements OnInit {
     this.selectedNode.set(node);
     this.parentForAdd.set(null);
     this.mode.set('edit');
+  }
+
+  onManageMembers(node: OrgUnitTree): void {
+    this.selectedNode.set(node);
+    this.parentForAdd.set(null);
+    this.mode.set('members');
   }
 
   onDelete(node: OrgUnitTree): void {

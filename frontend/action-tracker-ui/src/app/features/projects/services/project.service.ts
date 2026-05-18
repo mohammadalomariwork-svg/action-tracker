@@ -11,7 +11,6 @@ import {
   StrategicObjectiveOption,
 } from '../models/project.models';
 import { ApiResponse, PagedResult } from '../../../core/models/api-response.model';
-import { AssignableUser } from '../../../core/models/action-item.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectService {
@@ -70,9 +69,4 @@ export class ProjectService {
     );
   }
 
-  getAssignableUsers(): Observable<ApiResponse<AssignableUser[]>> {
-    return this.http.get<ApiResponse<AssignableUser[]>>(
-      `${environment.apiUrl}/action-items/assignable-users`
-    );
-  }
 }

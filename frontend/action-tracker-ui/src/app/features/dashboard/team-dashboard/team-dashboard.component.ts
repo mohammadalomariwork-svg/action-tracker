@@ -1,30 +1,61 @@
 import {
-  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
-  inject, signal, computed, effect, untracked,
+  Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
+  inject, signal, computed, effect, untracked, HostListener,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
+import { Subject, takeUntil } from 'rxjs';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { DashboardService }  from '../../../core/services/dashboard.service';
 import { AuthService }       from '../../../core/services/auth.service';
+import { ToastService }      from '../../../core/services/toast.service';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 
 import {
-  ActionItem, ActionItemFilter,
-  ActionStatus, ActionPriority,
+  ActionItem, ActionItemCreate, ActionItemFilter,
+  ActionStatus, ActionPriority, AssignableUser,
 } from '../../../core/models/action-item.model';
 import { DashboardKpi, StatusBreakdown } from '../../../core/models/dashboard.model';
 import { AuthUser }          from '../../../core/models/auth.models';
-import { WorkspaceSummary }  from '../../workspaces/models/workspace.model';
+import { WorkspaceList, WorkspaceSummary } from '../../workspaces/models/workspace.model';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
+import { HasPermissionDirective } from '../../../shared';
+
+const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
+  { value: ActionStatus.ToDo,       label: 'To Do'       },
+  { value: ActionStatus.InProgress, label: 'In Progress' },
+  { value: ActionStatus.InReview,   label: 'In Review'   },
+  { value: ActionStatus.Done,       label: 'Done'        },
+  { value: ActionStatus.Overdue,    label: 'Overdue'     },
+];
+
+const PRIORITY_OPTIONS: { value: ActionPriority; label: string }[] = [
+  { value: ActionPriority.Critical, label: 'Critical' },
+  { value: ActionPriority.High,     label: 'High'     },
+  { value: ActionPriority.Medium,   label: 'Medium'   },
+  { value: ActionPriority.Low,      label: 'Low'      },
+];
+
+interface ActionItemFormData {
+  workspaceId: string;
+  title: string;
+  description: string;
+  assigneeIds: string[];
+  priority: ActionPriority;
+  status: ActionStatus;
+  startDate: string;
+  dueDate: string;
+  progress: number;
+}
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -45,16 +76,22 @@ const STATUS_COLORS: Record<string, string> = {
   selector: 'app-team-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DatePipe, DecimalPipe, BaseChartDirective, StatusBadgeComponent, PriorityBadgeComponent, BreadcrumbComponent, PageHeaderComponent],
+  imports: [
+    RouterLink, FormsModule, DatePipe, DecimalPipe, BaseChartDirective,
+    StatusBadgeComponent, PriorityBadgeComponent, BreadcrumbComponent, PageHeaderComponent,
+    HasPermissionDirective,
+  ],
   templateUrl: './team-dashboard.component.html',
   styleUrl:    './team-dashboard.component.scss',
 })
-export class TeamDashboardComponent implements OnInit {
+export class TeamDashboardComponent implements OnInit, OnDestroy {
   private readonly actionSvc     = inject(ActionItemService);
   private readonly dashSvc       = inject(DashboardService);
   private readonly authSvc       = inject(AuthService);
+  private readonly toastSvc      = inject(ToastService);
   private readonly workspaceSvc  = inject(WorkspaceService);
   private readonly cdr           = inject(ChangeDetectorRef);
+  private readonly destroy$      = new Subject<void>();
   readonly router                = inject(Router);
 
   // ── Auth state ────────────────────────────────────────
@@ -114,6 +151,17 @@ export class TeamDashboardComponent implements OnInit {
   // ── Enums ─────────────────────────────────────────────
   readonly ActionStatus   = ActionStatus;
   readonly ActionPriority = ActionPriority;
+  readonly STATUS_OPTIONS   = STATUS_OPTIONS;
+  readonly PRIORITY_OPTIONS = PRIORITY_OPTIONS;
+
+  // ── Offcanvas form state ──────────────────────────────
+  showActionForm = false;
+  actionSaving   = false;
+  actionForm: ActionItemFormData = this.emptyActionForm();
+  assigneeDropdownOpen = false;
+  assigneeSearchTerm   = '';
+  allUsers:      AssignableUser[] = [];
+  allWorkspaces: WorkspaceList[]  = [];
 
   // ── My actions link with assignee filter ──────────────
   readonly myActionsLink = computed(() => ['/actions']);
@@ -167,6 +215,12 @@ export class TeamDashboardComponent implements OnInit {
     this.loadRecentActions();
     this.loadKpis();
     this.loadStatusBreakdown();
+    this.loadAllWorkspaces();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // ── Data loaders ──────────────────────────────────────
@@ -258,4 +312,138 @@ export class TeamDashboardComponent implements OnInit {
   }
 
   skeletonRows = Array.from({ length: 4 });
+
+  // ── Offcanvas form ────────────────────────────────────
+  private emptyActionForm(): ActionItemFormData {
+    return {
+      workspaceId: '',
+      title: '',
+      description: '',
+      assigneeIds: [],
+      priority: ActionPriority.Medium,
+      status: ActionStatus.ToDo,
+      startDate: '',
+      dueDate: '',
+      progress: 0,
+    };
+  }
+
+  private loadAllWorkspaces(): void {
+    this.workspaceSvc.getWorkspaces()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: r => { this.allWorkspaces = r.data ?? []; this.cdr.markForCheck(); } });
+  }
+
+  openNewActionForm(): void {
+    this.actionForm = this.emptyActionForm();
+    this.allUsers = [];
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
+    this.showActionForm = true;
+    this.cdr.markForCheck();
+  }
+
+  cancelActionForm(): void {
+    this.showActionForm = false;
+    this.assigneeDropdownOpen = false;
+    this.assigneeSearchTerm = '';
+    this.cdr.markForCheck();
+  }
+
+  onWorkspaceChange(workspaceId: string): void {
+    if (!workspaceId) {
+      this.allUsers = [];
+      this.actionForm.assigneeIds = [];
+      this.cdr.markForCheck();
+      return;
+    }
+    this.workspaceSvc.getAssignableUsers(workspaceId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: r => {
+          this.allUsers = r.data ?? [];
+          const validIds = new Set(this.allUsers.map(u => u.userId));
+          const before = this.actionForm.assigneeIds.length;
+          this.actionForm.assigneeIds = this.actionForm.assigneeIds.filter(id => validIds.has(id));
+          if (before > 0 && this.actionForm.assigneeIds.length < before) {
+            this.toastSvc.info('Assignees were cleared because the workspace changed — please select new assignees.');
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => { this.allUsers = []; this.cdr.markForCheck(); },
+      });
+  }
+
+  onStatusChange(): void {
+    if (+this.actionForm.status === ActionStatus.Done) {
+      this.actionForm.progress = 100;
+    }
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.assigneeDropdownOpen) {
+      this.assigneeDropdownOpen = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  get filteredUsers(): AssignableUser[] {
+    if (!this.assigneeSearchTerm.trim()) return this.allUsers;
+    const term = this.assigneeSearchTerm.toLowerCase();
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
+  }
+
+  getAssigneeName(userId: string): string {
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
+  }
+
+  toggleAssignee(userId: string): void {
+    const idx = this.actionForm.assigneeIds.indexOf(userId);
+    if (idx >= 0) this.actionForm.assigneeIds.splice(idx, 1);
+    else          this.actionForm.assigneeIds.push(userId);
+  }
+
+  isAssigneeSelected(userId: string): boolean {
+    return this.actionForm.assigneeIds.includes(userId);
+  }
+
+  saveAction(): void {
+    if (!this.actionForm.title.trim() || !this.actionForm.workspaceId ||
+        this.actionForm.assigneeIds.length === 0 || !this.actionForm.dueDate) return;
+
+    this.actionSaving = true;
+    this.cdr.markForCheck();
+
+    const payload: ActionItemCreate = {
+      title:       this.actionForm.title.trim(),
+      description: this.actionForm.description?.trim() ?? '',
+      workspaceId: this.actionForm.workspaceId,
+      isStandalone: true,
+      assigneeIds: this.actionForm.assigneeIds,
+      priority:    +this.actionForm.priority as ActionPriority,
+      status:      +this.actionForm.status as ActionStatus,
+      startDate:   this.actionForm.startDate || null,
+      dueDate:     this.actionForm.dueDate,
+      progress:    +this.actionForm.progress,
+    };
+
+    this.actionSvc.create(payload).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.actionSaving = false;
+        this.showActionForm = false;
+        this.toastSvc.success('Action item created.');
+        this.loadMyActions();
+        this.loadRecentActions();
+        this.loadKpis();
+        this.loadStatusBreakdown();
+        this.cdr.markForCheck();
+      },
+      error: err => {
+        this.actionSaving = false;
+        this.toastSvc.error(err?.error?.message ?? 'Failed to save action item.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
 }

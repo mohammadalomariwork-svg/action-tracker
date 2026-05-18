@@ -321,6 +321,14 @@ export class MyProjectsComponent implements OnInit {
     }, { validators: dateRangeValidator });
 
     this.createForm.get('workspaceId')!.valueChanges.subscribe(wsId => {
+      // Sponsors are workspace-scoped — drop stale selections and reload list.
+      this.selectedSponsorIds = [];
+      this.availableUsers = [];
+      if (wsId) {
+        this.workspaceSvc.getAssignableUsers(wsId).subscribe({
+          next: res => this.availableUsers = res.data ?? [],
+        });
+      }
       if (wsId && this.createForm.get('projectType')?.value === ProjectType.Strategic) {
         this.loadStrategicObjectives(wsId);
       }
@@ -360,11 +368,8 @@ export class MyProjectsComponent implements OnInit {
         next: res => this.workspaces = (res.data ?? []).filter(w => w.isActive),
       });
     }
-    if (this.availableUsers.length === 0) {
-      this.projectSvc.getAssignableUsers().subscribe({
-        next: res => this.availableUsers = res.data ?? [],
-      });
-    }
+    // availableUsers is now workspace-scoped — loaded when the user picks a workspace.
+    this.availableUsers = [];
 
     this.showDrawer = true;
   }
@@ -394,7 +399,7 @@ export class MyProjectsComponent implements OnInit {
   get filteredSponsorUsers(): AssignableUser[] {
     if (!this.sponsorSearchTerm.trim()) return this.availableUsers;
     const term = this.sponsorSearchTerm.toLowerCase();
-    return this.availableUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.availableUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   toggleSponsor(userId: string): void {
@@ -408,7 +413,7 @@ export class MyProjectsComponent implements OnInit {
   }
 
   getSponsorName(userId: string): string {
-    return this.availableUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.availableUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   private loadStrategicObjectives(workspaceId: string): void {
@@ -477,11 +482,8 @@ export class MyProjectsComponent implements OnInit {
 
     if (!this.editForm) this.buildEditForm();
 
-    if (this.availableUsers.length === 0) {
-      this.projectSvc.getAssignableUsers().subscribe({
-        next: res => this.availableUsers = res.data ?? [],
-      });
-    }
+    // availableUsers is workspace-scoped — load after we know the project's workspace.
+    this.availableUsers = [];
 
     // Load fresh project data
     this.editDrawerLoading = true;
@@ -531,6 +533,10 @@ export class MyProjectsComponent implements OnInit {
             this.loadEditStrategicObjectives(p.workspaceId);
           }
 
+          this.workspaceSvc.getAssignableUsers(p.workspaceId).subscribe({
+            next: res => { this.availableUsers = res.data ?? []; this.cdr.markForCheck(); },
+          });
+
           this.editDrawerLoading = false;
           this.cdr.markForCheck();
         },
@@ -568,7 +574,7 @@ export class MyProjectsComponent implements OnInit {
   get filteredEditSponsorUsers(): AssignableUser[] {
     if (!this.editSponsorSearchTerm.trim()) return this.availableUsers;
     const term = this.editSponsorSearchTerm.toLowerCase();
-    return this.availableUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.availableUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   toggleEditSponsor(userId: string): void {
@@ -582,7 +588,7 @@ export class MyProjectsComponent implements OnInit {
   }
 
   getEditSponsorName(userId: string): string {
-    return this.availableUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.availableUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   private loadEditStrategicObjectives(workspaceId: string): void {

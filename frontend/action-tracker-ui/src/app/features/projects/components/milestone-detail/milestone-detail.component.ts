@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { MilestoneService } from '../../services/milestone.service';
 import { ProjectService } from '../../services/project.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
+import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import {
   MilestoneResponse,
   MilestoneStatus,
@@ -40,6 +41,7 @@ export class MilestoneDetailComponent implements OnInit {
   private readonly milestoneService = inject(MilestoneService);
   private readonly projectService = inject(ProjectService);
   private readonly actionService = inject(ActionItemService);
+  private readonly workspaceSvc = inject(WorkspaceService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -158,7 +160,6 @@ export class MilestoneDetailComponent implements OnInit {
     this.milestoneId = this.route.snapshot.paramMap.get('milestoneId')!;
     this.loadMilestone();
     this.loadProject();
-    this.loadAllUsers();
     this.loadStats();
   }
 
@@ -189,17 +190,20 @@ export class MilestoneDetailComponent implements OnInit {
           this.workspaceTitle = res.data?.workspaceTitle ?? null;
           this.projectName = res.data?.name ?? null;
           this.loadActionItems();
+          if (this.workspaceId) {
+            this.loadAssignableUsers(this.workspaceId);
+          }
         },
         error: () => {},
       });
   }
 
-  private loadAllUsers(): void {
-    this.actionService.getAssignableUsers()
+  private loadAssignableUsers(workspaceId: string): void {
+    this.workspaceSvc.getAssignableUsers(workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.allUsers = res.data ?? [],
-        error: () => {},
+        error: () => { this.allUsers = []; },
       });
   }
 
@@ -326,11 +330,11 @@ export class MilestoneDetailComponent implements OnInit {
   get filteredUsers(): AssignableUser[] {
     if (!this.assigneeSearchTerm.trim()) return this.allUsers;
     const term = this.assigneeSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   getAssigneeName(userId: string): string {
-    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   toggleAssignee(userId: string): void {

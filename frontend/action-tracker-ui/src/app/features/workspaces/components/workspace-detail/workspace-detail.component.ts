@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import { WorkspaceService } from '../../services/workspace.service';
@@ -15,8 +14,7 @@ import { ActionItemService } from '../../../../core/services/action-item.service
 import { ProjectService } from '../../../projects/services/project.service';
 import { MilestoneService } from '../../../projects/services/milestone.service';
 import {
-  Workspace, WorkspaceAdmin, WorkspaceStats, UserDropdownItem,
-  WorkspaceMember, StrategicPlanDropdownItem,
+  Workspace, WorkspaceStats, WorkspaceMember, WorkspaceProjectManager,
 } from '../../models/workspace.model';
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
@@ -56,24 +54,11 @@ export class WorkspaceDetailComponent implements OnInit {
   workspaceStats: WorkspaceStats | null = null;
   statsLoading = false;
 
-  // Admin management
-  availableUsers: UserDropdownItem[] = [];
-  selectedUserId = '';
-  isAddingAdmin = false;
-
-  // Member management
+  // Member count (read-only on this page; editing happens at /settings)
   workspaceMembers: WorkspaceMember[] = [];
-  availableMembers: UserDropdownItem[] = [];
-  selectedMemberUserIds: string[] = [];
-  isAddingMember = false;
-  memberDropdownOpen = false;
-  memberSearchTerm = '';
-  private allActiveUsers: UserDropdownItem[] = [];
 
-  // Strategy linking
-  strategicPlanOptions: StrategicPlanDropdownItem[] = [];
-  selectedStrategicPlanId: string = '';
-  isSavingStrategy = false;
+  // Workspace-scoped Project Managers (drives the PM dropdown in the project drawer)
+  workspaceProjectManagers: WorkspaceProjectManager[] = [];
 
   // ── Action Items ─────────────────────────────────────────
   actionItems: ActionItem[] = [];
@@ -201,13 +186,9 @@ export class WorkspaceDetailComponent implements OnInit {
         next: (res) => {
           this.workspace = res.data ?? null;
           this.workspaceMembers = this.workspace?.members ?? [];
-          this.selectedStrategicPlanId = this.workspace?.strategicPlanId ?? '';
+          this.workspaceProjectManagers = this.workspace?.projectManagers ?? [];
           this.resolvePermissions();
           this.isLoading = false;
-          if (this.canManage) {
-            this.loadAvailableUsers();
-            this.loadStrategicPlans();
-          }
           this.loadActionItems();
           this.loadProjects();
           this.loadAllUsers();
@@ -218,23 +199,6 @@ export class WorkspaceDetailComponent implements OnInit {
           this.isLoading = false;
         },
       });
-  }
-
-  private loadStrategicPlans(): void {
-    this.workspaceService.getStrategicPlansForDropdown()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => this.strategicPlanOptions = res.data ?? [],
-        error: () => {},
-      });
-  }
-
-  private recomputeAvailableMembers(): void {
-    const taken = new Set<string>([
-      ...(this.workspace?.admins?.map(a => a.userId) ?? []),
-      ...this.workspaceMembers.map(m => m.userId),
-    ]);
-    this.availableMembers = this.allActiveUsers.filter(u => !taken.has(u.id));
   }
 
   private resolvePermissions(): void {
@@ -266,241 +230,16 @@ export class WorkspaceDetailComponent implements OnInit {
       });
   }
 
-  private loadAvailableUsers(): void {
-    this.workspaceService.getActiveUsersForDropdown()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.allActiveUsers = res.data ?? [];
-          const adminIds = new Set(this.workspace?.admins?.map(a => a.userId) ?? []);
-          this.availableUsers = this.allActiveUsers.filter(u => !adminIds.has(u.id));
-          this.recomputeAvailableMembers();
-        },
-        error: () => {},
-      });
-  }
-
   private loadAllUsers(): void {
-    this.actionService.getAssignableUsers()
+    if (!this.workspaceId) {
+      this.allUsers = [];
+      return;
+    }
+    this.workspaceService.getAssignableUsers(this.workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.allUsers = res.data ?? [],
-        error: () => {},
-      });
-  }
-
-  // ── Admin CRUD ──────────────────────────────────────────
-  onAddAdmin(): void {
-    if (!this.selectedUserId || !this.workspace) return;
-
-    const user = this.availableUsers.find(u => u.id === this.selectedUserId);
-    if (!user) return;
-
-    this.isAddingAdmin = true;
-    this.errorMessage = null;
-    this.successMessage = null;
-
-    const updatedAdmins: WorkspaceAdmin[] = [
-      ...(this.workspace.admins ?? []),
-      { userId: user.id, userName: user.displayName, email: '', orgUnitName: '' },
-    ];
-
-    this.workspaceService.updateWorkspace(this.workspaceId, {
-      id: this.workspaceId,
-      title: this.workspace.title,
-      organizationUnit: this.workspace.organizationUnit,
-      orgUnitId: this.workspace.orgUnitId,
-      strategicPlanId: this.workspace.strategicPlanId,
-      admins: updatedAdmins,
-      isActive: this.workspace.isActive,
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.workspace = res.data ?? this.workspace;
-          this.workspaceMembers = this.workspace?.members ?? this.workspaceMembers;
-          this.selectedUserId = '';
-          this.loadAvailableUsers();
-          this.successMessage = `${user.displayName} added as admin.`;
-          this.isAddingAdmin = false;
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to add admin.';
-          this.isAddingAdmin = false;
-        },
-      });
-  }
-
-  // ── Member CRUD ─────────────────────────────────────────
-  get filteredAvailableMembers(): UserDropdownItem[] {
-    const term = this.memberSearchTerm.trim().toLowerCase();
-    if (!term) return this.availableMembers;
-    return this.availableMembers.filter(u =>
-      (u.displayName ?? '').toLowerCase().includes(term) ||
-      (u.email ?? '').toLowerCase().includes(term) ||
-      (u.orgUnitName ?? '').toLowerCase().includes(term)
-    );
-  }
-
-  getMemberName(userId: string): string {
-    return this.availableMembers.find(u => u.id === userId)?.displayName
-        ?? this.allActiveUsers.find(u => u.id === userId)?.displayName
-        ?? userId;
-  }
-
-  toggleMember(userId: string): void {
-    const idx = this.selectedMemberUserIds.indexOf(userId);
-    if (idx >= 0) this.selectedMemberUserIds.splice(idx, 1);
-    else          this.selectedMemberUserIds.push(userId);
-  }
-
-  isMemberSelected(userId: string): boolean {
-    return this.selectedMemberUserIds.includes(userId);
-  }
-
-  onAddMember(): void {
-    if (this.selectedMemberUserIds.length === 0) return;
-
-    const usersToAdd = this.selectedMemberUserIds
-      .map(id => this.availableMembers.find(u => u.id === id))
-      .filter((u): u is UserDropdownItem => !!u);
-    if (usersToAdd.length === 0) return;
-
-    this.isAddingMember = true;
-    this.errorMessage = null;
-    this.successMessage = null;
-
-    const requests = usersToAdd.map(user =>
-      this.workspaceService.addMember(this.workspaceId, { userId: user.id, userName: user.displayName })
-        .pipe(catchError(err => of({ failed: true, user, err })))
-    );
-
-    forkJoin(requests)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (results) => {
-          const added: WorkspaceMember[] = [];
-          const failed: { user: UserDropdownItem; err: any }[] = [];
-
-          results.forEach(r => {
-            if (r && (r as any).failed) {
-              failed.push(r as any);
-            } else {
-              const data = (r as any).data as WorkspaceMember | undefined;
-              if (data) added.push(data);
-            }
-          });
-
-          if (added.length > 0) {
-            this.workspaceMembers = [...this.workspaceMembers, ...added];
-          }
-          this.selectedMemberUserIds = [];
-          this.memberSearchTerm = '';
-          this.memberDropdownOpen = false;
-          this.recomputeAvailableMembers();
-          this.isAddingMember = false;
-
-          if (failed.length === 0) {
-            this.successMessage = added.length === 1
-              ? `${added[0].userName} added as member.`
-              : `${added.length} members added.`;
-          } else if (added.length === 0) {
-            const first = failed[0];
-            this.errorMessage = first.err?.error?.message ?? 'Failed to add members.';
-          } else {
-            const failedNames = failed.map(f => f.user.displayName).join(', ');
-            this.successMessage = `${added.length} member(s) added.`;
-            this.errorMessage = `Failed to add: ${failedNames}.`;
-          }
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to add members.';
-          this.isAddingMember = false;
-        },
-      });
-  }
-
-  onRemoveMember(member: WorkspaceMember): void {
-    if (!confirm(`Remove ${member.userName} from this workspace?`)) return;
-    this.errorMessage = null;
-    this.successMessage = null;
-
-    this.workspaceService.removeMember(this.workspaceId, member.userId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.workspaceMembers = this.workspaceMembers.filter(m => m.userId !== member.userId);
-          this.recomputeAvailableMembers();
-          this.successMessage = `${member.userName} removed from members.`;
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to remove member.';
-        },
-      });
-  }
-
-  // ── Strategy linking ────────────────────────────────────
-  onSaveStrategy(): void {
-    if (!this.workspace) return;
-    this.isSavingStrategy = true;
-    this.errorMessage = null;
-    this.successMessage = null;
-
-    const planId = this.selectedStrategicPlanId || null;
-
-    this.workspaceService.setStrategy(this.workspaceId, { strategicPlanId: planId })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          if (res.data) {
-            this.workspace = res.data;
-            this.workspaceMembers = res.data.members ?? this.workspaceMembers;
-            this.selectedStrategicPlanId = res.data.strategicPlanId ?? '';
-          }
-          this.successMessage = planId ? 'Strategy linked.' : 'Strategy cleared.';
-          this.isSavingStrategy = false;
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to update strategy.';
-          this.isSavingStrategy = false;
-        },
-      });
-  }
-
-  onRemoveAdmin(admin: WorkspaceAdmin): void {
-    if (!this.workspace) return;
-    if (!confirm(`Remove ${admin.userName} as admin?`)) return;
-
-    if ((this.workspace.admins?.length ?? 0) <= 1) {
-      this.errorMessage = 'A workspace must have at least one admin.';
-      return;
-    }
-
-    this.errorMessage = null;
-    this.successMessage = null;
-
-    const updatedAdmins = this.workspace.admins.filter(a => a.userId !== admin.userId);
-
-    this.workspaceService.updateWorkspace(this.workspaceId, {
-      id: this.workspaceId,
-      title: this.workspace.title,
-      organizationUnit: this.workspace.organizationUnit,
-      orgUnitId: this.workspace.orgUnitId,
-      strategicPlanId: this.workspace.strategicPlanId,
-      admins: updatedAdmins,
-      isActive: this.workspace.isActive,
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          this.workspace = res.data ?? this.workspace;
-          this.workspaceMembers = this.workspace?.members ?? this.workspaceMembers;
-          this.loadAvailableUsers();
-          this.successMessage = `${admin.userName} removed from admins.`;
-        },
-        error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to remove admin.';
-        },
+        error: () => { this.allUsers = []; },
       });
   }
 
@@ -626,7 +365,6 @@ export class WorkspaceDetailComponent implements OnInit {
   onDocumentClick(): void {
     this.assigneeDropdownOpen = false;
     this.sponsorDropdownOpen = false;
-    this.memberDropdownOpen = false;
   }
 
   get latestEscalation(): EscalationInfo | null {
@@ -637,11 +375,11 @@ export class WorkspaceDetailComponent implements OnInit {
   get filteredUsers(): AssignableUser[] {
     if (!this.assigneeSearchTerm.trim()) return this.allUsers;
     const term = this.assigneeSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   getAssigneeName(userId: string): string {
-    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   toggleAssignee(userId: string): void {
@@ -945,7 +683,7 @@ export class WorkspaceDetailComponent implements OnInit {
   get filteredSponsorUsers(): AssignableUser[] {
     if (!this.sponsorSearchTerm.trim()) return this.allUsers;
     const term = this.sponsorSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   toggleSponsor(userId: string): void {
@@ -959,7 +697,7 @@ export class WorkspaceDetailComponent implements OnInit {
   }
 
   getSponsorName(userId: string): string {
-    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   get hasProjectDateRangeError(): boolean {

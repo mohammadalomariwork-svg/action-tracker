@@ -169,7 +169,6 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.loadStats();
     this.load();
     this.loadCreatedByMe();
-    this.loadAllUsers();
     this.loadAllWorkspaces();
   }
 
@@ -255,10 +254,28 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.loadCreatedByMe();
   }
 
-  private loadAllUsers(): void {
-    this.actionSvc.getAssignableUsers()
+  onWorkspaceChange(workspaceId: string): void {
+    if (!workspaceId) {
+      this.allUsers = [];
+      this.actionForm.assigneeIds = [];
+      this.cdr.markForCheck();
+      return;
+    }
+    this.workspaceSvc.getAssignableUsers(workspaceId)
       .pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { this.allUsers = r.data ?? []; this.cdr.markForCheck(); } });
+      .subscribe({
+        next: r => {
+          this.allUsers = r.data ?? [];
+          const validIds = new Set(this.allUsers.map(u => u.userId));
+          const before = this.actionForm.assigneeIds.length;
+          this.actionForm.assigneeIds = this.actionForm.assigneeIds.filter(id => validIds.has(id));
+          if (before > 0 && this.actionForm.assigneeIds.length < before) {
+            this.toastSvc.info('Assignees were cleared because the workspace changed — please select new assignees.');
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => { this.allUsers = []; this.cdr.markForCheck(); },
+      });
   }
 
   private loadAllWorkspaces(): void {
@@ -349,9 +366,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
-    // Pre-select the logged-in user as default assignee
-    const uid = this.currentUser()?.userId;
-    if (uid) this.actionForm.assigneeIds = [uid];
+    // Assignees can't be pre-selected — list is workspace-scoped and workspace starts empty.
+    this.allUsers = [];
     this.editingEscalations = [];
     this.originalEscalated = false;
     this.originalEscalationText = '';
@@ -391,6 +407,16 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.assigneeSearchTerm = '';
     this.showActionForm = true;
     this.cdr.markForCheck();
+
+    // Load assignable users for the action's workspace so the picker is populated on edit.
+    if (this.actionForm.workspaceId) {
+      this.workspaceSvc.getAssignableUsers(this.actionForm.workspaceId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: r => { this.allUsers = r.data ?? []; this.cdr.markForCheck(); },
+          error: () => { this.allUsers = []; this.cdr.markForCheck(); },
+        });
+    }
   }
 
   cancelActionForm(): void {
@@ -418,11 +444,11 @@ export class ActionListComponent implements OnInit, OnDestroy {
   get filteredUsers(): AssignableUser[] {
     if (!this.assigneeSearchTerm.trim()) return this.allUsers;
     const term = this.assigneeSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   getAssigneeName(userId: string): string {
-    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   toggleAssignee(userId: string): void {

@@ -406,15 +406,15 @@
                 (click)="$event.stopPropagation()"
               />
               <div class="wa-multi-select__options">
-                @for (u of filteredUsers; track u.id) {
+                @for (u of filteredUsers; track u.userId) {
                   <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
                     <input
                       type="checkbox"
-                      [checked]="isAssigneeSelected(u.id)"
-                      (change)="toggleAssignee(u.id)"
+                      [checked]="isAssigneeSelected(u.userId)"
+                      (change)="toggleAssignee(u.userId)"
                     />
-                    <span class="wa-multi-select__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
-                    <span>{{ u.fullName }}</span>
+                    <span class="wa-multi-select__avatar">{{ u.userName.charAt(0).toUpperCase() }}</span>
+                    <span>{{ u.userName }}</span>
                   </label>
                 }
                 @if (filteredUsers.length === 0) {

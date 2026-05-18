@@ -10,6 +10,7 @@ import { ActionItemService }     from '../../../core/services/action-item.servic
 import { ToastService }          from '../../../core/services/toast.service';
 import { AuthService }           from '../../../core/services/auth.service';
 import { WorkflowService }       from '../../../services/workflow.service';
+import { WorkspaceService }      from '../../workspaces/services/workspace.service';
 
 import {
   ActionItem, ActionItemCreate, ActionStatus, ActionPriority,
@@ -53,11 +54,12 @@ interface EditFormData {
   styleUrl:    './action-detail.component.scss',
 })
 export class ActionDetailComponent implements OnInit {
-  private readonly route       = inject(ActivatedRoute);
-  private readonly actionSvc   = inject(ActionItemService);
-  private readonly toastSvc    = inject(ToastService);
-  private readonly authService = inject(AuthService);
-  private readonly workflowSvc = inject(WorkflowService);
+  private readonly route        = inject(ActivatedRoute);
+  private readonly actionSvc    = inject(ActionItemService);
+  private readonly toastSvc     = inject(ToastService);
+  private readonly authService  = inject(AuthService);
+  private readonly workflowSvc  = inject(WorkflowService);
+  private readonly workspaceSvc = inject(WorkspaceService);
 
   readonly item       = signal<ActionItem | null>(null);
   readonly loading    = signal(true);
@@ -157,7 +159,6 @@ export class ActionDetailComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.loadItem(id);
-    this.loadUsers();
     this.loadWorkflowData(id);
   }
 
@@ -168,6 +169,7 @@ export class ActionDetailComponent implements OnInit {
       next: r => {
         this.item.set(r.data);
         this.loading.set(false);
+        this.loadUsers(r.data?.workspaceId ?? '');
       },
       error: () => {
         this.toastSvc.error('Failed to load action item.');
@@ -176,10 +178,28 @@ export class ActionDetailComponent implements OnInit {
     });
   }
 
-  private loadUsers(): void {
-    this.actionSvc.getAssignableUsers().subscribe({
-      next: r => { this.allUsers = r.data ?? []; },
-      error: () => {},
+  private loadUsers(workspaceId: string): void {
+    if (!workspaceId) {
+      this.allUsers = [];
+      return;
+    }
+    this.workspaceSvc.getAssignableUsers(workspaceId).subscribe({
+      next: r => {
+        const list = [...(r.data ?? [])];
+        // Keep currently-assigned users visible even if they are no longer
+        // part of the workspace's admins/members/PMs lists.
+        const ai = this.item();
+        if (ai) {
+          const knownIds = new Set(list.map(u => u.userId));
+          for (const a of ai.assignees) {
+            if (!knownIds.has(a.userId)) {
+              list.push({ userId: a.userId, userName: a.fullName, email: a.email, sources: [] });
+            }
+          }
+        }
+        this.allUsers = list;
+      },
+      error: () => { this.allUsers = []; },
     });
   }
 
@@ -287,11 +307,11 @@ export class ActionDetailComponent implements OnInit {
   get filteredUsers(): AssignableUser[] {
     if (!this.assigneeSearchTerm.trim()) return this.allUsers;
     const term = this.assigneeSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   getAssigneeName(userId: string): string {
-    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   toggleAssignee(userId: string): void {

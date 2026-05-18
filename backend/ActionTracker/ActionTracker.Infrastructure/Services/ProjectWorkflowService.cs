@@ -48,7 +48,11 @@ public class ProjectWorkflowService : IProjectWorkflowService
         if (project is null) return;
 
         var creatorName = project.ProjectManager?.FullName ?? "System";
-        var recipients = await ResolveReviewerInfosAsync(project);
+        // Strategic projects: notify the workspace's strategic-project approver chain.
+        // Operational projects: PM has full authority, no reviewers to notify.
+        var recipients = project.ProjectType == ProjectType.Strategic
+            ? await ResolveStrategicApproverInfosAsync(project)
+            : new List<(string? UserId, string Email, string DisplayName)>();
 
         foreach (var (userId, email, displayName) in recipients)
         {
@@ -143,49 +147,118 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
         var requesterName = project.ProjectManager?.FullName ?? "Unknown";
 
+        // Operational projects bypass approval entirely: PM has full authority,
+        // so the project goes Draft → Active immediately and no ApprovalRequest
+        // is created. A historical "pseudo-approved" request is returned so the
+        // existing UI flow can show that the submit happened.
+        if (project.ProjectType == ProjectType.Operational)
+        {
+            project.Status = ProjectStatus.Active;
+            project.ActualStartDate = DateTime.UtcNow;
+            project.IsBaselined = true;
+
+            var operationalMilestones = await _db.Milestones
+                .Where(m => m.ProjectId == project.Id)
+                .ToListAsync();
+            foreach (var m in operationalMilestones)
+            {
+                m.BaselinePlannedStartDate ??= m.PlannedStartDate;
+                m.BaselinePlannedDueDate ??= m.PlannedDueDate;
+            }
+
+            var autoRequest = new ProjectApprovalRequest
+            {
+                Id                       = Guid.NewGuid(),
+                ProjectId                = dto.ProjectId,
+                RequestedByUserId        = requestedByUserId,
+                RequestedByDisplayName   = requesterName,
+                AssignedReviewerUserId   = requestedByUserId,
+                AssignedReviewerDisplayName = requesterName,
+                Status                   = ProjectApprovalStatus.Approved,
+                Reason                   = dto.Reason.Trim(),
+                CreatedAt                = DateTime.UtcNow,
+                ReviewedByUserId         = requestedByUserId,
+                ReviewedByDisplayName    = requesterName,
+                ReviewComment            = "Auto-approved: operational project (PM authority).",
+                ReviewedAt               = DateTime.UtcNow,
+                Level                    = 1,
+                TotalLevels              = 1,
+            };
+            _db.ProjectApprovalRequests.Add(autoRequest);
+            await _db.SaveChangesAsync();
+
+            return MapToDto(autoRequest, project);
+        }
+
+        // Strategic projects: build the sequential chain from the workspace's
+        // configured approvers. Mirrors the strategic-plan workflow exactly —
+        // one Pending row is created for level 1, and each Approve advances
+        // the chain.
+        var chain = await _db.WorkspaceStrategicProjectApprovers
+            .AsNoTracking()
+            .Where(a => a.WorkspaceId == project.WorkspaceId)
+            .OrderBy(a => a.Order)
+            .ToListAsync();
+
+        if (chain.Count == 0)
+            throw new InvalidOperationException(
+                "This workspace has no Strategic Project Approvers configured. Configure the approval chain on the workspace settings page before submitting strategic projects for approval.");
+
+        var firstApproverUserId = chain[0].UserId;
+        var firstApprover = await _db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == firstApproverUserId)
+            ?? throw new InvalidOperationException(
+                "The first approver in the chain is no longer a valid user.");
+        if (!firstApprover.IsActive)
+            throw new InvalidOperationException(
+                "The first approver in the chain is inactive.");
+
+        var firstApproverName = firstApprover.FullName ?? firstApprover.UserName ?? firstApproverUserId;
+
         var request = new ProjectApprovalRequest
         {
-            Id = Guid.NewGuid(),
-            ProjectId = dto.ProjectId,
-            RequestedByUserId = requestedByUserId,
-            RequestedByDisplayName = requesterName,
-            Status = ProjectApprovalStatus.Pending,
-            Reason = dto.Reason.Trim(),
-            CreatedAt = DateTime.UtcNow,
+            Id                          = Guid.NewGuid(),
+            ProjectId                   = dto.ProjectId,
+            RequestedByUserId           = requestedByUserId,
+            RequestedByDisplayName      = requesterName,
+            AssignedReviewerUserId      = firstApprover.Id,
+            AssignedReviewerDisplayName = firstApproverName,
+            Status                      = ProjectApprovalStatus.Pending,
+            Reason                      = dto.Reason.Trim(),
+            CreatedAt                   = DateTime.UtcNow,
+            Level                       = 1,
+            TotalLevels                 = chain.Count,
         };
 
         _db.ProjectApprovalRequests.Add(request);
         project.Status = ProjectStatus.PendingApproval;
         await _db.SaveChangesAsync();
 
-        // Notify reviewers
-        var reviewers = await ResolveReviewerInfosAsync(project);
-        foreach (var (userId, email, displayName) in reviewers)
+        // Notify the level-1 approver only (the rest get pinged when the chain advances).
+        if (!string.IsNullOrEmpty(firstApprover.Id))
         {
-            if (userId != null)
-            {
-                await CreateNotificationAsync(
-                    userId,
-                    "Project Approval Requested",
-                    $"{requesterName} submitted {project.ProjectCode} — {project.Name} for approval",
-                    "ProjectApprovalRequested",
-                    project,
-                    requestedByUserId,
-                    requesterName);
-            }
+            await CreateNotificationAsync(
+                firstApprover.Id,
+                "Project Approval Requested",
+                $"{requesterName} submitted {project.ProjectCode} — {project.Name} for approval " +
+                $"(level {request.Level} of {request.TotalLevels})",
+                "ProjectApprovalRequested",
+                project,
+                requestedByUserId,
+                requesterName);
+        }
 
-            if (!string.IsNullOrEmpty(email))
+        if (!string.IsNullOrEmpty(firstApprover.Email))
+        {
+            await SendEmailSafeAsync("ProjectApproval.Requested", new Dictionary<string, string>
             {
-                await SendEmailSafeAsync("ProjectApproval.Requested", new Dictionary<string, string>
-                {
-                    ["ProjectCode"] = project.ProjectCode,
-                    ["ProjectName"] = project.Name,
-                    ["RequestedByName"] = requesterName,
-                    ["Reason"] = request.Reason,
-                    ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
-                    ["ApprovalUrl"] = $"{_appSettings.FrontendBaseUrl}/approvals",
-                }, email, project.Id, requestedByUserId);
-            }
+                ["ProjectCode"] = project.ProjectCode,
+                ["ProjectName"] = project.Name,
+                ["RequestedByName"] = requesterName,
+                ["Reason"] = request.Reason,
+                ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
+                ["ApprovalUrl"] = $"{_appSettings.FrontendBaseUrl}/approvals",
+            }, firstApprover.Email, project.Id, requestedByUserId);
         }
 
         return MapToDto(request, project);
@@ -223,7 +296,53 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
         var project = request.Project;
 
-        if (dto.IsApproved)
+        // Multi-level routing: when an *approval* is not the final level, create
+        // a Pending row for the next approver in the chain and leave project-
+        // level state alone. Project-level transitions only fire on the final-
+        // level approval or any rejection.
+        ProjectApprovalRequest? advanceRequest = null;
+        ApplicationUser? nextApprover = null;
+        var isFinalLevel = request.Level >= request.TotalLevels;
+
+        if (dto.IsApproved && !isFinalLevel)
+        {
+            var nextLevel = request.Level + 1;
+            var chainEntry = await _db.WorkspaceStrategicProjectApprovers
+                .AsNoTracking()
+                .Where(a => a.WorkspaceId == project.WorkspaceId && a.Order == nextLevel)
+                .FirstOrDefaultAsync();
+
+            if (chainEntry is null)
+                throw new InvalidOperationException(
+                    $"Approval chain is broken: no approver configured at level {nextLevel} for this workspace.");
+
+            nextApprover = await _db.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == chainEntry.UserId)
+                ?? throw new InvalidOperationException(
+                    $"Approver at level {nextLevel} is no longer a valid user.");
+            if (!nextApprover.IsActive)
+                throw new InvalidOperationException(
+                    $"Approver at level {nextLevel} is inactive.");
+
+            var nextName = nextApprover.FullName ?? nextApprover.UserName ?? nextApprover.Id;
+            advanceRequest = new ProjectApprovalRequest
+            {
+                Id                          = Guid.NewGuid(),
+                ProjectId                   = project.Id,
+                RequestedByUserId           = request.RequestedByUserId,
+                RequestedByDisplayName      = request.RequestedByDisplayName,
+                AssignedReviewerUserId      = nextApprover.Id,
+                AssignedReviewerDisplayName = nextName,
+                Status                      = ProjectApprovalStatus.Pending,
+                Reason                      = request.Reason,
+                CreatedAt                   = DateTime.UtcNow,
+                Level                       = nextLevel,
+                TotalLevels                 = request.TotalLevels,
+            };
+            _db.ProjectApprovalRequests.Add(advanceRequest);
+        }
+
+        if (dto.IsApproved && isFinalLevel)
         {
             project.Status = ProjectStatus.Active;
             project.ActualStartDate = DateTime.UtcNow;
@@ -252,21 +371,24 @@ public class ProjectWorkflowService : IProjectWorkflowService
                 other.ReviewedAt = DateTime.UtcNow;
             }
         }
-        else
+        else if (!dto.IsApproved)
         {
+            // Any rejection sends the project back to Draft.
             project.Status = ProjectStatus.Draft;
         }
+        // Intermediate-level approvals: project stays PendingApproval.
 
         await _db.SaveChangesAsync();
 
-        // Notify the project manager
+        // Notify the project manager of this level's outcome.
         var decision = dto.IsApproved ? "Approved" : "Rejected";
         var actionType = dto.IsApproved ? "ProjectApprovalApproved" : "ProjectApprovalRejected";
+        var levelTag = request.TotalLevels > 1 ? $" (level {request.Level} of {request.TotalLevels})" : "";
 
         await CreateNotificationAsync(
             project.ProjectManagerUserId,
-            $"Project {decision}",
-            $"{reviewerName} has {decision.ToLower()} project {project.ProjectCode} — {project.Name}",
+            $"Project {decision}{levelTag}",
+            $"{reviewerName} has {decision.ToLower()} project {project.ProjectCode} — {project.Name}{levelTag}",
             actionType,
             project,
             reviewerUserId,
@@ -284,6 +406,33 @@ public class ProjectWorkflowService : IProjectWorkflowService
                 ["ReviewComment"] = request.ReviewComment ?? "",
                 ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
             }, pmEmail, project.Id, reviewerUserId);
+        }
+
+        // If we advanced the chain, ping the next approver.
+        if (advanceRequest is not null && nextApprover is not null)
+        {
+            await CreateNotificationAsync(
+                nextApprover.Id,
+                "Project Approval Requested",
+                $"{request.RequestedByDisplayName}'s project {project.ProjectCode} — {project.Name} " +
+                $"is awaiting your approval (level {advanceRequest.Level} of {advanceRequest.TotalLevels})",
+                "ProjectApprovalRequested",
+                project,
+                reviewerUserId,
+                reviewerName);
+
+            if (!string.IsNullOrEmpty(nextApprover.Email))
+            {
+                await SendEmailSafeAsync("ProjectApproval.Requested", new Dictionary<string, string>
+                {
+                    ["ProjectCode"] = project.ProjectCode,
+                    ["ProjectName"] = project.Name,
+                    ["RequestedByName"] = request.RequestedByDisplayName,
+                    ["Reason"] = advanceRequest.Reason,
+                    ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
+                    ["ApprovalUrl"] = $"{_appSettings.FrontendBaseUrl}/approvals",
+                }, nextApprover.Email, project.Id, reviewerUserId);
+            }
         }
 
         return MapToDto(request, project);
@@ -304,11 +453,17 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
     public async Task<List<ProjectApprovalRequestDto>> GetPendingReviewsAsync(string userId)
     {
-        var reviewableProjectIds = await GetReviewableProjectIdsAsync(userId);
+        // For chain-aware rows, show only requests where the *current* assigned
+        // reviewer is the user. For legacy rows (no AssignedReviewerUserId),
+        // fall back to "user is a sponsor or PM's line manager".
+        var legacyReviewableProjectIds = await GetReviewableProjectIdsAsync(userId);
 
         var requests = await _db.ProjectApprovalRequests
             .Include(r => r.Project)
-            .Where(r => r.Status == ProjectApprovalStatus.Pending && reviewableProjectIds.Contains(r.ProjectId))
+            .Where(r => r.Status == ProjectApprovalStatus.Pending
+                && (r.AssignedReviewerUserId == userId
+                    || (r.AssignedReviewerUserId == null
+                        && legacyReviewableProjectIds.Contains(r.ProjectId))))
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
@@ -328,22 +483,37 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
     public async Task<ProjectApprovalSummaryDto> GetPendingSummaryAsync(string userId)
     {
-        var reviewableProjectIds = await GetReviewableProjectIdsAsync(userId);
+        var legacyReviewableProjectIds = await GetReviewableProjectIdsAsync(userId);
 
         var count = await _db.ProjectApprovalRequests
-            .CountAsync(r => r.Status == ProjectApprovalStatus.Pending && reviewableProjectIds.Contains(r.ProjectId));
+            .CountAsync(r => r.Status == ProjectApprovalStatus.Pending
+                && (r.AssignedReviewerUserId == userId
+                    || (r.AssignedReviewerUserId == null
+                        && legacyReviewableProjectIds.Contains(r.ProjectId))));
 
         return new ProjectApprovalSummaryDto { PendingProjectApprovals = count };
     }
 
     public async Task<bool> CanReviewProjectAsync(Guid projectId, string userId)
     {
-        // Check if user is a sponsor
+        // New workspace-chain model: user must be the assigned reviewer on the
+        // currently-pending request for this project. Falls through to the
+        // legacy resolver (sponsors + PM's line manager) for older rows whose
+        // AssignedReviewerUserId is null.
+        var pending = await _db.ProjectApprovalRequests
+            .AsNoTracking()
+            .Where(r => r.ProjectId == projectId && r.Status == ProjectApprovalStatus.Pending)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (pending is not null && !string.IsNullOrEmpty(pending.AssignedReviewerUserId))
+            return pending.AssignedReviewerUserId == userId;
+
+        // Legacy fallback
         var isSponsor = await _db.ProjectSponsors
             .AnyAsync(s => s.ProjectId == projectId && s.UserId == userId);
         if (isSponsor) return true;
 
-        // Check if user is the direct line manager of the project manager
         var project = await _db.Projects
             .Where(p => p.Id == projectId)
             .Select(p => new { p.ProjectManagerUserId })
@@ -361,7 +531,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
         var project = await _db.Projects
             .Where(p => p.Id == projectId)
-            .Select(p => new { p.Status, p.ProjectManagerUserId })
+            .Select(p => new { p.Status, p.ProjectManagerUserId, p.ProjectType, p.WorkspaceId })
             .FirstOrDefaultAsync();
 
         if (project is null)
@@ -381,6 +551,16 @@ public class ProjectWorkflowService : IProjectWorkflowService
             .AnyAsync(r => r.ProjectId == projectId && r.Status == ProjectApprovalStatus.Pending);
         if (hasPending)
             result.Errors.Add("A pending approval request already exists for this project.");
+
+        if (project.ProjectType == ProjectType.Strategic)
+        {
+            var hasChain = await _db.WorkspaceStrategicProjectApprovers
+                .AnyAsync(a => a.WorkspaceId == project.WorkspaceId);
+            if (!hasChain)
+                result.Errors.Add(
+                    "This workspace has no Strategic Project Approvers configured. " +
+                    "Add at least one approver on the workspace settings page before submitting a strategic project for approval.");
+        }
 
         // Phase coverage
         var milestones = await _db.Milestones
@@ -499,6 +679,40 @@ public class ProjectWorkflowService : IProjectWorkflowService
         return managerUser?.Id == candidateManagerUserId;
     }
 
+    /// <summary>
+    /// Returns the strategic approver chain (in order) for a project's
+    /// workspace, as (userId, email, displayName) tuples — used to seed
+    /// informational notifications when a strategic project is created or
+    /// submitted. Empty when the workspace has no chain configured.
+    /// </summary>
+    private async Task<List<(string? UserId, string Email, string DisplayName)>> ResolveStrategicApproverInfosAsync(Project project)
+    {
+        var result = new List<(string? UserId, string Email, string DisplayName)>();
+        var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var chainUserIds = await _db.WorkspaceStrategicProjectApprovers
+            .AsNoTracking()
+            .Where(a => a.WorkspaceId == project.WorkspaceId)
+            .OrderBy(a => a.Order)
+            .Select(a => a.UserId)
+            .ToListAsync();
+
+        if (chainUserIds.Count == 0) return result;
+
+        var users = await _db.Users.AsNoTracking()
+            .Where(u => chainUserIds.Contains(u.Id) && u.IsActive)
+            .ToListAsync();
+
+        foreach (var id in chainUserIds)
+        {
+            var u = users.FirstOrDefault(x => x.Id == id);
+            if (u is null) continue;
+            if (!string.IsNullOrEmpty(u.Email) && seenEmails.Add(u.Email))
+                result.Add((u.Id, u.Email, u.FullName ?? "Approver"));
+        }
+        return result;
+    }
+
     private async Task<List<(string? UserId, string Email, string DisplayName)>> ResolveReviewerInfosAsync(Project project)
     {
         var result = new List<(string? UserId, string Email, string DisplayName)>();
@@ -611,11 +825,15 @@ public class ProjectWorkflowService : IProjectWorkflowService
             RequestedByDisplayName = r.RequestedByDisplayName,
             ReviewedByUserId = r.ReviewedByUserId,
             ReviewedByDisplayName = r.ReviewedByDisplayName,
+            AssignedReviewerUserId = r.AssignedReviewerUserId,
+            AssignedReviewerDisplayName = r.AssignedReviewerDisplayName,
             Status = r.Status.ToString(),
             Reason = r.Reason,
             ReviewComment = r.ReviewComment,
             CreatedAt = r.CreatedAt,
             ReviewedAt = r.ReviewedAt,
+            Level = r.Level,
+            TotalLevels = r.TotalLevels,
         };
     }
 }

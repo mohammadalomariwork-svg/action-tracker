@@ -196,6 +196,7 @@
     @if (showEdit()) {
       <app-risk-form
         [projectId]="projectId"
+        [workspaceId]="workspaceId"
         [risk]="risk()"
         (saved)="onEditSaved($event)"
         (cancelled)="onEditCancelled()"

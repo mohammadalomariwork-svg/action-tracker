@@ -97,6 +97,21 @@ export class OrgUnitService {
   getPlanApprover(orgUnitId: string): Observable<ApiResponse<OrgUnitPlanApprover | null>> {
     return this.http.get<ApiResponse<OrgUnitPlanApprover | null>>(`${this.base}/${orgUnitId}/plan-approver`);
   }
+
+  /** Returns every user currently assigned to this org unit. */
+  getUsers(orgUnitId: string): Observable<OrgUnitMember[]> {
+    return this.http
+      .get<ApiResponse<OrgUnitMember[]>>(`${this.base}/${orgUnitId}/users`)
+      .pipe(map((res) => res.data));
+  }
+}
+
+export interface OrgUnitMember {
+  userId: string;
+  fullName: string;
+  email: string;
+  roles: string[];
+  isActive: boolean;
 }
 
 export interface OrgUnitHead {

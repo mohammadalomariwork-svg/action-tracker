@@ -744,7 +744,8 @@
       <!-- Workspace -->
       <div class="mb-3">
         <label class="form-label">Workspace <span class="text-danger">*</span></label>
-        <select class="form-select" [(ngModel)]="actionForm.workspaceId" [disabled]="!!editingActionId">
+        <select class="form-select" [(ngModel)]="actionForm.workspaceId"
+                (ngModelChange)="onWorkspaceChange($event)" [disabled]="!!editingActionId">
           <option value="">Select workspace…</option>
           @for (ws of allWorkspaces; track ws.id) {
             <option [value]="ws.id">{{ ws.title }}</option>
@@ -769,9 +770,13 @@
       <!-- Assignees multi-select -->
       <div class="mb-3">
         <label class="form-label">Assignee(s) <span class="text-danger">*</span></label>
-        <div class="wa-multi-select" (click)="assigneeDropdownOpen = !assigneeDropdownOpen; $event.stopPropagation()">
+        <div class="wa-multi-select"
+             [class.wa-multi-select--disabled]="!actionForm.workspaceId"
+             (click)="actionForm.workspaceId && (assigneeDropdownOpen = !assigneeDropdownOpen); $event.stopPropagation()">
           <div class="wa-multi-select__control form-select">
-            @if (actionForm.assigneeIds.length === 0) {
+            @if (!actionForm.workspaceId) {
+              <span class="text-muted">Select a workspace first…</span>
+            } @else if (actionForm.assigneeIds.length === 0) {
               <span class="text-muted">Select assignees…</span>
             } @else {
               <div class="wa-multi-select__tags">
@@ -787,17 +792,17 @@
               </div>
             }
           </div>
-          @if (assigneeDropdownOpen) {
+          @if (assigneeDropdownOpen && actionForm.workspaceId) {
             <div class="wa-multi-select__dropdown">
               <input type="text" class="form-control form-control-sm wa-multi-select__search"
                      placeholder="Search users…" [(ngModel)]="assigneeSearchTerm"
                      (click)="$event.stopPropagation()" />
               <div class="wa-multi-select__options">
-                @for (u of filteredUsers; track u.id) {
+                @for (u of filteredUsers; track u.userId) {
                   <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isAssigneeSelected(u.id)" (change)="toggleAssignee(u.id)" />
-                    <span class="wa-multi-select__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
-                    <span>{{ u.fullName }}</span>
+                    <input type="checkbox" [checked]="isAssigneeSelected(u.userId)" (change)="toggleAssignee(u.userId)" />
+                    <span class="wa-multi-select__avatar">{{ u.userName.charAt(0).toUpperCase() }}</span>
+                    <span>{{ u.userName }}</span>
                   </label>
                 }
                 @if (filteredUsers.length === 0) {
@@ -807,7 +812,7 @@
             </div>
           }
         </div>
-        @if (actionForm.assigneeIds.length === 0) {
+        @if (actionForm.workspaceId && actionForm.assigneeIds.length === 0) {
           <small class="text-danger">At least one assignee is required.</small>
         }
       </div>

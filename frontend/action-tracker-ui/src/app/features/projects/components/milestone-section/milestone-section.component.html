@@ -636,11 +636,11 @@
                      placeholder="Search users..." [(ngModel)]="actionAssigneeSearchTerm"
                      [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
               <div class="ai-multi-select__options">
-                @for (u of filteredActionAssignees; track u.id) {
+                @for (u of filteredActionAssignees; track u.userId) {
                   <label class="ai-multi-select__option" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isActionAssigneeSelected(u.id)"
-                           (change)="toggleActionAssignee(u.id)" />
-                    <span>{{ u.fullName }}</span>
+                    <input type="checkbox" [checked]="isActionAssigneeSelected(u.userId)"
+                           (change)="toggleActionAssignee(u.userId)" />
+                    <span>{{ u.userName }}</span>
                   </label>
                 }
                 @if (filteredActionAssignees.length === 0) {

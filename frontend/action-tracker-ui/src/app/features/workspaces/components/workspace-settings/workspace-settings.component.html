@@ -1,0 +1,496 @@
+<div class="ws-page">
+
+  <app-breadcrumb [items]="[
+    { label: 'Workspaces', route: '/workspaces' },
+    { label: workspace?.title ?? '…', route: workspace ? '/workspaces/' + workspace.id : undefined },
+    { label: 'Settings' }
+  ]" />
+
+  <!-- ── Loading spinner ────────────────────────────────────────────────────── -->
+  @if (isLoading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+    </div>
+  }
+
+  <!-- ── Alerts ─────────────────────────────────────────────────────────────── -->
+  @if (errorMessage) {
+    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorMessage }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="errorMessage = null"></button>
+    </div>
+  }
+  @if (successMessage) {
+    <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMessage }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="successMessage = null"></button>
+    </div>
+  }
+
+  @if (!isLoading && workspace) {
+
+    <!-- ── Page header ───────────────────────────────────────────────────── -->
+    <div class="ws-header mb-4">
+      <div class="ws-header__title">
+        <i class="bi bi-gear-fill"></i>
+        <div>
+          <h1>Workspace Settings</h1>
+          <p class="text-muted mb-0">{{ workspace.title }}</p>
+        </div>
+      </div>
+      <a class="btn btn-outline-secondary btn-sm" [routerLink]="['/workspaces', workspace.id]">
+        <i class="bi bi-arrow-left me-1"></i>Back to workspace
+      </a>
+    </div>
+
+    @if (!canManage) {
+      <div class="alert alert-warning">
+        You can view these settings but you don't have permission to change them. Workspace admins
+        can manage access on this page.
+      </div>
+    }
+
+    <!-- ── Linked Strategic Plan ─────────────────────────────────────────── -->
+    <section class="ws-section">
+      <div class="ws-section__header">
+        <h5><i class="bi bi-flag-fill text-primary me-2"></i>Linked Strategic Plan</h5>
+        <p class="text-muted small mb-0">
+          When a plan is linked, strategic projects in this workspace can only reference objectives from that plan.
+        </p>
+      </div>
+      <div class="ws-inline-form">
+        <select
+          class="form-select form-select-sm"
+          [(ngModel)]="selectedStrategicPlanId"
+          [disabled]="!canManage || isSavingStrategy">
+          <option [ngValue]="''">-- No strategy --</option>
+          @for (plan of strategicPlanOptions; track plan.id) {
+            <option [ngValue]="plan.id">
+              {{ plan.name }} ({{ plan.orgUnitName }} · {{ plan.startYear }}-{{ plan.endYear }})
+            </option>
+          }
+        </select>
+        <button
+          class="btn btn-primary btn-sm"
+          (click)="onSaveStrategy()"
+          [disabled]="!canManage || isSavingStrategy || selectedStrategicPlanId === (workspace.strategicPlanId ?? '')">
+          @if (isSavingStrategy) {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+          }
+          <i class="bi bi-save me-1"></i>Save
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Admins ───────────────────────────────────────────────────────── -->
+    <section class="ws-section">
+      <div class="ws-section__header">
+        <h5>
+          <i class="bi bi-people-fill text-primary me-2"></i>Workspace Admins
+          <span class="badge bg-secondary ms-2">{{ workspace.admins.length }}</span>
+        </h5>
+        <p class="text-muted small mb-0">
+          Admins can manage every aspect of this workspace, including these settings.
+        </p>
+      </div>
+
+      @if (canManage) {
+        <div class="ws-inline-form">
+          <div class="ws-multi-select" (click)="adminDropdownOpen = !adminDropdownOpen; $event.stopPropagation()">
+            <div class="ws-multi-select__control form-select form-select-sm">
+              @if (selectedAdminUserIds.length === 0) {
+                <span class="text-muted">Select users…</span>
+              } @else {
+                <div class="ws-multi-select__tags">
+                  @for (id of selectedAdminUserIds; track id) {
+                    <span class="ws-multi-select__tag">
+                      {{ getUserDisplayName(id) }}
+                      <button type="button" class="ws-multi-select__tag-remove"
+                              (click)="toggle(selectedAdminUserIds, id); $event.stopPropagation()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+            @if (adminDropdownOpen) {
+              <div class="ws-multi-select__dropdown">
+                <input type="text" class="form-control form-control-sm ws-multi-select__search"
+                       placeholder="Search users…" [(ngModel)]="adminSearchTerm"
+                       (click)="$event.stopPropagation()" />
+                <div class="ws-multi-select__options">
+                  @for (u of filteredAdmins; track u.id) {
+                    <label class="ws-multi-select__option" (click)="$event.stopPropagation()">
+                      <input type="checkbox"
+                             [checked]="selectedAdminUserIds.includes(u.id)"
+                             (change)="toggle(selectedAdminUserIds, u.id)" />
+                      <span class="ws-multi-select__avatar">{{ u.displayName.charAt(0).toUpperCase() }}</span>
+                      <div class="d-flex flex-column">
+                        <span>{{ u.displayName }}</span>
+                        @if (u.email || u.orgUnitName) {
+                          <small class="text-muted">{{ u.email || '—' }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}</small>
+                        }
+                      </div>
+                    </label>
+                  }
+                  @if (filteredAdmins.length === 0) {
+                    <div class="text-muted small px-3 py-2">No users found.</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <button class="btn btn-primary btn-sm"
+                  (click)="onAddAdmins(); $event.stopPropagation()"
+                  [disabled]="selectedAdminUserIds.length === 0 || isAddingAdmin">
+            @if (isAddingAdmin) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            <i class="bi bi-plus-circle me-1"></i>Add
+          </button>
+        </div>
+      }
+
+      @if (workspace.admins.length > 0) {
+        <div class="ws-people-grid">
+          @for (admin of workspace.admins; track admin.userId) {
+            <div class="ws-person-card">
+              <div class="ws-person-avatar">{{ admin.userName.charAt(0).toUpperCase() || '?' }}</div>
+              <div class="ws-person-info">
+                <span class="ws-person-name">{{ admin.userName }}</span>
+                <span class="ws-person-detail"><i class="bi bi-envelope me-1"></i>{{ admin.email || '—' }}</span>
+                <span class="ws-person-detail"><i class="bi bi-building me-1"></i>{{ admin.orgUnitName || '—' }}</span>
+              </div>
+              @if (canManage) {
+                <button class="btn btn-outline-danger btn-sm"
+                        (click)="onRemoveAdmin(admin)"
+                        [disabled]="workspace.admins.length <= 1"
+                        title="Remove admin">
+                  <i class="bi bi-person-dash"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="ws-empty">No admins assigned.</div>
+      }
+    </section>
+
+    <!-- ── Members ──────────────────────────────────────────────────────── -->
+    <section class="ws-section">
+      <div class="ws-section__header">
+        <h5>
+          <i class="bi bi-person-lines-fill text-primary me-2"></i>Workspace Members
+          <span class="badge bg-secondary ms-2">{{ workspace.members.length }}</span>
+        </h5>
+        <p class="text-muted small mb-0">
+          Members get read access to this workspace's projects, milestones, and action items.
+        </p>
+      </div>
+
+      @if (canManage) {
+        <div class="ws-inline-form">
+          <div class="ws-multi-select" (click)="memberDropdownOpen = !memberDropdownOpen; $event.stopPropagation()">
+            <div class="ws-multi-select__control form-select form-select-sm">
+              @if (selectedMemberUserIds.length === 0) {
+                <span class="text-muted">Select users…</span>
+              } @else {
+                <div class="ws-multi-select__tags">
+                  @for (id of selectedMemberUserIds; track id) {
+                    <span class="ws-multi-select__tag">
+                      {{ getUserDisplayName(id) }}
+                      <button type="button" class="ws-multi-select__tag-remove"
+                              (click)="toggle(selectedMemberUserIds, id); $event.stopPropagation()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+            @if (memberDropdownOpen) {
+              <div class="ws-multi-select__dropdown">
+                <input type="text" class="form-control form-control-sm ws-multi-select__search"
+                       placeholder="Search users…" [(ngModel)]="memberSearchTerm"
+                       (click)="$event.stopPropagation()" />
+                <div class="ws-multi-select__options">
+                  @for (u of filteredMembers; track u.id) {
+                    <label class="ws-multi-select__option" (click)="$event.stopPropagation()">
+                      <input type="checkbox"
+                             [checked]="selectedMemberUserIds.includes(u.id)"
+                             (change)="toggle(selectedMemberUserIds, u.id)" />
+                      <span class="ws-multi-select__avatar">{{ u.displayName.charAt(0).toUpperCase() }}</span>
+                      <div class="d-flex flex-column">
+                        <span>{{ u.displayName }}</span>
+                        @if (u.email || u.orgUnitName) {
+                          <small class="text-muted">{{ u.email || '—' }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}</small>
+                        }
+                      </div>
+                    </label>
+                  }
+                  @if (filteredMembers.length === 0) {
+                    <div class="text-muted small px-3 py-2">No users found.</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <button class="btn btn-primary btn-sm"
+                  (click)="onAddMembers(); $event.stopPropagation()"
+                  [disabled]="selectedMemberUserIds.length === 0 || isAddingMember">
+            @if (isAddingMember) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            <i class="bi bi-plus-circle me-1"></i>Add
+          </button>
+        </div>
+
+        <!-- ── Bulk: add all active users from an org unit ────────────── -->
+        <div class="ws-inline-form mt-2">
+          <select class="form-select form-select-sm"
+                  [(ngModel)]="selectedOrgUnitForBulk"
+                  [disabled]="isAddingFromOrgUnit">
+            <option value="">Select an org unit…</option>
+            @for (o of orgUnitOptions; track o.id) {
+              <option [value]="o.id">{{ orgUnitOptionLabel(o) }}</option>
+            }
+          </select>
+          <button class="btn btn-outline-primary btn-sm"
+                  (click)="onAddMembersFromOrgUnit(); $event.stopPropagation()"
+                  [disabled]="!selectedOrgUnitForBulk || isAddingFromOrgUnit"
+                  title="Add every active user assigned to the selected org unit">
+            @if (isAddingFromOrgUnit) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            <i class="bi bi-people-fill me-1"></i>Add org unit users
+          </button>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+          Bulk-adds every active user assigned to the selected org unit. Existing members are skipped.
+        </p>
+      }
+
+      @if (workspace.members.length > 0) {
+        <div class="ws-people-grid">
+          @for (m of workspace.members; track m.userId) {
+            <div class="ws-person-card">
+              <div class="ws-person-avatar">{{ m.userName.charAt(0).toUpperCase() || '?' }}</div>
+              <div class="ws-person-info">
+                <span class="ws-person-name">{{ m.userName }}</span>
+                <span class="ws-person-detail"><i class="bi bi-envelope me-1"></i>{{ m.email || '—' }}</span>
+                <span class="ws-person-detail"><i class="bi bi-building me-1"></i>{{ m.orgUnitName || '—' }}</span>
+              </div>
+              @if (canManage) {
+                <button class="btn btn-outline-danger btn-sm" (click)="onRemoveMember(m)" title="Remove member">
+                  <i class="bi bi-person-dash"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="ws-empty">No members assigned.</div>
+      }
+    </section>
+
+    <!-- ── Project Managers ─────────────────────────────────────────────── -->
+    <section class="ws-section">
+      <div class="ws-section__header">
+        <h5>
+          <i class="bi bi-person-badge-fill text-primary me-2"></i>Project Managers
+          <span class="badge bg-secondary ms-2">{{ workspace.projectManagers.length }}</span>
+        </h5>
+        <p class="text-muted small mb-0">
+          Only users on this list can be selected as Project Manager when creating projects in this workspace.
+        </p>
+      </div>
+
+      @if (canManage) {
+        <div class="ws-inline-form">
+          <div class="ws-multi-select" (click)="pmDropdownOpen = !pmDropdownOpen; $event.stopPropagation()">
+            <div class="ws-multi-select__control form-select form-select-sm">
+              @if (selectedPmUserIds.length === 0) {
+                <span class="text-muted">Select users…</span>
+              } @else {
+                <div class="ws-multi-select__tags">
+                  @for (id of selectedPmUserIds; track id) {
+                    <span class="ws-multi-select__tag">
+                      {{ getUserDisplayName(id) }}
+                      <button type="button" class="ws-multi-select__tag-remove"
+                              (click)="toggle(selectedPmUserIds, id); $event.stopPropagation()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+            @if (pmDropdownOpen) {
+              <div class="ws-multi-select__dropdown">
+                <input type="text" class="form-control form-control-sm ws-multi-select__search"
+                       placeholder="Search users…" [(ngModel)]="pmSearchTerm"
+                       (click)="$event.stopPropagation()" />
+                <div class="ws-multi-select__options">
+                  @for (u of filteredPms; track u.id) {
+                    <label class="ws-multi-select__option" (click)="$event.stopPropagation()">
+                      <input type="checkbox"
+                             [checked]="selectedPmUserIds.includes(u.id)"
+                             (change)="toggle(selectedPmUserIds, u.id)" />
+                      <span class="ws-multi-select__avatar">{{ u.displayName.charAt(0).toUpperCase() }}</span>
+                      <div class="d-flex flex-column">
+                        <span>{{ u.displayName }}</span>
+                        @if (u.email || u.orgUnitName) {
+                          <small class="text-muted">{{ u.email || '—' }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}</small>
+                        }
+                      </div>
+                    </label>
+                  }
+                  @if (filteredPms.length === 0) {
+                    <div class="text-muted small px-3 py-2">No users found.</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <button class="btn btn-primary btn-sm"
+                  (click)="onAddProjectManagers(); $event.stopPropagation()"
+                  [disabled]="selectedPmUserIds.length === 0 || isAddingPm">
+            @if (isAddingPm) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            <i class="bi bi-plus-circle me-1"></i>Add
+          </button>
+        </div>
+      }
+
+      @if (workspace.projectManagers.length > 0) {
+        <div class="ws-people-grid">
+          @for (pm of workspace.projectManagers; track pm.userId) {
+            <div class="ws-person-card">
+              <div class="ws-person-avatar">{{ pm.userName.charAt(0).toUpperCase() || '?' }}</div>
+              <div class="ws-person-info">
+                <span class="ws-person-name">{{ pm.userName }}</span>
+                <span class="ws-person-detail"><i class="bi bi-envelope me-1"></i>{{ pm.email || '—' }}</span>
+                <span class="ws-person-detail"><i class="bi bi-building me-1"></i>{{ pm.orgUnitName || '—' }}</span>
+              </div>
+              @if (canManage) {
+                <button class="btn btn-outline-danger btn-sm" (click)="onRemoveProjectManager(pm)" title="Remove PM">
+                  <i class="bi bi-person-dash"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="ws-empty">No project managers assigned. Projects cannot be created until at least one PM is added.</div>
+      }
+    </section>
+
+    <!-- ── Strategic Project Approvers (ordered chain) ──────────────────── -->
+    <section class="ws-section">
+      <div class="ws-section__header">
+        <h5>
+          <i class="bi bi-list-ol text-primary me-2"></i>Strategic Project Approvers
+          <span class="badge bg-secondary ms-2">{{ workspace.strategicProjectApprovers.length }}</span>
+        </h5>
+        <p class="text-muted small mb-0">
+          Sequential approval chain for strategic projects. Each strategic submission routes to level 1
+          first, then advances on each approval until the final level. Use the arrows to reorder.
+          Operational projects bypass this — the PM has full authority.
+        </p>
+      </div>
+
+      @if (canManage) {
+        <div class="ws-inline-form">
+          <div class="ws-multi-select" (click)="approverDropdownOpen = !approverDropdownOpen; $event.stopPropagation()">
+            <div class="ws-multi-select__control form-select form-select-sm">
+              @if (selectedApproverUserIds.length === 0) {
+                <span class="text-muted">Select users to append…</span>
+              } @else {
+                <div class="ws-multi-select__tags">
+                  @for (id of selectedApproverUserIds; track id) {
+                    <span class="ws-multi-select__tag">
+                      {{ getUserDisplayName(id) }}
+                      <button type="button" class="ws-multi-select__tag-remove"
+                              (click)="toggle(selectedApproverUserIds, id); $event.stopPropagation()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+            @if (approverDropdownOpen) {
+              <div class="ws-multi-select__dropdown">
+                <input type="text" class="form-control form-control-sm ws-multi-select__search"
+                       placeholder="Search users…" [(ngModel)]="approverSearchTerm"
+                       (click)="$event.stopPropagation()" />
+                <div class="ws-multi-select__options">
+                  @for (u of filteredApprovers; track u.id) {
+                    <label class="ws-multi-select__option" (click)="$event.stopPropagation()">
+                      <input type="checkbox"
+                             [checked]="selectedApproverUserIds.includes(u.id)"
+                             (change)="toggle(selectedApproverUserIds, u.id)" />
+                      <span class="ws-multi-select__avatar">{{ u.displayName.charAt(0).toUpperCase() }}</span>
+                      <div class="d-flex flex-column">
+                        <span>{{ u.displayName }}</span>
+                        @if (u.email || u.orgUnitName) {
+                          <small class="text-muted">{{ u.email || '—' }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}</small>
+                        }
+                      </div>
+                    </label>
+                  }
+                  @if (filteredApprovers.length === 0) {
+                    <div class="text-muted small px-3 py-2">No users found.</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <button class="btn btn-primary btn-sm"
+                  (click)="onAddStrategicApprovers(); $event.stopPropagation()"
+                  [disabled]="selectedApproverUserIds.length === 0 || isAddingApprover">
+            @if (isAddingApprover) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            <i class="bi bi-plus-circle me-1"></i>Append to chain
+          </button>
+        </div>
+      }
+
+      @if (workspace.strategicProjectApprovers.length > 0) {
+        <ol class="ws-chain">
+          @for (a of workspace.strategicProjectApprovers; track a.userId; let i = $index) {
+            <li class="ws-chain__item">
+              <span class="ws-chain__level">{{ a.order }}</span>
+              <div class="ws-person-avatar">{{ a.userName.charAt(0).toUpperCase() || '?' }}</div>
+              <div class="ws-person-info">
+                <span class="ws-person-name">{{ a.userName }}</span>
+                <span class="ws-person-detail"><i class="bi bi-envelope me-1"></i>{{ a.email || '—' }}</span>
+                <span class="ws-person-detail"><i class="bi bi-building me-1"></i>{{ a.orgUnitName || '—' }}</span>
+              </div>
+              @if (canManage) {
+                <div class="ws-chain__actions">
+                  <button class="btn btn-outline-secondary btn-sm" (click)="moveApproverUp(i)"
+                          [disabled]="i === 0 || isReorderingApprovers" title="Move up">
+                    <i class="bi bi-arrow-up"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm" (click)="moveApproverDown(i)"
+                          [disabled]="i === workspace.strategicProjectApprovers.length - 1 || isReorderingApprovers"
+                          title="Move down">
+                    <i class="bi bi-arrow-down"></i>
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm" (click)="onRemoveStrategicApprover(a)" title="Remove approver">
+                    <i class="bi bi-person-dash"></i>
+                  </button>
+                </div>
+              }
+            </li>
+          }
+        </ol>
+      } @else {
+        <div class="ws-empty">
+          No approver chain configured. Strategic projects in this workspace cannot be submitted for approval until
+          you add at least one approver.
+        </div>
+      }
+    </section>
+
+  }
+</div>

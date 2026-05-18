@@ -32,6 +32,12 @@ public class WorkspaceResponseDto
     /// <summary>Regular members assigned to this workspace.</summary>
     public List<WorkspaceMemberDto> Members { get; set; } = new();
 
+    /// <summary>Users eligible to be selected as Project Manager in this workspace.</summary>
+    public List<WorkspaceProjectManagerDto> ProjectManagers { get; set; } = new();
+
+    /// <summary>Ordered approval chain for strategic projects in this workspace.</summary>
+    public List<WorkspaceStrategicProjectApproverDto> StrategicProjectApprovers { get; set; } = new();
+
     /// <summary>Whether the workspace is currently active.</summary>
     public bool IsActive { get; set; }
 

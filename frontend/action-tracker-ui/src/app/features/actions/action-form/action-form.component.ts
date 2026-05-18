@@ -138,15 +138,14 @@ export class ActionFormComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
-    this.actionSvc.getAssignableUsers().subscribe({
-      next: r => this.teamMembers.set(r.data ?? []),
-      error: () => {},
-    });
-
     this.workspaceSvc.getWorkspaces().subscribe({
       next: r => this.workspaces.set((r.data ?? []).filter(w => w.isActive)),
       error: () => {},
     });
+
+    this.form.get('workspaceId')!.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((wsId: string) => this.onWorkspaceChange(wsId));
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -155,6 +154,43 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     }
 
     this.wireValueChanges();
+  }
+
+  private onWorkspaceChange(workspaceId: string): void {
+    if (!workspaceId) {
+      this.teamMembers.set([]);
+      this.form.get('assigneeIds')!.setValue([]);
+      return;
+    }
+
+    this.workspaceSvc.getAssignableUsers(workspaceId).subscribe({
+      next: r => {
+        const list = [...(r.data ?? [])];
+        // Edit mode: keep already-selected assignees visible even if they're
+        // no longer in the workspace's people lists.
+        const item = this.editItem();
+        if (item) {
+          const knownIds = new Set(list.map(u => u.userId));
+          for (const a of item.assignees) {
+            if (!knownIds.has(a.userId)) {
+              list.push({ userId: a.userId, userName: a.fullName, email: a.email, sources: [] });
+            }
+          }
+        }
+        this.teamMembers.set(list);
+
+        // Drop any selected assignees that no longer qualify for the new workspace.
+        const validIds = new Set(list.map(u => u.userId));
+        const ctrl = this.form.get('assigneeIds')!;
+        const current: string[] = ctrl.value ?? [];
+        const filtered = current.filter(id => validIds.has(id));
+        if (filtered.length < current.length) {
+          ctrl.setValue(filtered);
+          this.toastSvc.info('Assignees were cleared because the workspace changed — please select new assignees.');
+        }
+      },
+      error: () => this.teamMembers.set([]),
+    });
   }
 
   ngOnDestroy(): void {

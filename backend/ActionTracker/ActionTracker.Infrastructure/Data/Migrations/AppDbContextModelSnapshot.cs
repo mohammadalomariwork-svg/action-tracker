@@ -1800,6 +1800,14 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWSEQUENTIALID()");
 
+                    b.Property<string>("AssignedReviewerDisplayName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("AssignedReviewerUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1809,6 +1817,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<int>("Level")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -1848,7 +1861,14 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("TotalLevels")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedReviewerUserId");
 
                     b.HasIndex("ProjectId")
                         .HasFilter("[IsDeleted] = 0");
@@ -2416,6 +2436,93 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("WorkspaceMembers", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceProjectManager", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("AddedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WorkspaceId");
+
+                    b.HasIndex("WorkspaceId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("WorkspaceProjectManagers", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceStrategicProjectApprover", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("AddedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkspaceId");
+
+                    b.HasIndex("WorkspaceId", "Order");
+
+                    b.HasIndex("WorkspaceId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("WorkspaceStrategicProjectApprovers", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -2890,6 +2997,28 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Workspace");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceProjectManager", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
+                        .WithMany("ProjectManagers")
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceStrategicProjectApprover", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
+                        .WithMany("StrategicProjectApprovers")
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -2997,6 +3126,10 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Admins");
 
                     b.Navigation("Members");
+
+                    b.Navigation("ProjectManagers");
+
+                    b.Navigation("StrategicProjectApprovers");
                 });
 #pragma warning restore 612, 618
         }

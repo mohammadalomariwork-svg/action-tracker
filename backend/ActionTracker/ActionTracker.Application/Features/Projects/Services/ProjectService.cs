@@ -168,6 +168,18 @@ public class ProjectService : IProjectService
         if (dto.SponsorUserIds.Count == 0)
             throw new ArgumentException("At least one sponsor is required.");
 
+        // Gate: PM must be on the workspace's project-manager list.
+        if (string.IsNullOrWhiteSpace(dto.ProjectManagerUserId))
+            throw new ArgumentException("Project manager is required.");
+
+        var pmAllowed = await _db.WorkspaceProjectManagers
+            .AnyAsync(p => p.WorkspaceId == dto.WorkspaceId
+                        && p.UserId      == dto.ProjectManagerUserId, ct);
+        if (!pmAllowed)
+            throw new ArgumentException(
+                "The selected user is not on this workspace's Project Managers list. " +
+                "Add them on the workspace settings page first.");
+
         // Generate project code: PRJ-{year}-{sequence}
         var year = DateTime.UtcNow.Year;
         var count = await _db.Projects
@@ -296,6 +308,21 @@ public class ProjectService : IProjectService
 
         if (dto.SponsorUserIds.Count == 0)
             throw new ArgumentException("At least one sponsor is required.");
+
+        // Gate: PM must be on the workspace's project-manager list (only when it changes).
+        if (string.IsNullOrWhiteSpace(dto.ProjectManagerUserId))
+            throw new ArgumentException("Project manager is required.");
+
+        if (dto.ProjectManagerUserId != project.ProjectManagerUserId)
+        {
+            var pmAllowed = await _db.WorkspaceProjectManagers
+                .AnyAsync(p => p.WorkspaceId == project.WorkspaceId
+                            && p.UserId      == dto.ProjectManagerUserId, ct);
+            if (!pmAllowed)
+                throw new ArgumentException(
+                    "The selected user is not on this workspace's Project Managers list. " +
+                    "Add them on the workspace settings page first.");
+        }
 
         // Block status changes from PendingApproval via normal update — only workflow review can do that
         if (project.Status == ProjectStatus.PendingApproval && dto.Status != ProjectStatus.PendingApproval)

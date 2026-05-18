@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import { ProjectService } from '../../services/project.service';
 import { MilestoneService } from '../../services/milestone.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
+import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ProjectWorkflowService } from '../../../../services/project-workflow.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -60,6 +61,7 @@ export class ProjectDetailComponent implements OnInit {
   private readonly projectService     = inject(ProjectService);
   private readonly milestoneService   = inject(MilestoneService);
   private readonly actionService      = inject(ActionItemService);
+  private readonly workspaceSvc       = inject(WorkspaceService);
   private readonly workflowService    = inject(ProjectWorkflowService);
   private readonly authService        = inject(AuthService);
   private readonly route              = inject(ActivatedRoute);
@@ -145,7 +147,6 @@ export class ProjectDetailComponent implements OnInit {
     this.projectId = this.route.snapshot.paramMap.get('id')!;
     this.loadProject();
     this.loadStats();
-    this.loadUsers();
     this.loadApprovalRequests();
     this.loadCanReview();
     this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(u => {
@@ -164,6 +165,9 @@ export class ProjectDetailComponent implements OnInit {
         next: (res) => {
           this.project = res.data ?? null;
           this.isLoading = false;
+          if (this.project?.workspaceId) {
+            this.loadUsers(this.project.workspaceId);
+          }
         },
         error: (err) => {
           this.errorMessage = err?.error?.message ?? 'Failed to load project details.';
@@ -181,12 +185,12 @@ export class ProjectDetailComponent implements OnInit {
       });
   }
 
-  private loadUsers(): void {
-    this.projectService.getAssignableUsers()
+  private loadUsers(workspaceId: string): void {
+    this.workspaceSvc.getAssignableUsers(workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => { this.allUsers = res.data ?? []; },
-        error: () => {},
+        error: () => { this.allUsers = []; },
       });
   }
 
@@ -542,7 +546,7 @@ export class ProjectDetailComponent implements OnInit {
   get filteredSponsorUsers(): AssignableUser[] {
     if (!this.sponsorSearchTerm.trim()) return this.allUsers;
     const term = this.sponsorSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.fullName.toLowerCase().includes(term));
+    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
   }
 
   toggleSponsor(userId: string): void {
@@ -556,7 +560,7 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   getSponsorName(userId: string): string {
-    return this.allUsers.find(u => u.id === userId)?.fullName ?? userId;
+    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   // ── Gantt ───────────────────────────────────────────────

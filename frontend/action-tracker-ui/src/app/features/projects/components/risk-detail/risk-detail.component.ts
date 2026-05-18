@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ProjectRiskService } from '../../../../services/project-risk.service';
+import { ProjectService } from '../../services/project.service';
 import { ProjectRisk } from '../../../../models/project-risk.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { PermissionStateService } from '../../../permissions/services/permission-state.service';
@@ -41,6 +42,7 @@ export class RiskDetailComponent implements OnInit {
   private readonly route       = inject(ActivatedRoute);
   private readonly router      = inject(Router);
   private readonly riskService = inject(ProjectRiskService);
+  private readonly projectSvc  = inject(ProjectService);
   private readonly toast       = inject(ToastService);
   private readonly permState   = inject(PermissionStateService);
 
@@ -50,6 +52,7 @@ export class RiskDetailComponent implements OnInit {
   showEdit   = signal(false);
 
   projectId = '';
+  workspaceId = '';
   riskId    = '';
 
   breadcrumbs: BreadcrumbItem[] = [];
@@ -61,6 +64,11 @@ export class RiskDetailComponent implements OnInit {
     this.projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
     this.riskId    = this.route.snapshot.paramMap.get('riskId') ?? '';
     this.loadRisk();
+    if (this.projectId) {
+      this.projectSvc.getById(this.projectId).subscribe({
+        next: res => { if (res.success) this.workspaceId = res.data.workspaceId; },
+      });
+    }
   }
 
   get canEdit(): boolean {

@@ -54,7 +54,7 @@ const NAV_LINKS: NavLink[] = [
     label: 'Team Actions',
     icon: 'bi-people',
     path: '/management',
-    visibleWhen: { area: 'Action Items', action: 'View' },
+    visibleWhen: { area: 'ManagementDashboard', action: 'View' },
     alsoActivePrefixes: ['/projects/new', '/projects/edit', '/action-items'],
   },
   {

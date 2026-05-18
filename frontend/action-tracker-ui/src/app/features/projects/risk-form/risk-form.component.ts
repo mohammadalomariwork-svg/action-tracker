@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { ProjectRiskService } from '../../../services/project-risk.service';
-import { ActionItemService } from '../../../core/services/action-item.service';
+import { WorkspaceService } from '../../workspaces/services/workspace.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ProjectRisk, RISK_CATEGORIES, RISK_STATUSES } from '../../../models/project-risk.model';
 import { AssignableUser } from '../../../core/models/action-item.model';
@@ -47,15 +47,16 @@ interface RiskForm {
 })
 export class RiskFormComponent implements OnInit {
   @Input({ required: true }) projectId!: string;
+  @Input({ required: true }) workspaceId!: string;
   @Input() risk: ProjectRisk | null = null;
 
   saved = output<ProjectRisk>();
   cancelled = output<void>();
 
-  private readonly fb          = inject(FormBuilder);
-  private readonly riskService = inject(ProjectRiskService);
-  private readonly userService = inject(ActionItemService);
-  private readonly toast       = inject(ToastService);
+  private readonly fb           = inject(FormBuilder);
+  private readonly riskService  = inject(ProjectRiskService);
+  private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly toast        = inject(ToastService);
 
   readonly categories  = RISK_CATEGORIES;
   readonly statuses    = RISK_STATUSES;
@@ -97,9 +98,11 @@ export class RiskFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.userService.getAssignableUsers().subscribe({
-      next: res => { if (res.success) this.users.set(res.data); },
-    });
+    if (this.workspaceId) {
+      this.workspaceSvc.getAssignableUsers(this.workspaceId).subscribe({
+        next: res => { if (res.success) this.users.set(res.data); },
+      });
+    }
 
     if (this.risk) {
       this.form.patchValue({

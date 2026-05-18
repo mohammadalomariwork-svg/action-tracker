@@ -12,6 +12,7 @@ import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ProjectService } from '../../services/project.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
+import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import {
   MilestoneResponse,
   MilestoneCreate,
@@ -43,6 +44,7 @@ export class MilestoneSectionComponent implements OnInit {
   private readonly projectSvc         = inject(ProjectService);
   private readonly toastSvc           = inject(ToastService);
   private readonly actionItemSvc      = inject(ActionItemService);
+  private readonly workspaceSvc       = inject(WorkspaceService);
 
   readonly isProjectFrozen = computed(() => this.projectStatus() !== 'draft');
 
@@ -148,9 +150,14 @@ export class MilestoneSectionComponent implements OnInit {
   }
 
   private loadUsers(): void {
-    this.projectSvc.getAssignableUsers().subscribe({
+    const wsId = this.workspaceId();
+    if (!wsId) {
+      this.users.set([]);
+      return;
+    }
+    this.workspaceSvc.getAssignableUsers(wsId).subscribe({
       next: r => this.users.set(r.data ?? []),
-      error: () => {},
+      error: () => this.users.set([]),
     });
   }
 
@@ -537,7 +544,7 @@ export class MilestoneSectionComponent implements OnInit {
   get filteredActionAssignees(): AssignableUser[] {
     if (!this.actionAssigneeSearchTerm.trim()) return this.users();
     const term = this.actionAssigneeSearchTerm.toLowerCase();
-    return this.users().filter(u => u.fullName.toLowerCase().includes(term));
+    return this.users().filter(u => u.userName.toLowerCase().includes(term));
   }
 
   isActionAssigneeSelected(userId: string): boolean {
@@ -554,7 +561,7 @@ export class MilestoneSectionComponent implements OnInit {
   }
 
   getActionAssigneeName(userId: string): string {
-    return this.users().find(u => u.id === userId)?.fullName ?? userId;
+    return this.users().find(u => u.userId === userId)?.userName ?? userId;
   }
 
   submitActionForm(): void {

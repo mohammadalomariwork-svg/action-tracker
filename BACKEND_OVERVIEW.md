@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-05-13
+> Last updated: 2026-05-18 (workspace-scoped assignable-users for all assignment pickers; legacy `/api/action-items/assignable-users` removed)
 
 ## Tech Stack
 
@@ -106,7 +106,6 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/my-actions` | Items assigned to current user |
 | GET | `/created-by-me` | Items created by current user |
 | GET | `/my-stats` | Stats for user's assigned items (total, critical, in-progress, completed, overdue) |
-| GET | `/assignable-users` | Users available for assignment dropdown |
 | GET | `/{id}` | Single action item by GUID |
 | POST | `/` | Create action item (auto-generates ActionId ACT-001) |
 | PUT | `/{id}` | Update action item |
@@ -132,9 +131,18 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/org-units` | Org units for dropdown |
 | GET | `/active-users` | Active users for the workspace admin picker — returns `{Id, DisplayName, Email, OrgUnitName}` (searchable across name, email, and org unit) |
 | GET | `/strategic-plans` | Strategic plans for the workspace strategy dropdown |
+| GET | `/{id}/assignable-users` | Active users eligible to be picked as action-item assignees in this workspace — union of admins, members, and project managers. Used by every workspace-context form that selects users (action-item, project, milestone, risk). Returns `AssignableUserDto[]` (`{ userId, userName, email, orgUnitName, sources[] }`) where `sources` is any of `"Admin" | "Member" | "ProjectManager"`. Sorted server-side by `userName`. |
 | GET | `/{id}/members` | Regular (non-admin) members of a workspace |
 | POST | `/{id}/members` | Add a regular member to a workspace (gated by `Workspaces.Edit`) |
 | DELETE | `/{id}/members/{userId}` | Remove a regular member from a workspace |
+| POST | `/{id}/members/from-org-unit` | Bulk-add every active user assigned to the given org unit (body `{ orgUnitId }`) as workspace members. Already-existing members are silently skipped. Returns `{ added, skippedAlreadyMembers, totalUsersInOrgUnit }`. Permission: `Workspaces.Edit` |
+| GET | `/{id}/project-managers` | Users eligible to be picked as Project Manager in this workspace |
+| POST | `/{id}/project-managers` | Add a user to the workspace's PM list (gated by `Workspaces.Edit`). Side effect: auto-grants the user the `Project Manager` role if they don't already have it |
+| DELETE | `/{id}/project-managers/{userId}` | Remove a user from the workspace's PM list |
+| GET | `/{id}/strategic-project-approvers` | Ordered approval chain for strategic projects in this workspace |
+| POST | `/{id}/strategic-project-approvers` | Append a user to the chain (gated by `Workspaces.Edit`) |
+| DELETE | `/{id}/strategic-project-approvers/{userId}` | Remove an approver; remaining entries re-densify their `Order` |
+| PUT | `/{id}/strategic-project-approvers/reorder` | Replace the chain in the given UserId order (must list every existing approver) |
 | PUT | `/{id}/strategy` | Link or unlink a strategic plan (`{ strategicPlanId: Guid? }`, gated by `Workspaces.Edit`) |
 | DELETE | `/{id}` | Soft delete (sets IsActive=false) |
 | PATCH | `/{id}/restore` | Restore deleted workspace |
@@ -249,6 +257,9 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | PUT | `/{id}/head` | Assign or replace the org unit head — body `{ userId }`. Permission: `OrgChart.AssignHead` |
 | DELETE | `/{id}/head` | Clear the org unit head |
 | GET | `/{id}/plan-approver` | Resolves the level-3 ancestor's head (`IApprovalAuthorityResolver`) — used by the frontend to preview who will receive the approval request |
+| GET | `/{id}/users` | List users currently assigned to this org unit (id, full name, email, roles, isActive). Permission: `OrgChart.View` |
+
+
 
 ### PermissionCatalogController (`/api/permission-catalog`)
 | Method | Endpoint | Description |
@@ -534,7 +545,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | OrgUnitId | Guid? (FK) | Org unit for access scoping |
 | StrategicPlanId | Guid? (FK) | Optional linked strategic plan — drives the strategic objectives available to projects in this workspace |
 | IsActive | bool | Active flag (default true) |
-| **Nav:** | | Admins (WorkspaceAdmin), Members (WorkspaceMember), Projects, ActionItems |
+| **Nav:** | | Admins (WorkspaceAdmin), Members (WorkspaceMember), ProjectManagers (WorkspaceProjectManager), StrategicProjectApprovers (WorkspaceStrategicProjectApprover), Projects, ActionItems |
 
 #### WorkspaceMember (join table for direct user assignment)
 | Field | Type | Description |
@@ -546,6 +557,30 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | AddedAt | DateTime | When the user was added (UTC) |
 | AddedByUserId | string(450)? | The actor who added the member |
 | **Unique index:** | | (WorkspaceId, UserId) — a user can be a member at most once per workspace |
+
+#### WorkspaceProjectManager (workspace-scoped whitelist of eligible PMs)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | int (PK) | Identity |
+| WorkspaceId | Guid (FK) | Parent workspace (cascade delete) |
+| UserId | string(450) | AspNetUsers.Id of the eligible PM |
+| UserName | string(256) | Denormalized display name |
+| AddedAt | DateTime | When the user was added (UTC) |
+| AddedByUserId | string(450)? | The actor who added the PM |
+| **Unique index:** | | (WorkspaceId, UserId) |
+
+#### WorkspaceStrategicProjectApprover (sequential approval chain for strategic projects)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | int (PK) | Identity |
+| WorkspaceId | Guid (FK) | Parent workspace (cascade delete) |
+| UserId | string(450) | AspNetUsers.Id of the approver |
+| UserName | string(256) | Denormalized display name |
+| Order | int | 1-based position in the chain (dense — gaps are re-densified on remove) |
+| AddedAt | DateTime | When the approver was added (UTC) |
+| AddedByUserId | string(450)? | The actor who added the approver |
+| **Unique index:** | | (WorkspaceId, UserId) |
+| **Index:** | | (WorkspaceId, Order) |
 
 #### OrgUnit
 | Field | Type | Description |
@@ -735,11 +770,13 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | ActionItemComment | Action-item-specific comments |
 | ActionItemEscalation | Escalation tracking for overdue items |
 | ActionItemWorkflowRequest | Date change and status change approval requests (pending/approved/rejected) |
-| ProjectApprovalRequest | Project start-approval requests (pending/approved/rejected) |
+| ProjectApprovalRequest | Project start-approval requests — `Status` (Pending/Approved/Rejected) plus `AssignedReviewerUserId`/`Level`/`TotalLevels` for the workspace-chain sequential workflow. Strategic projects: one Pending row at level 1, advances on each Approve. Operational projects: one self-approved row stamped "Auto-approved: operational project (PM authority)" with `Level=TotalLevels=1`. |
 | StrategicPlanApprovalRequest | Strategic plan approval requests — `RequestType` (Initial/Revision), `Status` (Pending/Approved/Rejected), `AssignedReviewerUserId`, `ReviewedByUserId`, `Justification`, `ReviewerComment`. Cascade delete from `StrategicPlan` (CR-001-D / CR-001-E) |
 | ProjectSponsor | Sponsors linked to projects |
 | WorkspaceAdmin | Admin users per workspace |
 | WorkspaceMember | Regular (non-admin) members assigned to a workspace; drives `IWorkspaceAccessResolver` for read access to projects/action items |
+| WorkspaceProjectManager | Workspace-scoped whitelist of users eligible to be picked as Project Manager for projects in that workspace. Project create/edit is rejected when the chosen PM isn't on this list. |
+| WorkspaceStrategicProjectApprover | Sequential approval chain for strategic projects in a workspace. 1-based `Order`, dense (re-densified on remove). Mirrors `StrategicPlanApprover`. |
 | RefreshToken | JWT refresh token storage with rotation |
 | KuEmployeeInfo | KU employee directory integration |
 

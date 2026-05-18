@@ -55,7 +55,7 @@ export const routes: Routes = [
       {
         path: 'management',
         canActivate: [permissionGuard],
-        data: { requiredArea: 'ActionItems', requiredAction: 'View' },
+        data: { requiredArea: 'ManagementDashboard', requiredAction: 'View' },
         loadComponent: () =>
           import('./features/management/management-dashboard/management-dashboard.component').then(
             m => m.ManagementDashboardComponent

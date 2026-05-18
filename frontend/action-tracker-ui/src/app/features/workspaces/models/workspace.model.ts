@@ -29,6 +29,31 @@ export interface WorkspaceMember {
 }
 
 /**
+ * A user eligible to be selected as Project Manager in a workspace.
+ * Drives the PM dropdown on the project create/edit form.
+ */
+export interface WorkspaceProjectManager {
+  userId: string;
+  userName: string;
+  email: string;
+  orgUnitName: string;
+  addedAt: string;
+}
+
+/**
+ * One entry in a workspace's sequential strategic-project approver chain.
+ */
+export interface WorkspaceStrategicProjectApprover {
+  userId: string;
+  userName: string;
+  email: string;
+  orgUnitName: string;
+  /** 1-based position in the chain. */
+  order: number;
+  addedAt: string;
+}
+
+/**
  * Full workspace representation returned from GET /api/workspaces/{id}.
  */
 export interface Workspace {
@@ -48,6 +73,10 @@ export interface Workspace {
   admins: WorkspaceAdmin[];
   /** Regular members assigned to this workspace. */
   members: WorkspaceMember[];
+  /** Users eligible to be picked as Project Manager in this workspace. */
+  projectManagers: WorkspaceProjectManager[];
+  /** Sequential approver chain for strategic projects in this workspace. */
+  strategicProjectApprovers: WorkspaceStrategicProjectApprover[];
   /** Whether the workspace is currently active. */
   isActive: boolean;
   /** UTC timestamp when the workspace was created. */
@@ -160,6 +189,30 @@ export interface StrategicPlanDropdownItem {
 export interface AddWorkspaceMember {
   userId: string;
   userName: string;
+}
+
+/** Server response for POST /api/workspaces/{id}/members/from-org-unit. */
+export interface AddMembersFromOrgUnitResult {
+  added: WorkspaceMember[];
+  skippedAlreadyMembers: number;
+  totalUsersInOrgUnit: number;
+}
+
+/** Payload for POST /api/workspaces/{id}/project-managers. */
+export interface AddWorkspaceProjectManager {
+  userId: string;
+  userName: string;
+}
+
+/** Payload for POST /api/workspaces/{id}/strategic-project-approvers. */
+export interface AddWorkspaceStrategicProjectApprover {
+  userId: string;
+  userName: string;
+}
+
+/** Payload for PUT /api/workspaces/{id}/strategic-project-approvers/reorder. */
+export interface ReorderWorkspaceStrategicProjectApprovers {
+  userIds: string[];
 }
 
 /** Payload for PUT /api/workspaces/{id}/strategy. */

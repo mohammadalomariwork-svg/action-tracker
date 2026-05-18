@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/models/api-response.model';
+import { AssignableUser } from '../../../core/models/action-item.model';
 import {
   Workspace,
   WorkspaceList,
@@ -13,7 +14,13 @@ import {
   OrgUnitDropdownItem,
   UserDropdownItem,
   WorkspaceMember,
+  WorkspaceProjectManager,
+  WorkspaceStrategicProjectApprover,
   AddWorkspaceMember,
+  AddWorkspaceProjectManager,
+  AddWorkspaceStrategicProjectApprover,
+  AddMembersFromOrgUnitResult,
+  ReorderWorkspaceStrategicProjectApprovers,
   SetWorkspaceStrategy,
   StrategicPlanDropdownItem,
 } from '../models/workspace.model';
@@ -125,6 +132,16 @@ export class WorkspaceService {
     return this.http.get<ApiResponse<WorkspaceMember[]>>(`${this.apiUrl}/${workspaceId}/members`);
   }
 
+  /**
+   * Returns users eligible to be picked as action-item assignees in this
+   * workspace — i.e. workspace admins, regular members, and project managers.
+   * Used by the action-item create/edit form to scope the Assignee(s) picker.
+   */
+  getAssignableUsers(workspaceId: string): Observable<ApiResponse<AssignableUser[]>> {
+    return this.http.get<ApiResponse<AssignableUser[]>>(
+      `${this.apiUrl}/${workspaceId}/assignable-users`);
+  }
+
   addMember(workspaceId: string, payload: AddWorkspaceMember): Observable<ApiResponse<WorkspaceMember>> {
     return this.http.post<ApiResponse<WorkspaceMember>>(`${this.apiUrl}/${workspaceId}/members`, payload);
   }
@@ -132,6 +149,21 @@ export class WorkspaceService {
   removeMember(workspaceId: string, userId: string): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(
       `${this.apiUrl}/${workspaceId}/members/${encodeURIComponent(userId)}`
+    );
+  }
+
+  /**
+   * Bulk-adds every active user in the given org unit as a workspace member.
+   * Server-side: existing members are skipped silently and reported back in
+   * the result counters.
+   */
+  addMembersFromOrgUnit(
+    workspaceId: string,
+    orgUnitId: string,
+  ): Observable<ApiResponse<AddMembersFromOrgUnitResult>> {
+    return this.http.post<ApiResponse<AddMembersFromOrgUnitResult>>(
+      `${this.apiUrl}/${workspaceId}/members/from-org-unit`,
+      { orgUnitId }
     );
   }
 
@@ -143,5 +175,44 @@ export class WorkspaceService {
 
   setStrategy(workspaceId: string, payload: SetWorkspaceStrategy): Observable<ApiResponse<Workspace>> {
     return this.http.put<ApiResponse<Workspace>>(`${this.apiUrl}/${workspaceId}/strategy`, payload);
+  }
+
+  // ── Project Managers ───────────────────────────────────
+
+  getProjectManagers(workspaceId: string): Observable<ApiResponse<WorkspaceProjectManager[]>> {
+    return this.http.get<ApiResponse<WorkspaceProjectManager[]>>(
+      `${this.apiUrl}/${workspaceId}/project-managers`);
+  }
+
+  addProjectManager(workspaceId: string, payload: AddWorkspaceProjectManager): Observable<ApiResponse<WorkspaceProjectManager>> {
+    return this.http.post<ApiResponse<WorkspaceProjectManager>>(
+      `${this.apiUrl}/${workspaceId}/project-managers`, payload);
+  }
+
+  removeProjectManager(workspaceId: string, userId: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(
+      `${this.apiUrl}/${workspaceId}/project-managers/${encodeURIComponent(userId)}`);
+  }
+
+  // ── Strategic Project Approvers ────────────────────────
+
+  getStrategicProjectApprovers(workspaceId: string): Observable<ApiResponse<WorkspaceStrategicProjectApprover[]>> {
+    return this.http.get<ApiResponse<WorkspaceStrategicProjectApprover[]>>(
+      `${this.apiUrl}/${workspaceId}/strategic-project-approvers`);
+  }
+
+  addStrategicProjectApprover(workspaceId: string, payload: AddWorkspaceStrategicProjectApprover): Observable<ApiResponse<WorkspaceStrategicProjectApprover>> {
+    return this.http.post<ApiResponse<WorkspaceStrategicProjectApprover>>(
+      `${this.apiUrl}/${workspaceId}/strategic-project-approvers`, payload);
+  }
+
+  removeStrategicProjectApprover(workspaceId: string, userId: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(
+      `${this.apiUrl}/${workspaceId}/strategic-project-approvers/${encodeURIComponent(userId)}`);
+  }
+
+  reorderStrategicProjectApprovers(workspaceId: string, payload: ReorderWorkspaceStrategicProjectApprovers): Observable<ApiResponse<void>> {
+    return this.http.put<ApiResponse<void>>(
+      `${this.apiUrl}/${workspaceId}/strategic-project-approvers/reorder`, payload);
   }
 }

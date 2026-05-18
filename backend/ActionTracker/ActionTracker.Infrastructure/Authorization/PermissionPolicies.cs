@@ -112,4 +112,7 @@ public static class PermissionPolicies
     // ── Notifications ─────────────────────────────────────────────────────────
     public const string NotificationsView   = "Notifications.View";
     public const string NotificationsDelete = "Notifications.Delete";
+
+    // ── Management Dashboard (Team Actions page) ──────────────────────────────
+    public const string ManagementDashboardView = "ManagementDashboard.View";
 }

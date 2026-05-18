@@ -29,4 +29,16 @@ public class Workspace
     public ICollection<WorkspaceAdmin> Admins { get; set; } = new List<WorkspaceAdmin>();
 
     public ICollection<WorkspaceMember> Members { get; set; } = new List<WorkspaceMember>();
+
+    /// <summary>Users eligible to be picked as Project Manager in this workspace.</summary>
+    public ICollection<WorkspaceProjectManager> ProjectManagers { get; set; }
+        = new List<WorkspaceProjectManager>();
+
+    /// <summary>
+    /// Sequential chain of approvers for strategic projects in this workspace.
+    /// Operational projects bypass approval; only strategic projects consult
+    /// this chain.
+    /// </summary>
+    public ICollection<WorkspaceStrategicProjectApprover> StrategicProjectApprovers { get; set; }
+        = new List<WorkspaceStrategicProjectApprover>();
 }

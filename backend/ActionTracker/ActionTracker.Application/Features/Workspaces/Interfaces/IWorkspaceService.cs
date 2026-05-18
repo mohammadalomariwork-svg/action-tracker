@@ -1,4 +1,5 @@
 using System;
+using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 
 namespace ActionTracker.Application.Features.Workspaces.Interfaces;
@@ -106,8 +107,56 @@ public interface IWorkspaceService
     Task<bool> RemoveMemberAsync(Guid workspaceId, string userId);
 
     /// <summary>
+    /// Returns active users eligible to be assigned to an action item in the
+    /// given workspace. The set is the union of workspace admins, regular
+    /// members, and project managers — i.e. everyone with a direct seat in the
+    /// workspace. Used by the action-item create/edit form to scope the
+    /// Assignee(s) picker to workspace people instead of every user in the system.
+    /// </summary>
+    Task<IEnumerable<AssignableUserDto>> GetAssignableUsersAsync(Guid workspaceId);
+
+    /// <summary>
+    /// Bulk-adds every active user currently assigned to the given org unit
+    /// (ApplicationUser.OrgUnitId == orgUnitId) as a workspace member.
+    /// Users who are already members are silently skipped and reported in the
+    /// SkippedAlreadyMembers counter. Returns null if the workspace or org unit
+    /// does not exist.
+    /// </summary>
+    Task<AddMembersFromOrgUnitResultDto?> AddMembersFromOrgUnitAsync(
+        Guid workspaceId, Guid orgUnitId, string? addedByUserId);
+
+    /// <summary>
     /// Links or unlinks the strategic plan attached to a workspace.
     /// Returns the updated workspace, or <c>null</c> if not found.
     /// </summary>
     Task<WorkspaceResponseDto?> SetStrategyAsync(Guid workspaceId, Guid? strategicPlanId);
+
+    // ── Project Managers (gating list for project create/edit) ───────────────
+
+    Task<IEnumerable<WorkspaceProjectManagerDto>> GetProjectManagersAsync(Guid workspaceId);
+
+    Task<WorkspaceProjectManagerDto?> AddProjectManagerAsync(
+        Guid workspaceId, AddWorkspaceProjectManagerDto dto, string? addedByUserId);
+
+    Task<bool> RemoveProjectManagerAsync(Guid workspaceId, string userId);
+
+    /// <summary>Returns true if the user is on the workspace's project-manager list.</summary>
+    Task<bool> IsProjectManagerAsync(Guid workspaceId, string userId);
+
+    // ── Strategic Project Approvers (sequential chain) ───────────────────────
+
+    Task<IEnumerable<WorkspaceStrategicProjectApproverDto>> GetStrategicProjectApproversAsync(Guid workspaceId);
+
+    Task<WorkspaceStrategicProjectApproverDto?> AddStrategicProjectApproverAsync(
+        Guid workspaceId, AddWorkspaceStrategicProjectApproverDto dto, string? addedByUserId);
+
+    Task<bool> RemoveStrategicProjectApproverAsync(Guid workspaceId, string userId);
+
+    /// <summary>
+    /// Replaces the workspace's strategic-project approver chain in the order given.
+    /// Order is 1-based and dense. Returns false if the workspace does not exist or
+    /// if any of the UserIds is not currently an approver on this workspace.
+    /// </summary>
+    Task<bool> ReorderStrategicProjectApproversAsync(
+        Guid workspaceId, List<string> orderedUserIds);
 }

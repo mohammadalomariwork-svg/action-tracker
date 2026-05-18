@@ -4,7 +4,7 @@
   <a class="brand" routerLink="/dashboard">
     <img
       class="logo-full"
-      src="assets/images/logo-full-dark.svg"
+      [src]="isDark() ? 'assets/images/logo-full-dark.svg' : 'assets/images/logo-full-light.svg'"
       alt="Actions Center"
     />
   </a>
@@ -37,6 +37,17 @@
   <!-- ── Right side controls ───────────────────────────────── -->
   <div class="hdr-right">
     @if (currentUser$ | async; as user) {
+      <!-- Theme toggle -->
+      <button
+        type="button"
+        class="theme-toggle"
+        (click)="toggleTheme()"
+        [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+        [title]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
+        <i class="bi" [class.bi-sun]="isDark()" [class.bi-moon-stars]="!isDark()"></i>
+      </button>
+
       <!-- Notification bell -->
       <app-notification-bell />
 

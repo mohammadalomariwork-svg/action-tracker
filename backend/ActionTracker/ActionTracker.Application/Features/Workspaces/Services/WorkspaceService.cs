@@ -4,10 +4,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
+using ActionTracker.Application.RoleManagement.DTOs;
+using ActionTracker.Application.RoleManagement.Services;
+using ActionTracker.Domain.Constants;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +34,7 @@ public class WorkspaceService : IWorkspaceService
     private readonly INotificationService _notificationService;
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IRoleManagementService _roleManagementService;
 
     /// <summary>
     /// Initialises a new instance of <see cref="WorkspaceService"/>.
@@ -40,14 +45,16 @@ public class WorkspaceService : IWorkspaceService
         IEmailSender emailSender,
         INotificationService notificationService,
         IOptions<AppSettings> appSettings,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IRoleManagementService roleManagementService)
     {
-        _db                  = db;
-        _logger              = logger;
-        _emailSender         = emailSender;
-        _notificationService = notificationService;
-        _appSettings         = appSettings.Value;
-        _scopeFactory        = scopeFactory;
+        _db                     = db;
+        _logger                 = logger;
+        _emailSender            = emailSender;
+        _notificationService    = notificationService;
+        _appSettings            = appSettings.Value;
+        _scopeFactory           = scopeFactory;
+        _roleManagementService  = roleManagementService;
     }
 
     // -------------------------------------------------------------------------
@@ -280,6 +287,8 @@ public class WorkspaceService : IWorkspaceService
             var workspace = await _db.Workspaces
                 .Include(w => w.Admins)
                 .Include(w => w.Members)
+                .Include(w => w.ProjectManagers)
+                .Include(w => w.StrategicProjectApprovers)
                 .FirstOrDefaultAsync(w => w.Id == id);
 
             if (workspace is null) return null;
@@ -287,6 +296,8 @@ public class WorkspaceService : IWorkspaceService
             var dto = ToResponseDto(workspace);
             await EnrichAdminDtosAsync(dto.Admins);
             await EnrichMemberDtosAsync(dto.Members);
+            await EnrichProjectManagerDtosAsync(dto.ProjectManagers);
+            await EnrichStrategicApproverDtosAsync(dto.StrategicProjectApprovers);
 
             if (workspace.StrategicPlanId.HasValue)
             {
@@ -805,6 +816,24 @@ public class WorkspaceService : IWorkspaceService
                                 AddedAt  = m.AddedAt,
                             })
                             .ToList(),
+        ProjectManagers  = w.ProjectManagers
+                            .Select(p => new WorkspaceProjectManagerDto
+                            {
+                                UserId   = p.UserId,
+                                UserName = p.UserName,
+                                AddedAt  = p.AddedAt,
+                            })
+                            .ToList(),
+        StrategicProjectApprovers = w.StrategicProjectApprovers
+                            .OrderBy(a => a.Order)
+                            .Select(a => new WorkspaceStrategicProjectApproverDto
+                            {
+                                UserId   = a.UserId,
+                                UserName = a.UserName,
+                                Order    = a.Order,
+                                AddedAt  = a.AddedAt,
+                            })
+                            .ToList(),
         IsActive         = w.IsActive,
         CreatedAt        = w.CreatedAt,
         UpdatedAt        = w.UpdatedAt
@@ -890,11 +919,154 @@ public class WorkspaceService : IWorkspaceService
     }
 
     /// <inheritdoc />
+    public async Task<IEnumerable<AssignableUserDto>> GetAssignableUsersAsync(Guid workspaceId)
+    {
+        var adminIds = await _db.WorkspaceAdmins
+            .Where(a => a.WorkspaceId == workspaceId)
+            .Select(a => a.AdminUserId)
+            .ToListAsync();
+
+        var memberIds = await _db.WorkspaceMembers
+            .Where(m => m.WorkspaceId == workspaceId)
+            .Select(m => m.UserId)
+            .ToListAsync();
+
+        var pmIds = await _db.WorkspaceProjectManagers
+            .Where(p => p.WorkspaceId == workspaceId)
+            .Select(p => p.UserId)
+            .ToListAsync();
+
+        // Build userId → sources map so provenance survives the union.
+        var sourcesByUserId = new Dictionary<string, List<string>>();
+        foreach (var id in adminIds)
+            (sourcesByUserId.TryGetValue(id, out var l) ? l : (sourcesByUserId[id] = new List<string>())).Add("Admin");
+        foreach (var id in memberIds)
+            (sourcesByUserId.TryGetValue(id, out var l) ? l : (sourcesByUserId[id] = new List<string>())).Add("Member");
+        foreach (var id in pmIds)
+            (sourcesByUserId.TryGetValue(id, out var l) ? l : (sourcesByUserId[id] = new List<string>())).Add("ProjectManager");
+
+        if (sourcesByUserId.Count == 0)
+            return Array.Empty<AssignableUserDto>();
+
+        var allIds = sourcesByUserId.Keys.ToList();
+
+        var users = await _db.Users
+            .Where(u => allIds.Contains(u.Id) && u.IsActive)
+            .Select(u => new
+            {
+                u.Id,
+                u.FirstName,
+                u.LastName,
+                u.Email,
+                u.OrgUnitId,
+            })
+            .ToListAsync();
+
+        var orgUnitIds = users.Where(u => u.OrgUnitId.HasValue).Select(u => u.OrgUnitId!.Value).Distinct().ToList();
+        var orgUnitNames = orgUnitIds.Count > 0
+            ? await _db.OrgUnits
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .Select(o => new { o.Id, o.Name })
+                .ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<Guid, string>();
+
+        return users
+            .Select(u => new AssignableUserDto
+            {
+                UserId      = u.Id,
+                UserName    = (u.FirstName + " " + u.LastName).Trim(),
+                Email       = u.Email ?? string.Empty,
+                OrgUnitName = u.OrgUnitId.HasValue && orgUnitNames.TryGetValue(u.OrgUnitId.Value, out var name) ? name : null,
+                Sources     = sourcesByUserId[u.Id],
+            })
+            .OrderBy(u => u.UserName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<AddMembersFromOrgUnitResultDto?> AddMembersFromOrgUnitAsync(
+        Guid workspaceId, Guid orgUnitId, string? addedByUserId)
+    {
+        var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
+        if (!workspaceExists) return null;
+
+        var orgUnitExists = await _db.OrgUnits.AnyAsync(o => o.Id == orgUnitId);
+        if (!orgUnitExists) return null;
+
+        // Active users in this org unit (does not include the workspace's admins —
+        // those are tracked separately and intentionally not auto-added as members).
+        var candidateUsers = await _db.Users
+            .Where(u => u.OrgUnitId == orgUnitId && u.IsActive)
+            .Select(u => new { u.Id, FullName = u.FirstName + " " + u.LastName })
+            .ToListAsync();
+
+        if (candidateUsers.Count == 0)
+        {
+            return new AddMembersFromOrgUnitResultDto
+            {
+                Added                  = new List<WorkspaceMemberDto>(),
+                SkippedAlreadyMembers  = 0,
+                TotalUsersInOrgUnit    = 0,
+            };
+        }
+
+        var candidateIds = candidateUsers.Select(u => u.Id).ToList();
+        var existingMemberIds = await _db.WorkspaceMembers
+            .Where(m => m.WorkspaceId == workspaceId && candidateIds.Contains(m.UserId))
+            .Select(m => m.UserId)
+            .ToListAsync();
+
+        var existingSet = new HashSet<string>(existingMemberIds, StringComparer.Ordinal);
+        var now = DateTime.UtcNow;
+
+        var newMembers = candidateUsers
+            .Where(u => !existingSet.Contains(u.Id))
+            .Select(u => new WorkspaceMember
+            {
+                WorkspaceId   = workspaceId,
+                UserId        = u.Id,
+                UserName      = u.FullName.Trim(),
+                AddedAt       = now,
+                AddedByUserId = addedByUserId,
+            })
+            .ToList();
+
+        if (newMembers.Count > 0)
+        {
+            _db.WorkspaceMembers.AddRange(newMembers);
+            await _db.SaveChangesAsync();
+        }
+
+        _logger.LogInformation(
+            "Bulk-added {Added} members from org unit {OrgUnitId} to workspace {WorkspaceId} " +
+            "(skipped {Skipped} already-members out of {Total} users in unit).",
+            newMembers.Count, orgUnitId, workspaceId, existingSet.Count, candidateUsers.Count);
+
+        var addedDtos = newMembers.Select(m => new WorkspaceMemberDto
+        {
+            UserId   = m.UserId,
+            UserName = m.UserName,
+            AddedAt  = m.AddedAt,
+        }).ToList();
+
+        await EnrichMemberDtosAsync(addedDtos);
+
+        return new AddMembersFromOrgUnitResultDto
+        {
+            Added                  = addedDtos,
+            SkippedAlreadyMembers  = existingSet.Count,
+            TotalUsersInOrgUnit    = candidateUsers.Count,
+        };
+    }
+
+    /// <inheritdoc />
     public async Task<WorkspaceResponseDto?> SetStrategyAsync(Guid workspaceId, Guid? strategicPlanId)
     {
         var workspace = await _db.Workspaces
             .Include(w => w.Admins)
             .Include(w => w.Members)
+            .Include(w => w.ProjectManagers)
+            .Include(w => w.StrategicProjectApprovers)
             .FirstOrDefaultAsync(w => w.Id == workspaceId);
         if (workspace is null) return null;
 
@@ -915,6 +1087,8 @@ public class WorkspaceService : IWorkspaceService
         var dto = ToResponseDto(workspace);
         await EnrichAdminDtosAsync(dto.Admins);
         await EnrichMemberDtosAsync(dto.Members);
+        await EnrichProjectManagerDtosAsync(dto.ProjectManagers);
+        await EnrichStrategicApproverDtosAsync(dto.StrategicProjectApprovers);
         if (workspace.StrategicPlanId.HasValue)
         {
             dto.StrategicPlanName = await _db.StrategicPlans
@@ -973,6 +1147,286 @@ public class WorkspaceService : IWorkspaceService
             if (u is null) continue;
             m.Email       = u.Email ?? string.Empty;
             m.OrgUnitName = u.OrgUnitId.HasValue && orgUnits.TryGetValue(u.OrgUnitId.Value, out var name)
+                ? name : string.Empty;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Project Managers CRUD
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<WorkspaceProjectManagerDto>> GetProjectManagersAsync(Guid workspaceId)
+    {
+        var rows = await _db.WorkspaceProjectManagers
+            .Where(p => p.WorkspaceId == workspaceId)
+            .OrderBy(p => p.UserName)
+            .Select(p => new WorkspaceProjectManagerDto
+            {
+                UserId   = p.UserId,
+                UserName = p.UserName,
+                AddedAt  = p.AddedAt,
+            })
+            .ToListAsync();
+
+        await EnrichProjectManagerDtosAsync(rows);
+        return rows;
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkspaceProjectManagerDto?> AddProjectManagerAsync(
+        Guid workspaceId, AddWorkspaceProjectManagerDto dto, string? addedByUserId)
+    {
+        var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
+        if (!workspaceExists) return null;
+
+        var alreadyExists = await _db.WorkspaceProjectManagers
+            .AnyAsync(p => p.WorkspaceId == workspaceId && p.UserId == dto.UserId);
+        if (alreadyExists) return null;
+
+        var row = new WorkspaceProjectManager
+        {
+            WorkspaceId   = workspaceId,
+            UserId        = dto.UserId,
+            UserName      = dto.UserName,
+            AddedAt       = DateTime.UtcNow,
+            AddedByUserId = addedByUserId,
+        };
+        _db.WorkspaceProjectManagers.Add(row);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Added PM {UserId} to workspace {WorkspaceId}", dto.UserId, workspaceId);
+
+        try
+        {
+            await _roleManagementService.AssignUsersToRoleAsync(
+                new AssignUsersToRoleDto
+                {
+                    RoleName = AppRoles.ProjectManager,
+                    UserIds  = new List<string> { dto.UserId },
+                },
+                addedByUserId ?? "system");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to assign Project Manager role to {UserId} when adding to workspace {WorkspaceId}",
+                dto.UserId, workspaceId);
+        }
+
+        var result = new WorkspaceProjectManagerDto
+        {
+            UserId   = row.UserId,
+            UserName = row.UserName,
+            AddedAt  = row.AddedAt,
+        };
+        await EnrichProjectManagerDtosAsync(new List<WorkspaceProjectManagerDto> { result });
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RemoveProjectManagerAsync(Guid workspaceId, string userId)
+    {
+        var row = await _db.WorkspaceProjectManagers
+            .FirstOrDefaultAsync(p => p.WorkspaceId == workspaceId && p.UserId == userId);
+        if (row is null) return false;
+
+        _db.WorkspaceProjectManagers.Remove(row);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Removed PM {UserId} from workspace {WorkspaceId}", userId, workspaceId);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> IsProjectManagerAsync(Guid workspaceId, string userId)
+        => _db.WorkspaceProjectManagers
+            .AnyAsync(p => p.WorkspaceId == workspaceId && p.UserId == userId);
+
+    private async Task EnrichProjectManagerDtosAsync(List<WorkspaceProjectManagerDto> rows)
+    {
+        if (rows.Count == 0) return;
+
+        var userIds = rows.Select(r => r.UserId).ToList();
+        var users = await _db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email, u.OrgUnitId })
+            .ToListAsync();
+
+        var orgUnitIds = users
+            .Where(u => u.OrgUnitId.HasValue)
+            .Select(u => u.OrgUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        var orgUnits = orgUnitIds.Count > 0
+            ? await _db.OrgUnits
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .Select(o => new { o.Id, o.Name })
+                .ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<Guid, string>();
+
+        foreach (var r in rows)
+        {
+            var u = users.FirstOrDefault(x => x.Id == r.UserId);
+            if (u is null) continue;
+            r.Email       = u.Email ?? string.Empty;
+            r.OrgUnitName = u.OrgUnitId.HasValue && orgUnits.TryGetValue(u.OrgUnitId.Value, out var name)
+                ? name : string.Empty;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Strategic Project Approvers CRUD
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<WorkspaceStrategicProjectApproverDto>> GetStrategicProjectApproversAsync(Guid workspaceId)
+    {
+        var rows = await _db.WorkspaceStrategicProjectApprovers
+            .Where(a => a.WorkspaceId == workspaceId)
+            .OrderBy(a => a.Order)
+            .Select(a => new WorkspaceStrategicProjectApproverDto
+            {
+                UserId   = a.UserId,
+                UserName = a.UserName,
+                Order    = a.Order,
+                AddedAt  = a.AddedAt,
+            })
+            .ToListAsync();
+
+        await EnrichStrategicApproverDtosAsync(rows);
+        return rows;
+    }
+
+    /// <inheritdoc />
+    public async Task<WorkspaceStrategicProjectApproverDto?> AddStrategicProjectApproverAsync(
+        Guid workspaceId, AddWorkspaceStrategicProjectApproverDto dto, string? addedByUserId)
+    {
+        var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
+        if (!workspaceExists) return null;
+
+        var alreadyExists = await _db.WorkspaceStrategicProjectApprovers
+            .AnyAsync(a => a.WorkspaceId == workspaceId && a.UserId == dto.UserId);
+        if (alreadyExists) return null;
+
+        // Append at the end of the chain.
+        var maxOrder = await _db.WorkspaceStrategicProjectApprovers
+            .Where(a => a.WorkspaceId == workspaceId)
+            .Select(a => (int?)a.Order)
+            .MaxAsync() ?? 0;
+
+        var row = new WorkspaceStrategicProjectApprover
+        {
+            WorkspaceId   = workspaceId,
+            UserId        = dto.UserId,
+            UserName      = dto.UserName,
+            Order         = maxOrder + 1,
+            AddedAt       = DateTime.UtcNow,
+            AddedByUserId = addedByUserId,
+        };
+        _db.WorkspaceStrategicProjectApprovers.Add(row);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Added strategic-project approver {UserId} at order {Order} for workspace {WorkspaceId}",
+            dto.UserId, row.Order, workspaceId);
+
+        var result = new WorkspaceStrategicProjectApproverDto
+        {
+            UserId   = row.UserId,
+            UserName = row.UserName,
+            Order    = row.Order,
+            AddedAt  = row.AddedAt,
+        };
+        await EnrichStrategicApproverDtosAsync(new List<WorkspaceStrategicProjectApproverDto> { result });
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RemoveStrategicProjectApproverAsync(Guid workspaceId, string userId)
+    {
+        var row = await _db.WorkspaceStrategicProjectApprovers
+            .FirstOrDefaultAsync(a => a.WorkspaceId == workspaceId && a.UserId == userId);
+        if (row is null) return false;
+
+        _db.WorkspaceStrategicProjectApprovers.Remove(row);
+
+        // Re-densify Order on the remaining rows.
+        var remaining = await _db.WorkspaceStrategicProjectApprovers
+            .Where(a => a.WorkspaceId == workspaceId && a.UserId != userId)
+            .OrderBy(a => a.Order)
+            .ToListAsync();
+        for (var i = 0; i < remaining.Count; i++)
+            remaining[i].Order = i + 1;
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Removed strategic-project approver {UserId} from workspace {WorkspaceId} (chain re-densified)",
+            userId, workspaceId);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ReorderStrategicProjectApproversAsync(
+        Guid workspaceId, List<string> orderedUserIds)
+    {
+        var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
+        if (!workspaceExists) return false;
+
+        var rows = await _db.WorkspaceStrategicProjectApprovers
+            .Where(a => a.WorkspaceId == workspaceId)
+            .ToListAsync();
+
+        // Reject if the payload doesn't cover the existing chain exactly.
+        var existingIds = rows.Select(r => r.UserId).ToHashSet();
+        if (orderedUserIds.Count != existingIds.Count
+            || !orderedUserIds.All(id => existingIds.Contains(id)))
+            return false;
+
+        for (var i = 0; i < orderedUserIds.Count; i++)
+        {
+            var row = rows.First(r => r.UserId == orderedUserIds[i]);
+            row.Order = i + 1;
+        }
+
+        await _db.SaveChangesAsync();
+        _logger.LogInformation(
+            "Reordered strategic-project approver chain for workspace {WorkspaceId} ({Count} entries)",
+            workspaceId, orderedUserIds.Count);
+        return true;
+    }
+
+    private async Task EnrichStrategicApproverDtosAsync(List<WorkspaceStrategicProjectApproverDto> rows)
+    {
+        if (rows.Count == 0) return;
+
+        var userIds = rows.Select(r => r.UserId).ToList();
+        var users = await _db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email, u.OrgUnitId })
+            .ToListAsync();
+
+        var orgUnitIds = users
+            .Where(u => u.OrgUnitId.HasValue)
+            .Select(u => u.OrgUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        var orgUnits = orgUnitIds.Count > 0
+            ? await _db.OrgUnits
+                .Where(o => orgUnitIds.Contains(o.Id))
+                .Select(o => new { o.Id, o.Name })
+                .ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<Guid, string>();
+
+        foreach (var r in rows)
+        {
+            var u = users.FirstOrDefault(x => x.Id == r.UserId);
+            if (u is null) continue;
+            r.Email       = u.Email ?? string.Empty;
+            r.OrgUnitName = u.OrgUnitId.HasValue && orgUnits.TryGetValue(u.OrgUnitId.Value, out var name)
                 ? name : string.Empty;
         }
     }
