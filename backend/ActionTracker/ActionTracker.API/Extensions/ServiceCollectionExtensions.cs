@@ -2,6 +2,7 @@ using System.Text;
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.KpiActuals.Interfaces;
+using ActionTracker.Application.Features.StrategicPlans.Drafts;
 using ActionTracker.Application.Features.StrategicPlans.Workflow;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Services;
@@ -124,6 +125,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStrategicPlanWorkflowService, StrategicPlanWorkflowService>();
         services.AddScoped<IStrategicPlanApproverService, StrategicPlanApproverService>();
         services.AddScoped<IStrategicPlanLockGuard, StrategicPlanLockGuard>();
+        services.AddScoped<IStrategicPlanDraftService, StrategicPlanDraftService>();
 
         // KPI Actuals (CR-001-F)
         services.AddScoped<KpiActualService>();

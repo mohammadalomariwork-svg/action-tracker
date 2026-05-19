@@ -27,4 +27,12 @@ public class StrategicPlanDto
     public string? CreatedByName { get; set; }
     public string? UpdatedByName { get; set; }
     public string? DeletedByName { get; set; }
+
+    // ── Draft / revision (CR-001-G) ─────────────────────────────────────────
+    /// <summary>True when this row is a working draft revising
+    /// <see cref="OriginalPlanId"/>. The UI hides drafts from list pages and
+    /// only shows them inside the draft editor.</summary>
+    public bool IsDraft { get; set; }
+    /// <summary>On draft rows, points at the published plan being revised.</summary>
+    public Guid? OriginalPlanId { get; set; }
 }

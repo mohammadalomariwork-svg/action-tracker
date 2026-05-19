@@ -41,7 +41,12 @@
       "Bash(dotnet sln *)",
       "Bash(Get-ChildItem -Recurse -Filter \"*OrgUnit*Controller*\" -ErrorAction SilentlyContinue)",
       "Bash(xargs grep -l \"strategic-objectives-for-workspace\")",
-      "Bash(Get-ChildItem -Path . -Directory)"
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Bash(git restore *)",
+      "Bash(rm \"backend/ActionTracker/ActionTracker.Infrastructure/Data/Migrations/20260519060152_Add_StrategicPlan_Drafts.cs\" \"backend/ActionTracker/ActionTracker.Infrastructure/Data/Migrations/20260519060152_Add_StrategicPlan_Drafts.Designer.cs\")",
+      "PowerShell(Invoke-Sqlcmd -ConnectionString $cs -Query $query)",
+      "PowerShell($cs = \"Server=PRDSQL16BADBE;Database=ActionsCenter;User Id=accuser;Password=Khalifa786`$;TrustServerCertificate=True;\")",
+      "PowerShell(Invoke-Sqlcmd -ConnectionString $cs -Query \"SELECT Id, Name, Status, IsDraft FROM dbo.StrategicPlans WHERE Id = '04a6795d-a3c9-4976-a85e-28bd781ebbc4';\")"
     ]
   }
 }

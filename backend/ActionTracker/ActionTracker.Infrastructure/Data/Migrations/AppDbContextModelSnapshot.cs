@@ -1035,6 +1035,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("bit");
+
                     b.Property<int>("KpiNumber")
                         .HasColumnType("int");
 
@@ -1042,6 +1045,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid?>("OriginalKpiId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Period")
                         .HasColumnType("int");
@@ -1061,6 +1067,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OriginalKpiId");
 
                     b.HasIndex("StrategicObjectiveId", "KpiNumber")
                         .IsUnique();
@@ -1206,6 +1214,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("KpiId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1215,6 +1226,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("OriginalKpiTargetId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("Target")
                         .HasColumnType("decimal(18,4)");
@@ -1230,6 +1244,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OriginalKpiTargetId");
 
                     b.HasIndex("KpiId", "Year", "Month")
                         .IsUnique();
@@ -2085,12 +2101,18 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ObjectiveCode")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<Guid>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("OriginalObjectiveId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Statement")
@@ -2111,9 +2133,12 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ObjectiveCode")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDraft] = 0 AND [IsDeleted] = 0");
 
                     b.HasIndex("OrgUnitId");
+
+                    b.HasIndex("OriginalObjectiveId");
 
                     b.HasIndex("StrategicPlanId");
 
@@ -2158,12 +2183,18 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsDraft")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<Guid>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("OriginalPlanId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("StartYear")
@@ -2186,7 +2217,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.HasIndex("OrgUnitId")
                         .IsUnique()
                         .HasDatabaseName("IX_StrategicPlans_OrgUnitId_ActiveUnique")
-                        .HasFilter("[IsDeleted] = 0 AND [Status] IN (1, 2)");
+                        .HasFilter("[IsDraft] = 0 AND [IsDeleted] = 0 AND [Status] IN (1, 2)");
+
+                    b.HasIndex("OriginalPlanId")
+                        .IsUnique()
+                        .HasFilter("[OriginalPlanId] IS NOT NULL");
 
                     b.ToTable("StrategicPlans", (string)null);
                 });
@@ -2773,11 +2808,18 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>
                 {
+                    b.HasOne("ActionTracker.Domain.Entities.Kpi", "OriginalKpi")
+                        .WithMany()
+                        .HasForeignKey("OriginalKpiId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ActionTracker.Domain.Entities.StrategicObjective", "StrategicObjective")
                         .WithMany("Kpis")
                         .HasForeignKey("StrategicObjectiveId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("OriginalKpi");
 
                     b.Navigation("StrategicObjective");
                 });
@@ -2801,7 +2843,14 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ActionTracker.Domain.Entities.KpiTarget", "OriginalKpiTarget")
+                        .WithMany()
+                        .HasForeignKey("OriginalKpiTargetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Kpi");
+
+                    b.Navigation("OriginalKpiTarget");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.Milestone", b =>
@@ -2932,12 +2981,19 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ActionTracker.Domain.Entities.StrategicObjective", "OriginalObjective")
+                        .WithMany()
+                        .HasForeignKey("OriginalObjectiveId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ActionTracker.Domain.Entities.StrategicPlan", "StrategicPlan")
                         .WithMany("Objectives")
                         .HasForeignKey("StrategicPlanId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("OrgUnit");
+
+                    b.Navigation("OriginalObjective");
 
                     b.Navigation("StrategicPlan");
                 });
@@ -2950,7 +3006,14 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ActionTracker.Domain.Entities.StrategicPlan", "OriginalPlan")
+                        .WithMany()
+                        .HasForeignKey("OriginalPlanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("OrgUnit");
+
+                    b.Navigation("OriginalPlan");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.StrategicPlanApprovalRequest", b =>

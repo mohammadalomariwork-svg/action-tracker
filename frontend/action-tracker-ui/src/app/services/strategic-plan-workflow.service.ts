@@ -68,4 +68,25 @@ export class StrategicPlanWorkflowService {
   ): Observable<ApiResponse<StrategicPlanApprover[]>> {
     return this.http.put<ApiResponse<StrategicPlanApprover[]>>(`${this.plansBaseUrl}/${planId}/approvers`, request);
   }
+
+  // ── Draft / revision (CR-001-G) ─────────────────────────────────────────
+  // Clone the published plan's graph into a working draft. Returns the draft
+  // plan id, which the UI then uses as the addressable resource for edits.
+  openDraft(publishedPlanId: string): Observable<ApiResponse<string>> {
+    return this.http.post<ApiResponse<string>>(`${this.plansBaseUrl}/${publishedPlanId}/drafts`, {});
+  }
+
+  // Returns 200 with the open draft id, or 204 (empty) when no draft exists.
+  // Callers should treat undefined as "no draft".
+  getCurrentDraft(publishedPlanId: string): Observable<ApiResponse<string> | null> {
+    return this.http.get<ApiResponse<string> | null>(
+      `${this.plansBaseUrl}/${publishedPlanId}/drafts/current`,
+      { observe: 'body' });
+  }
+
+  // Hard-delete the draft (and its graph). Pending revision requests are
+  // auto-rejected on the server.
+  cancelDraft(draftId: string): Observable<void> {
+    return this.http.delete<void>(`${this.plansBaseUrl}/drafts/${draftId}`);
+  }
 }

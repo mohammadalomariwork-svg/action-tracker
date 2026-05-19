@@ -2,6 +2,7 @@ using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.StrategicPlans.Drafts;
 using ActionTracker.Application.Features.StrategicPlans.Workflow;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Constants;
@@ -28,6 +29,7 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
     private readonly INotificationService _notificationService;
     private readonly IEmailSender _emailSender;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStrategicPlanDraftService _draftService;
     private readonly AppSettings _appSettings;
     private readonly ILogger<StrategicPlanWorkflowService> _logger;
 
@@ -38,6 +40,7 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
         INotificationService notificationService,
         IEmailSender emailSender,
         UserManager<ApplicationUser> userManager,
+        IStrategicPlanDraftService draftService,
         IOptions<AppSettings> appSettings,
         ILogger<StrategicPlanWorkflowService> logger)
     {
@@ -47,6 +50,7 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
         _notificationService = notificationService;
         _emailSender = emailSender;
         _userManager = userManager;
+        _draftService = draftService;
         _appSettings = appSettings.Value;
         _logger = logger;
     }
@@ -150,45 +154,7 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
                     $"Every KPI must have its full set of targets entered for {plan.StartYear} (Yearly = 1, Semi-Annual = 2, Quarterly = 4, Monthly = 12 — slots must match the period schedule). Incomplete: {string.Join(", ", incompleteLabels)}.");
         }
 
-        // Resolve the chain. If the plan has configured approvers, we use those
-        // (multi-level sequential — only the level-1 reviewer gets a Pending row;
-        // the workflow advances on each Approve). Otherwise we fall back to the
-        // legacy single-level resolver (CR-001-H level-3 head).
-        var chain = await _db.StrategicPlanApprovers
-            .AsNoTracking()
-            .Where(a => a.StrategicPlanId == plan.Id)
-            .OrderBy(a => a.Order)
-            .ToListAsync(ct);
-
-        ApprovalAuthorityDto approver;
-        int totalLevels;
-
-        if (chain.Count > 0)
-        {
-            var firstUserId = chain[0].UserId;
-            var firstUser = await _userManager.FindByIdAsync(firstUserId)
-                ?? throw new InvalidOperationException(
-                    "The first approver in the chain is no longer a valid user.");
-            if (!firstUser.IsActive)
-                throw new InvalidOperationException(
-                    "The first approver in the chain is inactive.");
-
-            approver = new ApprovalAuthorityDto(
-                UserId: firstUser.Id,
-                DisplayName: firstUser.FullName ?? firstUser.UserName ?? firstUserId,
-                Email: firstUser.Email ?? string.Empty,
-                SourceOrgUnitId: plan.OrgUnitId,
-                SourceOrgUnitLevel: 0,
-                SourceOrgUnitName: plan.OrgUnit?.Name ?? string.Empty);
-            totalLevels = chain.Count;
-        }
-        else
-        {
-            approver = await _approvalAuthority.ResolvePlanApproverAsync(plan.OrgUnitId, ct)
-                ?? throw new InvalidOperationException(
-                    "No plan approver is configured. Either define an approval chain on the plan, or assign a head to the level-3 ancestor of this plan's org unit before submitting.");
-            totalLevels = 1;
-        }
+        var (approver, totalLevels) = await ResolveFirstApproverAsync(plan, currentUserId, ct);
 
         var requester = await _userManager.FindByIdAsync(currentUserId);
         var requesterName = requester?.FullName ?? "Unknown";
@@ -236,46 +202,29 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
 
         await _scopeService.EnsureCanWriteAsync(currentUserId, plan.OrgUnitId, ct);
 
-        var hasPendingRevision = await _db.StrategicPlanApprovalRequests
-            .AnyAsync(r => r.StrategicPlanId == plan.Id
-                           && r.RequestType == StrategicPlanApprovalRequestType.Revision
-                           && r.Status == StrategicPlanApprovalStatus.Pending, ct);
-        if (hasPendingRevision)
-            throw new ArgumentException("A revision request is already pending for this plan.");
+        // CR-001-G: a "Revision request" is now a submission of an existing
+        // draft. The draft must have been opened first (POST /drafts).
+        // Multiple pending revisions on the same published plan are impossible
+        // because the draft itself is the carrier — and there's a unique
+        // (filtered) index ensuring ≤ 1 draft per published plan.
+        var draftId = await _draftService.GetCurrentDraftIdAsync(plan.Id, ct)
+            ?? throw new InvalidOperationException(
+                "No draft exists for this plan. Open a revision draft before submitting for approval.");
 
-        // Same multi-level routing rule as Submit — use the configured chain
-        // when present, fall back to the legacy single-level resolver otherwise.
-        var chain = await _db.StrategicPlanApprovers
-            .AsNoTracking()
-            .Where(a => a.StrategicPlanId == plan.Id)
-            .OrderBy(a => a.Order)
-            .ToListAsync(ct);
+        var draft = await _db.StrategicPlans
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == draftId && p.IsDraft, ct)
+            ?? throw new InvalidOperationException("Draft plan record is missing.");
 
-        ApprovalAuthorityDto approver;
-        int totalLevels;
-        if (chain.Count > 0)
-        {
-            var firstUser = await _userManager.FindByIdAsync(chain[0].UserId)
-                ?? throw new InvalidOperationException(
-                    "The first approver in the chain is no longer a valid user.");
-            if (!firstUser.IsActive)
-                throw new InvalidOperationException("The first approver in the chain is inactive.");
-            approver = new ApprovalAuthorityDto(
-                UserId: firstUser.Id,
-                DisplayName: firstUser.FullName ?? firstUser.UserName ?? chain[0].UserId,
-                Email: firstUser.Email ?? string.Empty,
-                SourceOrgUnitId: plan.OrgUnitId,
-                SourceOrgUnitLevel: 0,
-                SourceOrgUnitName: plan.OrgUnit?.Name ?? string.Empty);
-            totalLevels = chain.Count;
-        }
-        else
-        {
-            approver = await _approvalAuthority.ResolvePlanApproverAsync(plan.OrgUnitId, ct)
-                ?? throw new InvalidOperationException(
-                    "No plan approver is configured. Cannot route the revision request.");
-            totalLevels = 1;
-        }
+        if (!string.Equals(draft.CreatedBy, currentUserId, StringComparison.Ordinal))
+            throw new UnauthorizedAccessException(
+                "Only the user who opened the draft can submit it for approval.");
+
+        if (draft.Status != StrategicPlanStatus.Draft)
+            throw new ArgumentException(
+                "Draft has already been submitted. Wait for review or cancel it first.");
+
+        var (approver, totalLevels) = await ResolveFirstApproverAsync(plan, currentUserId, ct);
 
         var requester = await _userManager.FindByIdAsync(currentUserId);
         var requesterName = requester?.FullName ?? "Unknown";
@@ -283,7 +232,10 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
         var request = new StrategicPlanApprovalRequest
         {
             Id = Guid.NewGuid(),
-            StrategicPlanId = plan.Id,
+            // Approval requests now point at the *draft* plan — that's what
+            // reviewers are deciding on. The promote step on final-approval
+            // is the only place the published plan id matters.
+            StrategicPlanId = draft.Id,
             RequestType = StrategicPlanApprovalRequestType.Revision,
             RequestedByUserId = currentUserId,
             RequestedByDisplayName = requesterName,
@@ -297,6 +249,11 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
         };
 
         _db.StrategicPlanApprovalRequests.Add(request);
+
+        draft.Status    = StrategicPlanStatus.PendingApproval;
+        draft.UpdatedAt = DateTime.UtcNow;
+        draft.UpdatedBy = currentUserId;
+
         await _db.SaveChangesAsync(ct);
 
         await NotifySubmitAsync(plan, request, approver, "StrategicPlanRevisionRequested",
@@ -309,20 +266,47 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
     public async Task<StrategicPlanApprovalRequestDto> ReviewAsync(
         ReviewStrategicPlanApprovalRequestDto dto, string reviewerUserId, CancellationToken ct = default)
     {
+        // Initial requests point at a published plan; Revision requests (post
+        // CR-001-G) point at the *draft* plan. Drafts are hidden from the
+        // default StrategicPlans query so we IgnoreQueryFilters on the Include.
         var request = await _db.StrategicPlanApprovalRequests
             .Include(r => r.StrategicPlan).ThenInclude(p => p.OrgUnit)
+            .IgnoreQueryFilters()
+            .Where(r => !r.IsDeleted)
             .FirstOrDefaultAsync(r => r.Id == dto.RequestId, ct)
             ?? throw new KeyNotFoundException($"Approval request '{dto.RequestId}' not found.");
 
         if (request.Status != StrategicPlanApprovalStatus.Pending)
             throw new ArgumentException("This approval request has already been reviewed.");
 
-        var plan = request.StrategicPlan;
+        var requestPlan = request.StrategicPlan;
 
-        // Race protection — for Initial requests, the plan must still be PendingApproval.
-        if (request.RequestType == StrategicPlanApprovalRequestType.Initial
-            && plan.Status != StrategicPlanStatus.PendingApproval)
+        // For Revision requests, the chain + notification context lives on the
+        // *published* parent. For Initial requests they're the same.
+        var isRevision = request.RequestType == StrategicPlanApprovalRequestType.Revision;
+        StrategicPlan publishedPlan;
+        if (isRevision)
+        {
+            if (requestPlan.OriginalPlanId is null)
+                throw new InvalidOperationException(
+                    "Revision request points at a plan that has no OriginalPlanId — data corruption.");
+            publishedPlan = await _db.StrategicPlans
+                .Include(p => p.OrgUnit)
+                .FirstOrDefaultAsync(p => p.Id == requestPlan.OriginalPlanId.Value, ct)
+                ?? throw new InvalidOperationException(
+                    "Published plan referenced by the revision request no longer exists.");
+        }
+        else
+        {
+            publishedPlan = requestPlan;
+        }
+
+        // Race protection — Initial requests: published plan must still be PendingApproval.
+        // Revision requests: draft must still be PendingApproval.
+        if (!isRevision && publishedPlan.Status != StrategicPlanStatus.PendingApproval)
             throw new InvalidOperationException("Plan status no longer matches an in-flight initial approval request.");
+        if (isRevision && requestPlan.Status != StrategicPlanStatus.PendingApproval)
+            throw new InvalidOperationException("Draft status no longer matches an in-flight revision request.");
 
         if (!await CanReviewInternalAsync(request, reviewerUserId))
             throw new UnauthorizedAccessException("You are not authorised to review this request.");
@@ -341,20 +325,19 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
         request.ReviewerComment = dto.ReviewComment?.Trim();
         request.ReviewedAt = DateTime.UtcNow;
 
-        // Multi-level routing: when an *approval* is not the final level,
-        // create a Pending row for the next approver in the chain and leave
-        // plan-level state alone. Plan-level transitions only fire on the
-        // last-level approval (Initial → Approved) or on any rejection.
+        // Multi-level routing. For revisions the chain lives on the published
+        // plan, not the draft — look up by publishedPlan.Id.
         StrategicPlanApprovalRequest? advanceRequest = null;
         ApprovalAuthorityDto? nextApprover = null;
         var isFinalLevel = request.Level >= request.TotalLevels;
+        var chainOwnerPlanId = publishedPlan.Id;
 
         if (dto.IsApproved && !isFinalLevel)
         {
             var nextLevel = request.Level + 1;
             var chain = await _db.StrategicPlanApprovers
                 .AsNoTracking()
-                .Where(a => a.StrategicPlanId == plan.Id && a.Order == nextLevel)
+                .Where(a => a.StrategicPlanId == chainOwnerPlanId && a.Order == nextLevel)
                 .FirstOrDefaultAsync(ct);
 
             if (chain is null)
@@ -367,11 +350,17 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
             if (!nextUser.IsActive)
                 throw new InvalidOperationException(
                     $"Approver at level {nextLevel} is inactive.");
+            if (string.Equals(nextUser.Id, request.RequestedByUserId, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"Approver at level {nextLevel} is the submitter of this request. " +
+                    $"The chain must be fixed before the workflow can continue.");
 
             advanceRequest = new StrategicPlanApprovalRequest
             {
                 Id = Guid.NewGuid(),
-                StrategicPlanId = plan.Id,
+                // Keep advancing on the same plan id that the parent request
+                // is on (draft for Revision, published for Initial).
+                StrategicPlanId = request.StrategicPlanId,
                 RequestType = request.RequestType,
                 RequestedByUserId = request.RequestedByUserId,
                 RequestedByDisplayName = request.RequestedByDisplayName,
@@ -389,48 +378,75 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
                 UserId: nextUser.Id,
                 DisplayName: advanceRequest.AssignedReviewerDisplayName!,
                 Email: nextUser.Email ?? string.Empty,
-                SourceOrgUnitId: plan.OrgUnitId,
+                SourceOrgUnitId: publishedPlan.OrgUnitId,
                 SourceOrgUnitLevel: 0,
-                SourceOrgUnitName: plan.OrgUnit?.Name ?? string.Empty);
+                SourceOrgUnitName: publishedPlan.OrgUnit?.Name ?? string.Empty);
         }
 
-        // Plan-level transitions only happen on Initial requests at the *final*
-        // level (full approval) or any rejection. Revision approval/rejection
-        // re-locks the plan via the lock guard but doesn't change Status.
-        if (request.RequestType == StrategicPlanApprovalRequestType.Initial)
+        // ── Plan-level state transitions ─────────────────────────────────────
+        if (!isRevision)
         {
+            // Initial request: same behaviour as before — Draft on reject,
+            // Approved on final-level approval, PendingApproval mid-flight.
             if (!dto.IsApproved)
             {
-                plan.Status = StrategicPlanStatus.Draft;
-                plan.UpdatedAt = DateTime.UtcNow;
-                plan.UpdatedBy = reviewerUserId;
+                publishedPlan.Status = StrategicPlanStatus.Draft;
+                publishedPlan.UpdatedAt = DateTime.UtcNow;
+                publishedPlan.UpdatedBy = reviewerUserId;
             }
             else if (isFinalLevel)
             {
-                plan.Status = StrategicPlanStatus.Approved;
-                plan.ApprovedAtUtc = DateTime.UtcNow;
-                plan.ApprovedByUserId = reviewerUserId;
-                plan.UpdatedAt = DateTime.UtcNow;
-                plan.UpdatedBy = reviewerUserId;
+                publishedPlan.Status = StrategicPlanStatus.Approved;
+                publishedPlan.ApprovedAtUtc = DateTime.UtcNow;
+                publishedPlan.ApprovedByUserId = reviewerUserId;
+                publishedPlan.UpdatedAt = DateTime.UtcNow;
+                publishedPlan.UpdatedBy = reviewerUserId;
             }
-            // Intermediate-level approvals: plan stays PendingApproval.
+        }
+        else
+        {
+            // Revision: the draft (requestPlan) carries state. Rejection sends
+            // it back to Draft so the submitter can edit + resubmit (chain
+            // resets to level 1 on next submit). Final-level approval triggers
+            // promote: draft merges into published, then is hard-deleted.
+            if (!dto.IsApproved)
+            {
+                requestPlan.Status = StrategicPlanStatus.Draft;
+                requestPlan.UpdatedAt = DateTime.UtcNow;
+                requestPlan.UpdatedBy = reviewerUserId;
+            }
+            // Intermediate-level approvals: draft stays PendingApproval.
         }
 
         await _db.SaveChangesAsync(ct);
 
-        // Notification: this review's outcome (existing template), plus a
-        // submit-style notification for the *next* level when we advanced.
-        await NotifyReviewAsync(plan, request, reviewerName, dto.IsApproved);
+        // Promote happens AFTER the request row is saved so the lifecycle is
+        // observable from telemetry — but BEFORE the outcome notifications,
+        // so the published plan reflects the merged content by the time the
+        // submitter reads it.
+        if (isRevision && dto.IsApproved && isFinalLevel)
+        {
+            await _draftService.PromoteDraftAsync(requestPlan.Id, reviewerUserId, ct);
+        }
+
+        // Notification: re-load the published plan since promote may have
+        // updated its fields.
+        var notifyPlan = isRevision
+            ? await _db.StrategicPlans.Include(p => p.OrgUnit)
+                .FirstOrDefaultAsync(p => p.Id == publishedPlan.Id, ct) ?? publishedPlan
+            : publishedPlan;
+
+        await NotifyReviewAsync(notifyPlan, request, reviewerName, dto.IsApproved);
 
         if (advanceRequest is not null && nextApprover is not null)
         {
-            await NotifySubmitAsync(plan, advanceRequest, nextApprover,
+            await NotifySubmitAsync(notifyPlan, advanceRequest, nextApprover,
                 "StrategicPlanApprovalRequested",
                 "Strategic Plan Approval Requested",
-                $"{request.RequestedByDisplayName}'s plan '{plan.Name}' is awaiting your approval (level {advanceRequest.Level} of {advanceRequest.TotalLevels}).");
+                $"{request.RequestedByDisplayName}'s plan '{notifyPlan.Name}' is awaiting your approval (level {advanceRequest.Level} of {advanceRequest.TotalLevels}).");
         }
 
-        return MapToDto(request, plan);
+        return MapToDto(request, notifyPlan);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -549,6 +565,64 @@ public class StrategicPlanWorkflowService : IStrategicPlanWorkflowService
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null) return false;
         return await _userManager.IsInRoleAsync(user, AppRoles.Admin);
+    }
+
+    /// <summary>
+    /// Loads the plan's approver chain (or falls back to the level-3 head),
+    /// blocks the submitter from being any link in their own chain, and
+    /// returns the first-level approver plus the chain length to seed a new
+    /// approval request. Shared by Submit + Revision so the rule lives in
+    /// one place.
+    /// </summary>
+    private async Task<(ApprovalAuthorityDto Approver, int TotalLevels)> ResolveFirstApproverAsync(
+        StrategicPlan plan, string submitterUserId, CancellationToken ct)
+    {
+        var chain = await _db.StrategicPlanApprovers
+            .AsNoTracking()
+            .Where(a => a.StrategicPlanId == plan.Id)
+            .OrderBy(a => a.Order)
+            .ToListAsync(ct);
+
+        if (chain.Count > 0)
+        {
+            var selfLevels = chain
+                .Where(a => string.Equals(a.UserId, submitterUserId, StringComparison.Ordinal))
+                .Select(a => a.Order)
+                .ToList();
+
+            if (selfLevels.Count > 0)
+                throw new ArgumentException(
+                    $"You cannot submit this plan because you are configured as an approver " +
+                    $"(level {string.Join(", ", selfLevels)}). Remove yourself from the approval chain first.");
+
+            var firstUser = await _userManager.FindByIdAsync(chain[0].UserId)
+                ?? throw new InvalidOperationException(
+                    "The first approver in the chain is no longer a valid user.");
+            if (!firstUser.IsActive)
+                throw new InvalidOperationException(
+                    "The first approver in the chain is inactive.");
+
+            return (
+                new ApprovalAuthorityDto(
+                    UserId: firstUser.Id,
+                    DisplayName: firstUser.FullName ?? firstUser.UserName ?? chain[0].UserId,
+                    Email: firstUser.Email ?? string.Empty,
+                    SourceOrgUnitId: plan.OrgUnitId,
+                    SourceOrgUnitLevel: 0,
+                    SourceOrgUnitName: plan.OrgUnit?.Name ?? string.Empty),
+                chain.Count);
+        }
+
+        var fallback = await _approvalAuthority.ResolvePlanApproverAsync(plan.OrgUnitId, ct)
+            ?? throw new InvalidOperationException(
+                "No plan approver is configured. Either define an approval chain on the plan, or assign a head to the level-3 ancestor of this plan's org unit before submitting.");
+
+        if (string.Equals(fallback.UserId, submitterUserId, StringComparison.Ordinal))
+            throw new ArgumentException(
+                "You cannot submit this plan because you are the level-3 head who would approve it. " +
+                "Configure a different approval chain on the plan or have someone else submit.");
+
+        return (fallback, 1);
     }
 
     private async Task NotifySubmitAsync(

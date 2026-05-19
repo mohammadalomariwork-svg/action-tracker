@@ -47,10 +47,12 @@ public class StrategicPlanConfiguration : IEntityTypeConfiguration<StrategicPlan
         builder.HasIndex(s => s.OrgUnitId);
 
         // Filtered unique index: only one active (PendingApproval=1 OR Approved=2)
-        // strategic plan per org unit. Soft-deleted rows are excluded.
+        // *published* plan per org unit. Drafts are excluded — a revision draft
+        // sits alongside the Approved parent in the same OrgUnit while in-flight,
+        // and its Status transitions to PendingApproval on submit (CR-001-G).
         builder.HasIndex(s => s.OrgUnitId)
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0 AND [Status] IN (1, 2)")
+            .HasFilter("[IsDraft] = 0 AND [IsDeleted] = 0 AND [Status] IN (1, 2)")
             .HasDatabaseName("IX_StrategicPlans_OrgUnitId_ActiveUnique");
 
         builder.HasOne(s => s.OrgUnit)

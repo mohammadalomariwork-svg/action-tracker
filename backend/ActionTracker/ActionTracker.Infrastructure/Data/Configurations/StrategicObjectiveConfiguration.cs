@@ -21,8 +21,13 @@ public class StrategicObjectiveConfiguration : IEntityTypeConfiguration<Strategi
             .IsRequired()
             .HasMaxLength(20);
 
+        // Filtered unique — drafts intentionally re-use their published
+        // counterpart's ObjectiveCode (same logical objective), so the index
+        // must only enforce uniqueness on the live (non-draft, non-deleted)
+        // row set. CR-001-G.
         builder.HasIndex(s => s.ObjectiveCode)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDraft] = 0 AND [IsDeleted] = 0");
 
         builder.Property(s => s.Statement)
             .IsRequired()

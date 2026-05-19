@@ -25,8 +25,22 @@ public class StrategicPlan
     public string? UpdatedBy { get; set; }
     public string? DeletedBy { get; set; }
 
+    // ── Draft / revision (CR-001-G) ─────────────────────────────────────────
+    /// <summary>When true, this row is a working draft of a revision against
+    /// <see cref="OriginalPlanId"/>. Drafts are excluded from every "live"
+    /// query via a global filter and are only addressable through the draft
+    /// service. Hard-deleted on cancel; merged into the published row on
+    /// promote.</summary>
+    public bool IsDraft { get; set; } = false;
+
+    /// <summary>Set on draft rows; points to the published plan this draft
+    /// is revising. Null on published rows. Unique index enforces ≤ 1 draft
+    /// per published plan.</summary>
+    public Guid? OriginalPlanId { get; set; }
+
     // Navigation
     public OrgUnit OrgUnit { get; set; } = null!;
+    public StrategicPlan? OriginalPlan { get; set; }
     public ICollection<StrategicObjective> Objectives { get; set; } = new List<StrategicObjective>();
     public ICollection<StrategicPlanApprover> Approvers { get; set; } = new List<StrategicPlanApprover>();
 }

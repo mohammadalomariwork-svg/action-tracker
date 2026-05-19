@@ -707,23 +707,45 @@ export class StrategyPageComponent implements OnInit {
     this.justificationSubmitting.set(true);
     this.justificationError.set(null);
 
-    const obs = this.justificationMode() === 'submit'
-      ? this.workflow.submit({ planId: plan.id, justification })
-      : this.workflow.requestRevision({ planId: plan.id, justification });
+    if (this.justificationMode() === 'submit') {
+      this.workflow.submit({ planId: plan.id, justification }).subscribe({
+        next: () => {
+          this.toast.success('Plan submitted for approval.');
+          this.justificationOpen.set(false);
+          this.justificationSubmitting.set(false);
+          this.workflowState.refreshPendingCount();
+          this.reload();
+        },
+        error: err => {
+          this.justificationSubmitting.set(false);
+          this.justificationError.set(err?.error?.message ?? 'Failed to submit request.');
+        },
+      });
+      return;
+    }
 
-    obs.subscribe({
+    // Revision flow (CR-001-G): open a draft first, then submit it for
+    // approval. We chain the two calls so the existing single-click UX
+    // still works — PR 3 will expose the intermediate edit step.
+    this.workflow.openDraft(plan.id).subscribe({
       next: () => {
-        this.toast.success(this.justificationMode() === 'submit'
-          ? 'Plan submitted for approval.'
-          : 'Revision request submitted.');
-        this.justificationOpen.set(false);
-        this.justificationSubmitting.set(false);
-        this.workflowState.refreshPendingCount();
-        this.reload();
+        this.workflow.requestRevision({ planId: plan.id, justification }).subscribe({
+          next: () => {
+            this.toast.success('Revision request submitted.');
+            this.justificationOpen.set(false);
+            this.justificationSubmitting.set(false);
+            this.workflowState.refreshPendingCount();
+            this.reload();
+          },
+          error: err => {
+            this.justificationSubmitting.set(false);
+            this.justificationError.set(err?.error?.message ?? 'Failed to submit revision request.');
+          },
+        });
       },
       error: err => {
         this.justificationSubmitting.set(false);
-        this.justificationError.set(err?.error?.message ?? 'Failed to submit request.');
+        this.justificationError.set(err?.error?.message ?? 'Failed to open revision draft.');
       },
     });
   }

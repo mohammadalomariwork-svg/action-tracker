@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ActionTracker.API.Models;
+using ActionTracker.Application.Features.StrategicPlans.Drafts;
 using ActionTracker.Application.Features.StrategicPlans.DTOs;
 using ActionTracker.Application.Features.StrategicPlans.Interfaces;
 using ActionTracker.Application.Features.StrategicPlans.Workflow;
@@ -16,15 +17,18 @@ public class StrategicPlansController : ControllerBase
 {
     private readonly IStrategicPlanService _service;
     private readonly IStrategicPlanApproverService _approverService;
+    private readonly IStrategicPlanDraftService _draftService;
     private readonly ILogger<StrategicPlansController> _logger;
 
     public StrategicPlansController(
         IStrategicPlanService service,
         IStrategicPlanApproverService approverService,
+        IStrategicPlanDraftService draftService,
         ILogger<StrategicPlansController> logger)
     {
         _service = service;
         _approverService = approverService;
+        _draftService = draftService;
         _logger = logger;
     }
 
@@ -243,6 +247,74 @@ public class StrategicPlansController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return Conflict(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    // ── Draft / revision lifecycle (CR-001-G) ────────────────────────────────
+
+    /// <summary>Open a new revision draft against an Approved plan. Returns the
+    /// draft plan's id; the rest of the strategy graph (objectives, KPIs,
+    /// targets) is cloned with new ids and <c>IsDraft=true</c>.</summary>
+    [HttpPost("{id:guid}/drafts")]
+    [Authorize(Policy = PermissionPolicies.StrategicPlansEdit)]
+    [ProducesResponseType(typeof(ApiResponse<Guid>),         StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<string>),       StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<string>),       StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> OpenDraft(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            var draftId = await _draftService.OpenDraftAsync(id, CurrentUserId, ct);
+            return Created(string.Empty, ApiResponse<Guid>.Ok(draftId));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Returns the open draft's id for this published plan, or 204
+    /// when none exists.</summary>
+    [HttpGet("{id:guid}/drafts/current")]
+    [Authorize(Policy = PermissionPolicies.StrategicPlansView)]
+    [ProducesResponseType(typeof(ApiResponse<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> GetCurrentDraft(Guid id, CancellationToken ct = default)
+    {
+        var draftId = await _draftService.GetCurrentDraftIdAsync(id, ct);
+        if (draftId is null) return NoContent();
+        return Ok(ApiResponse<Guid>.Ok(draftId.Value));
+    }
+
+    /// <summary>Hard-delete a draft. Allowed at any draft state (Draft or
+    /// PendingApproval) — pending reviews are auto-rejected.</summary>
+    [HttpDelete("drafts/{draftId:guid}")]
+    [Authorize(Policy = PermissionPolicies.StrategicPlansEdit)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelDraft(Guid draftId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _draftService.CancelDraftAsync(draftId, CurrentUserId, ct);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
         }
     }
 }

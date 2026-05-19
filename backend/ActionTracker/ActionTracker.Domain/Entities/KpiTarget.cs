@@ -29,6 +29,14 @@ public class KpiTarget
     public string? CreatedBy { get; set; }
     public string? UpdatedBy { get; set; }
 
+    // ── Draft / revision (CR-001-G) ─────────────────────────────────────────
+    public bool IsDraft { get; set; } = false;
+
+    /// <summary>On a draft target cloned from the published plan, points back
+    /// to the published row. Null for targets added newly in the draft.</summary>
+    public Guid? OriginalKpiTargetId { get; set; }
+
     // Navigation
     public Kpi Kpi { get; set; } = null!;
+    public KpiTarget? OriginalKpiTarget { get; set; }
 }

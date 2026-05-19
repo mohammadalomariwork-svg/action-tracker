@@ -509,5 +509,7 @@ public class StrategicPlanService : IStrategicPlanService
             CreatedByName = Resolve(p.CreatedBy, names),
             UpdatedByName = Resolve(p.UpdatedBy, names),
             DeletedByName = Resolve(p.DeletedBy, names),
+            IsDraft = p.IsDraft,
+            OriginalPlanId = p.OriginalPlanId,
         };
 }

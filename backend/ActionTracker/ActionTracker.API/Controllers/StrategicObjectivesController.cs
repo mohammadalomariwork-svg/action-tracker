@@ -182,6 +182,7 @@ public class StrategicObjectivesController : ControllerBase
     [Authorize(Policy = PermissionPolicies.StrategicObjectivesDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SoftDelete(Guid id, CancellationToken ct = default)
     {
         _logger.LogInformation("DELETE /api/strategicobjectives/{Id}", id);
@@ -198,6 +199,10 @@ public class StrategicObjectivesController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse<string>.Fail(ex.Message));
         }
     }
 

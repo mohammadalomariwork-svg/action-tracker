@@ -20,8 +20,19 @@ public class StrategicObjective
     public string? UpdatedBy { get; set; }
     public string? DeletedBy { get; set; }
 
+    // ── Draft / revision (CR-001-G) ─────────────────────────────────────────
+    /// <summary>True when this row belongs to a draft plan graph. Hidden from
+    /// live queries via a global filter.</summary>
+    public bool IsDraft { get; set; } = false;
+
+    /// <summary>On a draft objective that was cloned from the published plan,
+    /// points back to the published row so the promote step can apply field
+    /// updates in place. Null for objectives added newly in the draft.</summary>
+    public Guid? OriginalObjectiveId { get; set; }
+
     // Navigation
     public OrgUnit OrgUnit { get; set; } = null!;
     public StrategicPlan? StrategicPlan { get; set; }
+    public StrategicObjective? OriginalObjective { get; set; }
     public ICollection<Kpi> Kpis { get; set; } = new List<Kpi>();
 }

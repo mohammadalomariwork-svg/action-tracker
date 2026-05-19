@@ -96,9 +96,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
         modelBuilder.Entity<ActionItem>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
-        modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted);
-        modelBuilder.Entity<StrategicPlan>().HasQueryFilter(p => !p.IsDeleted);
-        modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted);
+        // Drafts (IsDraft = true) are hidden from every "live" query — the
+        // draft service uses IgnoreQueryFilters() to reach them. CR-001-G.
+        modelBuilder.Entity<StrategicObjective>().HasQueryFilter(o => !o.IsDeleted && !o.IsDraft);
+        modelBuilder.Entity<StrategicPlan>().HasQueryFilter(p => !p.IsDeleted && !p.IsDraft);
+        modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted && !o.IsDraft);
+        modelBuilder.Entity<KpiTarget>().HasQueryFilter(t => !t.IsDraft);
         modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted);
         modelBuilder.Entity<EmailTemplate>().HasQueryFilter(e => !e.IsDeleted);
@@ -106,6 +109,46 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<ProjectApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<StrategicPlanApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<KpiActual>().HasQueryFilter(a => !a.IsDeleted);
+
+        // ── Draft self-FKs + uniqueness invariants (CR-001-G) ────────────────
+        modelBuilder.Entity<StrategicPlan>(e =>
+        {
+            e.HasOne(p => p.OriginalPlan)
+             .WithMany()
+             .HasForeignKey(p => p.OriginalPlanId)
+             .OnDelete(DeleteBehavior.Restrict);
+            // Filtered unique index: at most one open draft per published plan.
+            e.HasIndex(p => p.OriginalPlanId)
+             .IsUnique()
+             .HasFilter("[OriginalPlanId] IS NOT NULL");
+        });
+
+        modelBuilder.Entity<StrategicObjective>(e =>
+        {
+            e.HasOne(o => o.OriginalObjective)
+             .WithMany()
+             .HasForeignKey(o => o.OriginalObjectiveId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(o => o.OriginalObjectiveId);
+        });
+
+        modelBuilder.Entity<Kpi>(e =>
+        {
+            e.HasOne(k => k.OriginalKpi)
+             .WithMany()
+             .HasForeignKey(k => k.OriginalKpiId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(k => k.OriginalKpiId);
+        });
+
+        modelBuilder.Entity<KpiTarget>(e =>
+        {
+            e.HasOne(t => t.OriginalKpiTarget)
+             .WithMany()
+             .HasForeignKey(t => t.OriginalKpiTargetId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(t => t.OriginalKpiTargetId);
+        });
 
         modelBuilder.Entity<Workspace>(entity =>
         {

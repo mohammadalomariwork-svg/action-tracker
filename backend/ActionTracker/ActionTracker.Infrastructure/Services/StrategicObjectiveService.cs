@@ -185,15 +185,21 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             Guid? targetPlanId;
 
+            // Track whether the destination plan is a draft so we can flag
+            // the new objective row as a draft too (CR-001-G).
+            bool targetPlanIsDraft = false;
+
             if (request.StrategicPlanId.HasValue)
             {
                 // Caller is explicitly attaching to a known plan (Strategy page
                 // flow). Validate that the plan exists, isn't archived, isn't
                 // locked, and that the requested OrgUnitId falls inside the
                 // plan's subtree (the plan's own unit or a descendant).
+                // IgnoreQueryFilters so draft plans are reachable.
                 var plan = await _context.StrategicPlans
-                    .Where(p => p.Id == request.StrategicPlanId.Value)
-                    .Select(p => new { p.Id, p.OrgUnitId, p.Status })
+                    .IgnoreQueryFilters()
+                    .Where(p => p.Id == request.StrategicPlanId.Value && !p.IsDeleted)
+                    .Select(p => new { p.Id, p.OrgUnitId, p.Status, p.IsDraft })
                     .FirstOrDefaultAsync(ct)
                     ?? throw new ArgumentException(
                         $"Strategic plan '{request.StrategicPlanId}' does not exist.",
@@ -212,12 +218,15 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                         "The selected organisation unit is not within the strategic plan's subtree.");
 
                 targetPlanId = plan.Id;
+                targetPlanIsDraft = plan.IsDraft;
             }
             else
             {
                 // Fallback (admin / legacy flow): auto-resolve the active plan
                 // for the requested OrgUnitId via the org-unit-keyed lock guard,
-                // then pick the newest non-archived plan for that unit.
+                // then pick the newest non-archived plan for that unit. Drafts
+                // are excluded from this fallback — callers wanting to add
+                // objectives to a draft must pass StrategicPlanId explicitly.
                 await _lockGuard.EnsureNotLockedForOrgUnitAsync(request.OrgUnitId, ct);
 
                 targetPlanId = await _context.StrategicPlans
@@ -249,6 +258,10 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                 OrgUnitId       = request.OrgUnitId,
                 StrategicPlanId = targetPlanId,
                 IsDeleted       = false,
+                // New objectives added inside a draft inherit the draft flag.
+                // OriginalObjectiveId stays null — they are brand-new and will
+                // be promoted as new published objectives at merge time.
+                IsDraft         = targetPlanIsDraft,
                 CreatedAt       = DateTime.UtcNow,
                 CreatedBy       = userId,
             };
@@ -359,9 +372,14 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             // and the requested target org unit (so they cannot reassign out of scope).
             await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
             await _scopeService.EnsureCanWriteAsync(userId, request.OrgUnitId, ct);
-            await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
-            if (request.OrgUnitId != objective.OrgUnitId)
-                await _lockGuard.EnsureNotLockedForOrgUnitAsync(request.OrgUnitId, ct);
+            // Draft objectives bypass the published lock — drafts are the
+            // working copy for revisions (CR-001-G).
+            if (!objective.IsDraft)
+            {
+                await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
+                if (request.OrgUnitId != objective.OrgUnitId)
+                    await _lockGuard.EnsureNotLockedForOrgUnitAsync(request.OrgUnitId, ct);
+            }
 
             var orgUnit = await _context.OrgUnits
                 .FirstOrDefaultAsync(o => o.Id == request.OrgUnitId, ct)
@@ -401,12 +419,44 @@ public class StrategicObjectiveService : IStrategicObjectiveService
     {
         try
         {
+            // IgnoreQueryFilters so we can also delete draft objectives — they
+            // are hidden from the default StrategicObjectives query.
             var objective = await _context.StrategicObjectives
-                .FirstOrDefaultAsync(o => o.Id == id, ct)
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted, ct)
                 ?? throw new KeyNotFoundException($"Strategic objective '{id}' not found.");
 
             await _scopeService.EnsureCanWriteAsync(userId, objective.OrgUnitId, ct);
-            await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
+
+            // Lock guard only applies to objectives on the *published* plan.
+            // Draft objectives are inherently editable while their parent
+            // draft plan is in Draft status.
+            if (!objective.IsDraft)
+                await _lockGuard.EnsureNotLockedForOrgUnitAsync(objective.OrgUnitId, ct);
+
+            // Block delete when projects still reference this objective. Caller
+            // gets a 409 + the offending project codes so they can go unlink
+            // them manually. For draft objectives we check the *published*
+            // counterpart's references (Project.StrategicObjectiveId points
+            // at published rows) — deleting the draft objective signals
+            // intent to remove its published counterpart at promote time.
+            var checkAgainstObjectiveId = objective.IsDraft && objective.OriginalObjectiveId.HasValue
+                ? objective.OriginalObjectiveId.Value
+                : objective.Id;
+            var linkedProjects = await _context.Projects
+                .Where(p => p.StrategicObjectiveId == checkAgainstObjectiveId && !p.IsDeleted)
+                .Select(p => new { p.ProjectCode, p.Name })
+                .ToListAsync(ct);
+
+            if (linkedProjects.Count > 0)
+            {
+                var labels = linkedProjects
+                    .Select(p => string.IsNullOrEmpty(p.ProjectCode) ? p.Name : $"{p.ProjectCode} – {p.Name}")
+                    .ToList();
+                throw new InvalidOperationException(
+                    $"Cannot delete this strategic objective — {linkedProjects.Count} project(s) still link to it: " +
+                    $"{string.Join("; ", labels)}. Unlink or reassign those projects first.");
+            }
 
             var now = DateTime.UtcNow;
             objective.IsDeleted = true;
@@ -416,9 +466,11 @@ public class StrategicObjectiveService : IStrategicObjectiveService
 
             await _context.SaveChangesAsync(ct);
 
-            _logger.LogInformation("Soft-deleted StrategicObjective {Id}", id);
+            _logger.LogInformation("Soft-deleted StrategicObjective {Id} (isDraft={IsDraft})",
+                id, objective.IsDraft);
         }
         catch (KeyNotFoundException) { throw; }
+        catch (InvalidOperationException) { throw; }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error soft-deleting strategic objective {Id}", id);
@@ -513,8 +565,11 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             // Resolve the plan first so we can scope-check against its OrgUnit.
             // Returning empty (rather than throwing) when the plan is missing or
             // out-of-scope mirrors GetByOrgUnitAsync's behaviour.
+            // IgnoreQueryFilters so callers can pass a draft plan id and see
+            // its objectives (the global filter would otherwise return empty).
             var plan = await _context.StrategicPlans
-                .Where(p => p.Id == strategicPlanId)
+                .IgnoreQueryFilters()
+                .Where(p => p.Id == strategicPlanId && !p.IsDeleted)
                 .Select(p => new { p.Id, p.OrgUnitId })
                 .FirstOrDefaultAsync(ct);
             if (plan is null)
@@ -528,9 +583,10 @@ public class StrategicObjectiveService : IStrategicObjectiveService
             }
 
             var objectives = await _context.StrategicObjectives
+                .IgnoreQueryFilters()
                 .Include(o => o.OrgUnit)
                 .Include(o => o.Kpis)
-                .Where(o => o.StrategicPlanId == strategicPlanId)
+                .Where(o => o.StrategicPlanId == strategicPlanId && !o.IsDeleted)
                 .OrderBy(o => o.ObjectiveCode)
                 .ToListAsync(ct);
 
