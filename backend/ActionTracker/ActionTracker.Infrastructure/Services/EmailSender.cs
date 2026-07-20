@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.MailServerConfig;
 using ActionTracker.Domain.Entities;
 using MailKit.Net.Smtp;
 using Microsoft.EntityFrameworkCore;
@@ -13,17 +14,20 @@ namespace ActionTracker.Infrastructure.Services;
 public partial class EmailSender : IEmailSender
 {
     private readonly IAppDbContext _db;
-    private readonly SmtpSettings _smtp;
+    private readonly SmtpSettings _smtpFallback;
+    private readonly IMailServerConfigService _mailConfig;
     private readonly ILogger<EmailSender> _logger;
 
     public EmailSender(
         IAppDbContext db,
         IOptions<SmtpSettings> smtp,
+        IMailServerConfigService mailConfig,
         ILogger<EmailSender> logger)
     {
-        _db     = db;
-        _smtp   = smtp.Value;
-        _logger = logger;
+        _db           = db;
+        _smtpFallback = smtp.Value;
+        _mailConfig   = mailConfig;
+        _logger       = logger;
     }
 
     public async Task SendEmailAsync(
@@ -54,10 +58,13 @@ public partial class EmailSender : IEmailSender
         var wrappedBody     = WrapInLayout(resolvedBody);
         var toEmail         = string.Join(", ", recipientEmails);
 
+        // Prefer the DB-stored configuration; fall back to appsettings binding.
+        var smtp = await _mailConfig.GetActiveSmtpSettingsAsync() ?? _smtpFallback;
+
         try
         {
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_smtp.FromName, _smtp.FromEmail));
+            message.From.Add(new MailboxAddress(smtp.FromName, smtp.FromEmail));
 
             foreach (var email in recipientEmails)
                 message.To.Add(MailboxAddress.Parse(email));
@@ -67,12 +74,12 @@ public partial class EmailSender : IEmailSender
 
             using var client = new SmtpClient();
             client.ServerCertificateValidationCallback = (_, _, _, _) => true;
-            await client.ConnectAsync(_smtp.Host, _smtp.Port, _smtp.UseSsl
+            await client.ConnectAsync(smtp.Host, smtp.Port, smtp.UseSsl
                 ? MailKit.Security.SecureSocketOptions.StartTls
                 : MailKit.Security.SecureSocketOptions.Auto);
 
-            if (!string.IsNullOrWhiteSpace(_smtp.Username))
-                await client.AuthenticateAsync(_smtp.Username, _smtp.Password);
+            if (!string.IsNullOrWhiteSpace(smtp.Username))
+                await client.AuthenticateAsync(smtp.Username, smtp.Password);
 
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

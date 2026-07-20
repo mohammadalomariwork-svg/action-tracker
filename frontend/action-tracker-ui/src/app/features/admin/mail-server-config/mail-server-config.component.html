@@ -1,0 +1,187 @@
+<div class="msc-page">
+
+  <app-admin-breadcrumb
+    [items]="[{ label: 'Admin Panel', route: '/admin' }, { label: 'Mail Server Configuration' }]"
+    class="mb-3 d-block"
+  />
+
+  <app-page-header
+    title="Mail Server Configuration"
+    subtitle="SMTP settings used by Command Center for all outgoing emails"
+    icon="bi bi-envelope-gear-fill"
+  />
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  } @else {
+    <div class="card shadow-sm">
+      <div class="card-body">
+
+        @if (config(); as cfg) {
+          <div class="alert alert-info d-flex justify-content-between align-items-center small mb-4">
+            <div>
+              <i class="bi bi-info-circle me-1"></i>
+              Active configuration last updated
+              @if (cfg.updatedAt) {
+                <strong>{{ cfg.updatedAt | date: 'medium' }}</strong>
+                @if (cfg.updatedBy) { by <strong>{{ cfg.updatedBy }}</strong> }
+              } @else {
+                <strong>{{ cfg.createdAt | date: 'medium' }}</strong>
+              }.
+            </div>
+            <span class="badge bg-success">Active</span>
+          </div>
+        } @else {
+          <div class="alert alert-warning small mb-4">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            No mail server configuration is stored yet. The system is currently
+            using the fallback configuration from <code>appsettings.json</code>.
+            Save a configuration below to override.
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="save()" autocomplete="off">
+
+          <!-- ── Server ──────────────────────────────────────────────────────── -->
+          <h6 class="text-uppercase text-muted mb-3">Server</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-8">
+              <label class="form-label">SMTP Host <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="host"
+                placeholder="smtp.example.com"
+                [class.is-invalid]="form.controls.host.touched && form.controls.host.invalid"
+              />
+              <div class="invalid-feedback">Host is required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Port <span class="text-danger">*</span></label>
+              <input
+                type="number"
+                class="form-control"
+                formControlName="port"
+                min="1"
+                max="65535"
+                [class.is-invalid]="form.controls.port.touched && form.controls.port.invalid"
+              />
+              <div class="invalid-feedback">1–65535.</div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="useSslSwitch"
+                  formControlName="useSsl"
+                />
+                <label class="form-check-label" for="useSslSwitch">Use SSL / TLS</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Sender ──────────────────────────────────────────────────────── -->
+          <h6 class="text-uppercase text-muted mb-3">Sender Identity</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">From Email <span class="text-danger">*</span></label>
+              <input
+                type="email"
+                class="form-control"
+                formControlName="fromEmail"
+                placeholder="noreply@ku.ac.ae"
+                [class.is-invalid]="form.controls.fromEmail.touched && form.controls.fromEmail.invalid"
+              />
+              <div class="invalid-feedback">A valid email is required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">From Name <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="fromName"
+                placeholder="KU Command Center"
+                [class.is-invalid]="form.controls.fromName.touched && form.controls.fromName.invalid"
+              />
+              <div class="invalid-feedback">From name is required.</div>
+            </div>
+          </div>
+
+          <!-- ── Credentials ─────────────────────────────────────────────────── -->
+          <h6 class="text-uppercase text-muted mb-3">Authentication</h6>
+          <div class="row g-3 mb-2">
+            <div class="col-md-6">
+              <label class="form-label">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="username"
+                autocomplete="off"
+                placeholder="smtp-user@example.com"
+              />
+              <div class="form-text">Leave blank if the server does not require authentication.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">
+                Password
+                @if (config()?.hasPassword) {
+                  <span class="badge bg-secondary ms-2">stored & encrypted</span>
+                }
+              </label>
+              <div class="input-group">
+                <input
+                  [type]="showPassword() ? 'text' : 'password'"
+                  class="form-control"
+                  formControlName="password"
+                  autocomplete="new-password"
+                  [placeholder]="config()?.hasPassword ? 'Leave blank to keep current password' : 'Enter password'"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  (click)="togglePasswordVisibility()"
+                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                >
+                  <i class="bi" [class.bi-eye]="!showPassword()" [class.bi-eye-slash]="showPassword()"></i>
+                </button>
+              </div>
+              <div class="form-text">
+                Stored encrypted in the database using ASP.NET Core Data Protection.
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Actions ─────────────────────────────────────────────────────── -->
+          <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              (click)="load()"
+              [disabled]="saving()"
+            >
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+              } @else {
+                <i class="bi bi-save me-1"></i>
+              }
+              Save Configuration
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

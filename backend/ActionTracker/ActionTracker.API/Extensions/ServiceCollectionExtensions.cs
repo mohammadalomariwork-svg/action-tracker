@@ -7,6 +7,7 @@ using ActionTracker.Application.Features.StrategicPlans.Workflow;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Services;
 using ActionTracker.Application.Features.EmailTemplates;
+using ActionTracker.Application.Features.MailServerConfig;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Auth.Interfaces;
 using ActionTracker.Application.Features.Auth.Services;
@@ -298,6 +299,8 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
         services.Configure<AppSettings>(configuration.GetSection("App"));
+        services.AddSingleton<ISecretProtector, ActionTracker.Infrastructure.Security.DataProtectionSecretProtector>();
+        services.AddScoped<IMailServerConfigService, MailServerConfigService>();
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<INotificationService, NotificationService>();

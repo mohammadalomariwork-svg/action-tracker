@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-05-19 (CR-001-G: draft/versioning model for strategic plan revisions — backend complete, frontend integration partial)
+> Last updated: 2026-05-20 (Mail Server Configuration: admin-managed SMTP settings with encrypted password storage)
 
 ---
 
@@ -37,7 +37,7 @@
 - **Deprecated:** Manager and User — auto-deleted by `RoleSeeder` on startup if still present
 
 ### Policies Implemented
-Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces, User Management, Roles, Permissions Management, Reports, Dashboard, Notifications, Email Templates, Risks
+Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces, User Management, Roles, Permissions Management, Reports, Dashboard, Notifications, Email Templates, Mail Server Config, Risks
 
 ---
 
@@ -318,6 +318,14 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - Editable subject and HTML body
 - Active/inactive toggle
 - Delivery logging for audit
+
+### Mail Server Configuration
+- Admin-managed SMTP settings (Host, Port, UseSSL, From email/name, Username, Password)
+- Persisted in the `MailServerConfigs` table (single active row)
+- Password encrypted at rest via ASP.NET Core Data Protection (`ISecretProtector`)
+- `EmailSender` reads the active DB configuration at send time and falls back to `appsettings.json` `Smtp` section when no DB row exists
+- Admin Panel → "Mail Server Configuration" card, gated by `MailServerConfig.View` / `MailServerConfig.Edit`
+- Password field never returned by API; clients only see a `hasPassword` flag; leaving the password field blank on save keeps the existing stored value
 
 ---
 

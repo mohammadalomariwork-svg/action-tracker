@@ -54,6 +54,14 @@ export const ADMIN_ROUTES: Routes = [
         .then(m => m.EmailTemplatesPageComponent),
   },
   {
+    path: 'mail-server-config',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'MailServerConfig', requiredAction: 'View' },
+    loadComponent: () =>
+      import('./mail-server-config/mail-server-config.component')
+        .then(m => m.MailServerConfigComponent),
+  },
+  {
     path: 'permissions/roles',
     canActivate: [permissionGuard],
     data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },

@@ -46,7 +46,11 @@
       "Bash(rm \"backend/ActionTracker/ActionTracker.Infrastructure/Data/Migrations/20260519060152_Add_StrategicPlan_Drafts.cs\" \"backend/ActionTracker/ActionTracker.Infrastructure/Data/Migrations/20260519060152_Add_StrategicPlan_Drafts.Designer.cs\")",
       "PowerShell(Invoke-Sqlcmd -ConnectionString $cs -Query $query)",
       "PowerShell($cs = \"Server=PRDSQL16BADBE;Database=ActionsCenter;User Id=accuser;Password=Khalifa786`$;TrustServerCertificate=True;\")",
-      "PowerShell(Invoke-Sqlcmd -ConnectionString $cs -Query \"SELECT Id, Name, Status, IsDraft FROM dbo.StrategicPlans WHERE Id = '04a6795d-a3c9-4976-a85e-28bd781ebbc4';\")"
+      "PowerShell(Invoke-Sqlcmd -ConnectionString $cs -Query \"SELECT Id, Name, Status, IsDraft FROM dbo.StrategicPlans WHERE Id = '04a6795d-a3c9-4976-a85e-28bd781ebbc4';\")",
+      "Bash(npx --no-install tsc --noEmit -p tsconfig.app.json)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5099/swagger/v1/swagger.json)",
+      "Bash(curl -s http://localhost:5099/swagger/v1/swagger.json)",
+      "Bash(curl -s -o /dev/null -w \"GET /api/mail-server-config -> %{http_code}\\\\n\" http://localhost:5099/api/mail-server-config)"
     ]
   }
 }

@@ -74,6 +74,15 @@ export class AdminPanelComponent {
       color:           'dark',
       permissionArea:  'Admin',
     },
+    {
+      id:              'mail-server-config',
+      title:           'Mail Server Configuration',
+      description:     'Configure the SMTP server used by Command Center to send all outgoing emails. Password is encrypted at rest.',
+      icon:            'bi-envelope-gear-fill',
+      route:           '/admin/mail-server-config',
+      color:           'warning',
+      permissionArea:  'MailServerConfig',
+    },
     // Permissions Management card hidden per business request
     // {
     //   id:              'permissions',

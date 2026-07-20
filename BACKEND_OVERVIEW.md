@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-05-19 (CR-001-G draft/versioning model for strategic-plan revisions; submitter-in-chain rejected; objective delete 409s on linked projects)
+> Last updated: 2026-05-20 (Mail Server Configuration: admin-managed SMTP settings persisted in DB with DataProtection-encrypted password)
 
 ## Tech Stack
 
@@ -56,7 +56,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 **Fine-Grained Permissions (RBAC + ABAC Hybrid)**
 - Permissions defined as Area.Action pairs (e.g., `Projects.View`, `ActionItems.Delete`)
-- **17 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**
+- **18 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**, **MailServerConfig**
 - **7 Actions:** View, Create, Edit, Delete, Approve, Export, Assign
 - Stored in `RolePermission` (role-level) and `UserPermissionOverride` (user-level) tables
 - **Effective Permissions** = Role Permissions + User Overrides (denials take precedence)
@@ -213,6 +213,18 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/{id}` | Single template by ID |
 | GET | `/logs` | Paginated email delivery logs |
 | PUT | `/{id}` | Update template (requires EmailTemplates.Edit) |
+
+### MailServerConfigController (`/api/mail-server-config`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Active mail server configuration (password masked, requires `MailServerConfig.View`) |
+| PUT | `/` | Upsert the active configuration (requires `MailServerConfig.Edit`) — null/empty password keeps the stored value |
+
+The password is encrypted via `ISecretProtector` (ASP.NET Core Data Protection)
+before being persisted in the `MailServerConfigs` table. `EmailSender` reads the
+active configuration through `IMailServerConfigService.GetActiveSmtpSettingsAsync()`
+at send time and falls back to the bound `Smtp` section of `appsettings.json` when
+no row exists.
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
@@ -743,6 +755,20 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | Id | Guid (PK) | Primary key |
 | Tracks email delivery attempts for auditing |
 
+#### MailServerConfig
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| Host | string(256) | SMTP host |
+| Port | int | SMTP port (default 587) |
+| UseSsl | bool | Use SSL/TLS |
+| FromEmail | string(256) | From email address |
+| FromName | string(256) | From display name |
+| Username | string(256) | SMTP auth username (nullable) |
+| EncryptedPassword | string(4000) | DataProtection-encrypted password |
+| IsActive | bool | Only one row with IsActive=true (filtered unique index) |
+| CreatedAt / CreatedBy / UpdatedAt / UpdatedBy | audit | Standard audit columns |
+
 #### Document
 | Field | Type | Description |
 |-------|------|-------------|
@@ -854,6 +880,8 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | `IDashboardService` | KPI metrics, management dashboard, team workload |
 | `INotificationService` | CRUD notifications, read/unread tracking, summary |
 | `IEmailTemplateService` | CRUD templates, delivery logging |
+| `IMailServerConfigService` | Read / upsert the active mail-server configuration; encrypts the password on save (via `ISecretProtector`) and decrypts at send time. `EmailSender` calls `GetActiveSmtpSettingsAsync()` and falls back to bound `SmtpSettings` from `appsettings.json` when no row exists. |
+| `ISecretProtector` | Symmetric-encryption wrapper over `IDataProtectionProvider` (purpose `ActionTracker.MailServerConfig.Password.v1`) used to protect SMTP passwords (and any future secrets at rest). |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
 | `IUserManagementService` | CRUD users, role assignment (with Strategy Editor org-unit-level guard), KU employee search, activation |
 | `ICommentService` | CRUD polymorphic comments (any entity type) |

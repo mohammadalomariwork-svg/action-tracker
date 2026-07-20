@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-05-18 (workspace-scoped assignable-users for all user pickers; AssignableUser fields renamed to userId/userName + new orgUnitName/sources)
+> Last updated: 2026-05-20 (Mail Server Configuration admin page with encrypted-at-rest SMTP password)
 
 ## Tech Stack
 
@@ -87,6 +87,7 @@
 | `/admin/kpis/:kpiId/targets` | KPI monthly targets | KPIs.View |
 | `/admin/kpis/:kpiId/targets/:targetId/actuals` | Period-aware KPI Actuals grid (CR-001-F) | KpiActuals.View |
 | `/admin/email-templates` | Email templates | EmailTemplates.View |
+| `/admin/mail-server-config` | Mail server configuration (SMTP settings) | MailServerConfig.View |
 | `/admin/permissions/roles` | Role permission matrix | PermissionsManagement.View |
 | `/admin/permissions/users` | User permission overrides | PermissionsManagement.View |
 | `/admin/roles` | Roles list | Roles.View |
@@ -210,6 +211,7 @@
 | `KpiTargetsComponent` | Period-aware target management (12 / 4 / 2 / 1 row(s) per year by KPI period); inline edit with Enter/Esc keybindings, year navigation, variance + % achievement colour coding, Save All bulk upsert. Per-row evidence button opens an `app-documents-section` modal scoped to the saved `KpiTarget` (max 10 files, PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX, 10 MB cap). Reusable in two modes: standalone (`/admin/kpis/:kpiId/targets`) and embedded (passed `[embedded]`, `[locked]`, `[planStartYear]`, `[planEndYear]` from `ObjectiveDetailComponent`). When `locked` is true the component applies field-level read-only — the Target cell renders as a lock-decorated span (no input, even mid-edit), `commitEdit` pins the existing target value, the banner explains "target values are read-only but Actual / Notes / Evidence remain editable", and the Save All button is relabeled "Save Actuals & Notes". When the year-range inputs are set the year picker clamps navigation and hides both chevrons for single-year plans. Below 576 px the table collapses into stacked label/value cards via `data-label` attributes + a `::before` rule for full mobile readability |
 | `EmailTemplatesPageComponent` | Email template management |
 | `EmailTemplateEditComponent` | Edit email template subject and HTML body |
+| `MailServerConfigComponent` | Admin form to configure the SMTP server used by Command Center (host, port, SSL, from, credentials); password stored encrypted via DataProtection on the backend |
 
 ### Permissions (7)
 | Component | Description |
@@ -293,6 +295,7 @@
 | `MilestoneService` | Full CRUD on `/projects/:id/milestones`, plus `/stats`, `/baseline` |
 | `ProjectRiskService` | Full CRUD on `/projects/:id/risks`, plus `/stats` |
 | `EmailTemplateService` | `GET /email-templates`, `PUT /email-templates/:id`, `GET /email-templates/logs` |
+| `MailServerConfigService` | `GET /mail-server-config`, `PUT /mail-server-config` |
 | `PermissionCatalogService` | Permission areas and actions catalog |
 | `PermissionStateService` | `GET /user-permissions/me/effective`, `GET /users/me/org-units`; manages permission state, loads via APP_INITIALIZER |
 | `RolePermissionService` | Role-level permission assignment |
@@ -347,7 +350,8 @@
 | `RiskRating` (enum) | Critical, High, Medium, Low |
 | `RiskStatus` (enum) | Open, Mitigated, Closed |
 | `EmailTemplate` | id, templateKey, name, subject, htmlBody, isActive |
-| `PermissionArea` (enum) | Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans** |
+| `MailServerConfig` / `UpdateMailServerConfig` | host, port, useSsl, fromEmail, fromName, username, hasPassword (read) / password (write — null keeps existing) |
+| `PermissionArea` (enum) | Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **MailServerConfig** |
 | `PermissionAction` (enum) | View, Create, Edit, Delete, Approve, Export, Assign, **AssignHead** |
 | `Kpi` | id, kpiNumber, name, calculationMethod, period, unit, strategicObjectiveId |
 | `KpiTarget` | id, kpiId, year, month, target, actual, notes, **baseline**, **dataSource**, **calculationNotes**, **direction** (KpiDirection) |
@@ -451,6 +455,7 @@
 - **KPIs:** Tied to strategic objectives, period-aware targets (12 / 4 / 2 / 1 rows/year), bulk upsert, calculation methods
 - **KPI Target Evidence:** modal-driven document attachments per target row — up to 10 files, PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX, 10 MB max; paperclip badge shows current file count
 - **Email Templates:** Template management with subject/HTML body editing, active/inactive toggle, delivery logs
+- **Mail Server Configuration:** Admin-managed SMTP settings (host, port, SSL/TLS, from, username, password) persisted in the database and used for all outgoing emails; password is stored encrypted via ASP.NET Core Data Protection and never returned to the client (a `hasPassword` flag is shown); leaving the password field blank on save keeps the existing stored value
 
 ### Permission System
 - **15 Permission Areas** x **7 Permission Actions** = 105 possible permissions

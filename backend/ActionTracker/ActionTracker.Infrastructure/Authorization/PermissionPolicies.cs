@@ -109,6 +109,10 @@ public static class PermissionPolicies
     public const string EmailTemplatesView = "EmailTemplates.View";
     public const string EmailTemplatesEdit = "EmailTemplates.Edit";
 
+    // ── Mail Server Configuration ─────────────────────────────────────────────
+    public const string MailServerConfigView = "MailServerConfig.View";
+    public const string MailServerConfigEdit = "MailServerConfig.Edit";
+
     // ── Notifications ─────────────────────────────────────────────────────────
     public const string NotificationsView   = "Notifications.View";
     public const string NotificationsDelete = "Notifications.Delete";

@@ -1,7 +1,7 @@
 # CLAUDE.MD — KU Action Tracker
 
 > **Purpose**: This file is read automatically by Claude Code at session start.
-> Keep it updated as features land. Last updated: 2026-05-13
+> Keep it updated as features land. Last updated: 2026-05-20
 
 
 ---
@@ -175,6 +175,7 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] **KPI Actuals & evidence (CR-001-F)** — period-aware grid (Quarter / Semi / Annual), Strategy Editor → level-3 head approval workflow with submit/review/history, evidence attachments on each actual (10-doc cap, scope-gated), achievement % colouring driven by `KpiDirection`, period-end submit guard (`KpiPeriodCalendar`), and a "KPI Actuals" tab on My Approvals. Actuals bypass the plan lock — editable even on Approved plans.
 - [x] Workspace admin custom multi-select picker (filter across name/email/org-unit, lazy-loaded users)
 - [x] Auto-launch Swagger UI on .NET host startup in Development
+- [x] **Mail Server Configuration (Admin Panel)** — Admin-managed SMTP settings stored in `MailServerConfigs` table (Host, Port, UseSsl, From, Username, EncryptedPassword). Password encrypted at rest via ASP.NET Core Data Protection (`ISecretProtector`). `EmailSender` reads the active DB row at send time and falls back to `appsettings.json` `Smtp` section when no row exists. Gated by new `MailServerConfig.View` / `MailServerConfig.Edit` permissions; Admin role only by default.
 - [ ] Scheduled reminders (automated due-date reminders)
 - [ ] Audit trail / activity log
 - [ ] Advanced search (cross-entity, full-text)

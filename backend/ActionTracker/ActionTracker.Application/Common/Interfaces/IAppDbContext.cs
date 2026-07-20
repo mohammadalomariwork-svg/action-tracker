@@ -51,6 +51,7 @@ public interface IAppDbContext
     // ── Email feature sets ───────────────────────────────────────────────────
     DbSet<EmailTemplate>     EmailTemplates       { get; }
     DbSet<EmailLog>          EmailLogs            { get; }
+    DbSet<MailServerConfig>  MailServerConfigs    { get; }
 
     // ── Notification feature sets ────────────────────────────────────────────
     DbSet<AppNotification>   AppNotifications     { get; }

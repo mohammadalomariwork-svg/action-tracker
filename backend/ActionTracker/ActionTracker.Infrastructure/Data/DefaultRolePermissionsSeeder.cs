@@ -90,6 +90,7 @@ public static class DefaultRolePermissionsSeeder
         var notif   = (PermissionCatalogSeeder.AreaNotifications,         "Notifications");
         var sp      = (PermissionCatalogSeeder.AreaStrategicPlans,        "StrategicPlans");
         var ka      = (PermissionCatalogSeeder.AreaKpiActuals,            "KpiActuals");
+        var mailCfg = (PermissionCatalogSeeder.AreaMailServerConfig,      "MailServerConfig");
 
         // Actions
         var view       = (PermissionCatalogSeeder.ActionView,       "View");
@@ -111,7 +112,7 @@ public static class DefaultRolePermissionsSeeder
             => (role, area.Id, area.Name, action.Id, action.Name);
 
         // ── Admin — every area × every action ─────────────────────────────────
-        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif, sp, ka };
+        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif, sp, ka, mailCfg };
         foreach (var area   in allAreas)
         foreach (var action in allActions)
             yield return P(AppRoles.Admin, area, action);

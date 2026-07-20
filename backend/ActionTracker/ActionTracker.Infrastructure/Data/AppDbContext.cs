@@ -58,6 +58,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     // ── Email feature sets ───────────────────────────────────────────────────
     public DbSet<EmailTemplate>     EmailTemplates       => Set<EmailTemplate>();
     public DbSet<EmailLog>          EmailLogs            => Set<EmailLog>();
+    public DbSet<MailServerConfig>  MailServerConfigs    => Set<MailServerConfig>();
 
     // ── Notification feature sets ────────────────────────────────────────────
     public DbSet<AppNotification>   AppNotifications     => Set<AppNotification>();
