@@ -16,6 +16,9 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
+    <!-- IsTransformWebConfigDisabled also disables the SDK's copy of web.config
+         to the publish output, so copy it explicitly. -->
+    <Content Update="web.config" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

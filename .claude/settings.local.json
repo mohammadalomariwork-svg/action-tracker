@@ -50,7 +50,25 @@
       "Bash(npx --no-install tsc --noEmit -p tsconfig.app.json)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5099/swagger/v1/swagger.json)",
       "Bash(curl -s http://localhost:5099/swagger/v1/swagger.json)",
-      "Bash(curl -s -o /dev/null -w \"GET /api/mail-server-config -> %{http_code}\\\\n\" http://localhost:5099/api/mail-server-config)"
+      "Bash(curl -s -o /dev/null -w \"GET /api/mail-server-config -> %{http_code}\\\\n\" http://localhost:5099/api/mail-server-config)",
+      "PowerShell(npm view @ng-select/ng-select@15 peerDependencies)",
+      "PowerShell(npm view @ng-select/ng-select versions --json)",
+      "PowerShell(if \\(Test-Path \"c:\\\\ApplicationTeam\\\\DEV\\\\action-tracker\\\\frontend\\\\action-tracker-ui\\\\package-lock.json\"\\) { $lock = Get-Content \"c:\\\\ApplicationTeam\\\\DEV\\\\action-tracker\\\\frontend\\\\action-tracker-ui\\\\package-lock.json\" -Raw | ConvertFrom-Json; $lock.packages.'node_modules/@ng-select/ng-select'.version } else { \"no lock file\" })",
+      "Bash(git check-ignore *)",
+      "Bash(git ls-tree *)",
+      "Bash(git show *)",
+      "PowerShell(sqlcmd -S localhost -E -Q \"SET NOCOUNT ON; SELECT name FROM sys.databases ORDER BY name\" -h -1 -W)",
+      "Bash(break)",
+      "PowerShell(sqlcmd -S localhost -E -d ActionTrackerDb -Q \"SET NOCOUNT ON; SELECT name FROM sys.tables ORDER BY name\" -h -1 -W)",
+      "PowerShell(sqlcmd -S PRDSQL16BADBE -U accuser -P \"Khalifa786$\" -d ActionsCenter -C -l 10 -Q \"SET NOCOUNT ON; SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId\" -h -1 -W)",
+      "PowerShell(Get-Process -Name \"ActionTracker.API\" -ErrorAction SilentlyContinue)",
+      "Bash(echo \"keep-ignored-exit:$?\")",
+      "Bash(git add *)",
+      "Read(//c/ApplicationTeam/DEV/CC-APIs/**)",
+      "Read(//c/ApplicationTeam/DEV/CC-APIs//**)"
+    ],
+    "additionalDirectories": [
+      "C:\\ApplicationTeam\\DEV\\action-tracker\\backend\\ActionTracker\\ActionTracker.API"
     ]
   }
 }
