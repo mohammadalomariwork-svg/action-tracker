@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────
 .al-page {
   min-height: 100%;
@@ -41,8 +43,8 @@ app-page-header {
 
   // "New Action" button: neon primary
   &.btn-primary {
-    background: var(--accent);
-    color: #000;
+    background: var(--accent-fill);
+    color: var(--on-fill);
     font-weight: 700;
     box-shadow: var(--neon);
     &:hover:not(:disabled) { box-shadow: var(--neon-intense); transform: translateY(-1px); }
@@ -85,50 +87,38 @@ app-page-header {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 // ── Stats bar — KpiCard grid ─────────────────────────
+// Seven cards: let them share one row when there is room rather than
+// wrapping a lone card onto a second line.
 .stats-bar {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 
 .stat-card {
   background: var(--sf);
   border: 1px solid var(--bd);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   padding: 1rem 1.1rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  backdrop-filter: blur(16px);
-  border-left: 4px solid transparent;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  gap: 0.85rem;
+  box-shadow: var(--csh);
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
 
-  &:hover { box-shadow: var(--neon); border-color: var(--accent); }
-
-  &--total   { border-left-color: var(--accent); }
-  &--danger  { border-left-color: #ef4444; }
-  &--blue    { border-left-color: #3b82f6; }
-  &--green   { border-left-color: #22c55e; }
-  &--overdue { border-left-color: #f59e0b; }
-  &--teal    { border-left-color: #0d9488; }
-  &--purple  { border-left-color: var(--accent2); }
+  &:hover {
+    border-color: rgba(var(--ar), 0.40);
+    box-shadow: var(--neon);
+    transform: translateY(-2px);
+  }
 }
 
 // Icon wrapper (rounded square, themed accent bg at 8% opacity)
 .stat-icon-wrap {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  font-size: 1.1rem;
+  @include tile.icon-tile(42px);
 
-  &--blue   { background: rgba(59, 130, 246, 0.08); color: #3b82f6; }
-  &--red    { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
-  &--indigo { background: rgba(var(--ar), 0.08); color: var(--accent); }
-  &--green  { background: rgba(34, 197, 94, 0.08); color: #22c55e; }
-  &--orange { background: rgba(245, 158, 11, 0.08); color: #f59e0b; }
-  &--teal   { background: rgba(13, 148, 136, 0.08); color: #0d9488; }
-  &--purple { background: rgba(var(--a2r), 0.08); color: var(--accent2); }
+  // Red only where the card flags a problem; every other variant is brand blue
+  &--red { @include tile.icon-tile-danger; }
 }
 
 .stat-text {
@@ -234,23 +224,23 @@ app-page-header {
 .table-wrap {
   width: 100%;
   overflow-x: auto;
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   border: 1px solid var(--bd);
   background: var(--sf);
-  backdrop-filter: blur(16px);
+  box-shadow: var(--csh);
 }
 
 .table th {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   color: var(--t3);
   white-space: nowrap;
   user-select: none;
-  background: var(--sf);
+  background: rgba(var(--ar), 0.05);
   border-bottom: 1px solid var(--bd);
-  padding: 0.85rem 1rem;
+  padding: 0.8rem 0.9rem;
 
   &.sortable {
     cursor: pointer;
@@ -266,14 +256,17 @@ app-page-header {
   transition: background-color 0.12s ease, color 0.12s ease;
 
   &:hover {
-    background-color: var(--sfh);
+    background-color: rgba(var(--ar), 0.06);
     td { color: var(--t1); }
   }
 
+  // nowrap: dates and project names were breaking onto two or three
+  // lines; the wrapper scrolls sideways when the table needs more room
   td {
-    padding: 0.85rem 1rem;
+    padding: 0.8rem 0.9rem;
     color: var(--t2);
     border-bottom: 1px solid var(--bd);
+    white-space: nowrap;
   }
 }
 
@@ -281,10 +274,11 @@ app-page-header {
 
 // ── Table row helpers ─────────────────────────────────
 .wa-action-id {
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--t1);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--t2);
   text-decoration: none;
   &:hover { color: var(--accent); }
 }
@@ -416,7 +410,7 @@ app-page-header {
 
   &--deleted {
     opacity: 0.55;
-    background-color: rgba(239, 68, 68, 0.05);
+    background-color: rgba(var(--errr), 0.05);
   }
 
   &__header { margin-bottom: 0.5rem; }
@@ -538,8 +532,8 @@ app-page-header {
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 
   &--active {
-    background: var(--accent);
-    color: #000;
+    background: var(--accent-fill);
+    color: var(--on-fill);
     border-color: var(--accent);
     box-shadow: var(--neon);
   }
@@ -624,7 +618,7 @@ app-page-header {
     background: none; border: none; padding: 0;
     color: var(--accent); cursor: pointer; font-size: 0.9rem;
     line-height: 1; display: inline-flex;
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--err); }
   }
 
   &__dropdown {
@@ -634,7 +628,7 @@ app-page-header {
     background: var(--bg);
     border: 1px solid var(--bd);
     border-radius: var(--r-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--sh-drop);
     margin-top: 2px;
     max-height: 280px;
     display: flex;

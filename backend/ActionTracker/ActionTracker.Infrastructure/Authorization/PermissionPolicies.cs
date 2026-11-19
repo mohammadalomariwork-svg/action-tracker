@@ -113,6 +113,10 @@ public static class PermissionPolicies
     public const string MailServerConfigView = "MailServerConfig.View";
     public const string MailServerConfigEdit = "MailServerConfig.Edit";
 
+    // ── Data Sync (Admin Panel) ───────────────────────────────────────────────
+    public const string DataSyncView = "DataSync.View";
+    public const string DataSyncEdit = "DataSync.Edit";
+
     // ── Notifications ─────────────────────────────────────────────────────────
     public const string NotificationsView   = "Notifications.View";
     public const string NotificationsDelete = "Notifications.Delete";

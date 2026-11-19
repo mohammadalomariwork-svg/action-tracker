@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-// GLOBAL RESETS — Body, selection, scrollbar
+// GLOBAL RESETS — Body, typography, selection, scrollbar
 // ═══════════════════════════════════════════════════════════════════
 
 *,
@@ -14,26 +14,59 @@ body {
   padding: 0;
 }
 
+html {
+  // Anchored jumps and focus scrolling must clear the sticky header
+  scroll-padding-top: calc(var(--hdr-h) + 16px);
+}
+
 body {
   font-family: var(--font);
-  background: var(--bg2);
+  background: var(--canvas);
   color: var(--t1);
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-height: 100vh;
   overflow-x: hidden;
-  transition: background 0.5s, color 0.3s;
+  transition: background-color 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+// ── Typography ───────────────────────────────────────────────────
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  color: var(--th);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+// Figures line up in tables and stat cards
+table,
+.stat-value,
+.kpi-card__value {
+  font-variant-numeric: tabular-nums;
+}
+
+hr {
+  border-color: var(--bd);
+  opacity: 1;
 }
 
 // ── Text selection ───────────────────────────────────────────────
 ::selection {
-  background: rgba(var(--ar), 0.25);
+  background: rgba(var(--ar), 0.28);
 }
 
 // ── Custom scrollbar ─────────────────────────────────────────────
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scr) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -42,5 +75,15 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--scr);
-  border-radius: 3px;
+  border-radius: 999px;
+  border: 3px solid transparent;   // inset the thumb so it reads as a slim pill
+  background-clip: padding-box;
+
+  &:hover {
+    background-color: rgba(var(--ar), 0.55);
+  }
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

@@ -1,3 +1,5 @@
+@use '../../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .wd-page {
   padding: 1.5rem;
@@ -34,10 +36,7 @@
 }
 
 .wd-merged-header__icon {
-  font-size: 2.5rem;
-  color: var(--t3);
-  line-height: 1;
-  flex-shrink: 0;
+  @include tile.icon-tile(50px);
 }
 
 .wd-merged-header__title {
@@ -59,7 +58,7 @@
 .wd-header-card {
   border: none;
   border-radius: var(--border-radius, 0.5rem);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   background-color: var(--sf);
 }
 
@@ -68,7 +67,7 @@
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: var(--border-radius, 0.5rem);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   padding: 1.25rem 1.5rem;
   backdrop-filter: blur(16px);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -149,9 +148,7 @@
 // ── Stats cards ─────────────────────────────────────────────────────────────
 $stat-primary: var(--accent, #00E5FF);
 $stat-info:    #0891b2;
-$stat-success: #22c55e;
 $stat-purple:  var(--accent2, #7C5CFC);
-$stat-danger:  #ef4444;
 
 .stats-grid {
   display: grid;
@@ -166,7 +163,7 @@ $stat-danger:  #ef4444;
   padding: 1rem 1.15rem;
   border-radius: var(--border-radius, 0.5rem);
   background: var(--sf);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   border-left: 3px solid var(--bd);
   transition: transform 0.15s ease, box-shadow 0.2s, border-color 0.2s;
   backdrop-filter: blur(16px);
@@ -177,21 +174,15 @@ $stat-danger:  #ef4444;
     box-shadow: var(--neon);
   }
 
-  &--primary { border-left-color: var(--accent); .stat-card__icon { background: rgba(var(--ar), 0.12); color: var(--accent); } }
-  &--info    { border-left-color: $stat-info;    .stat-card__icon { background: rgba($stat-info, 0.12);    color: $stat-info;    } }
-  &--success { border-left-color: $stat-success; .stat-card__icon { background: rgba($stat-success, 0.12); color: $stat-success; } }
-  &--purple  { border-left-color: var(--accent2); .stat-card__icon { background: rgba(var(--a2r), 0.12);  color: var(--accent2);  } }
-  &--danger  { border-left-color: $stat-danger;  .stat-card__icon { background: rgba($stat-danger, 0.12);  color: $stat-danger;  } }
+  // Brand blue for every variant; only --danger turns the edge and tile red.
+  &--primary,
+  &--info,
+  &--success,
+  &--purple  { border-left-color: var(--accent); }
+  &--danger  { border-left-color: var(--err); .stat-card__icon { @include tile.icon-tile-danger; } }
 
   &__icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.15rem;
-    flex-shrink: 0;
+    @include tile.icon-tile(42px);
   }
 
   &__body {
@@ -306,7 +297,7 @@ $stat-danger:  #ef4444;
     flex-wrap: wrap;
     gap: 0.25rem;
     height: auto;
-    background: var(--inp);
+    background-color: var(--inp);
     border-color: var(--bd);
   }
 
@@ -338,7 +329,7 @@ $stat-danger:  #ef4444;
     line-height: 1;
     display: inline-flex;
 
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--err); }
   }
 
   &__dropdown {
@@ -350,7 +341,7 @@ $stat-danger:  #ef4444;
     background: var(--bg);
     border: 1px solid var(--bd);
     border-radius: var(--r-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--sh-drop);
     margin-top: 2px;
     max-height: 280px;
     display: flex;
@@ -492,12 +483,12 @@ $gantt-bar-h:   1.35rem;
   &--action { min-height: 2.25rem; }
 
   &--section-label {
-    background: rgba(245, 158, 11, 0.06);
+    background: rgba(var(--warnr), 0.06);
     font-size: 0.75rem;
     font-weight: 600;
-    color: #f59e0b;
+    color: var(--warn);
     min-height: 1.75rem;
-    &:hover { background: rgba(245, 158, 11, 0.1); }
+    &:hover { background: rgba(var(--warnr), 0.1); }
   }
 }
 
@@ -589,10 +580,10 @@ $gantt-bar-h:   1.35rem;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(239, 68, 68, 0.50);
+  background: rgba(var(--errr), 0.50);
   z-index: 3;
   pointer-events: none;
-  border-left: 1px dashed rgba(239, 68, 68, 0.50);
+  border-left: 1px dashed rgba(var(--errr), 0.50);
 }
 
 // ── Bars ──────────────────────────────────────────────────────────────────────
@@ -638,11 +629,27 @@ $gantt-bar-h:   1.35rem;
   }
 
   // Action items -- status colours
-  &--todo       { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+  &--todo {
+    background: linear-gradient(90deg, #6b7280, #9ca3af);
+
+    // Light theme: translucent tint with muted label
+    :host-context([data-theme="light"]) & {
+      background: rgba(100, 116, 139, 0.15);
+      .gantt-bar__label { color: var(--t2); text-shadow: none; }
+    }
+  }
   &--inprogress { background: linear-gradient(90deg, var(--accent), rgba(var(--ar), 0.6)); }
-  &--inreview   { background: linear-gradient(90deg, #d97706, #fbbf24); }
-  &--done       { background: linear-gradient(90deg, #059669, #22c55e); }
-  &--overdue    { background: linear-gradient(90deg, #dc2626, #ef4444); }
+  &--inreview {
+    background: linear-gradient(90deg, #d97706, #fbbf24);
+
+    // Light theme: translucent tint with warn-coloured label
+    :host-context([data-theme="light"]) & {
+      background: rgba(var(--warnr), 0.15);
+      .gantt-bar__label { color: var(--warn); text-shadow: none; }
+    }
+  }
+  &--done       { background: linear-gradient(90deg, #059669, var(--ok)); }
+  &--overdue    { background: linear-gradient(90deg, #dc2626, var(--err)); }
 }
 
 // ── Legend ────────────────────────────────────────────────────────────────────
@@ -672,16 +679,20 @@ $gantt-bar-h:   1.35rem;
     &--milestone { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
     &--inprogress{ background: linear-gradient(90deg, var(--accent), rgba(var(--ar), 0.6)); }
     &--inreview  { background: linear-gradient(90deg, #d97706, #fbbf24); }
-    &--done      { background: linear-gradient(90deg, #059669, #22c55e); }
-    &--overdue   { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    &--done      { background: linear-gradient(90deg, #059669, var(--ok)); }
+    &--overdue   { background: linear-gradient(90deg, #dc2626, var(--err)); }
     &--todo      { background: #9ca3af; }
+
+    // Light theme: translucent tint swatches to match the light bar style
+    :host-context([data-theme="light"]) &--inreview { background: rgba(var(--warnr), 0.15); }
+    :host-context([data-theme="light"]) &--todo     { background: rgba(100, 116, 139, 0.15); }
   }
 
   &__today-line {
     display: inline-block;
     width: 2px;
     height: 1rem;
-    background: rgba(239, 68, 68, 0.50);
+    background: rgba(var(--errr), 0.50);
     border-radius: 1px;
   }
 }
@@ -695,7 +706,7 @@ $gantt-bar-h:   1.35rem;
   color: var(--t1);
   border: 1px solid var(--bd);
   border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sh-drop);
   min-width: 220px;
   max-width: 300px;
   font-size: 0.78rem;

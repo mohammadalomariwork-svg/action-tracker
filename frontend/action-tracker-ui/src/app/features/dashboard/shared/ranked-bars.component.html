@@ -1,0 +1,49 @@
+@if (items().length === 0) {
+  <p class="rb-empty">{{ emptyText() }}</p>
+} @else {
+  @if (key().length > 1) {
+    <ul class="rb-key" aria-hidden="true">
+      @for (k of key(); track k.tone) {
+        <li><span class="rb-key__dot" [class]="'rb-seg--' + k.tone"></span>{{ k.label }}</li>
+      }
+    </ul>
+  }
+
+  <ol class="rb">
+    @for (item of visible(); track item.id; let i = $index) {
+      <li>
+        <button type="button" class="rb-row" [attr.aria-label]="describe(item)" (click)="pick.emit(item)">
+          @if (avatars()) {
+            <span class="rb-rank" aria-hidden="true">{{ i + 1 }}</span>
+            <span class="rb-avatar" aria-hidden="true">{{ initial(item.label) }}</span>
+          }
+          <span class="rb-main">
+            <span class="rb-top">
+              <span class="rb-label">{{ item.label }}</span>
+              @if (item.sublabel) {
+                <span class="rb-sub">{{ item.sublabel }}</span>
+              }
+            </span>
+            <span class="rb-track" aria-hidden="true">
+              @for (seg of item.segments; track seg.tone) {
+                @if (seg.value > 0) {
+                  <span class="rb-seg" [class]="'rb-seg--' + seg.tone" [style.width.%]="width(seg.value)"
+                        [attr.title]="seg.value + ' ' + seg.label"></span>
+                }
+              }
+            </span>
+          </span>
+          <span class="rb-total">{{ item.trailing ?? item.total }}</span>
+          <i class="bi bi-chevron-right rb-go" aria-hidden="true"></i>
+        </button>
+      </li>
+    }
+  </ol>
+
+  @if (items().length > limit()) {
+    <button type="button" class="rb-toggle" (click)="expanded.set(!expanded())">
+      {{ expanded() ? 'Show fewer' : 'Show all ' + items().length }}
+      <i class="bi" [class.bi-chevron-up]="expanded()" [class.bi-chevron-down]="!expanded()" aria-hidden="true"></i>
+    </button>
+  }
+}

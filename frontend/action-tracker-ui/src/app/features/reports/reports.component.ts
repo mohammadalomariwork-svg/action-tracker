@@ -1,16 +1,18 @@
 import {
-  Component, OnInit, ChangeDetectionStrategy,
+  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyRef,
   inject, signal, computed,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { DashboardService } from '../../core/services/dashboard.service';
 import { ReportService }    from '../../core/services/report.service';
 import { UserService }      from '../../core/services/user.service';
 import { ToastService }     from '../../core/services/toast.service';
+import { ThemeService }     from '../../services/theme.service';
 
 import { DashboardKpi, StatusBreakdown } from '../../core/models/dashboard.model';
 import { TeamMember }       from '../../core/models/user.model';
@@ -23,10 +25,11 @@ import { HasPermissionDirective } from '../../shared';
 // ── Static data for chart labels (not server-driven) ──────────────────────────
 
 const PRIORITY_LABELS  = ['Low', 'Medium', 'High', 'Critical'];
-const PRIORITY_COLORS  = ['#059669', '#d97706', '#ea580c', '#dc2626'];
+const PRIORITY_COLORS  = ['#10B981', '#F59E0B', '#F97316', '#EF4444'];
 
 const CATEGORY_LABELS  = ['Operations', 'Strategic', 'HR', 'Finance', 'IT', 'Compliance', 'Communication'];
-const CATEGORY_COLORS  = ['#4f46e5', '#7c3aed', '#0284c7', '#059669', '#d97706', '#dc2626', '#64748b'];
+// Leads with the logo blues, then the status hues
+const CATEGORY_COLORS  = ['#2A5CF0', '#4D8BFF', '#7AADFF', '#10B981', '#F59E0B', '#EF4444', '#94A3B8'];
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'All Statuses'  },
@@ -50,6 +53,11 @@ const PRIORITY_OPTIONS: { value: string; label: string }[] = [
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, DecimalPipe, BaseChartDirective, PageHeaderComponent, BreadcrumbComponent, HasPermissionDirective],
+  // Chart.js is tree-shakeable: without registering its controllers and
+  // scales <canvas baseChart> throws ('"category" is not a registered
+  // scale') and renders blank. Provided here rather than at the root so
+  // chart.js stays in this lazy chunk.
+  providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './reports.component.html',
   styleUrl:    './reports.component.scss',
 })
@@ -58,6 +66,9 @@ export class ReportsComponent implements OnInit {
   private readonly reportSvc = inject(ReportService);
   private readonly userSvc   = inject(UserService);
   private readonly toastSvc  = inject(ToastService);
+  private readonly themeSvc  = inject(ThemeService);
+  private readonly cdr       = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── Page state ────────────────────────────────────────
   readonly loading     = signal(true);
@@ -104,27 +115,50 @@ export class ReportsComponent implements OnInit {
     }],
   };
 
-  barOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: { label: ctx => ` ${ctx.parsed.y} actions` },
+  barOptions: ChartConfiguration<'bar'>['options'] = this.buildBarOptions();
+
+  /** Chart.js draws on canvas and cannot resolve CSS var() strings —
+   *  custom properties must be resolved to concrete values at build time. */
+  private cssVar(name: string, fallback: string): string {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  private tooltipTheme() {
+    return {
+      backgroundColor: this.cssVar('--el', '#2B303B'),
+      borderColor: this.cssVar('--bdh', 'rgba(160,185,255,0.26)'),
+      borderWidth: 1,
+      titleColor: this.cssVar('--t1', '#E6EBF5'),
+      bodyColor: this.cssVar('--t2', '#AEBBD0'),
+    };
+  }
+
+  private buildBarOptions(): ChartConfiguration<'bar'>['options'] {
+    const tick = this.cssVar('--t2', '#AEBBD0');
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...this.tooltipTheme(),
+          callbacks: { label: ctx => ` ${ctx.parsed.y} actions` },
+        },
       },
-    },
-    scales: {
-      x: {
-        ticks: { font: { size: 11 } },
-        grid: { display: false },
+      scales: {
+        x: {
+          ticks: { font: { size: 11 }, color: tick },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, font: { size: 11 }, color: tick },
+          grid: { color: this.cssVar('--bd', 'rgba(160,185,255,0.13)') },
+        },
       },
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 11 } },
-        grid: { color: 'rgba(0,0,0,0.05)' },
-      },
-    },
-  };
+    };
+  }
 
   // ── Doughnut chart: Actions by Priority ──────────────
   readonly doughnutType = 'doughnut' as const;
@@ -134,28 +168,41 @@ export class ReportsComponent implements OnInit {
     datasets: [{
       data:            [0, 0, 0, 0],
       backgroundColor: PRIORITY_COLORS,
-      borderWidth: 2,
+      borderWidth: 0,
+      spacing: 2,
       hoverOffset: 6,
     }],
   };
 
-  doughnutOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '60%',
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: { padding: 14, font: { size: 12 } },
+  doughnutOptions: ChartConfiguration<'doughnut'>['options'] = this.buildDoughnutOptions();
+
+  private buildDoughnutOptions(): ChartConfiguration<'doughnut'>['options'] {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '64%',
+      plugins: {
+        // The template renders its own priority legend under the chart
+        legend: { display: false },
+        tooltip: {
+          ...this.tooltipTheme(),
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} actions` },
+        },
       },
-      tooltip: {
-        callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} actions` },
-      },
-    },
-  };
+    };
+  }
 
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
+    // Rebuild chart options on theme change so resolved CSS-var colours refresh
+    this.themeSvc.currentTheme$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.barOptions = this.buildBarOptions();
+        this.doughnutOptions = this.buildDoughnutOptions();
+        this.cdr.markForCheck();
+      });
+
     // Load KPIs, status breakdown, team members in parallel
     this.dashSvc.getKpis().subscribe({
       next: r => {
@@ -215,7 +262,8 @@ export class ReportsComponent implements OnInit {
       datasets: [{
         data:            [low, medium, high, critical],
         backgroundColor: PRIORITY_COLORS,
-        borderWidth: 2,
+        borderWidth: 0,
+        spacing: 2,
         hoverOffset: 6,
       }],
     };
@@ -266,11 +314,11 @@ export class ReportsComponent implements OnInit {
   // ── Status breakdown color helper ─────────────────────
   statusColor(status: string): string {
     const map: Record<string, string> = {
-      'ToDo':       '#94a3b8',
-      'InProgress': '#0284c7',
-      'InReview':   '#7c3aed',
-      'Done':       '#059669',
-      'Overdue':    '#dc2626',
+      'ToDo':       '#94A3B8',
+      'InProgress': '#4D8BFF',
+      'InReview':   '#8B6CF6',
+      'Done':       '#10B981',
+      'Overdue':    '#EF4444',
     };
     return map[status.replace(/\s/g, '')] ?? '#94a3b8';
   }

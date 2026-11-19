@@ -52,6 +52,34 @@ export const routes: Routes = [
             m => m.TeamDashboardComponent
           ),
       },
+      // Deeper dashboards — reached from the tabs on the overview
+      {
+        path: 'dashboard/actions',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'Dashboard', requiredAction: 'View' },
+        loadComponent: () =>
+          import('./features/dashboard/actions-dashboard/actions-dashboard.component').then(
+            m => m.ActionsDashboardComponent
+          ),
+      },
+      {
+        path: 'dashboard/projects',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'Dashboard', requiredAction: 'View' },
+        loadComponent: () =>
+          import('./features/dashboard/projects-dashboard/projects-dashboard.component').then(
+            m => m.ProjectsDashboardComponent
+          ),
+      },
+      {
+        path: 'dashboard/strategy',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'StrategicPlans', requiredAction: 'View' },
+        loadComponent: () =>
+          import('./features/dashboard/strategy-dashboard/strategy-dashboard.component').then(
+            m => m.StrategyDashboardComponent
+          ),
+      },
       {
         path: 'management',
         canActivate: [permissionGuard],

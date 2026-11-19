@@ -68,9 +68,9 @@
     }
 
     .page-item.active .page-link {
-      background: var(--accent);
+      background: var(--accent-fill);
       border-color: var(--accent);
-      color: #000;
+      color: var(--on-fill);
     }
 
     .page-item.disabled .page-link {
@@ -84,7 +84,7 @@
 
 // ── Modal backdrop ───────────────────────────────────────────────────────────
 .ru-modal-backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--ov);
   position: fixed;
   inset: 0;
   z-index: 1050;
@@ -95,7 +95,7 @@
     background: var(--el);
     border: 1px solid var(--bd);
     border-radius: var(--r-lg);
-    box-shadow: var(--csh), 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--csh), var(--sh-modal);
     backdrop-filter: blur(24px);
     color: var(--t1);
   }

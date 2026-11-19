@@ -6,23 +6,29 @@
   z-index: 1;
 }
 
+// Centred content column. Pages add their own inner padding, so the
+// gutter here stays small — the old 44px side rails are gone.
+//
+// Keep .wrap and .ct free of transform / opacity / filter (including
+// entrance animations): any of those would make them the containing
+// block or stacking context for the fixed-position drawers and dialogs
+// that pages render, trapping them underneath the sticky header.
 .wrap {
   position: relative;
-  margin: 0 var(--M);
-  min-height: calc(100vh - 110px);
-  border-left: 1px solid rgba(var(--ar), 0.06);
-  border-right: 1px solid rgba(var(--ar), 0.06);
-  padding-bottom: 24px;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--M);
 }
 
 .ct {
-  padding: 8px 24px 24px;
-
-  @media (max-width: 480px) {
-    padding: 4px 12px 14px;
+  padding: 14px 16px 40px;
+  @media (max-width: 768px) {
+    padding: 10px 8px 28px;
   }
 
-  @media (min-width: 481px) and (max-width: 768px) {
-    padding: 6px 16px 18px;
+  @media (max-width: 480px) {
+    padding: 6px 4px 20px;
   }
 }

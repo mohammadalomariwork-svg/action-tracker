@@ -14,6 +14,7 @@ public class WorkspaceListDto
     public Guid? OrgUnitId { get; set; }
     public string AdminUserNames { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool IsPrivate { get; set; }
     public DateTime CreatedAt { get; set; }
     public int ProjectCount { get; set; }
     public int MilestoneCount { get; set; }

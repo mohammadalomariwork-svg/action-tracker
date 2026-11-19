@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────
 .approvals-page {
   min-height: 100%;
@@ -33,25 +35,14 @@ app-page-header {
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   background: var(--sf);
   border: 1px solid var(--bd);
-  backdrop-filter: blur(6px);
+  box-shadow: var(--csh);
 }
 
 .stat-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  color: #fff;
-
-  &--orange { background: #fd7e14; }
-  &--indigo { background: #6610f2; }
-  &--blue   { background: var(--accent); }
+  @include tile.icon-tile(44px);
 }
 
 .stat-text {
@@ -60,10 +51,11 @@ app-page-header {
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   line-height: 1.2;
-  color: var(--t1);
+  color: var(--th);
 
   &--loading { opacity: 0.4; }
 }
@@ -336,7 +328,7 @@ app-page-header {
   padding: 0.2rem 0.4rem;
   border: 1px solid var(--bd);
   border-radius: 4px;
-  background: var(--inp);
+  background-color: var(--inp);
   color: var(--t1);
   font-size: 0.85rem;
 }
@@ -356,7 +348,7 @@ app-page-header {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--ov);
   z-index: 1050;
 }
 
@@ -377,7 +369,7 @@ app-page-header {
   border: 1px solid var(--bd);
   border-radius: var(--r-md);
   pointer-events: all;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sh-modal);
   backdrop-filter: blur(12px);
 
   &__header {
@@ -440,7 +432,7 @@ app-page-header {
 
   textarea {
     width: 100%;
-    background: var(--inp);
+    background-color: var(--inp);
     border: 1px solid var(--bd);
     border-radius: var(--r-sm);
     color: var(--t1);
@@ -451,7 +443,7 @@ app-page-header {
     &:focus {
       outline: none;
       border-color: var(--accent);
-      background: var(--inpf);
+      background-color: var(--inpf);
     }
   }
 }
@@ -460,7 +452,7 @@ app-page-header {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(var(--ar), 0.2);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;

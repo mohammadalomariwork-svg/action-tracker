@@ -1,11 +1,17 @@
+@use '../../../../assets/styles/tile';
+
+// ═══════════════════════════════════════════════════════════════════
+// PAGE HEADER — shared title block at the top of every inner page.
+// The icon sits on a brand-gradient tile with a lighter card peeking
+// out behind it, echoing the stacked cards of the KUmmand Center mark.
+// ═══════════════════════════════════════════════════════════════════
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1rem 1.5rem;
   margin-bottom: 1.5rem;
-  // No background card
   background: transparent;
   border: none;
 }
@@ -13,42 +19,41 @@
 .page-header__left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.1rem;
+  min-width: 0;
 }
 
 .page-header__icon {
-  font-size: 2.5rem;
-  color: var(--accent);
-  line-height: 1;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 6px var(--accent));
+  @include tile.icon-tile(50px);
 }
 
 .page-header__text {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
 }
 
 .page-header__title {
   margin: 0;
-  font-size: clamp(18px, 4vw, 24px);
+  font-size: clamp(20px, 2.4vw, 27px);
   font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--t1);
+  letter-spacing: -0.025em;
+  color: var(--th);
   line-height: 1.2;
 }
 
 .page-header__subtitle {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--t3);
+  line-height: 1.45;
 }
 
 .page-header__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -57,5 +62,12 @@
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .page-header__icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+    border-radius: 12px;
   }
 }

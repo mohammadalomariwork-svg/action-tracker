@@ -59,19 +59,19 @@
 .eps-row--allowed {
   background-color: transparent;
 
-  td { color: #22c55e; }
+  td { color: var(--ok); }
 
   .bi-check-circle-fill {
-    color: #22c55e;
+    color: var(--ok);
   }
 }
 
 .eps-row--denied {
   background-color: transparent;
 
-  td { color: #ef4444; }
+  td { color: var(--err); }
 
   .bi-x-circle-fill {
-    color: #ef4444;
+    color: var(--err);
   }
 }

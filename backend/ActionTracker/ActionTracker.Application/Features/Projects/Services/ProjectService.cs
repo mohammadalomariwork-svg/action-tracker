@@ -51,7 +51,8 @@ public class ProjectService : IProjectService
             .AsQueryable();
 
         if (filter.IncludeDeleted)
-            query = query.IgnoreQueryFilters();
+            query = query.IgnoreQueryFilters()
+                .WhereWorkspaceVisibleTo(_db.CurrentUserId);
 
         if (filter.WorkspaceId.HasValue)
             query = query.Where(p => p.WorkspaceId == filter.WorkspaceId.Value);
@@ -491,6 +492,7 @@ public class ProjectService : IProjectService
     {
         var project = await _db.Projects
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db.CurrentUserId)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new KeyNotFoundException($"Project {id} not found.");
 

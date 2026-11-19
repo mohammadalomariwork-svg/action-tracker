@@ -13,7 +13,7 @@
 // ── Table wrapper (DataTable theme) ──────────────────────────────────────────
 .kl-table-wrapper {
   border-radius: var(--border-radius, 0.5rem);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   overflow: hidden;
   background: var(--sf);
   border: 1px solid var(--bd);
@@ -98,7 +98,7 @@
 // ── Mobile cards ──────────────────────────────────────────────────────────────
 .kl-card {
   border-radius: var(--border-radius, 0.5rem);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   border: 1px solid var(--bd);
   background: var(--sf);
   backdrop-filter: blur(16px);
@@ -141,7 +141,7 @@
   background: var(--el);
   border-left: 1px solid var(--bd);
   backdrop-filter: blur(24px);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sh-panel);
 
   &.show {
     transform: translateX(0);

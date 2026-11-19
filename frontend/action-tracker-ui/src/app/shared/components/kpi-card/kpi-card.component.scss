@@ -1,13 +1,8 @@
-@use 'sass:color';
+@use '../../../../assets/styles/tile';
 
-$color-map: (
-  'primary':  #00E5FF,
-  'success':  #22c55e,
-  'warning':  #f59e0b,
-  'danger':   #ef4444,
-  'info':     #3b82f6,
-  'purple':   #7C5CFC,
-);
+// ═══════════════════════════════════════════════════════════════════
+// KPI CARD — headline figure with the shared icon tile.
+// ═══════════════════════════════════════════════════════════════════
 
 :host {
   display: block;
@@ -15,75 +10,89 @@ $color-map: (
 }
 
 .kpi-card {
+  // Brand accent by default; .kpi-card--danger overrides these two
+  --kc:  var(--accent);
+  --kcr: var(--ar);
+
   position: relative;
   height: 100%;
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: var(--r-lg);
-  backdrop-filter: blur(16px);
+  box-shadow: var(--csh);
   overflow: hidden;
-  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease),
+              transform 0.2s var(--ease);
+
+  // Soft variant-tinted wash in the top-right corner
+  &::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--kcr), 0.16), transparent 70%);
+    pointer-events: none;
+  }
 
   &:hover {
-    box-shadow: var(--neon);
-    border-color: var(--accent);
+    border-color: rgba(var(--kcr), 0.45);
+    box-shadow: 0 0 0 1px rgba(var(--kcr), 0.16), 0 10px 26px rgba(var(--kcr), 0.18);
     transform: translateY(-2px);
   }
 }
 
-.kpi-card__top-border {
-  height: 4px;
-  width: 100%;
+// Every card is brand blue; `danger` is the only colorClass that changes
+// colour. The others (success, warning, info, purple) are accepted and
+// render as the default.
+.kpi-card--danger {
+  --kc:  var(--err);
+  --kcr: var(--errr);
+
+  .kpi-card__icon { @include tile.icon-tile-danger; }
 }
 
-@each $name, $c in $color-map {
-  .kpi-card--#{$name} .kpi-card__top-border {
-    background: linear-gradient(90deg, $c, color.adjust($c, $lightness: 18%));
-    box-shadow: 0 0 12px rgba($c, 0.3);
-  }
-  .kpi-card--#{$name} .kpi-card__icon {
-    color: $c;
-    filter: drop-shadow(0 0 4px $c);
-  }
+// Accent bar along the top edge
+.kpi-card__top-border {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--kc), rgba(var(--kcr), 0.25));
 }
 
 .kpi-card__body {
-  padding: 1.25rem 1.5rem 1.25rem;
+  position: relative;
+  z-index: 1;
+  padding: 1.15rem 1.35rem 1.2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .kpi-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .kpi-card__title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   color: var(--t3);
 }
 
 .kpi-card__icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: rgba(var(--ar), 0.08);
-  font-size: 1.15rem;
-  line-height: 1;
+  @include tile.icon-tile(42px);
 }
 
 .kpi-card__value {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
-  color: var(--t1);
+  color: var(--th);
   line-height: 1.1;
   letter-spacing: -0.03em;
 }
@@ -93,33 +102,33 @@ $color-map: (
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
 }
 
 .kpi-card__subtitle {
-  font-size: 0.78rem;
+  font-size: 12.5px;
   color: var(--t3);
 }
 
 .kpi-card__trend {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 0.15rem 0.45rem;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
   border-radius: 999px;
 
   &--up {
-    color: #22c55e;
-    background: rgba(34, 197, 94, 0.12);
+    color: var(--ok);
+    background: rgba(var(--okr), 0.14);
   }
 
   &--down {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.12);
+    color: var(--err);
+    background: rgba(var(--errr), 0.14);
   }
 }
 
 @media (max-width: 640px) {
   .kpi-card__value {
-    font-size: 22px;
+    font-size: 24px;
   }
 }

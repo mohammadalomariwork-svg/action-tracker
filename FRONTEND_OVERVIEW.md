@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-05-20 (Mail Server Configuration admin page with encrypted-at-rest SMTP password)
+> Last updated: 2026-11-18 (Dashboard hub with drill-down: Overview reworked, new Action Items / Projects / Strategy dashboards, shared dashboard components; brand redesign of inner pages)
 
 ## Tech Stack
 
@@ -60,7 +60,10 @@
 | `/unauthorized` | Unauthorized page | - |
 | `/access-denied` | Access denied page | - |
 | `/auth_fallback` | MSAL redirect handler | - |
-| `/dashboard` | Team Dashboard | Dashboard.View |
+| `/dashboard` | Dashboard — Overview (`TeamDashboardComponent`) | Dashboard.View |
+| `/dashboard/actions` | Action Items dashboard | Dashboard.View |
+| `/dashboard/projects` | Projects dashboard | Dashboard.View |
+| `/dashboard/strategy` | Strategy dashboard | StrategicPlans.View |
 | `/management` | Management Dashboard | ActionItems.View |
 | `/actions` | My Actions list | - |
 | `/actions/new` | Create action | - |
@@ -88,6 +91,7 @@
 | `/admin/kpis/:kpiId/targets/:targetId/actuals` | Period-aware KPI Actuals grid (CR-001-F) | KpiActuals.View |
 | `/admin/email-templates` | Email templates | EmailTemplates.View |
 | `/admin/mail-server-config` | Mail server configuration (SMTP settings) | MailServerConfig.View |
+| `/admin/data-sync` | Scheduled data-sync jobs (HR employee info) — schedule, run now, test connection, history | DataSync.View |
 | `/admin/permissions/roles` | Role permission matrix | PermissionsManagement.View |
 | `/admin/permissions/users` | User permission overrides | PermissionsManagement.View |
 | `/admin/roles` | Roles list | Roles.View |
@@ -100,14 +104,14 @@
 
 ---
 
-## Components (~73 Total)
+## Components (~74 Total)
 
 ### Layout
 | Component | Description |
 |-----------|-------------|
-| `LayoutComponent` | Main layout with header, footer, router outlet, animated particle background |
-| `HeaderComponent` | Navigation header with dynamic menu based on permissions, theme toggle, notification bell, user menu, mobile drawer |
-| `FooterComponent` | Application footer with KU logo |
+| `LayoutComponent` | Main layout: loading bar, static brand backdrop (`.bg`, see `_background.scss`), sticky header, centred content column (`--page-max` 1760px, `--M` gutter), footer. `.wrap` / `.ct` must stay free of transform / opacity / filter so page-level fixed drawers and dialogs are not trapped under the header |
+| `HeaderComponent` | Sticky single-row header (`--hdr-h` 64px / 56px mobile) on `--nav`, which equals the logo PNGs' baked-in background (`#262A33` dark / white light — do not make it translucent). KUmmand Center logo swapped by theme (`kummand_center_dark_mode_transparent.png` / `kummand_center_light_mode_transparent.png`), permission-based nav with brand-gradient underline on the active link, theme toggle, notification bell, avatar menu, brand hairline on the bottom edge. Nav degrades in steps: icons shown only ≥1800px, compact ≤1640px, off-canvas drawer (same logo) ≤1440px |
+| `FooterComponent` | Application footer on `--nav` with KU logo (theme-aware: original artwork in light, white-inverted in dark), link columns aligned to the page column, brand hairline on the top edge, Command Center version pill |
 | `LoadingBarComponent` | Global loading indicator on route transitions and HTTP requests |
 
 ### Header Navigation Links
@@ -127,8 +131,8 @@
 ### Shared UI Components (13)
 | Component | Description |
 |-----------|-------------|
-| `BreadcrumbComponent` | Navigation breadcrumb trail |
-| `PageHeaderComponent` | Page title and header bar |
+| `BreadcrumbComponent` | Navigation breadcrumb trail (home glyph on the first crumb, current page in accent). `AdminBreadcrumbComponent` shares the same styling |
+| `PageHeaderComponent` | Page title block used by the inner pages: icon on a brand-gradient tile with a lighter "back card" (echoes the logo mark), title in `--th`, subtitle, right-hand action slot (`<ng-content>`) |
 | `StatusBadgeComponent` | Color-coded status indicator |
 | `PriorityBadgeComponent` | Color-coded priority indicator |
 | `RiskRatingBadgeComponent` | Color-coded risk rating badge (Critical/High/Medium/Low) |
@@ -137,7 +141,7 @@
 | `ConfirmDialogComponent` | Confirmation modal dialog |
 | `CommentsSectionComponent` | Comments display with CRUD, high-importance flag |
 | `DocumentsSectionComponent` | File upload, download, and delete |
-| `KpiCardComponent` | KPI metric display card |
+| `KpiCardComponent` | KPI figure card. `icon` accepts a Bootstrap Icons class (`"bi bi-building"`) or a literal glyph; uses the shared icon tile; every card is brand blue and `colorClass="danger"` is the only value that changes colour (red tile, top bar and hover ring) — the other values are accepted and render as the default |
 | `NotificationBellComponent` | Header notification bell with unread count |
 | `WorkflowReviewDialogComponent` | Reusable approve/reject dialog for workflow requests |
 
@@ -153,10 +157,21 @@
 | `OrgUnitScopePipe` | Formats org unit scope display |
 | `PermissionSourcePipe` | Formats permission source (Role/Override) |
 
-### Dashboard (2)
+### Dashboard (5 pages + shared pieces in `features/dashboard/shared/`)
 | Component | Description |
 |-----------|-------------|
-| `TeamDashboardComponent` | 6 KPI stat cards, workspace summary, my actions, recent actions, status breakdown (Chart.js horizontal bar) |
+| `TeamDashboardComponent` | `/dashboard` Overview. Top row with the greeting as the page heading (date beside it), a New Action button and the dashboard tabs; portfolio stat cards (Admin) and action-item stat cards — all clickable. **My Actions** as charts (status doughnut, open-by-priority and open-by-due bars, summary pills); **Team Activity** as a ranked list of people by action-item count; Recent Items table; New Action drawer. Shows a retry state (not an empty state) when a request fails |
+| `ActionsDashboardComponent` | `/dashboard/actions`. 7 stat cards, status doughnut, created-vs-completed line (8 weeks), open by priority / due window / age bars, team workload and by-workspace ranked lists |
+| `ProjectsDashboardComponent` | `/dashboard/projects`. 7 stat cards, health doughnut, status bars, strategic-vs-operational doughnut, progress bands, health by workspace, "needing attention first" table, milestone pills + table. Groups charts client-side from the project rows the API returns. Exports `projectDrillRow()` / `healthTone()` (reused by the strategy dashboard) |
+| `StrategyDashboardComponent` | `/dashboard/strategy`. Year selector, 7 stat cards, KPI health doughnut, objectives ranked by KPI health, weakest-first KPI table, strategic projects table, plans table |
+| `DrilldownPanelComponent` | Right-hand drawer fed a `DrilldownRequest`: `kind: 'actions'` (server-paged via `ActionItemService.getAll` / `getMyActions` with filters, "Show more", optional link to a full page) or `kind: 'rows'` (pre-built `DrillRow[]`). Rows link to the record's page; Esc / overlay closes; stale responses are ignored |
+| `DashStatComponent` | Stat card as a `<button>` (icon tile, value, label, hover arrow, `tone="danger"`, loading skeleton); emits `activate` |
+| `DashPanelComponent` | Titled card with icon tile, subtitle and a `[panelActions]` slot |
+| `DashLegendComponent` | Chart legend as buttons — the keyboard / screen-reader route to the same drill-down as clicking a canvas segment |
+| `RankedBarsComponent` | Sorted list of stacked bars scaled to the largest total (people, workspaces, objectives); rows are buttons; "Show all" beyond `limit` |
+| `DashTabsComponent` | Overview / Action Items / Projects / Strategy switcher (Strategy hidden without `StrategicPlans.View`) |
+| `chart-theme.ts` | Series colours (status, priority, due, age, health) and theme-aware `doughnutOptions` / `barOptions` / `lineOptions` builders with click-to-drill + pointer cursor |
+| `_dash-page.scss` | Layout shared by the dashboard pages (`.dash`, `.dash-stats`, `.dash-grid--2/3`, fixed-height `.chart-box`, `.donut`, `.dash-table`, `.chip`, `.pbar`, `.dash-state`) |
 | `ManagementDashboardComponent` | Team workload, at-risk items, status breakdown (doughnut chart), critical actions. Auto-refreshes every 30 seconds |
 
 ### Action Items (3)
@@ -171,7 +186,7 @@
 | Component | Description |
 |-----------|-------------|
 | `WorkspaceListComponent` | All workspaces with filters, org-unit dropdown, stats (projects, milestones, action items), export/print, **inline create/edit drawer** with custom searchable multi-select admin picker (filters across name, email, org unit; chip-style selected display); admin users loaded lazily on first drawer open. Reads `?orgUnitId=<id>` on init so deep-links from `StrategyPageComponent`'s "Projects" stat card land on a pre-filtered list |
-| `WorkspaceFormComponent` | Standalone create/edit workspace screen (kept for direct routes) — also uses the same custom multi-select admin picker as the list drawer |
+| `WorkspaceFormComponent` | Standalone create/edit workspace screen (kept for direct routes) — also uses the same custom multi-select admin picker as the list drawer. Both this form and the list drawer have a **Private workspace** switch (`isPrivate`, create + edit) with a warning that non-members lose access after saving; the list shows a lock **Private** badge (`.wl-private-badge`) and the detail page a **Visibility** row. `Workspace` / `WorkspaceList` models carry `isPrivate`; `CreateWorkspace` / `UpdateWorkspace` send it (the settings page passes the current value through so admin edits don't reset it) |
 | `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print. Access management (admins, members, project managers, strategic-project approvers, strategic plan link) is **no longer** inline — replaced by a read-only access summary (admin/member counts) and a **"Configure Workspace"** button that routes to `/workspaces/:id/settings`. The PM dropdown in the create/edit project drawer is restricted to the workspace's Project Managers list. |
 | `WorkspaceSettingsComponent` | Dedicated `/workspaces/:id/settings` page that owns all access configuration: Linked Strategic Plan, Admins, Members, **Project Managers**, and **Strategic Project Approvers** (sequential chain with up/down arrows to reorder; level-1 badge on each entry). Every section uses the same searchable multi-select picker pattern, supporting bulk add. Operational projects bypass the approver chain — only strategic submissions consult it. The Members section also exposes a bulk **"Add org unit users"** action — an org-unit picker (uses `getOrgUnitsForDropdown()`) + button that calls `POST /api/workspaces/{id}/members/from-org-unit` and appends the returned members in one round-trip (existing members are skipped server-side). |
 
@@ -197,7 +212,7 @@
 |-----------|-------------|
 | `MyApprovalsComponent` | My Approvals page with five tabs (Pending Reviews, My Requests, Project Approvals, **Strategy Approvals**, **KPI Actuals**), stat cards, approve/reject with comments, pagination. Pending reviews show date/status change details; Project / Strategy / KPI Actual tabs each split into Pending and My Requests/Submissions sections, each with an inline review modal (rejection requires comment). Strategy tab shows the request type badge (Initial / Revision) and the org-unit name. KPI Actuals tab (CR-001-F) shows the period label, actual vs target, and evidence count |
 
-### Admin Panel (9)
+### Admin Panel (10)
 | Component | Description |
 |-----------|-------------|
 | `AdminPanelComponent` | Admin dashboard home with feature cards |
@@ -212,6 +227,7 @@
 | `EmailTemplatesPageComponent` | Email template management |
 | `EmailTemplateEditComponent` | Edit email template subject and HTML body |
 | `MailServerConfigComponent` | Admin form to configure the SMTP server used by Command Center (host, port, SSL, from, credentials); password stored encrypted via DataProtection on the backend |
+| `DataSyncComponent` | Admin page listing every background sync job as a card: source → target summary, schedule editor (frequency presets + raw cron + time zone + enabled switch, Save gated by `DataSync.Edit`), next-run time, last-run status/rows/duration/message, **Run now**, **Test connection** (source/target reachability, row counts, column diff), collapsible run-history table. Polls every 3 s while a run is in progress |
 
 ### Permissions (7)
 | Component | Description |
@@ -241,7 +257,7 @@
 ### Auth (3)
 | Component | Description |
 |-----------|-------------|
-| `LoginComponent` | Login page with animated particle background, Azure AD and local auth support |
+| `LoginComponent` | Login page on a pure-CSS brand backdrop (no images) using component-scoped `--lg-*` tokens sampled from the KUmmand logo (navy / royal / blue / sky): slanted ribbon shapes + square "pixel" clusters, brand-blue radial light, reduced-motion aware. Card surface matches the logo PNGs' baked-in backgrounds (`#262A33` dark / white light; light logo also uses `mix-blend-mode: multiply`). Royal-gradient primary Azure AD button (KU emblem cropped from `cropped-logo.png`), tinted-outline secondary local Sign In. Theme-aware KUmmand logo, Command Center branding, Azure AD and local auth support |
 | `UnauthorizedComponent` | 401 unauthorized error page |
 | `AccessDeniedComponent` | 403 access denied error page |
 
@@ -276,7 +292,8 @@
 |---------|--------------|
 | `AuthService` | `POST /auth/login`, `/azure-login`, `/refresh-token`, `/logout` |
 | `ActionItemService` | Full CRUD on `/action-items`, plus `/my-actions`, `/created-by-me`, `/my-stats`, `/process-overdue`, comments CRUD. Assignee lookup now lives on `WorkspaceService.getAssignableUsers(workspaceId)` — the legacy unscoped `/api/action-items/assignable-users` endpoint was removed. |
-| `DashboardService` | `GET /dashboard/kpis`, `/management`, `/team-workload`, `/status-breakdown` |
+| `DashboardService` | `GET /dashboard/kpis`, `/management`, `/team-workload`, `/status-breakdown` (used by the Management dashboard and Reports) |
+| `DashboardAnalyticsService` | `GET /dashboard/my-actions`, `/team-activity`, `/action-items`, `/projects`, `/strategy?year=` — scoped server-side to what the user may see |
 | `ReportService` | `GET /reports/export-csv`, `/summary` |
 | `DocumentService` | `GET/POST/DELETE /documents`, `GET /documents/:id/download` |
 | `CommentService` | CRUD on polymorphic entity comments |
@@ -296,6 +313,7 @@
 | `ProjectRiskService` | Full CRUD on `/projects/:id/risks`, plus `/stats` |
 | `EmailTemplateService` | `GET /email-templates`, `PUT /email-templates/:id`, `GET /email-templates/logs` |
 | `MailServerConfigService` | `GET /mail-server-config`, `PUT /mail-server-config` |
+| `DataSyncService` | `GET /data-sync/jobs`, `GET /data-sync/jobs/:id`, `PUT /data-sync/jobs/:id`, `POST /data-sync/jobs/:id/run`, `POST /data-sync/jobs/:id/probe`, `GET /data-sync/jobs/:id/runs?take=` |
 | `PermissionCatalogService` | Permission areas and actions catalog |
 | `PermissionStateService` | `GET /user-permissions/me/effective`, `GET /users/me/org-units`; manages permission state, loads via APP_INITIALIZER |
 | `RolePermissionService` | Role-level permission assignment |
@@ -324,6 +342,8 @@
 | `ActionStatus` (enum) | ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled |
 | `ActionPriority` (enum) | Low, Medium, High, Critical |
 | `DashboardKpi` | totalActions, completionRate, onTimeRate, escalations, criticalHighCount, overdueCount |
+| `dashboard-analytics.model.ts` | `ChartSlice`, `TeamMemberActivity`, `MyActionsDashboard`, `ActionItemsDashboard` (+ `ActionTrendPoint`, `WorkspaceActions`), `ProjectsDashboard` (+ `ProjectRow`, `MilestoneRow`, `ProjectHealth`), `StrategyDashboard` (+ `StrategyPlanRow`, `StrategyObjectiveRow`, `StrategyKpiRow`, `KpiHealth`) |
+| `ActionItemFilter` (drill-down filters) | `openOnly`, `overdueOnly`, `isEscalated`, `dueBucket` (overdue / next7 / next30 / later), `ageBucket` (0-7 / 8-30 / 31-90 / 90+) — sent by `getAll` and `getMyActions` |
 | `AuthResponse` | accessToken, refreshToken, user info |
 | `CommentInfo` | id, content, authorUserId, isHighImportance, createdAt |
 | `DocumentInfo` | id, name, fileName, contentType, fileSize, createdAt |
@@ -351,6 +371,10 @@
 | `RiskStatus` (enum) | Open, Mitigated, Closed |
 | `EmailTemplate` | id, templateKey, name, subject, htmlBody, isActive |
 | `MailServerConfig` / `UpdateMailServerConfig` | host, port, useSsl, fromEmail, fromName, username, hasPassword (read) / password (write — null keeps existing) |
+| `DataSyncJob` / `UpdateDataSyncJob` | id, jobKey, name, description, cronExpression, timeZoneId, isEnabled, scheduleDescription, nextRunAt, isRunning, lastRun* summary, sourceSummary, targetSummary, hasHandler / write: cronExpression, timeZoneId, isEnabled |
+| `DataSyncJobRun` | id, jobId, startedAt, finishedAt, durationMs, status (`Running`/`Succeeded`/`Failed`), trigger (`Scheduled`/`Manual`), triggeredBy, rowsRead, rowsWritten, message |
+| `DataSyncProbeResult` | sourceReachable/RowCount/Error, targetReachable/RowCount/Error, sourceOnlyColumns, targetOnlyColumns, commonColumnCount, elapsedMs |
+| `CRON_PRESETS` / `TIME_ZONE_OPTIONS` | UI presets for the schedule editor (15 min, 30 min, hourly, 6 h, daily 02:00 / 06:00, custom; UTC / Gulf Standard Time) |
 | `PermissionArea` (enum) | Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **MailServerConfig** |
 | `PermissionAction` (enum) | View, Create, Edit, Delete, Approve, Export, Assign, **AssignHead** |
 | `Kpi` | id, kpiNumber, name, calculationMethod, period, unit, strategicObjectiveId |
@@ -389,7 +413,7 @@
 ## Key Features
 
 ### Dashboards
-- **Team Dashboard:** 6 KPI stat cards (total actions, completion rate, on-time rate, escalations, critical/high count, overdue), workspace summary cards, My Actions list, Recent Actions list
+- **Dashboard hub:** Overview, Action Items, Projects and Strategy dashboards behind one tab bar. Every stat card, chart segment, legend entry and list row drills down — to a drawer listing the records behind the figure, or to the deeper dashboard for that area — and every record links to its own page. Chart callbacks run through `NgZone.run()` because Chart.js fires them outside Angular's zone
 - **Management Dashboard:** Team workload with completion %, at-risk items with severity, status breakdown (doughnut chart), critical actions list. Auto-refreshes every 30 seconds
 
 ### Action Items
@@ -456,6 +480,7 @@
 - **KPI Target Evidence:** modal-driven document attachments per target row — up to 10 files, PDF/DOC/DOCX/XLS/XLSX/PPT/PPTX, 10 MB max; paperclip badge shows current file count
 - **Email Templates:** Template management with subject/HTML body editing, active/inactive toggle, delivery logs
 - **Mail Server Configuration:** Admin-managed SMTP settings (host, port, SSL/TLS, from, username, password) persisted in the database and used for all outgoing emails; password is stored encrypted via ASP.NET Core Data Protection and never returned to the client (a `hasPassword` flag is shown); leaving the password field blank on save keeps the existing stored value
+- **Data Sync:** Admin Panel page for Hangfire-scheduled sync jobs (currently the HR `ku_employee_info` copy from KU_BOT_PROD). Per job: frequency presets or raw cron, time zone, enable/disable, next-run display, Run now, Test connection with column diff, and run history; auto-refreshes while a run is in progress. Gated by `DataSync.View` / `DataSync.Edit`
 
 ### Permission System
 - **15 Permission Areas** x **7 Permission Actions** = 105 possible permissions
@@ -497,6 +522,24 @@
 - Doughnut charts: Status breakdown
 - Bar charts: Team workload, completion rates, category/priority breakdown
 - Gantt chart: Project timelines with milestones and action items
+- Chart.js is registered per chart component — `providers: [provideCharts(withDefaultRegisterables())]` on `TeamDashboardComponent`, `ActionsDashboardComponent`, `ProjectsDashboardComponent`, `StrategyDashboardComponent`, `ManagementDashboardComponent`, `ReportsComponent` (keeps chart.js in their lazy chunks). **A new chart component must add the same provider** or its canvas throws `"category" is not a registered scale` and renders blank
+- Chart colors resolve CSS theme variables at runtime (`cssVar()` helper — Chart.js canvas cannot read `var()` strings) and re-render on `ThemeService.currentTheme$` changes (Team Dashboard, Management Dashboard, Reports). Status series: To Do `#94A3B8`, In Progress `#4D8BFF` (logo blue), In Review `#8B6CF6`, Done `#10B981`, Overdue `#EF4444`
+- Chart containers need a fixed height and must not flex/grow with their content (Chart.js sizes the canvas from the parent — a stretching parent causes a resize loop)
+
+### Theming System
+- Toggled via `data-theme="dark" | "light"` attribute on `<html>` (`ThemeService`, persisted to localStorage key `ku-theme`, restored pre-paint by an inline script in `index.html`); each theme also sets `color-scheme` so native controls and scrollbars follow
+- **Single source of truth:** `src/assets/styles/_theme-variables.scss` (short names: `--canvas --bg --sf --sfh --el --inp --bd --th --t1..t3 --accent --ar ...`). `_variables.scss` only *aliases* the legacy long names onto them (`--bg-card: var(--sf)`, `--primary: var(--accent)` …) — never put raw colour values there
+- **Palette sampled from the KUmmand Center logo** (brand constants on `:root`, identical in both themes): `--brand-navy #0B1B4A`, `--brand-royal #2A5CF0`, `--brand-royal-deep #1E46D2`, `--brand-blue #4D8BFF`, `--brand-sky #7AADFF` (+ `-r` RGB channels), `--brand-grad` / `--brand-grad-h` (sky → blue → royal)
+- **Dark** (default): canvas `#1B1E25`, opaque raised surface `--bg` / header `--nav` = `#262A33` (the dark logo's background), translucent blue-tinted cards, accent `#659CFF`, headings `--th #F5F7FC`
+- **Light**: canvas `#F3F6FC`, white surfaces and header (the light logo's background), navy-tinted keylines and shadows, accent `#2A5CF0`, headings `--th #0B1B4A`, AA-contrast text (`--t3` ≥ 4.5:1)
+- Accent roles: `--accent` is for text / icons / borders / tints; **filled controls use `--accent-fill` (royal gradient) with `--on-fill` (white)**, hover `--accent-fill-h`. `--on-accent` remains for text on a flat `--accent` fill (navy in dark, white in light)
+- Semantic tokens (both themes): status palette `--ok --warn --err --info --teal` + RGB channels `--okr --warnr --errr --infor --tealr` for `rgba(var(--*r), α)` tints (light values darkened for AA); elevation `--csh` (cards), `--neon` / `--neon2` (historical names — now a restrained brand-tinted hover lift, not a glow), `--sh-panel` (offcanvas) / `--sh-modal` (dialogs) / `--sh-drop` (dropdowns/toasts); overlay scrim `--ov`
+- Layout tokens: `--hdr-h` (header height), `--page-max` (content column cap), `--M` (outer gutter)
+- Bootstrap bridge: `--bs-body-color`, `--bs-body-bg`, `--bs-border-color`, `--bs-link-color`, `--bs-primary(-rgb)` etc. point at the theme tokens
+- Global partials (`src/assets/styles/`, loaded in this order by `styles.scss`): `_theme-variables` → `_global-resets` (typography, scrollbars) → `_background` (static brand backdrop: royal/sky washes + pixel clusters; no animation) → `_components` (cards, buttons, soft tinted badges, alerts, tabs, pagination, progress) → `_forms` (inputs, selects, switches, range, input groups) → `_charts` → `_variables` (aliases) → `_overrides` (toasts, modals, offcanvas, dropdowns, tooltips, tables, utility classes, focus ring, print). The old `_rails.scss` (animated side rails) was removed
+- **Icon tiles — one treatment app-wide:** `src/assets/styles/_tile.scss` exports `icon-tile($size)` (white glyph on the brand gradient with a lighter back card, as on the page header) and `icon-tile-danger` (the only colour variant — red, for cards that flag a problem: critical / escalated / overdue). Component SCSS imports it with a relative `@use '…/assets/styles/tile'` and applies it to a **wrapper** element around the `<i class="bi …">` (the mixin needs `::before`, which Bootstrap Icons uses for the glyph). Used by `PageHeaderComponent`, `KpiCardComponent`, all stat cards (Dashboard, My Actions, My Projects, My Approvals, Workspaces list/detail, Strategy shell/page/objective, Project and Milestone detail), detail-page headers, Reports section + metric icons, Admin Panel cards, Data Sync job cards, notification icons (page + bell) and Profile section titles. New icon tiles must use the mixin rather than their own colours
+- Bootstrap utilities are remapped: `.text-primary/-success/-danger/-warning/-info/-muted` → theme tokens; `.badge.bg-*` → soft tinted chips; `.bg-primary` → royal, `.bg-info` → brand blue (non-badge uses such as progress bars)
+- Component SCSS must use tokens — never hardcode status colors (`#22c55e`-family), `color: #000` on accent fills, or `rgba(0,0,0,x)` panel shadows. When restyling a `<select>`, set `background-color` (not the `background` shorthand, which wipes the caret image)
 
 ---
 

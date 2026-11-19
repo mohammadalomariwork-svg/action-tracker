@@ -1,0 +1,115 @@
+<div class="dash">
+
+  <app-breadcrumb [items]="[{ label: 'Dashboard', route: '/dashboard' }, { label: 'Action Items' }]" />
+
+  <app-page-header
+    title="Action Items"
+    subtitle="Performance and progress across every action item you can see"
+    icon="bi bi-check2-square"
+  >
+    <app-dash-tabs />
+  </app-page-header>
+
+  @if (failed()) {
+    <div class="dash-state dash-state--bad">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <p>The action-items dashboard could not be loaded.</p>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+
+    <!-- ── Headline figures — each opens the items behind it ───── -->
+    <div class="dash-stats">
+      <app-dash-stat icon="bi bi-list-check" label="Total" [value]="data()?.total ?? 0" [loading]="loading()"
+                     hint="Show all action items" (activate)="openAll()" />
+      <app-dash-stat icon="bi bi-hourglass-split" label="Open" [value]="data()?.open ?? 0" [loading]="loading()"
+                     hint="Show open action items" (activate)="openOpen()" />
+      <app-dash-stat icon="bi bi-check2-circle" label="Completed" [value]="data()?.completed ?? 0" [loading]="loading()"
+                     hint="Show completed action items" (activate)="openCompleted()" />
+      <app-dash-stat icon="bi bi-alarm" label="Overdue" [value]="data()?.overdue ?? 0" [loading]="loading()"
+                     [tone]="(data()?.overdue ?? 0) > 0 ? 'danger' : 'brand'"
+                     hint="Show overdue action items" (activate)="openOverdue()" />
+      <app-dash-stat icon="bi bi-exclamation-triangle" label="Escalated" [value]="data()?.escalated ?? 0" [loading]="loading()"
+                     [tone]="(data()?.escalated ?? 0) > 0 ? 'danger' : 'brand'"
+                     hint="Show escalated action items" (activate)="openEscalated()" />
+      <app-dash-stat icon="bi bi-graph-up-arrow" label="Completion rate" [value]="pct(data()?.completionRate)" [loading]="loading()"
+                     hint="Show completed action items" (activate)="openCompleted()" />
+      <app-dash-stat icon="bi bi-calendar-check" label="Completed on time" [value]="pct(data()?.onTimeRate)" [loading]="loading()"
+                     hint="Show completed action items" (activate)="openCompleted()" />
+    </div>
+
+    @if (!loading() && data(); as d) {
+      @if (d.total === 0) {
+        <div class="dash-state">
+          <i class="bi bi-inbox" aria-hidden="true"></i>
+          <p>No action items to report on yet.</p>
+        </div>
+      } @else {
+
+        <div class="dash-grid dash-grid--2">
+          <app-dash-panel title="By status" subtitle="Every action item" icon="bi bi-pie-chart">
+            <div class="donut">
+              <div class="donut__chart">
+                <canvas baseChart type="doughnut" [data]="statusChart()" [options]="statusOptions()"
+                        role="img" aria-label="Action items by status"></canvas>
+                <div class="donut__center">
+                  <span class="donut__num">{{ d.total }}</span>
+                  <span class="donut__lbl">Items</span>
+                </div>
+              </div>
+              <app-dash-legend [items]="statusLegend()" [stacked]="true" (pick)="openStatus($event)" />
+            </div>
+          </app-dash-panel>
+
+          <app-dash-panel title="Created vs completed" subtitle="Last 8 weeks" icon="bi bi-graph-up">
+            <div class="chart-box">
+              <canvas baseChart type="line" [data]="trendChart()" [options]="trendOptions()"
+                      role="img" aria-label="Action items created and completed per week"></canvas>
+            </div>
+            <p class="chart-hint"><i class="bi bi-info-circle" aria-hidden="true"></i>Completed above created means the backlog is shrinking.</p>
+          </app-dash-panel>
+        </div>
+
+        <div class="dash-grid dash-grid--3">
+          <app-dash-panel title="Open by priority" subtitle="What needs attention first" icon="bi bi-flag">
+            <div class="chart-box chart-box--sm">
+              <canvas baseChart type="bar" [data]="priorityChart()" [options]="priorityOptions()"
+                      role="img" aria-label="Open action items by priority"></canvas>
+            </div>
+            <app-dash-legend [items]="priorityLegend()" (pick)="openPriority($event)" />
+          </app-dash-panel>
+
+          <app-dash-panel title="Open by due date" subtitle="How soon the open work is due" icon="bi bi-calendar-event">
+            <div class="chart-box chart-box--sm">
+              <canvas baseChart type="bar" [data]="dueChart()" [options]="dueOptions()"
+                      role="img" aria-label="Open action items by due date"></canvas>
+            </div>
+            <app-dash-legend [items]="dueLegend()" (pick)="openDue($event)" />
+          </app-dash-panel>
+
+          <app-dash-panel title="Open by age" subtitle="How long items have been open" icon="bi bi-clock-history">
+            <div class="chart-box chart-box--sm">
+              <canvas baseChart type="bar" [data]="ageChart()" [options]="ageOptions()"
+                      role="img" aria-label="Open action items by age"></canvas>
+            </div>
+            <app-dash-legend [items]="ageLegend()" (pick)="openAge($event)" />
+          </app-dash-panel>
+        </div>
+
+        <div class="dash-grid dash-grid--2">
+          <app-dash-panel title="Team workload" subtitle="Action items per person, busiest first" icon="bi bi-people">
+            <app-ranked-bars [items]="teamItems()" [avatars]="true" (pick)="openMember($event)"
+                             emptyText="No one has action items assigned yet." />
+          </app-dash-panel>
+
+          <app-dash-panel title="By workspace" subtitle="Where the action items sit" icon="bi bi-collection">
+            <app-ranked-bars [items]="workspaceItems()" (pick)="openWorkspace($event)"
+                             emptyText="No workspaces with action items." />
+          </app-dash-panel>
+        </div>
+      }
+    }
+  }
+</div>
+
+<app-drilldown-panel [request]="drill()" (closed)="drill.set(null)" />

@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ═══════════════════════════════════════════════════════════════════
 // NOTIFICATION BELL — Header dropdown
 // ═══════════════════════════════════════════════════════════════════
@@ -13,21 +15,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--sf);
+  width: 38px;
+  height: 38px;
+  background: transparent;
   border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  color: var(--accent);
+  border-radius: 10px;
+  color: var(--t2);
   font-size: 16px;
   cursor: pointer;
-  transition: background 0.15s var(--ease), border-color 0.15s var(--ease),
-              box-shadow 0.2s var(--ease);
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease),
+              color 0.15s var(--ease);
 
+  // Matches .icon-btn in the header
   &:hover {
-    background: var(--sfh);
-    border-color: var(--bdh);
-    box-shadow: var(--neon);
+    background: rgba(var(--ar), 0.10);
+    border-color: rgba(var(--ar), 0.40);
+    color: var(--accent);
   }
 }
 
@@ -44,9 +47,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ef4444 !important;
-  color: #fff;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.50);
+  // Solid count bubble — opts out of the global soft-badge treatment
+  background: var(--danger) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 2px var(--nav);
 }
 
 // ── Bell shake animation ────────────────────────────────────────────
@@ -67,13 +71,13 @@
 .notification-dropdown {
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
-  width: 360px;
-  max-height: 440px;
-  background: var(--bg);
-  border: 1px solid var(--bd);
-  border-radius: var(--r-xl);
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.30);
+  top: calc(100% + 12px);
+  width: 372px;
+  max-height: 460px;
+  background: var(--el);
+  border: 1px solid var(--bdh);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-drop);
   z-index: 150;
   overflow: hidden;
   display: flex;
@@ -84,7 +88,8 @@
 .dropdown-header {
   border-bottom: 1px solid var(--bd);
   flex-shrink: 0;
-  color: var(--t1);
+  color: var(--th);
+  font-size: 14px;
 
   .btn-link {
     color: var(--accent);
@@ -117,7 +122,7 @@
   }
 
   &.unread {
-    background-color: rgba(var(--ar), 0.03);
+    background-color: rgba(var(--ar), 0.07);
   }
 
   &:last-child {
@@ -138,20 +143,14 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 6px rgba(var(--ar), 0.6), 0 0 12px rgba(var(--ar), 0.3);
+  box-shadow: 0 0 0 3px rgba(var(--ar), 0.20);
 }
 
 // ── Icon wrap: 34px rounded square, themed bg per type ──────────────
 .notif-icon {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-sm);
-  background: rgba(var(--ar), 0.08);
-  font-size: 1rem;
-  flex-shrink: 0;
+  @include tile.icon-tile(34px);
+  // The template binds a per-type inline colour; tiles are always white-on-brand
+  color: #fff !important;
 }
 
 // ── Content ─────────────────────────────────────────────────────────
@@ -160,15 +159,15 @@
 }
 
 .notif-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--t1);
   line-height: 1.3;
 }
 
 .notif-message {
-  font-size: 10.5px;
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.35;
   margin-top: 2px;
   color: var(--t3);
   white-space: nowrap;
@@ -177,7 +176,7 @@
 }
 
 .notif-time {
-  font-size: 9.5px;
+  font-size: 11px;
   margin-top: 3px;
   color: var(--t3);
 }

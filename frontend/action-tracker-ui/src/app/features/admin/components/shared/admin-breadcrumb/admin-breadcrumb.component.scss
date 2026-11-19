@@ -1,3 +1,4 @@
+// Kept identical to shared/components/breadcrumb — same trail, with a fixed "Admin" crumb.
 nav[aria-label="breadcrumb"] {
   margin-bottom: 0.75rem;
 }
@@ -5,40 +6,55 @@ nav[aria-label="breadcrumb"] {
 .breadcrumb {
   display: flex;
   flex-wrap: wrap;
-  padding: 0.5rem 0;
+  align-items: center;
+  padding: 0.4rem 0;
   margin-bottom: 0;
   list-style: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
 .breadcrumb-item {
   display: flex;
   align-items: center;
+  padding-left: 0;
   color: var(--t3);
 
   + .breadcrumb-item::before {
     font-family: 'bootstrap-icons';
     content: '\F285'; // bi-chevron-right
+    float: none;
     padding: 0 0.5rem;
     color: var(--t3);
-    opacity: 0.5;
-    font-size: 10px;
+    opacity: 0.6;
+    font-size: 9px;
   }
 
   a {
     color: var(--t3);
     text-decoration: none;
-    transition: color 0.15s;
+    border-radius: 6px;
+    transition: color 0.15s var(--ease);
 
     &:hover {
       color: var(--accent);
+      opacity: 1;
     }
+  }
+
+  // Home crumb gets a house glyph
+  &:first-child a::before {
+    font-family: 'bootstrap-icons';
+    content: '\F423'; // bi-house-door
+    margin-right: 0.35rem;
+    font-size: 12px;
+    vertical-align: -1px;
   }
 
   // Current (last) item
   &.active {
-    color: var(--t1);
-    font-weight: 600;
+    color: var(--accent);
+    font-weight: 700;
   }
 }

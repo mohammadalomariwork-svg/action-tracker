@@ -1,3 +1,5 @@
+@use '../../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .ap-page {
   padding: 1.5rem;
@@ -30,18 +32,35 @@
 
 // ── Feature cards ─────────────────────────────────────────────────────────────
 .admin-card {
+  position: relative;
   background: var(--sf);
   border: 1px solid var(--bd);
-  border-radius: var(--border-radius, 12px);
+  border-radius: var(--r-lg);
+  box-shadow: var(--csh);
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), border-color 0.2s var(--ease);
   overflow: hidden;
-  backdrop-filter: blur(16px);
+
+  // Brand keyline that sweeps in on hover
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--brand-grad-h);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
+  }
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: var(--neon);
-    border-color: var(--accent);
+    border-color: rgba(var(--ar), 0.45);
+
+    &::before { transform: scaleX(1); }
+    .ap-card-icon { transform: scale(1.06); }
+    .ap-manage .bi { transform: translateX(3px); }
   }
 
   .card-header {
@@ -51,10 +70,12 @@
 
   .card-body {
     .card-title {
-      color: var(--t1);
+      color: var(--th);
+      font-size: 1.05rem;
     }
     .card-text {
       color: var(--t2) !important;
+      line-height: 1.55;
     }
   }
 
@@ -65,8 +86,16 @@
 }
 
 .ap-card-icon {
-  font-size: 2.5rem;
-  display: block;
+  @include tile.icon-tile(60px);
+  transition: transform 0.25s var(--ease);
+}
+
+.ap-manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  .bi { transition: transform 0.2s var(--ease); }
 }
 
 // Badge pinned to top-right of card header

@@ -1,3 +1,5 @@
+@use '../../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .wd-page {
   padding: 1.5rem;
@@ -37,10 +39,7 @@
 }
 
 .wd-merged-header__icon {
-  font-size: 2.5rem;
-  color: var(--t3);
-  line-height: 1;
-  flex-shrink: 0;
+  @include tile.icon-tile(50px);
 }
 
 .wd-merged-header__title {
@@ -62,7 +61,7 @@
 .wd-header-card {
   border: none;
   border-radius: var(--border-radius, 0.5rem);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   background-color: var(--sf);
 }
 
@@ -105,7 +104,7 @@
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: var(--border-radius, 0.5rem);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   padding: 1.25rem 1.5rem;
   backdrop-filter: blur(16px);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -135,7 +134,7 @@
 
   select {
     min-width: 220px;
-    background: var(--inp);
+    background-color: var(--inp);
     border-color: var(--bd);
     color: var(--t1);
 
@@ -274,7 +273,7 @@
     flex-wrap: wrap;
     gap: 0.25rem;
     height: auto;
-    background: var(--inp);
+    background-color: var(--inp);
     border-color: var(--bd);
   }
 
@@ -307,7 +306,7 @@
     display: inline-flex;
 
     &:hover {
-      color: #ef4444;
+      color: var(--err);
     }
   }
 
@@ -320,7 +319,7 @@
     background: var(--bg);
     border: 1px solid var(--bd);
     border-radius: var(--r-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--sh-drop);
     margin-top: 2px;
     max-height: 280px;
     display: flex;
@@ -566,23 +565,10 @@
 }
 
 .wd-stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
+  @include tile.icon-tile(44px);
 
-  &--blue { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-  &--green { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
-  &--teal { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
-  &--yellow { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-  &--indigo { background: rgba(var(--ar), 0.12); color: var(--accent); }
-  &--orange { background: rgba(249, 115, 22, 0.12); color: #f97316; }
-  &--purple { background: rgba(var(--a2r, 124,92,252), 0.12); color: var(--accent2, #7C5CFC); }
-  &--red { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+  // Red only where the card flags a problem; every other variant is brand blue
+  &--red { @include tile.icon-tile-danger; }
 }
 
 .wd-stat-body {
@@ -669,7 +655,7 @@
 
   &--deleted {
     opacity: 0.55;
-    background-color: rgba(239, 68, 68, 0.06);
+    background-color: rgba(var(--errr), 0.06);
   }
 
   &__header {

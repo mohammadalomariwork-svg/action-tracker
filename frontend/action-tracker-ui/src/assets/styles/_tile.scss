@@ -1,0 +1,71 @@
+// ═══════════════════════════════════════════════════════════════════
+// ICON TILE — the one icon treatment used across the app.
+//
+// A white glyph on a brand-gradient rounded square, with a lighter card
+// peeking out behind it at an angle: the stacked cards of the KUmmand
+// Center mark. Page headers, stat cards, KPI cards, section headers,
+// admin cards and notifications all use this, so an icon looks the same
+// wherever it appears.
+//
+// Usage (component SCSS):
+//   @use '<relative path>/assets/styles/tile';
+//   .my-icon { @include tile.icon-tile(44px); }
+//   .my-icon--alert { @include tile.icon-tile-danger; }
+//
+// The element must be a WRAPPER around the glyph (<span><i class="bi …">),
+// not the <i class="bi"> itself — Bootstrap Icons draws the glyph with
+// ::before, which this mixin needs for the back card.
+//
+// This partial emits no CSS on its own; it is not loaded by styles.scss.
+// ═══════════════════════════════════════════════════════════════════
+@use 'sass:math';
+
+@mixin icon-tile($size: 44px, $glyph: null) {
+  position: relative;
+  z-index: 0;                       // own stacking context for the two layers below
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: $size;
+  height: $size;
+  margin-left: math.round($size * 0.1);   // room for the back card
+  border-radius: math.round($size * 0.28);
+  background: var(--tile-fill, var(--brand-grad));
+  color: #fff;
+  font-size: if($glyph, $glyph, math.round($size * 0.46));
+  line-height: 1;
+  box-shadow:
+    0 1px 2px rgba(var(--brand-navy-r), 0.30),
+    0 math.round($size * 0.14) math.round($size * 0.36) rgba(var(--tile-glow, var(--brand-royal-r)), 0.30);
+
+  // Back card
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--tile-back, var(--brand-sky));
+    opacity: 0.45;
+    transform: translate(-12%, 10%) rotate(-8deg);
+  }
+
+  // Front card, repainted above the back card
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--tile-fill, var(--brand-grad));
+  }
+}
+
+// The only colour variant: flags a problem (critical, escalated, overdue).
+// Everything else stays in the logo blues.
+@mixin icon-tile-danger {
+  --tile-fill: linear-gradient(135deg, #F87171 0%, #EF4444 45%, #DC2626 100%);
+  --tile-back: #F87171;
+  --tile-glow: var(--errr);
+}

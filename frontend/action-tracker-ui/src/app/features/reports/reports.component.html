@@ -14,7 +14,7 @@
     <section class="rp-card export-card">
       <div class="section-header">
         <div class="section-header__left">
-          <span class="section-icon">⬇️</span>
+          <span class="section-icon" aria-hidden="true"><i class="bi bi-download"></i></span>
           <div>
             <h2 class="section-title">Export Action Items</h2>
             <p class="section-sub">Apply optional filters then download as CSV</p>
@@ -116,7 +116,7 @@
       <section class="rp-card">
         <div class="section-header">
           <div class="section-header__left">
-            <span class="section-icon">📊</span>
+            <span class="section-icon" aria-hidden="true"><i class="bi bi-bar-chart-line"></i></span>
             <div>
               <h2 class="section-title">Summary Statistics</h2>
               <p class="section-sub">Aggregate performance metrics</p>
@@ -127,42 +127,42 @@
         <!-- Metric tiles -->
         <div class="metrics-grid">
           <div class="metric-tile metric-tile--primary">
-            <span class="metric-icon">📋</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-list-check"></i></span>
             <span class="metric-value">{{ totalActions() }}</span>
             <span class="metric-label">Total Actions</span>
           </div>
           <div class="metric-tile metric-tile--success">
-            <span class="metric-icon">✅</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-check2-circle"></i></span>
             <span class="metric-value">{{ completionRate() }}%</span>
             <span class="metric-label">Completion Rate</span>
           </div>
           <div class="metric-tile metric-tile--info">
-            <span class="metric-icon">📅</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-calendar-check"></i></span>
             <span class="metric-value">{{ onTimeRate() }}%</span>
             <span class="metric-label">On-Time Delivery</span>
           </div>
           <div class="metric-tile" [class.metric-tile--danger]="escalations() > 0" [class.metric-tile--success]="escalations() === 0">
-            <span class="metric-icon">🚨</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-exclamation-triangle"></i></span>
             <span class="metric-value">{{ escalations() }}</span>
             <span class="metric-label">Active Escalations</span>
           </div>
           <div class="metric-tile metric-tile--warning">
-            <span class="metric-icon">⏰</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-alarm"></i></span>
             <span class="metric-value">{{ overdueCount() }}</span>
             <span class="metric-label">Overdue Items</span>
           </div>
           <div class="metric-tile metric-tile--danger">
-            <span class="metric-icon">🔴</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-flag-fill"></i></span>
             <span class="metric-value">{{ critHighCount() }}</span>
             <span class="metric-label">Critical / High</span>
           </div>
           <div class="metric-tile metric-tile--blue">
-            <span class="metric-icon">⚙️</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-arrow-repeat"></i></span>
             <span class="metric-value">{{ inProgressCount() }}</span>
             <span class="metric-label">In Progress</span>
           </div>
           <div class="metric-tile metric-tile--purple">
-            <span class="metric-icon">⚡</span>
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-lightning-charge"></i></span>
             <span class="metric-value">{{ velocity() }}</span>
             <span class="metric-label">Team Velocity</span>
           </div>
@@ -198,7 +198,7 @@
         <div class="rp-card chart-card">
           <div class="section-header">
             <div class="section-header__left">
-              <span class="section-icon">📂</span>
+              <span class="section-icon" aria-hidden="true"><i class="bi bi-folder2-open"></i></span>
               <div>
                 <h2 class="section-title">Actions by Category</h2>
                 <p class="section-sub">Distribution across departments</p>
@@ -218,7 +218,7 @@
         <div class="rp-card chart-card">
           <div class="section-header">
             <div class="section-header__left">
-              <span class="section-icon">🎯</span>
+              <span class="section-icon" aria-hidden="true"><i class="bi bi-bullseye"></i></span>
               <div>
                 <h2 class="section-title">Actions by Priority</h2>
                 <p class="section-sub">Breakdown by urgency level</p>
@@ -233,10 +233,10 @@
             ></canvas>
             <!-- Priority legend with counts -->
             <div class="priority-legend">
-              <div class="priority-legend__item priority-legend__item--critical">🔴 Critical</div>
-              <div class="priority-legend__item priority-legend__item--high">🟠 High</div>
-              <div class="priority-legend__item priority-legend__item--medium">🟡 Medium</div>
-              <div class="priority-legend__item priority-legend__item--low">🟢 Low</div>
+              <div class="priority-legend__item priority-legend__item--critical"><span class="priority-legend__dot"></span>Critical</div>
+              <div class="priority-legend__item priority-legend__item--high"><span class="priority-legend__dot"></span>High</div>
+              <div class="priority-legend__item priority-legend__item--medium"><span class="priority-legend__dot"></span>Medium</div>
+              <div class="priority-legend__item priority-legend__item--low"><span class="priority-legend__dot"></span>Low</div>
             </div>
           </div>
         </div>

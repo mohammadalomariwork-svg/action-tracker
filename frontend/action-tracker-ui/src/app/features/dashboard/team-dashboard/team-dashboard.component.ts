@@ -1,34 +1,45 @@
 import {
-  Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
+  Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, NgZone,
   inject, signal, computed, effect, untracked, HostListener,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
-import { BaseChartDirective } from 'ng2-charts';
+import { DatePipe } from '@angular/common';
+import { ChartData } from 'chart.js';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { Subject, takeUntil } from 'rxjs';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
-import { DashboardService }  from '../../../core/services/dashboard.service';
+import { DashboardAnalyticsService } from '../../../core/services/dashboard-analytics.service';
 import { AuthService }       from '../../../core/services/auth.service';
 import { ToastService }      from '../../../core/services/toast.service';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
+import { ThemeService }      from '../../../services/theme.service';
 
 import {
   ActionItem, ActionItemCreate, ActionItemFilter,
   ActionStatus, ActionPriority, AssignableUser,
 } from '../../../core/models/action-item.model';
-import { DashboardKpi, StatusBreakdown } from '../../../core/models/dashboard.model';
+import { ActionItemsDashboard, ChartSlice, MyActionsDashboard } from '../../../core/models/dashboard-analytics.model';
 import { AuthUser }          from '../../../core/models/auth.models';
 import { WorkspaceList, WorkspaceSummary } from '../../workspaces/models/workspace.model';
 
 import { StatusBadgeComponent }   from '../../../shared/components/status-badge/status-badge.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
-import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../shared';
+
+import { DashTabsComponent } from '../shared/dash-tabs.component';
+import { DashStatComponent } from '../shared/dash-stat.component';
+import { DashPanelComponent } from '../shared/dash-panel.component';
+import { DashLegendComponent, LegendItem } from '../shared/dash-legend.component';
+import { RankedBarsComponent, RankedItem } from '../shared/ranked-bars.component';
+import { DrilldownPanelComponent } from '../shared/drilldown-panel.component';
+import { DrilldownRequest } from '../shared/drilldown.model';
+import {
+  DUE_COLOR, PRIORITY_COLOR, STATUS_COLOR, TONE, barOptions, doughnutOptions, pct,
+} from '../shared/chart-theme';
 
 const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -64,34 +75,40 @@ function greeting(): string {
   return 'Good evening';
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  'ToDo':       '#94a3b8',
-  'InProgress': '#0284c7',
-  'InReview':   '#7c3aed',
-  'Done':       '#059669',
-  'Overdue':    '#dc2626',
-};
-
+/**
+ * Dashboard overview. Everything on it leads somewhere: stat cards and chart
+ * segments open the list of items behind them (or the deeper dashboard for
+ * that area), and every listed item links to its own page.
+ */
 @Component({
   selector: 'app-team-dashboard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RouterLink, FormsModule, DatePipe, DecimalPipe, BaseChartDirective,
-    StatusBadgeComponent, PriorityBadgeComponent, BreadcrumbComponent, PageHeaderComponent,
+    RouterLink, FormsModule, DatePipe, BaseChartDirective,
+    StatusBadgeComponent, PriorityBadgeComponent, BreadcrumbComponent,
     HasPermissionDirective,
+    DashTabsComponent, DashStatComponent, DashPanelComponent, DashLegendComponent,
+    RankedBarsComponent, DrilldownPanelComponent,
   ],
+  // Chart.js is tree-shakeable: without registering its controllers and
+  // scales <canvas baseChart> throws ('"category" is not a registered
+  // scale') and renders blank. Provided here rather than at the root so
+  // chart.js stays in this lazy chunk.
+  providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './team-dashboard.component.html',
   styleUrl:    './team-dashboard.component.scss',
 })
 export class TeamDashboardComponent implements OnInit, OnDestroy {
   private readonly actionSvc     = inject(ActionItemService);
-  private readonly dashSvc       = inject(DashboardService);
+  private readonly analytics     = inject(DashboardAnalyticsService);
   private readonly authSvc       = inject(AuthService);
   private readonly toastSvc      = inject(ToastService);
   private readonly workspaceSvc  = inject(WorkspaceService);
   private readonly cdr           = inject(ChangeDetectorRef);
+  private readonly zone          = inject(NgZone);
   private readonly destroy$      = new Subject<void>();
+  private readonly theme         = toSignal(inject(ThemeService).currentTheme$, { initialValue: 'dark' as const });
   readonly router                = inject(Router);
 
   // ── Auth state ────────────────────────────────────────
@@ -106,25 +123,29 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
     return roles.includes('Admin') || roles.includes('Manager');
   });
 
+  /** Shown in the greeting eyebrow. */
+  readonly today = new Date();
+  readonly pct   = pct;
+
   // ── Loading ───────────────────────────────────────────
   readonly loadingMine              = signal(true);
   readonly loadingRecent            = signal(true);
-  readonly loadingKpis              = signal(true);
+  readonly loadingActions           = signal(true);
   readonly loadingWorkspaceSummary  = signal(false);
+  /** Set when a request fails, so a failure is not shown as "nothing to do". */
+  readonly mineFailed               = signal(false);
+  readonly actionsFailed            = signal(false);
 
   // ── Data ──────────────────────────────────────────────
-  readonly myActions        = signal<ActionItem[]>([]);
+  /** The signed-in user's own assignments, pre-aggregated for the charts. */
+  readonly mine             = signal<MyActionsDashboard | null>(null);
+  /** Everything the user can see: headline figures and team activity. */
+  readonly actions          = signal<ActionItemsDashboard | null>(null);
   readonly recentActions    = signal<ActionItem[]>([]);
-  readonly kpis             = signal<DashboardKpi | null>(null);
-  readonly statusBreakdown  = signal<StatusBreakdown[]>([]);
   readonly workspaceSummary = signal<WorkspaceSummary | null>(null);
 
-  // ── Global stats (derived from KPIs) ─────────────────
-  readonly totalActions    = computed(() => this.kpis()?.totalActions    ?? 0);
-  readonly completionRate  = computed(() => this.kpis()?.completionRate  ?? 0);
-  readonly onTimeRate      = computed(() => this.kpis()?.onTimeDeliveryRate ?? 0);
-  readonly escalations     = computed(() => this.kpis()?.activeEscalations  ?? 0);
-  readonly overdueCount    = computed(() => this.kpis()?.overdueCount    ?? 0);
+  /** What the drill-down drawer is showing; null = closed. */
+  readonly drill = signal<DrilldownRequest | null>(null);
 
   // ── Workspace / project stats ─────────────────────────
   readonly totalWorkspaces          = computed(() => this.workspaceSummary()?.totalWorkspaces   ?? 0);
@@ -137,16 +158,125 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
   readonly projectCompletionPct     = computed(() => Math.round(this.workspaceSummary()?.projectCompletionRate     ?? 0));
   readonly projectDeliveryPct       = computed(() => Math.round(this.workspaceSummary()?.projectOnTimeDeliveryRate ?? 0));
 
-  // ── Status breakdown derived stats ───────────────────
-  readonly doneCount = computed(() =>
-    this.statusBreakdown().find(s => s.status.replace(/\s/g, '') === 'Done')?.count ?? 0);
-  readonly dueThisWeek = computed(() =>
-    this.myActions().filter(a => {
-      if (!a.dueDate) return false;
-      const diff = (new Date(a.dueDate).getTime() - Date.now()) / 86_400_000;
-      return diff >= 0 && diff <= 7;
-    }).length
-  );
+  // ── My Actions charts ─────────────────────────────────
+  private legend(slices: ChartSlice[] | undefined, colors: Record<string, string>): LegendItem[] {
+    return (slices ?? []).map(s => ({ ...s, color: colors[s.key] ?? TONE.neutral }));
+  }
+
+  readonly myStatusLegend   = computed(() => this.legend(this.mine()?.byStatus, STATUS_COLOR));
+  readonly myPriorityLegend = computed(() => this.legend(this.mine()?.byPriority, PRIORITY_COLOR));
+  readonly myDueLegend      = computed(() => this.legend(this.mine()?.byDue, DUE_COLOR));
+
+  readonly myStatusChart = computed<ChartData<'doughnut'>>(() => {
+    const items = this.myStatusLegend();
+    return {
+      labels: items.map(i => i.label),
+      datasets: [{ data: items.map(i => i.count), backgroundColor: items.map(i => i.color), borderWidth: 0, spacing: 2, hoverOffset: 6 }],
+    };
+  });
+
+  private bars(items: LegendItem[]): ChartData<'bar'> {
+    return {
+      labels: items.map(i => i.label),
+      datasets: [{ data: items.map(i => i.count), backgroundColor: items.map(i => i.color), borderRadius: 6, maxBarThickness: 34 }],
+    };
+  }
+
+  readonly myPriorityChart = computed(() => this.bars(this.myPriorityLegend()));
+  readonly myDueChart      = computed(() => this.bars(this.myDueLegend()));
+
+  /** Chart.js fires callbacks outside Angular's zone. */
+  private inZone(fn: () => void): void {
+    this.zone.run(fn);
+  }
+
+  // Rebuilt on theme change so the resolved CSS-variable colours refresh
+  readonly myStatusOptions   = computed(() => { this.theme(); return doughnutOptions(i => this.inZone(() => this.openMyStatus(this.myStatusLegend()[i]?.key))); });
+  readonly myPriorityOptions = computed(() => { this.theme(); return barOptions(i => this.inZone(() => this.openMyPriority(this.myPriorityLegend()[i]?.key)), { horizontal: true }); });
+  readonly myDueOptions      = computed(() => { this.theme(); return barOptions(i => this.inZone(() => this.openMyDue(this.myDueLegend()[i]?.key)), { horizontal: true }); });
+
+  // ── Team activity: one row per person, busiest first ──
+  readonly teamItems = computed<RankedItem[]>(() =>
+    (this.actions()?.team ?? []).map(m => ({
+      id: m.userId,
+      label: m.userName,
+      total: m.total,
+      segments: [
+        { value: m.completed, tone: 'good', label: 'Completed' },
+        // "open" includes the overdue ones — show them separately
+        { value: Math.max(0, m.open - m.overdue), tone: 'brand', label: 'Open' },
+        { value: m.overdue, tone: 'bad', label: 'Overdue' },
+      ],
+    })));
+
+  // ── Drill-downs: my own items ─────────────────────────
+  private labelOf(items: LegendItem[], key: string): string {
+    return items.find(i => i.key === key)?.label ?? key;
+  }
+
+  openMyStatus(key: string | undefined): void {
+    if (!key) return;
+    this.drill.set({
+      kind: 'actions', scope: 'mine', title: `My actions — ${this.labelOf(this.myStatusLegend(), key)}`,
+      filter: { status: +key as ActionStatus },
+      fullList: { label: 'Open in My Actions', link: ['/actions'], queryParams: { status: +key } },
+    });
+  }
+
+  openMyPriority(key: string | undefined): void {
+    if (!key) return;
+    this.drill.set({
+      kind: 'actions', scope: 'mine', title: `My open actions — ${this.labelOf(this.myPriorityLegend(), key)} priority`,
+      filter: { priority: +key, openOnly: true },
+      fullList: { label: 'Open in My Actions', link: ['/actions'], queryParams: { priority: +key } },
+    });
+  }
+
+  openMyDue(key: string | undefined): void {
+    if (!key) return;
+    this.drill.set({
+      kind: 'actions', scope: 'mine', title: `My open actions — ${this.labelOf(this.myDueLegend(), key).toLowerCase()}`,
+      filter: { dueBucket: key },
+      fullList: { label: 'Open My Actions', link: ['/actions'] },
+    });
+  }
+
+  openMyOpen(): void {
+    this.drill.set({ kind: 'actions', scope: 'mine', title: 'My open actions', filter: { openOnly: true },
+      fullList: { label: 'Open My Actions', link: ['/actions'] } });
+  }
+
+  openMyOverdue(): void {
+    this.drill.set({ kind: 'actions', scope: 'mine', title: 'My overdue actions', filter: { overdueOnly: true },
+      fullList: { label: 'Open My Actions', link: ['/actions'] } });
+  }
+
+  // ── Drill-downs: everything visible ───────────────────
+  openAllActions(): void {
+    this.drill.set({ kind: 'actions', scope: 'all', title: 'All action items', filter: {} });
+  }
+
+  openCompleted(): void {
+    this.drill.set({ kind: 'actions', scope: 'all', title: 'Completed action items', filter: { status: ActionStatus.Done } });
+  }
+
+  openEscalated(): void {
+    this.drill.set({ kind: 'actions', scope: 'all', title: 'Escalated action items', filter: { isEscalated: true } });
+  }
+
+  openOverdue(): void {
+    this.drill.set({ kind: 'actions', scope: 'all', title: 'Overdue action items',
+      subtitle: 'Open and past their due date', filter: { overdueOnly: true } });
+  }
+
+  openMember(item: RankedItem): void {
+    this.drill.set({ kind: 'actions', scope: 'all', title: item.label,
+      subtitle: `${item.total} action items assigned`, filter: { assigneeId: item.id } });
+  }
+
+  go(path: string): void {
+    this.router.navigate([path]);
+  }
 
   // ── Enums ─────────────────────────────────────────────
   readonly ActionStatus   = ActionStatus;
@@ -163,43 +293,6 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
   allUsers:      AssignableUser[] = [];
   allWorkspaces: WorkspaceList[]  = [];
 
-  // ── My actions link with assignee filter ──────────────
-  readonly myActionsLink = computed(() => ['/actions']);
-  readonly myActionsQueryParams = computed(() => ({}));
-
-  // ── Compact horizontal bar chart ──────────────────────
-  readonly hBarType = 'bar' as const;
-
-  hBarData: ChartData<'bar'> = { labels: [], datasets: [] };
-
-  hBarOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'y',
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: 'var(--el, #1e293b)',
-        borderColor: 'var(--bd, rgba(255,255,255,0.06))',
-        borderWidth: 1,
-        titleColor: 'var(--t1, #f1f5f9)',
-        bodyColor: 'var(--t1, #f1f5f9)',
-        callbacks: { label: ctx => ` ${ctx.parsed.x} actions` },
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 10 }, color: '#94a3b8' },
-        grid: { color: 'rgba(0,229,255,0.06)' },
-      },
-      y: {
-        ticks: { font: { size: 11 }, color: '#94a3b8' },
-        grid: { display: false },
-      },
-    },
-  };
-
   // ── Lifecycle ─────────────────────────────────────────
   constructor() {
     // currentUser is null at ngOnInit time (async auth), so we react to it
@@ -211,10 +304,8 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadMyActions();
+    this.loadAnalytics();
     this.loadRecentActions();
-    this.loadKpis();
-    this.loadStatusBreakdown();
     this.loadAllWorkspaces();
   }
 
@@ -235,19 +326,25 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadMyActions(): void {
-    const filter: ActionItemFilter = {
-      pageNumber: 1, pageSize: 10,
-      sortBy: 'dueDate', sortDescending: false,
-    };
+  /** My-actions charts, headline figures and team activity. */
+  loadAnalytics(): void {
+    this.mineFailed.set(false);
+    this.actionsFailed.set(false);
 
-    this.actionSvc.getAll(filter).subscribe({
-      next: r => {
-        this.myActions.set(r.data?.items ?? []);
-        this.loadingMine.set(false);
-      },
-      error: () => this.loadingMine.set(false),
+    this.analytics.getMyActions().pipe(takeUntil(this.destroy$)).subscribe({
+      next: d => { this.mine.set(d); this.loadingMine.set(false); },
+      error: () => { this.loadingMine.set(false); this.mineFailed.set(true); },
     });
+
+    this.analytics.getActionItems().pipe(takeUntil(this.destroy$)).subscribe({
+      next: d => { this.actions.set(d); this.loadingActions.set(false); },
+      error: () => { this.loadingActions.set(false); this.actionsFailed.set(true); },
+    });
+  }
+
+  /** A figure for a stat card, or a dash when the data could not be loaded. */
+  stat(value: number | string | undefined): number | string {
+    return this.actionsFailed() ? '—' : (value ?? 0);
   }
 
   private loadRecentActions(): void {
@@ -263,38 +360,6 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
       },
       error: () => this.loadingRecent.set(false),
     });
-  }
-
-  private loadKpis(): void {
-    this.dashSvc.getKpis().subscribe({
-      next: r => { this.kpis.set(r.data); this.loadingKpis.set(false); },
-      error: () => this.loadingKpis.set(false),
-    });
-  }
-
-  private loadStatusBreakdown(): void {
-    this.dashSvc.getStatusBreakdown().subscribe({
-      next: r => {
-        const data = r.data ?? [];
-        this.statusBreakdown.set(data);
-        this.buildChart(data);
-      },
-      error: () => {},
-    });
-  }
-
-  // ── Chart builder ─────────────────────────────────────
-  private buildChart(breakdown: StatusBreakdown[]): void {
-    this.hBarData = {
-      labels: breakdown.map(s => s.status),
-      datasets: [{
-        data:            breakdown.map(s => s.count),
-        backgroundColor: breakdown.map(s =>
-          STATUS_COLORS[s.status.replace(/\s/g, '')] ?? '#94a3b8'),
-        borderRadius: 4,
-        barThickness: 14,
-      }],
-    };
   }
 
   // ── View helpers ──────────────────────────────────────
@@ -433,10 +498,8 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
         this.actionSaving = false;
         this.showActionForm = false;
         this.toastSvc.success('Action item created.');
-        this.loadMyActions();
+        this.loadAnalytics();
         this.loadRecentActions();
-        this.loadKpis();
-        this.loadStatusBreakdown();
         this.cdr.markForCheck();
       },
       error: err => {

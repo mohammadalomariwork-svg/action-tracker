@@ -41,6 +41,9 @@ public class WorkspaceResponseDto
     /// <summary>Whether the workspace is currently active.</summary>
     public bool IsActive { get; set; }
 
+    /// <summary>Private workspaces are visible only to their admins and members.</summary>
+    public bool IsPrivate { get; set; }
+
     /// <summary>UTC timestamp when the workspace was created.</summary>
     public DateTime CreatedAt { get; set; }
 

@@ -1,0 +1,17 @@
+@use '../shared/dash-page';
+
+// ── Year selector in the page header ───────────────────────
+.year-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2);
+
+  .form-select {
+    width: auto;
+    min-width: 96px;
+  }
+}

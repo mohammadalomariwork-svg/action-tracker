@@ -1,0 +1,125 @@
+@if (request(); as req) {
+  <div class="dd-overlay" (click)="close()"></div>
+
+  <aside class="dd" role="dialog" aria-modal="true" [attr.aria-label]="req.title">
+    <header class="dd__head">
+      <div class="dd__titles">
+        <span class="dd__eyebrow">Drill-down</span>
+        <h2 class="dd__title">{{ req.title }}</h2>
+        @if (req.subtitle) {
+          <p class="dd__sub">{{ req.subtitle }}</p>
+        }
+      </div>
+      <span class="dd__count" [attr.aria-label]="total() + ' items'">{{ total() }}</span>
+      <button type="button" class="dd__close" (click)="close()" aria-label="Close">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="dd__body">
+
+      <!-- ── Action items (server-paged) ─────────────────────────── -->
+      @if (req.kind === 'actions') {
+        @for (item of actions(); track item.id) {
+          <a class="dd-row" [routerLink]="['/actions', item.id, 'view']">
+            <div class="dd-row__main">
+              <span class="dd-row__code">{{ item.actionId }}</span>
+              <span class="dd-row__title">{{ item.title }}</span>
+              <span class="dd-row__sub">
+                <i class="bi bi-person" aria-hidden="true"></i>{{ assignees(item) }}
+                @if (item.workspaceTitle) {
+                  <span class="dd-row__dot">·</span>{{ item.workspaceTitle }}
+                }
+              </span>
+              <span class="dd-row__badges">
+                <app-status-badge [status]="item.status" />
+                <app-priority-badge [priority]="item.priority" />
+                @if (item.isEscalated) {
+                  <span class="dd-chip dd-chip--bad"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>Escalated</span>
+                }
+              </span>
+            </div>
+            <div class="dd-row__side">
+              <span class="dd-row__meta" [class.dd-row__meta--bad]="isLate(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
+              @if (dueNote(item)) {
+                <span class="dd-row__note" [class.dd-row__note--bad]="isLate(item)">{{ dueNote(item) }}</span>
+              }
+            </div>
+            <i class="bi bi-chevron-right dd-row__go" aria-hidden="true"></i>
+          </a>
+        }
+
+        @if (loading()) {
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="dd-skel"><span></span><span></span></div>
+          }
+        }
+
+        @if (failed()) {
+          <div class="dd-state dd-state--bad">
+            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+            <p>Could not load these items.</p>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="retry()">Try again</button>
+          </div>
+        }
+
+        @if (!loading() && !failed() && actions().length === 0) {
+          <div class="dd-state">
+            <i class="bi bi-inbox" aria-hidden="true"></i>
+            <p>Nothing here — no action items match.</p>
+          </div>
+        }
+
+        @if (hasMore && !loading() && !failed()) {
+          <button type="button" class="btn btn-sm btn-outline-primary dd__more" (click)="loadMore()">
+            Show more ({{ total() - actions().length }} left)
+          </button>
+        }
+      }
+
+      <!-- ── Pre-built rows (projects, KPIs, objectives, milestones) ── -->
+      @if (req.kind === 'rows') {
+        @for (row of req.rows; track $index) {
+          <a class="dd-row" [routerLink]="row.link">
+            <div class="dd-row__main">
+              @if (row.code) {
+                <span class="dd-row__code">{{ row.code }}</span>
+              }
+              <span class="dd-row__title">{{ row.title }}</span>
+              @if (row.subtitle) {
+                <span class="dd-row__sub">{{ row.subtitle }}</span>
+              }
+              @if (row.progress != null) {
+                <span class="dd-bar" role="progressbar" [attr.aria-valuenow]="row.progress" aria-valuemin="0" aria-valuemax="100">
+                  <span class="dd-bar__fill" [class]="'dd-bar__fill--' + (row.badgeTone ?? 'brand')" [style.width.%]="row.progress"></span>
+                </span>
+              }
+            </div>
+            <div class="dd-row__side">
+              @if (row.badge) {
+                <span class="dd-chip" [class]="'dd-chip--' + (row.badgeTone ?? 'neutral')">{{ row.badge }}</span>
+              }
+              @if (row.meta) {
+                <span class="dd-row__note" [class]="'dd-row__note--' + (row.metaTone ?? 'neutral')">{{ row.meta }}</span>
+              }
+            </div>
+            <i class="bi bi-chevron-right dd-row__go" aria-hidden="true"></i>
+          </a>
+        } @empty {
+          <div class="dd-state">
+            <i class="bi bi-inbox" aria-hidden="true"></i>
+            <p>{{ req.emptyText ?? 'Nothing here.' }}</p>
+          </div>
+        }
+      }
+    </div>
+
+    @if (req.kind === 'actions' && req.fullList; as full) {
+      <footer class="dd__foot">
+        <a class="btn btn-sm btn-primary" [routerLink]="full.link" [queryParams]="full.queryParams">
+          {{ full.label }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+      </footer>
+    }
+  </aside>
+}

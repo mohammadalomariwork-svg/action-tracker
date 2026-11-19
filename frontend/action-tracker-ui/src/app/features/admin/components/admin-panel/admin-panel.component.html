@@ -15,20 +15,15 @@
     @for (card of features; track card.id) {
       <ng-container *appHasPermission="card.permissionArea; action: 'View'">
         <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
-          <div
-            class="card admin-card h-100"
-            [style.border-top]="'4px solid var(--bs-' + card.color + ')'"
-            (click)="navigate(card.route)"
-          >
+          <div class="card admin-card h-100" (click)="navigate(card.route)">
 
             <!-- Card header: icon + optional badge -->
             <div class="card-header bg-transparent border-0 pt-4 pb-2 text-center position-relative">
-              <i
-                class="bi {{ card.icon }} ap-card-icon"
-                [ngClass]="'text-' + card.color"
-              ></i>
+              <span class="ap-card-icon" aria-hidden="true">
+                <i class="bi {{ card.icon }}"></i>
+              </span>
               @if (card.badge) {
-                <span class="badge ap-badge" [ngClass]="'bg-' + card.color">
+                <span class="badge ap-badge bg-primary">
                   {{ card.badge }}
                 </span>
               }
@@ -43,11 +38,10 @@
             <!-- Card footer: Manage button -->
             <div class="card-footer bg-transparent border-0 pb-4 text-center">
               <button
-                class="btn btn-sm"
-                [ngClass]="'btn-outline-' + card.color"
+                class="btn btn-sm btn-outline-primary ap-manage"
                 (click)="navigate(card.route); $event.stopPropagation()"
               >
-                Manage &rarr;
+                Manage <i class="bi bi-arrow-right" aria-hidden="true"></i>
               </button>
             </div>
 

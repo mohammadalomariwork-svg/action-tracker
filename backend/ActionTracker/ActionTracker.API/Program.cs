@@ -11,6 +11,9 @@ using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Data.Seeders;
 using ActionTracker.Infrastructure.Helpers;
+using ActionTracker.Application.Features.DataSync;
+using Hangfire;
+using Hangfire.Dashboard;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -274,6 +277,7 @@ try
     builder.Services.AddUserManagement();
     builder.Services.AddAdminPanelServices();
     builder.Services.AddEmailServices(builder.Configuration);
+    builder.Services.AddDataSyncServices(builder.Configuration, builder.Environment);
     builder.Services.AddSignalR();
     builder.Services.AddSwaggerWithJwt();
 
@@ -355,6 +359,20 @@ try
     // under an IIS sub-path (e.g. https://apps.ku.ac.ae/actiontrackerAPIs/).
     app.MapGet("/", () => Results.LocalRedirect("~/swagger")).ExcludeFromDescription();
 
+    // Hangfire dashboard for troubleshooting. The API is JWT-only (no cookie),
+    // so the browser cannot present a token here; restrict to requests that
+    // originate on the server itself (RDP + localhost). The Angular Admin →
+    // Data Sync page is the supported UI for everyone else.
+    if (!app.Environment.IsEnvironment(DataSyncServiceCollectionExtensions.TestingEnvironment))
+    {
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            Authorization  = new IDashboardAuthorizationFilter[] { new LocalRequestsOnlyAuthorizationFilter() },
+            DashboardTitle = "Action Center — Background Jobs",
+            DisplayStorageConnectionString = false,
+        });
+    }
+
     app.MapControllers();
     app.MapHub<ActionTracker.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
@@ -407,6 +425,14 @@ try
     // -----------------------------------------------------------------------
     // Seed bootstrap admin user (idempotent)
     await AdminBootstrapSeeder.SeedAsync(app.Services);
+
+    // -----------------------------------------------------------------------
+    // Data sync: seed job definitions + push schedules to Hangfire
+    using (var scope = app.Services.CreateScope())
+    {
+        var dataSync = scope.ServiceProvider.GetRequiredService<IDataSyncService>();
+        await dataSync.EnsureJobsRegisteredAsync();
+    }
 
     // -----------------------------------------------------------------------
     // Open Swagger UI in the default browser on startup (Development only).

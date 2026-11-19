@@ -76,7 +76,7 @@
     flex-wrap: wrap;
     gap: 0.25rem;
     height: auto;
-    background: var(--inp);
+    background-color: var(--inp);
     border-color: var(--bd);
     font-size: 0.85rem;
     padding: 0.25rem 0.5rem;
@@ -106,7 +106,7 @@
     line-height: 1;
     display: inline-flex;
 
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--err); }
   }
 
   &__dropdown {
@@ -260,8 +260,8 @@
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--on-fill);
   font-weight: 700;
   font-size: 0.85rem;
   flex-shrink: 0;

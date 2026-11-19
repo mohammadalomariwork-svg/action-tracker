@@ -75,7 +75,7 @@ public class KuEmployeeInfo
     public string? EmiratesID        { get; set; }   // nvarchar(255)
     public string? MaritalStat       { get; set; }   // nvarchar(255)
     public string? Gender            { get; set; }   // nvarchar(255)
-    public string  NearestAirport    { get; set; } = string.Empty; // nvarchar(255) NOT NULL
+    public string? NearestAirport    { get; set; }   // nvarchar(255) — made nullable 2026-09-10 (HR source allows NULL)
     public string? Religion          { get; set; }   // nvarchar(255)
 
     // ── Employment dates ──────────────────────────────────────────────────────

@@ -1,3 +1,5 @@
+@use '../../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .ms-page {
   padding: 1.5rem 0;
@@ -15,16 +17,7 @@
 }
 
 .ms-page-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: rgba(var(--ar), 0.12);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  flex-shrink: 0;
+  @include tile.icon-tile(44px);
 }
 
 .ms-page-title {
@@ -106,7 +99,7 @@
     outline: none;
     transition: border-color 0.15s;
     color: var(--t1);
-    background: var(--inp);
+    background-color: var(--inp);
 
     &:focus {
       border-color: var(--accent);
@@ -241,18 +234,18 @@
   }
 
   &--completed {
-    background: rgba(34, 197, 94, 0.12);
-    color: #22c55e;
+    background: rgba(var(--okr), 0.12);
+    color: var(--ok);
   }
 
   &--delayed {
-    background: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
+    background: rgba(var(--warnr), 0.12);
+    color: var(--warn);
   }
 
   &--cancelled {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: rgba(var(--errr), 0.12);
+    color: var(--err);
   }
 }
 
@@ -269,9 +262,9 @@
   display: inline-block;
   font-size: 0.65rem;
   font-weight: 600;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(var(--errr), 0.1);
+  color: var(--err);
+  border: 1px solid rgba(var(--errr), 0.2);
   border-radius: 4px;
   padding: 1px 5px;
   margin-left: 4px;
@@ -349,18 +342,18 @@
   }
 
   &--danger {
-    color: #ef4444;
+    color: var(--err);
     &:hover {
-      background: rgba(239, 68, 68, 0.08);
-      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(var(--errr), 0.08);
+      border-color: rgba(var(--errr), 0.3);
     }
   }
 
   &--success {
-    color: #22c55e;
+    color: var(--ok);
     &:hover {
-      background: rgba(34, 197, 94, 0.08);
-      border-color: rgba(34, 197, 94, 0.3);
+      background: rgba(var(--okr), 0.08);
+      border-color: rgba(var(--okr), 0.3);
     }
   }
 
@@ -413,8 +406,8 @@
   }
 
   &.active {
-    background: var(--accent);
-    color: #000;
+    background: var(--accent-fill);
+    color: var(--on-fill);
     border-color: var(--accent);
     box-shadow: var(--neon);
   }
@@ -553,9 +546,9 @@
 
   &--todo       { background: var(--el); color: var(--t2); }
   &--inprogress { background: rgba(var(--ar), 0.12); color: var(--accent); }
-  &--inreview   { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-  &--done       { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
-  &--overdue    { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+  &--inreview   { background: rgba(var(--warnr), 0.12); color: var(--warn); }
+  &--done       { background: rgba(var(--okr), 0.12); color: var(--ok); }
+  &--overdue    { background: rgba(var(--errr), 0.12); color: var(--err); }
 }
 
 // ── Mobile expanded action items ──────────────────────────────────────────────
@@ -665,7 +658,7 @@
   z-index: 1045;
   background: var(--bg-base, #252A33);
   border-left: 1px solid var(--bd);
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sh-panel);
   display: flex;
   flex-direction: column;
 
@@ -697,8 +690,8 @@
 }
 
 .text-primary { color: var(--accent) !important; }
-.text-success { color: #22c55e !important; }
-.text-danger { color: #ef4444 !important; font-weight: 600; }
+.text-success { color: var(--ok) !important; }
+.text-danger { color: var(--err) !important; font-weight: 600; }
 
 .btn-close {
   display: flex;
@@ -730,7 +723,7 @@
   right: 0;
   bottom: 0;
   z-index: 1040;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--ov);
 }
 
 // ── Form controls ─────────────────────────────────────────────────────────────
@@ -749,7 +742,7 @@
   font-family: inherit;
   font-size: 0.85rem;
   color: var(--t1);
-  background: var(--inp);
+  background-color: var(--inp);
   outline: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
@@ -789,9 +782,9 @@ select.form-control {
   &:disabled { opacity: 0.55; cursor: not-allowed; }
 
   &.btn-primary {
-    background: var(--accent);
+    background: var(--accent-fill);
     border-color: var(--accent);
-    color: #000;
+    color: var(--on-fill);
     box-shadow: var(--neon);
     &:hover:not(:disabled) { box-shadow: var(--neon2, var(--neon)); transform: translateY(-1px); }
     &:active:not(:disabled) { transform: translateY(0); }

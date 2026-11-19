@@ -1,6 +1,174 @@
 // ═══════════════════════════════════════════════════════════════════
-// LOGIN — Full-screen centered layout, animated bg behind card
-// ══════════════════════════════════════════════════════��════════════
+// LOGIN — Full-screen centered card on a pure-CSS brand backdrop.
+// Palette is sampled from the KUmmand Center logo PNGs:
+//   navy #0B1B4A (wordmark) · royal #2A5CF0 · blue #4D8BFF · sky #7AADFF
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Login palette tokens (dark is the default, light overrides) ────
+:host {
+  // Logo colours (same in both themes)
+  --lg-navy:       #0B1B4A;
+  --lg-royal:      #2A5CF0;
+  --lg-royal-r:    42, 92, 240;
+  --lg-royal-deep: #1E46D2;
+  --lg-blue:       #4D8BFF;
+  --lg-blue-r:     77, 139, 255;
+  --lg-sky:        #7AADFF;
+  --lg-sky-r:      122, 173, 255;
+
+  // Dark theme surfaces
+  --lg-page:
+    radial-gradient(1000px 640px at 88% -12%, rgba(var(--lg-royal-r), 0.30), transparent 62%),
+    radial-gradient(760px 520px at -8% 108%, rgba(var(--lg-sky-r), 0.14), transparent 60%),
+    linear-gradient(160deg, #1C2029 0%, #14171D 100%);
+  // The logo PNGs are NOT transparent — the dark one has a baked-in
+  // #262A33 background. The card must be exactly that colour so the
+  // logo sits on it without a visible box.
+  --lg-card:       #262A33;
+  --lg-card-bd:    rgba(var(--lg-sky-r), 0.14);
+  --lg-card-sh:    0 24px 64px rgba(0, 0, 0, 0.45),
+                   0 0 120px rgba(var(--lg-royal-r), 0.12);
+  --lg-ink:        #F3F6FC;
+  --lg-ink2:       #B6C2D6;
+  --lg-muted:      #8B97AC;
+  --lg-line:       rgba(255, 255, 255, 0.09);
+  --lg-inp:        #1F232B;
+  --lg-inp-focus:  #1C2027;
+  --lg-inp-bd:     rgba(255, 255, 255, 0.10);
+  --lg-inp-bd-h:   rgba(var(--lg-sky-r), 0.35);
+  --lg-ph:         #6E7A90;
+  --lg-focus:      var(--lg-sky);
+  --lg-focus-ring: rgba(var(--lg-sky-r), 0.22);
+  --lg-btn-sh:     0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 26px rgba(var(--lg-royal-r), 0.40);
+  --lg-btn-sh-h:   0 2px 4px rgba(0, 0, 0, 0.30), 0 12px 34px rgba(var(--lg-royal-r), 0.55);
+  --lg-sec-bg:     rgba(var(--lg-sky-r), 0.08);
+  --lg-sec-bg-h:   rgba(var(--lg-sky-r), 0.15);
+  --lg-sec-bd:     rgba(var(--lg-sky-r), 0.30);
+  --lg-sec-fg:     #A9C8FF;
+  --lg-dot:        rgba(var(--lg-sky-r), 0.20);
+  --lg-ribbons-op: 0.55;
+
+  display: block;
+}
+
+:host-context([data-theme="light"]) {
+  --lg-page:
+    radial-gradient(1000px 640px at 88% -12%, rgba(var(--lg-royal-r), 0.14), transparent 62%),
+    radial-gradient(760px 520px at -8% 108%, rgba(var(--lg-sky-r), 0.26), transparent 60%),
+    linear-gradient(160deg, #F6F9FF 0%, #E9EFFC 100%);
+  // Light logo PNG has a baked-in white background (also neutralised
+  // with mix-blend-mode below, so keep this white or near-white)
+  --lg-card:       #FFFFFF;
+  --lg-card-bd:    rgba(11, 27, 74, 0.08);
+  --lg-card-sh:    0 1px 2px rgba(11, 27, 74, 0.06),
+                   0 20px 50px rgba(var(--lg-royal-r), 0.13);
+  --lg-ink:        var(--lg-navy);
+  --lg-ink2:       #33415C;
+  --lg-muted:      #5D6B82;
+  --lg-line:       rgba(11, 27, 74, 0.10);
+  --lg-inp:        #F7F9FE;
+  --lg-inp-focus:  #FFFFFF;
+  --lg-inp-bd:     rgba(11, 27, 74, 0.14);
+  --lg-inp-bd-h:   rgba(var(--lg-royal-r), 0.40);
+  --lg-ph:         #8A95AB;
+  --lg-focus:      var(--lg-royal);
+  --lg-focus-ring: rgba(var(--lg-royal-r), 0.16);
+  --lg-btn-sh:     0 1px 2px rgba(var(--lg-royal-r), 0.30), 0 8px 20px rgba(var(--lg-royal-r), 0.24);
+  --lg-btn-sh-h:   0 2px 4px rgba(var(--lg-royal-r), 0.32), 0 12px 28px rgba(var(--lg-royal-r), 0.32);
+  --lg-sec-bg:     rgba(var(--lg-royal-r), 0.05);
+  --lg-sec-bg-h:   rgba(var(--lg-royal-r), 0.11);
+  --lg-sec-bd:     rgba(var(--lg-royal-r), 0.30);
+  --lg-sec-fg:     var(--lg-royal-deep);
+  --lg-dot:        rgba(var(--lg-royal-r), 0.13);
+  --lg-ribbons-op: 0.42;
+}
+
+// ── Brand backdrop ─────────────────────────────────────────────────
+.login-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--lg-page);
+}
+
+// Square "pixel" clusters, like the dots around the logo mark.
+// 9px squares on a 24px grid, faded out at the edges with a mask.
+.login-bg__dots {
+  position: absolute;
+  background: conic-gradient(at 9px 9px, transparent 75%, var(--lg-dot) 0) 0 0 / 24px 24px;
+  -webkit-mask-image: radial-gradient(closest-side, #000 25%, transparent);
+          mask-image: radial-gradient(closest-side, #000 25%, transparent);
+
+  &--tl {
+    top: 6%;
+    left: 4%;
+    width: 340px;
+    height: 260px;
+  }
+
+  &--br {
+    right: 3%;
+    bottom: 5%;
+    width: 380px;
+    height: 280px;
+  }
+}
+
+// Layered slanted ribbons (sky → blue → royal), echoing the logo's
+// stacked parallelograms, anchored to the bottom-left corner.
+.login-bg__ribbons {
+  position: absolute;
+  left: -140px;
+  bottom: -110px;
+  width: 760px;
+  height: 520px;
+  opacity: var(--lg-ribbons-op);
+  transform-origin: bottom left;
+}
+
+.login-bg__ribbon {
+  position: absolute;
+  width: 400px;
+  height: 240px;
+  border-radius: 40px;
+  transform: skewX(-28deg);
+  animation: lgFloat 16s ease-in-out infinite;
+
+  &--1 {
+    left: 60px;
+    bottom: 0;
+    background: linear-gradient(150deg, rgba(var(--lg-sky-r), 0.75), rgba(var(--lg-sky-r), 0.15));
+    animation-duration: 18s;
+  }
+
+  &--2 {
+    left: 200px;
+    bottom: 100px;
+    background: linear-gradient(150deg, rgba(var(--lg-blue-r), 0.80), rgba(var(--lg-blue-r), 0.15));
+    animation-delay: -5s;
+  }
+
+  &--3 {
+    left: 340px;
+    bottom: 200px;
+    background: linear-gradient(150deg, rgba(var(--lg-royal-r), 0.95), rgba(var(--lg-royal-r), 0.20));
+    animation-duration: 14s;
+    animation-delay: -9s;
+  }
+}
+
+@keyframes lgFloat {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-bg__ribbon {
+    animation: none;
+  }
+}
 
 // ── Full-screen centered layout ────────────────────────────────────
 .login-page {
@@ -16,46 +184,55 @@
 
 // ── Login card ─────────────────────────────────────────────────────
 .login-card {
-  max-width: 400px;
-  width: 100%;
-  padding: 40px;
-  background: var(--el);
-  border: 1px solid var(--bd);
-  border-radius: var(--r-xl);
-  backdrop-filter: blur(24px);
-  box-shadow: var(--neon);
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  padding: 44px 40px 36px;
+  background: var(--lg-card);
+  border: 1px solid var(--lg-card-bd);
+  border-radius: var(--r-xl);
+  box-shadow: var(--lg-card-sh);
+  overflow: hidden;
+
+  // Brand gradient keyline along the top edge
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--lg-sky) 0%, var(--lg-blue) 45%, var(--lg-royal) 100%);
+  }
 }
 
-// ── Logo: centered SVG mark with neon glow ────────────��────────────
+// ── Logo ───────────────────────────────────────────────────────────
 .card-logo {
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .card-logo__img {
-  height: 64px;
-  width: auto;
-  filter: drop-shadow(0 0 12px rgba(var(--ar), 0.5))
-          drop-shadow(0 0 32px rgba(var(--ar), 0.25));
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
 }
 
 // ── Title & subtitle ───────────────────────────────────────────────
 .card-title {
-  margin: 0 0 0.25rem;
-  font-size: 20px;
+  margin: 0 0 0.3rem;
+  font-size: 22px;
   font-weight: 800;
-  color: var(--t1);
+  letter-spacing: -0.01em;
+  color: var(--lg-ink);
   text-align: center;
 }
 
 .card-sub {
-  margin: 0 0 1.5rem;
-  font-size: 12px;
-  color: var(--t3);
+  margin: 0 0 1.75rem;
+  font-size: 13px;
+  color: var(--lg-muted);
   text-align: center;
 }
 
@@ -64,13 +241,13 @@
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(var(--errr), 0.08);
+  border: 1px solid rgba(var(--errr), 0.25);
   border-radius: var(--r-md);
   padding: 0.75rem 1rem;
   margin-bottom: 1.25rem;
   font-size: 0.875rem;
-  color: #ef4444;
+  color: var(--err);
   line-height: 1.5;
 }
 
@@ -86,36 +263,27 @@
   }
 }
 
-.section-title {
-  margin: 0 0 0.25rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--t3);
-}
-
 // ── OR divider ─────────────────────────────────────────────────────
 .or-divider {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin: 1.5rem 0;
-  color: var(--t3);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  color: var(--lg-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 
   &::before,
   &::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--bd);
+    background: var(--lg-line);
   }
 }
 
-// ── Fields (themed from F-TH-06) ──────────────────────────────────
+// ── Fields ─────────────────────────────────────────────────────────
 .field {
   display: flex;
   flex-direction: column;
@@ -126,37 +294,43 @@
 .field__label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--t2);
+  color: var(--lg-ink2);
   letter-spacing: 0.01em;
 }
 
 .field__input {
   width: 100%;
-  padding: 0.6rem 0.9rem;
-  border: 1.5px solid var(--bd);
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid var(--lg-inp-bd);
   border-radius: var(--r-md);
   font-size: 0.9rem;
-  color: var(--t1);
-  background: var(--inp);
-  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  color: var(--lg-ink);
+  background: var(--lg-inp);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease);
   outline: none;
 
   &::placeholder {
-    color: var(--t3);
+    color: var(--lg-ph);
+  }
+
+  &:hover:not(:focus) {
+    border-color: var(--lg-inp-bd-h);
   }
 
   &:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(var(--ar), 0.12);
-    background: var(--inpf);
+    border-color: var(--lg-focus);
+    box-shadow: 0 0 0 3px var(--lg-focus-ring);
+    background: var(--lg-inp-focus);
   }
 
-  &--error {
-    border-color: #ef4444;
+  &--error,
+  &--error:hover:not(:focus) {
+    border-color: var(--err);
+  }
 
-    &:focus {
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
-    }
+  &--error:focus {
+    border-color: var(--err);
+    box-shadow: 0 0 0 3px rgba(var(--errr), 0.15);
   }
 
   &--pwd {
@@ -178,81 +352,32 @@
   cursor: pointer;
   padding: 0;
   line-height: 1;
-  color: var(--t3);
+  color: var(--lg-muted);
   display: flex;
   align-items: center;
-  opacity: 0.7;
-  transition: opacity 0.15s var(--ease);
+  transition: color 0.15s var(--ease);
 
   &:hover {
-    opacity: 1;
-    color: var(--t1);
+    color: var(--lg-focus);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lg-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
 .field__error {
   font-size: 0.75rem;
-  color: #ef4444;
+  color: var(--err);
 }
 
-// ── Local sign-in button: full-width neon primary ──────────────────
-.btn-submit {
+// ── Buttons (shared shape) ─────────────────────────────────────────
+%lg-btn {
   width: 100%;
-  padding: 0.7rem;
-  border: none;
+  padding: 0.72rem 1rem;
   border-radius: var(--r-md);
-  background: var(--accent);
-  color: #000;
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  box-shadow: var(--neon);
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.15s var(--ease), box-shadow 0.2s var(--ease);
-  margin-top: 0.5rem;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s var(--ease);
-    pointer-events: none;
-  }
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: var(--neon2);
-
-    &::after {
-      opacity: 1;
-    }
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-}
-
-// ── Azure AD / KU button: full-width neon primary ──────────────────
-.btn-microsoft {
-  width: 100%;
-  padding: 0.7rem 1rem;
-  border: none;
-  border-radius: var(--r-md);
-  background: var(--accent);
-  color: #000;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -260,32 +385,18 @@
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  box-shadow: var(--neon);
   position: relative;
   overflow: hidden;
-  transition: transform 0.15s var(--ease), box-shadow 0.2s var(--ease);
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s var(--ease);
-    pointer-events: none;
-  }
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: var(--neon2);
-
-    &::after {
-      opacity: 1;
-    }
-  }
+  transition: transform 0.15s var(--ease), box-shadow 0.2s var(--ease),
+              background 0.2s var(--ease), border-color 0.2s var(--ease);
 
   &:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lg-focus);
+    outline-offset: 3px;
   }
 
   &:disabled {
@@ -294,17 +405,68 @@
   }
 }
 
-.btn-ku-logo {
-  height: 22px;
-  width: auto;
+// Primary: Sign in with Khalifa University (Azure AD) — royal blue
+.btn-microsoft {
+  @extend %lg-btn;
+  border: none;
+  background: linear-gradient(135deg, var(--lg-royal) 0%, var(--lg-royal-deep) 100%);
+  color: #FFFFFF;
+  box-shadow: var(--lg-btn-sh);
+
+  // Sheen sweep on hover
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+    pointer-events: none;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--lg-btn-sh-h);
+
+    &::after {
+      opacity: 1;
+    }
+  }
 }
 
-// ── Spinner ────────────────────────────────────────────────────────
+// KU emblem only (crops the square mark off the left of the wordmark
+// artwork — the button label already says "Khalifa University", and
+// the full lockup forced the label onto two lines), rendered white on
+// the royal fill in both themes
+.btn-ku-logo {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: left center;
+  filter: brightness(0) invert(1);
+}
+
+// Secondary: local system-account Sign In — tinted outline
+.btn-submit {
+  @extend %lg-btn;
+  margin-top: 0.5rem;
+  border: 1.5px solid var(--lg-sec-bd);
+  background: var(--lg-sec-bg);
+  color: var(--lg-sec-fg);
+
+  &:hover:not(:disabled) {
+    background: var(--lg-sec-bg-h);
+    border-color: var(--lg-focus);
+  }
+}
+
+// ── Spinner (inherits the button's text colour) ────────────────────
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(var(--ar), 0.2);
-  border-top-color: var(--accent);
+  border: 2px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
@@ -316,23 +478,39 @@
   }
 }
 
-// ── Login footer: KU logo + copyright ─────────────────────────────
+// ── Login footer: copyright ────────────────────────────────────────
 .login-footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
   margin-top: 2rem;
 
   &__copy {
     margin: 0;
     font-size: 0.75rem;
-    color: var(--t3);
     text-align: center;
+    color: var(--lg-muted);
   }
 }
 
-// ── Responsive: mobile ─────────────────────────────────────────────
+// ── Light-mode logo ────────────────────────────────────────────────
+// Multiply drops the light PNG's baked-in white background, so the
+// logo stays clean even if the card colour is ever tinted.
+:host-context([data-theme="light"]) .card-logo__img {
+  mix-blend-mode: multiply;
+}
+
+// ── Responsive ─────────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .login-bg__ribbons {
+    transform: scale(0.7);
+  }
+
+  .login-bg__dots--tl {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .login-page {
     padding: 16px;
@@ -340,6 +518,15 @@
 
   .login-card {
     max-width: none;
-    padding: 28px;
+    padding: 36px 24px 28px;
+  }
+
+  .login-bg__ribbons {
+    transform: scale(0.5);
+  }
+
+  .login-bg__dots--br {
+    width: 240px;
+    height: 200px;
   }
 }

@@ -1,83 +1,56 @@
 // ═══════════════════════════════════════════════════════════════════
-// ANIMATED BACKGROUND — 5 layers, fixed behind all content
+// PAGE BACKDROP — fixed behind all content, static in both themes.
+//
+// Built from the logo's own vocabulary instead of decoration for its
+// own sake: a royal wash top-right and a sky wash top-left (the mark's
+// front and back cards), plus two clusters of square "pixels" like the
+// ones that sit around the mark. Nothing here animates — a backdrop
+// that moves competes with the data in front of it.
+//
+// Strengths come from --bgx-* in _theme-variables.scss.
 // ═══════════════════════════════════════════════════════════════════
 
-// Container
 .bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: var(--bg);
-}
+  background:
+    radial-gradient(1200px 620px at 94% -16%, rgba(var(--brand-royal-r), var(--bgx-royal)), transparent 62%),
+    radial-gradient(880px 540px at -8% -6%, rgba(var(--brand-sky-r), var(--bgx-sky)), transparent 60%),
+    var(--canvas);
 
-// Layer 1: Diagonal sweep lines
-.bg-diag {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 60px,
-    rgba(var(--ar), 0.025) 60px,
-    rgba(var(--ar), 0.025) 61px
-  );
-  animation: diagM 18s linear infinite;
-}
-
-@keyframes diagM {
-  0%   { transform: translate(0, 0); }
-  100% { transform: translate(85px, 85px); }
-}
-
-// Layer 2: Wave bands — 3 horizontal luminous gradient strips
-.bg-wave {
-  display: none;
-}
-
-@keyframes wF {
-  0%, 100% { opacity: 0.03; transform: scaleX(0.8); }
-  50%      { opacity: 0.06; transform: scaleX(1); }
-}
-
-// Layer 3: Pulsing orbs — 2 large blurred gradient circles
-.bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  animation: oP ease-in-out infinite;
-
-  &.o1 {
-    width: 500px;
-    height: 500px;
-    top: 10%;
-    left: -10%;
-    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-    opacity: 0.08;
-    animation-duration: 8s;
+  // Pixel clusters: 6px squares on a 22px grid, faded out with a mask
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    background: conic-gradient(at 6px 6px, transparent 75%, var(--bgx-dot) 0) 0 0 / 22px 22px;
+    -webkit-mask-image: radial-gradient(closest-side, #000 20%, transparent);
+            mask-image: radial-gradient(closest-side, #000 20%, transparent);
   }
 
-  &.o2 {
-    width: 400px;
-    height: 400px;
-    bottom: 5%;
-    right: -5%;
-    background: radial-gradient(circle, var(--accent2) 0%, transparent 70%);
-    opacity: 0.06;
-    animation-duration: 13s;
-    animation-delay: 4s;
+  // Top-right, tucked under the header
+  &::before {
+    top: 40px;
+    right: -40px;
+    width: 460px;
+    height: 320px;
+  }
+
+  // Bottom-left
+  &::after {
+    left: -60px;
+    bottom: 40px;
+    width: 420px;
+    height: 300px;
   }
 }
 
-@keyframes oP {
-  0%, 100% { transform: scale(1); opacity: 0.06; }
-  50%      { transform: scale(1.15); opacity: 0.12; }
-}
-
-// Light mode: reduce all effects
-[data-theme="light"] {
-  .bg-diag { opacity: 0.3; }
-  .bg-wave { opacity: 0.02; }
-  .bg-orb  { opacity: 0.015; }
+@media (max-width: 768px) {
+  .bg::before,
+  .bg::after {
+    display: none;
+  }
 }

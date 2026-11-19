@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItems.DTOs;
+using ActionTracker.Application.Features.Dashboard;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Mappers;
 using ActionTracker.Application.Features.Notifications;
@@ -58,7 +59,8 @@ public class ActionItemService : IActionItemService
             .AsQueryable();
 
         if (filter.IncludeDeleted)
-            query = query.IgnoreQueryFilters();
+            query = query.IgnoreQueryFilters()
+                .WhereWorkspaceVisibleTo(_dbContext.CurrentUserId);
 
         // Enum filters
         if (filter.Status.HasValue)
@@ -84,6 +86,26 @@ public class ActionItemService : IActionItemService
 
         if (!string.IsNullOrWhiteSpace(filter.CreatedById))
             query = query.Where(a => a.CreatedByUserId == filter.CreatedById);
+
+        // Dashboard drill-down filters — same rules the dashboards count by
+        var today = DateTime.UtcNow.Date;
+
+        if (filter.OpenOnly == true)
+            query = query.Where(ActionItemRules.OpenPredicate());
+
+        if (filter.OverdueOnly == true)
+            query = query.Where(ActionItemRules.OverduePredicate(today));
+
+        if (filter.IsEscalated.HasValue)
+            query = query.Where(a => a.IsEscalated == filter.IsEscalated.Value);
+
+        var duePredicate = ActionItemRules.DueBucketPredicate(filter.DueBucket, today);
+        if (duePredicate != null)
+            query = query.Where(duePredicate);
+
+        var agePredicate = ActionItemRules.AgeBucketPredicate(filter.AgeBucket, today);
+        if (agePredicate != null)
+            query = query.Where(agePredicate);
 
         // Workspace-membership scoping: regular users only see action items in
         // workspaces they're a member/admin of. Privileged roles pass null.
@@ -550,6 +572,7 @@ public class ActionItemService : IActionItemService
     {
         var item = await _dbContext.ActionItems
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_dbContext.CurrentUserId)
             .Include(a => a.Project)
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");

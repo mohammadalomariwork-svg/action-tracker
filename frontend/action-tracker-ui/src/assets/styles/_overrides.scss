@@ -1,39 +1,33 @@
 // ═══════════════════════════════════════════════════════════════════
 // OVERRIDES — Final polish: Toasts, Modals, Offcanvas, Dropdowns,
-//             Tooltips, Print, Accessibility, Transitions
+//             Tooltips, Tables, Utilities, Print, Accessibility
 // Must be the LAST partial imported in styles.scss
 // ═══════════════════════════════════════════════════════════════════
 
 // ── ngx-toastr overrides ────────────────────────────────────────────
 .toast-container .ngx-toastr {
   background: var(--el) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--bd) !important;
+  border: 1px solid var(--bdh) !important;
   border-radius: var(--r-lg) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: var(--sh-drop) !important;
   font-family: var(--font);
   font-size: 13px;
   color: var(--t1) !important;
   padding: 14px 18px !important;
 
-  &.toast-success {
-    border-left: 3px solid #22c55e !important;
-  }
-
-  &.toast-error {
-    border-left: 3px solid #ef4444 !important;
-  }
-
-  &.toast-warning {
-    border-left: 3px solid #f59e0b !important;
-  }
-
-  &.toast-info {
-    border-left: 3px solid var(--accent) !important;
-  }
+  &.toast-success { border-left: 3px solid var(--ok) !important; }
+  &.toast-error   { border-left: 3px solid var(--err) !important; }
+  &.toast-warning { border-left: 3px solid var(--warn) !important; }
+  &.toast-info    { border-left: 3px solid var(--accent) !important; }
 
   .toast-title {
     font-weight: 700;
+    color: var(--th);
+  }
+
+  .toast-progress {
+    background: var(--brand-grad-h);
+    opacity: 0.9;
   }
 
   .toast-close-button {
@@ -47,16 +41,19 @@
 
 // ── Bootstrap Modal overrides ───────────────────────────────────────
 .modal-backdrop {
-  background: rgba(0, 0, 0, 0.50) !important;
+  background: var(--ov) !important;
   backdrop-filter: blur(4px);
+
+  &.show {
+    opacity: 1;
+  }
 }
 
 .modal-content {
   background: var(--el) !important;
   border: 1px solid var(--bdh) !important;
   border-radius: var(--r-xl) !important;
-  backdrop-filter: blur(24px);
-  box-shadow: 0 0 40px rgba(var(--ar), 0.08) !important;
+  box-shadow: var(--sh-modal) !important;
   color: var(--t1);
 }
 
@@ -65,18 +62,10 @@
   padding: 18px 24px;
 
   .modal-title {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
-    color: var(--t1);
-  }
-
-  .btn-close {
-    filter: invert(1) brightness(0.7);
-    opacity: 0.5;
-
-    &:hover {
-      opacity: 0.9;
-    }
+    letter-spacing: -0.01em;
+    color: var(--th);
   }
 }
 
@@ -87,25 +76,41 @@
 .modal-footer {
   border-top: 1px solid var(--bd) !important;
   padding: 14px 24px;
+  gap: 8px;
 }
 
-// Light mode: restore default close button
-[data-theme="light"] {
-  .btn-close {
-    filter: none;
+// Bootstrap's close glyph is a dark SVG — invert it on dark surfaces
+.btn-close {
+  opacity: 0.6;
+  border-radius: var(--r-sm);
+  transition: opacity 0.15s var(--ease), background-color 0.15s var(--ease);
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--sfh);
   }
+}
+
+[data-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(1) brightness(1.6);
 }
 
 // ── Bootstrap Offcanvas overrides ───────────────────────────────────
 .offcanvas {
   background: var(--el) !important;
   border: none !important;
-  backdrop-filter: blur(24px);
+  box-shadow: var(--sh-panel);
   color: var(--t1);
 
   .offcanvas-header {
     border-bottom: 1px solid var(--bd);
     padding: 18px 24px;
+  }
+
+  .offcanvas-title {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--th);
   }
 
   .offcanvas-body {
@@ -114,35 +119,39 @@
 }
 
 .offcanvas-backdrop {
-  background: rgba(0, 0, 0, 0.50) !important;
+  background: var(--ov) !important;
   backdrop-filter: blur(4px);
+
+  &.show {
+    opacity: 1;
+  }
 }
 
 // ── Bootstrap Dropdown overrides ────────────────────────────────────
 .dropdown-menu {
   background: var(--el) !important;
-  border: 1px solid var(--bd) !important;
+  border: 1px solid var(--bdh) !important;
   border-radius: var(--r-lg) !important;
-  backdrop-filter: blur(24px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: var(--sh-drop) !important;
   padding: 6px;
 
   .dropdown-item {
     border-radius: var(--r-sm);
     padding: 8px 12px;
     font-size: 13px;
+    font-weight: 500;
     color: var(--t1);
-    transition: all 0.15s;
+    transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
 
     &:hover,
     &:focus {
       background: var(--sfh);
-      color: var(--t1);
+      color: var(--th);
     }
 
     &.active,
     &:active {
-      background: rgba(var(--ar), 0.08);
+      background: rgba(var(--ar), 0.14);
       color: var(--accent);
     }
   }
@@ -153,16 +162,16 @@
 }
 
 // ── Bootstrap Tooltip overrides ─────────────────────────────────────
+// Inverted against the page in both themes for crisp contrast
 .tooltip .tooltip-inner {
-  background: var(--el);
-  color: var(--t1);
-  font-size: 11px;
+  background: #0E1730;
+  color: #F4F6FB;
+  font-size: 11.5px;
   font-weight: 500;
   padding: 6px 10px;
   border-radius: var(--r-sm);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--bd);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
+  border: 1px solid rgba(var(--brand-sky-r), 0.22);
+  box-shadow: var(--sh-drop);
 }
 
 .tooltip .tooltip-arrow::before {
@@ -170,14 +179,17 @@
 }
 
 // ── Focus-visible indicators ────────────────────────────────────────
+// An outline (not a box-shadow) so the ring never replaces a control's
+// own elevation shadow and never changes its corner radius.
 *:focus-visible {
-  outline: none !important;
-  box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px rgba(var(--ar), 0.20) !important;
-  border-radius: var(--r-sm);
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
 }
 
-*:focus:not(:focus-visible) {
-  box-shadow: none !important;
+// Text fields draw their own ring in _forms.scss
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: none !important;
 }
 
 // ── Reduced motion ──────────────────────────────────────────────────
@@ -190,14 +202,6 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-
-  .bg-diag,
-  .bg-wave,
-  .bg-orb,
-  .rail::after,
-  .burst {
-    animation: none !important;
-  }
 }
 
 // ── Print styles ────────────────────────────────────────────────────
@@ -208,9 +212,6 @@
   }
 
   .bg,
-  .rail,
-  .burst,
-  .crn,
   .nav-overlay {
     display: none !important;
   }
@@ -218,20 +219,20 @@
   .hdr {
     position: relative;
     background: #fff !important;
-    backdrop-filter: none !important;
+    box-shadow: none !important;
     border-bottom: 1px solid #ddd !important;
   }
 
   .ft {
     background: #fff !important;
-    backdrop-filter: none !important;
     border-top: 1px solid #ddd !important;
     color: #666 !important;
   }
 
   .wrap {
     margin: 0 !important;
-    border: none !important;
+    max-width: none !important;
+    padding: 0 !important;
   }
 
   .card,
@@ -271,49 +272,62 @@
 a {
   color: var(--accent);
   text-decoration: none;
-  transition: color 0.15s;
+  transition: color 0.15s var(--ease);
 }
 
 a:hover {
   color: var(--accent);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 // ── Table base ──────────────────────────────────────────────────────
 .table {
-  color: var(--t1);
+  --bs-table-color: var(--t1);
   --bs-table-bg: transparent;
-  --bs-table-striped-bg: transparent;
-  --bs-table-hover-bg: var(--sfh);
-  --bs-table-active-bg: var(--sfh);
+  --bs-table-border-color: var(--bd);
+  --bs-table-striped-bg: rgba(var(--ar), 0.03);
+  --bs-table-striped-color: var(--t1);
+  --bs-table-hover-bg: rgba(var(--ar), 0.07);
+  --bs-table-hover-color: var(--t1);
+  --bs-table-active-bg: rgba(var(--ar), 0.10);
+  --bs-table-active-color: var(--t1);
+  color: var(--t1);
+  margin-bottom: 0;
 
   thead th {
-    padding: 0.85rem 1rem;
-    font-size: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.06em;
     color: var(--t3);
-    background: var(--sf);
+    background: rgba(var(--ar), 0.05);
     border-bottom: 1px solid var(--bd);
+    white-space: nowrap;
   }
 
   tbody tr {
     background: transparent;
     border-bottom: 1px solid var(--bd);
+    transition: background-color 0.15s var(--ease);
+
+    &:last-child {
+      border-bottom: none;
+    }
 
     &:hover td { color: var(--t1); }
   }
 
   td {
-    padding: 0.85rem 1rem;
+    padding: 0.8rem 1rem;
     color: var(--t2);
     vertical-align: middle;
   }
 }
 
-.table-dark {
-  --bs-table-bg: var(--sf);
+.table-dark,
+.table-light {
+  --bs-table-bg: rgba(var(--ar), 0.05);
   --bs-table-color: var(--t1);
   --bs-table-border-color: var(--bd);
 }
@@ -324,16 +338,16 @@ a:hover {
   --bs-table-color: var(--t2);
   --bs-table-hover-bg: var(--sfh) !important;
   background: transparent !important;
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--err);
 
-  td { color: #ef4444; }
+  td { color: var(--err); }
 }
 
 .table-warning {
   --bs-table-bg: transparent !important;
   --bs-table-hover-bg: var(--sfh) !important;
   background: transparent !important;
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--warn);
 }
 
 .table-success {
@@ -349,19 +363,40 @@ a:hover {
 }
 
 // ── Bootstrap utility overrides ─────────────────────────────────────
-// Map Bootstrap utilities to theme CSS custom properties so they
-// respect dark/light mode instead of leaking hardcoded colors.
+// Map Bootstrap utilities to theme tokens so they respect dark/light
+// mode instead of leaking hardcoded colors.
 .text-muted     { color: var(--t3) !important; }
 .text-dark      { color: var(--t1) !important; }
 .text-body      { color: var(--t1) !important; }
 .text-secondary { color: var(--t2) !important; }
+.text-primary   { color: var(--accent) !important; }
+.text-info      { color: var(--accent) !important; }
+.text-success   { color: var(--ok) !important; }
+.text-danger    { color: var(--err) !important; }
+.text-warning   { color: var(--warn) !important; }
+
 .bg-white       { background-color: var(--sf) !important; }
 .bg-light       { background-color: var(--sf) !important; }
 .bg-body        { background-color: var(--bg) !important; }
-.bg-secondary   { background-color: rgba(var(--a2r), 0.15) !important; }
 .bg-dark        { background-color: var(--bg2) !important; }
+.bg-secondary   { background-color: var(--sfh) !important; }
+// Solid brand fill for non-badge uses (progress bars, dots, avatars);
+// badges get their own tinted treatment in _components.scss
+.bg-primary     { background-color: var(--brand-royal) !important; }
+.bg-info        { background-color: var(--brand-blue) !important; }
+
+.shadow-sm      { box-shadow: var(--csh) !important; }
+.shadow         { box-shadow: var(--sh-drop) !important; }
+.border-primary { border-color: var(--accent) !important; }
 
 // ── Bootstrap list-group override ────────────────────────────────────
+.list-group {
+  --bs-list-group-bg: var(--sf);
+  --bs-list-group-color: var(--t1);
+  --bs-list-group-border-color: var(--bd);
+  --bs-list-group-border-radius: var(--r-md);
+}
+
 .list-group-item {
   background: var(--sf);
   color: var(--t1);
@@ -372,52 +407,22 @@ a:hover {
   }
 
   &.active {
-    background: rgba(var(--ar), 0.08);
+    background: rgba(var(--ar), 0.12);
     color: var(--accent);
-    border-color: var(--accent);
+    border-color: rgba(var(--ar), 0.45);
   }
-}
-
-// ── Outline danger button ───────────────────────────────────────────
-.btn-outline-danger {
-  background: transparent;
-  border: 1px solid #ef4444;
-  color: #ef4444;
-  border-radius: var(--r-md);
-  transition: background 0.2s, color 0.2s;
-
-  &:hover,
-  &:focus {
-    background: #ef4444;
-    color: #fff;
-  }
-}
-
-// ── Outline info button ─────────────────────────────────────────────
-.btn-outline-info {
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  border-radius: var(--r-md);
-  transition: background 0.2s, color 0.2s;
-
-  &:hover,
-  &:focus {
-    background: var(--accent);
-    color: #000;
-  }
-}
-
-// ── Badge override ──────────────────────────────────────────────────
-.badge {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  border-radius: var(--r-full);
 }
 
 // ── Spinner override ────────────────────────────────────────────────
 .spinner-border {
-  border-color: rgba(var(--ar), 0.15);
+  border-color: rgba(var(--ar), 0.18);
   border-top-color: var(--accent);
+}
+
+// A spinner inside a filled button inherits the label colour
+.btn-primary .spinner-border,
+.btn-danger .spinner-border,
+.btn-success .spinner-border {
+  border-color: rgba(255, 255, 255, 0.30);
+  border-top-color: #fff;
 }

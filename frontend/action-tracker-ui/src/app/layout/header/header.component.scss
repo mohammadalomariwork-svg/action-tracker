@@ -1,5 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════
-// HEADER — Full-width, single row, dark neon
+// HEADER — sticky, single row: logo · primary nav · controls
+//
+// The KUmmand Center logo PNGs are not transparent: the dark one has a
+// #262A33 background baked in, the light one white. The header (and
+// the drawer) therefore sit on --nav / --bg, which are exactly those
+// colours — do not make this bar translucent or tinted, or the logo
+// will show as a box.
 // ═══════════════════════════════════════════════════════════════════
 :host {
   position: sticky;
@@ -11,64 +17,146 @@
 }
 
 .hdr {
+  position: relative;
+  width: 100%;
+  background: var(--nav);
+  border-bottom: 1px solid var(--bd);
+  box-shadow: 0 1px 0 rgba(var(--brand-navy-r), 0.02), 0 6px 20px rgba(var(--brand-navy-r), 0.06);
+
+  // Brand hairline along the bottom edge, fading out at both ends
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--brand-grad-h);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+    opacity: 0.75;
+    pointer-events: none;
+  }
+}
+
+:host-context([data-theme="dark"]) .hdr {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.hdr-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  height: auto;
-  padding: 12px 24px;
-  gap: 12px;
-  background: var(--nav);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--bd);
+  gap: 16px;
+  height: var(--hdr-h);
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 calc(var(--M) + 16px);
 }
 
 // ── Logo area ──────────────────────────────────────────────
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
+  border-radius: var(--r-sm);
+  transition: opacity 0.15s var(--ease);
+
+  &:hover {
+    opacity: 0.88;
+  }
 }
 
 .logo-full {
-  height: 60px;
+  display: block;
+  height: 42px;
   width: auto;
   flex-shrink: 0;
+
+  &--drawer {
+    height: 36px;
+  }
+}
+
+// Multiply drops the light PNG's baked-in white, so the logo stays
+// clean even over the brand hairline or a hover state
+:host-context([data-theme="light"]) .logo-full {
+  mix-blend-mode: multiply;
 }
 
 // ── Nav links (desktop) ────────────────────────────────────
+// Full header height so the active underline can sit on the bar's
+// bottom edge without being clipped by the horizontal overflow.
 .nav-links {
   display: flex;
   align-items: center;
+  align-self: stretch;
   gap: 2px;
-  margin: 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: safe center;   // 'safe' keeps the first link reachable when the row overflows
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
-  border-radius: var(--r-sm);
-  font-size: 14px;
+  gap: 7px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--t3);
+  color: var(--t2);
   text-decoration: none;
   white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  transition: color 0.15s var(--ease), background-color 0.15s var(--ease);
 
-  .bi { font-size: 15px; }
+  .bi {
+    font-size: 15px;
+    opacity: 0.85;
+  }
+
+  // Underline on the header's bottom edge — grows in on activation
+  &::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: calc((var(--hdr-h) - 38px) / -2);
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: var(--brand-grad-h);
+    transform: scaleX(0);
+    transition: transform 0.2s var(--ease);
+  }
 
   &:hover {
-    color: var(--t1);
-    background: var(--sf);
+    color: var(--th);
+    background: var(--sfh);
+    opacity: 1;
   }
 
   &.active {
     color: var(--accent);
-    background: rgba(var(--ar), 0.07);
+    background: rgba(var(--ar), 0.12);
+
+    .bi {
+      opacity: 1;
+    }
+
+    &::after {
+      transform: scaleX(1);
+    }
   }
 }
 
@@ -84,8 +172,8 @@
   font-weight: 700;
   line-height: 1;
   color: #fff;
-  background: #dc3545;
-  margin-left: 4px;
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--nav);
 }
 
 // ── Right side controls ────────────────────────────────────
@@ -101,20 +189,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--sf);
+  width: 38px;
+  height: 38px;
+  background: transparent;
   border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  color: var(--accent);
+  border-radius: 10px;
+  color: var(--t2);
   font-size: 16px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.2s;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease),
+              color 0.15s var(--ease);
 
   &:hover {
-    background: var(--sfh);
-    border-color: var(--bdh);
-    box-shadow: var(--neon);
+    background: rgba(var(--ar), 0.10);
+    border-color: rgba(var(--ar), 0.40);
+    color: var(--accent);
   }
 }
 
@@ -125,6 +214,7 @@
 // ── User avatar ────────────────────────────────────────────
 .nav-user {
   position: relative;
+  margin-left: 4px;
 }
 
 .avatar-btn {
@@ -134,83 +224,132 @@
   background: none;
   border: none;
   padding: 0;
+  border-radius: 50%;
   cursor: pointer;
 }
 
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #000;
+  background: var(--brand-grad);
+  color: #fff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: box-shadow 0.2s;
+  text-shadow: 0 1px 1px rgba(var(--brand-navy-r), 0.35);
+  box-shadow: 0 0 0 2px var(--nav), 0 0 0 3.5px rgba(var(--ar), 0.40);
+  transition: box-shadow 0.2s var(--ease);
 
-  &:hover {
-    box-shadow: var(--neon);
+  &--lg {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    box-shadow: none;
   }
+}
+
+.avatar-btn:hover .avatar,
+.avatar-btn[aria-expanded="true"] .avatar {
+  box-shadow: 0 0 0 2px var(--nav), 0 0 0 4px var(--accent);
 }
 
 // ── User dropdown ──────────────────────────────────────────
 .dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 12px);
   right: 0;
-  min-width: 200px;
-  background: var(--bg);
-  border: 1px solid var(--bd);
+  min-width: 248px;
+  padding: 6px;
+  background: var(--el);
+  border: 1px solid var(--bdh);
   border-radius: var(--r-lg);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+  box-shadow: var(--sh-drop);
   z-index: 200;
+  animation: menuIn 0.16s var(--ease);
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-header {
-  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 12px;
+}
+
+.dropdown-id {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 4px;
+  min-width: 0;
 }
 
 .dropdown-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--t1);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--th);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dropdown-divider {
-  margin: 0;
+  margin: 4px 0;
   border: none;
   border-top: 1px solid var(--bd);
+  opacity: 1;
 }
 
 .dropdown-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  padding: 0.7rem 1rem;
+  padding: 9px 10px;
   background: none;
   border: none;
+  border-radius: var(--r-sm);
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--t1);
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+
+  .bi {
+    font-size: 15px;
+    color: var(--t3);
+  }
 
   &:hover {
     background: var(--sfh);
+    color: var(--th);
+    opacity: 1;
+
+    .bi {
+      color: var(--accent);
+    }
   }
 
   &.logout {
-    color: #ef4444;
+    color: var(--err);
+
+    .bi {
+      color: var(--err);
+    }
 
     &:hover {
-      background: rgba(239, 68, 68, 0.08);
+      background: rgba(var(--errr), 0.10);
+      color: var(--err);
     }
   }
 }
@@ -220,9 +359,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.15rem 0.5rem;
+  padding: 0.12rem 0.5rem;
   border-radius: var(--r-full);
-  font-size: 0.6rem;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.03em;
 
@@ -234,7 +373,7 @@
 }
 
 .dropdown-provider {
-  margin-top: 0.2rem;
+  display: flex;
 }
 
 // ── Login link ─────────────────────────────────────────────
@@ -244,34 +383,27 @@
   text-decoration: none;
 }
 
-// ── Hamburger (mobile only) ────────────────────────────────
+// ── Hamburger (compact widths only) ────────────────────────
 .hamburger {
+  @extend .icon-btn;
   display: none;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--sf);
-  border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  color: var(--t1);
   font-size: 20px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: var(--sfh);
-    border-color: var(--bdh);
-  }
+  color: var(--t1);
 }
 
 // ── Off-canvas drawer ──────────────────────────────────────
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.50);
+  background: var(--ov);
   backdrop-filter: blur(4px);
   z-index: 200;
+  animation: fadeIn 0.2s var(--ease);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .drawer {
@@ -279,10 +411,11 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 280px;
-  max-width: 80vw;
+  width: 300px;
+  max-width: 84vw;
   background: var(--bg);
   border-left: 1px solid var(--bd);
+  box-shadow: var(--sh-panel);
   z-index: 201;
   display: flex;
   flex-direction: column;
@@ -298,74 +431,134 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  gap: 12px;
+  height: var(--hdr-h);
+  padding: 0 14px 0 16px;
   border-bottom: 1px solid var(--bd);
-
-  .brand {
-    gap: 8px;
-  }
-
-  .logo-mark {
-    width: 28px;
-    height: 28px;
-  }
-
-  .brand-title {
-    font-size: 13px;
-  }
+  flex-shrink: 0;
 }
 
 .drawer-links {
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: 10px;
   gap: 2px;
   overflow-y: auto;
 }
 
 .drawer-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 12px 14px;
-  border-radius: var(--r-sm);
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   color: var(--t2);
   text-decoration: none;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s var(--ease), background-color 0.15s var(--ease);
 
-  .bi { font-size: 16px; }
+  .bi { font-size: 17px; }
+
+  .nav-badge {
+    margin-left: auto;
+    box-shadow: none;
+  }
 
   &:hover {
-    color: var(--t1);
-    background: var(--sf);
+    color: var(--th);
+    background: var(--sfh);
+    opacity: 1;
   }
 
   &.active {
     color: var(--accent);
-    background: rgba(var(--ar), 0.07);
+    background: rgba(var(--ar), 0.12);
+
+    // Brand marker on the leading edge
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 10px;
+      bottom: 10px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--brand-grad);
+    }
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // RESPONSIVE
+// Up to ten destinations share one row, so the nav degrades in steps:
+// drop the icons, tighten the padding, then hand over to the drawer.
 // ═══════════════════════════════════════════════════════════════════
-@media (max-width: 768px) {
-  .hdr {
-    height: 56px;
-    padding: 0 16px;
-  }
-
-  .brand-sub {
+// Icons are a nicety: with all ten links they only fit once the header
+// has reached its full --page-max width.
+@media (max-width: 1799px) {
+  .nav-link .bi {
     display: none;
   }
+}
 
+@media (min-width: 1800px) {
+  .nav-link {
+    gap: 6px;
+    padding: 0 10px;
+
+    &::after {
+      left: 10px;
+      right: 10px;
+    }
+  }
+}
+
+@media (max-width: 1640px) {
+  .logo-full {
+    height: 38px;
+  }
+
+  .nav-link {
+    padding: 0 8px;
+    font-size: 13px;
+
+    &::after {
+      left: 8px;
+      right: 8px;
+    }
+  }
+}
+
+// Below this an admin's ten links no longer fit beside the logo
+@media (max-width: 1440px) {
   .nav-links {
     display: none;
   }
 
   .hamburger {
     display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .hdr-inner {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .logo-full {
+    height: 34px;
+  }
+
+  .hdr-right {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 400px) {
+  .logo-full {
+    height: 28px;
   }
 }

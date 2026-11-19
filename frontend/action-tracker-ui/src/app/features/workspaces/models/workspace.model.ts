@@ -79,6 +79,8 @@ export interface Workspace {
   strategicProjectApprovers: WorkspaceStrategicProjectApprover[];
   /** Whether the workspace is currently active. */
   isActive: boolean;
+  /** Private workspaces are visible only to their admins and members. */
+  isPrivate: boolean;
   /** UTC timestamp when the workspace was created. */
   createdAt: Date;
   /** UTC timestamp of the most recent update, absent if never updated. */
@@ -100,6 +102,7 @@ export interface WorkspaceList {
   orgUnitId?: string;
   adminUserNames: string;
   isActive: boolean;
+  isPrivate: boolean;
   createdAt: string;
   projectCount: number;
   milestoneCount: number;
@@ -150,6 +153,8 @@ export interface CreateWorkspace {
   strategicPlanId?: string;
   /** One or more admin users to assign (at least one required). */
   admins: WorkspaceAdmin[];
+  /** Restrict visibility to the workspace's admins and members. */
+  isPrivate?: boolean;
 }
 
 /**
@@ -170,6 +175,8 @@ export interface UpdateWorkspace {
   admins: WorkspaceAdmin[];
   /** Set to `false` to deactivate the workspace. */
   isActive: boolean;
+  /** Restrict visibility to admins and members. Omit to keep the current setting. */
+  isPrivate?: boolean;
 }
 
 /**

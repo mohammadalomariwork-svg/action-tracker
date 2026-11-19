@@ -1,20 +1,27 @@
+@use '../../../../assets/styles/tile';
+
 // ═══════════════════════════════════════════════════════════════════
 // NOTIFICATIONS PAGE — Full page notification list
 // ═══════════════════════════════════════════════════════════════════
 
 .notification-page {
   width: 100%;
+  padding: 0.5rem 1.5rem 2rem;   // same gutter as the other inner pages
+
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.75rem 1.5rem;
+  }
 }
 
 // ── Filters: themed inputs ──────────────────────────────────────────
 .form-select {
-  background: var(--inp);
+  background-color: var(--inp);
   border: 1px solid var(--bd);
   border-radius: var(--r-md);
   color: var(--t1);
 
   &:focus {
-    background: var(--inpf);
+    background-color: var(--inpf);
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--ar), 0.12);
     color: var(--t1);
@@ -23,7 +30,7 @@
 
 // ── Date group headers ──────────────────────────────────────────────
 .date-group-header {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--t3);
   text-transform: uppercase;
@@ -37,42 +44,37 @@
 .notification-card {
   background: var(--sf);
   border: 1px solid var(--bd);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
+  box-shadow: var(--csh);
   padding: 16px;
   margin-bottom: 8px;
   cursor: pointer;
-  backdrop-filter: blur(16px);
   transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease),
               background 0.15s var(--ease);
 
   // ── Hover: card-glow effect ──────────────────────────────────────
   &:hover {
-    border-color: var(--accent);
+    border-color: rgba(var(--ar), 0.45);
     box-shadow: var(--neon);
   }
 
-  // ── Unread: accent left border + highlighted bg ──────────────────
+  // ── Unread: accent left border + tinted bg ───────────────────────
   &.unread {
-    background-color: var(--sfh);
+    background-color: rgba(var(--ar), 0.08);
     border-left: 3px solid var(--accent);
   }
 
   // ── Read: dimmed ─────────────────────────────────────────────────
   &.read {
-    opacity: 0.65;
+    opacity: 0.78;
   }
 }
 
 // ── Icon ────────────────────────────────────────────────────────────
 .notif-icon {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-sm);
-  background: rgba(var(--ar), 0.08);
-  font-size: 1.1rem;
+  @include tile.icon-tile(38px);
+  // The template binds a per-type inline colour; tiles are always white-on-brand
+  color: #fff !important;
 }
 
 .notif-title {
@@ -106,7 +108,7 @@
   border-radius: 50%;
   background: var(--accent);
   flex-shrink: 0;
-  box-shadow: 0 0 6px rgba(var(--ar), 0.6), 0 0 12px rgba(var(--ar), 0.3);
+  box-shadow: 0 0 0 3px rgba(var(--ar), 0.20);
 }
 
 // ── Action buttons: ghost icon buttons, dropdown menu ───────────────
@@ -127,14 +129,33 @@
     }
 
     &.text-danger:hover {
-      background: rgba(239, 68, 68, 0.08);
+      background: rgba(var(--errr), 0.08);
     }
   }
 }
 
 // ── "Load more" button: full-width ghost ────────────────────────────
-.btn-outline-primary.btn-sm {
+// Scoped to its own class — as a bare .btn-outline-primary.btn-sm rule
+// it also stretched "Mark all as read" across the whole page.
+.load-more-btn {
   width: 100%;
+}
+
+// ── Unread counter in the page header ───────────────────────────────
+.unread-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  background: rgba(var(--ar), 0.14);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+
+  &--none {
+    background: var(--sfh);
+    color: var(--t3);
+  }
 }
 
 // ── Empty state ─────────────────────────────────────────────────────

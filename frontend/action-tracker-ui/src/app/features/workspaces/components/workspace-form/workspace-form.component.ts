@@ -127,6 +127,7 @@ export class WorkspaceFormComponent implements OnInit {
       title:            ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
       organizationUnit: ['', [Validators.required]],
       isActive:         [true],
+      isPrivate:        [false],
     });
   }
 
@@ -161,6 +162,7 @@ export class WorkspaceFormComponent implements OnInit {
             title:            w.title,
             organizationUnit: w.orgUnitId ?? w.organizationUnit,
             isActive:         w.isActive,
+            isPrivate:        w.isPrivate ?? false,
           });
           this.selectedAdminIds = (w.admins ?? []).map(a => a.userId);
           this.existingStrategicPlanId = w.strategicPlanId;
@@ -187,10 +189,11 @@ export class WorkspaceFormComponent implements OnInit {
     this.isLoading    = true;
     this.errorMessage = null;
 
-    const { title, organizationUnit: orgUnitId, isActive } = this.form.value as {
+    const { title, organizationUnit: orgUnitId, isActive, isPrivate } = this.form.value as {
       title: string;
       organizationUnit: string;
       isActive: boolean;
+      isPrivate: boolean;
     };
 
     const selectedUnit = this.orgUnits.find(u => u.id === orgUnitId);
@@ -215,12 +218,14 @@ export class WorkspaceFormComponent implements OnInit {
           strategicPlanId: this.existingStrategicPlanId,
           admins,
           isActive,
+          isPrivate,
         })
       : this.workspaceService.createWorkspace({
           title,
           organizationUnit: orgUnitName,
           orgUnitId: orgUnitId || undefined,
           admins,
+          isPrivate,
         });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

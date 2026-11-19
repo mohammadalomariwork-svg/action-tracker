@@ -1,0 +1,205 @@
+<div class="dash">
+
+  <app-breadcrumb [items]="[{ label: 'Dashboard', route: '/dashboard' }, { label: 'Strategy' }]" />
+
+  <app-page-header
+    title="Strategy"
+    subtitle="KPI achievement, objectives and the strategic projects that deliver them"
+    icon="bi bi-bullseye"
+  >
+    <label class="year-pick">
+      <span>Year</span>
+      <select class="form-select form-select-sm" [ngModel]="year()" (ngModelChange)="onYearChange($event)" aria-label="Year to measure KPI achievement for">
+        @for (y of years; track y) {
+          <option [ngValue]="y">{{ y }}</option>
+        }
+      </select>
+    </label>
+    <app-dash-tabs />
+  </app-page-header>
+
+  @if (failed()) {
+    <div class="dash-state dash-state--bad">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <p>The strategy dashboard could not be loaded.</p>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+
+    <div class="dash-stats">
+      <app-dash-stat icon="bi bi-journal-bookmark" label="Strategic plans" [value]="data()?.plans ?? 0" [loading]="loading()"
+                     hint="Show strategic plans" (activate)="openPlans()" />
+      <app-dash-stat icon="bi bi-flag" label="Objectives" [value]="data()?.objectives ?? 0" [loading]="loading()"
+                     hint="Show strategic objectives" (activate)="openObjectives()" />
+      <app-dash-stat icon="bi bi-graph-up-arrow" label="KPIs" [value]="data()?.kpis ?? 0" [loading]="loading()"
+                     hint="Show KPIs, weakest first" (activate)="openKpis()" />
+      <app-dash-stat icon="bi bi-speedometer" label="Average achievement" [value]="pct(data()?.avgAchievement)" [loading]="loading()"
+                     hint="Show KPIs with approved actuals" (activate)="openKpisWithData()" />
+      <app-dash-stat icon="bi bi-clipboard-data" label="KPIs reporting" [loading]="loading()"
+                     [value]="(data()?.kpisWithData ?? 0) + '/' + (data()?.kpis ?? 0)"
+                     hint="Show KPIs with approved actuals" (activate)="openKpisWithData()" />
+      <app-dash-stat icon="bi bi-kanban" label="Strategic projects" [loading]="loading()"
+                     [value]="data()?.strategicProjects ?? 0"
+                     hint="Show strategic projects" (activate)="openProjects()" />
+      <app-dash-stat icon="bi bi-hourglass-split" label="Actuals awaiting approval" [loading]="loading()"
+                     [value]="data()?.actualsPendingApproval ?? 0"
+                     hint="Go to My Approvals" (activate)="goToApprovals()" />
+    </div>
+
+    @if (!loading() && data(); as d) {
+      @if (d.plans === 0) {
+        <div class="dash-state">
+          <i class="bi bi-bullseye" aria-hidden="true"></i>
+          <p>There are no strategic plans in your scope yet.</p>
+          <a class="btn btn-sm btn-outline-primary" routerLink="/strategy">Go to Strategy</a>
+        </div>
+      } @else {
+
+        <div class="dash-grid dash-grid--2">
+          <app-dash-panel title="KPI health" [subtitle]="'Approved actuals against targets, ' + d.year" icon="bi bi-heart-pulse">
+            <div class="donut">
+              <div class="donut__chart">
+                <canvas baseChart type="doughnut" [data]="kpiHealthChart()" [options]="kpiHealthOptions()"
+                        role="img" aria-label="KPIs by health"></canvas>
+                <div class="donut__center">
+                  <span class="donut__num">{{ pct(d.avgAchievement) }}</span>
+                  <span class="donut__lbl">Avg achievement</span>
+                </div>
+              </div>
+              <app-dash-legend [items]="kpiHealthLegend()" [stacked]="true" (pick)="openKpiHealth($event)" />
+            </div>
+            <p class="chart-hint"><i class="bi bi-info-circle" aria-hidden="true"></i>Only approved actuals count. A KPI with none shows as "No data yet".</p>
+          </app-dash-panel>
+
+          <app-dash-panel title="Objectives" subtitle="KPI health per objective, with average achievement" icon="bi bi-flag">
+            <button panelActions type="button" class="btn btn-sm btn-outline-primary" (click)="openObjectives()">View all</button>
+            <app-ranked-bars [items]="objectiveItems()" [limit]="6" (pick)="openObjective($event)"
+                             emptyText="No objectives in these plans yet." />
+          </app-dash-panel>
+        </div>
+
+        <div class="dash-grid dash-grid--2">
+          <app-dash-panel title="KPIs, weakest first" subtitle="Where achievement is furthest from target" icon="bi bi-graph-down-arrow">
+            <button panelActions type="button" class="btn btn-sm btn-outline-primary" (click)="openKpis()">View all {{ d.kpiRows.length }}</button>
+            @if (d.kpiRows.length === 0) {
+              <p class="panel-empty">No KPIs have been defined yet.</p>
+            } @else {
+              <div class="dash-table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>KPI</th>
+                      <th>Achievement</th>
+                      <th>Health</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (k of d.kpiRows.slice(0, tableLimit); track k.id) {
+                      <tr (click)="goToObjective(k)">
+                        <td>
+                          <div class="cell-title">
+                            <a [routerLink]="['/strategy', 'objectives', k.objectiveId]" (click)="$event.stopPropagation()">{{ k.name }}</a>
+                            <small>{{ k.objectiveCode }} · KPI {{ k.kpiNumber }} · {{ k.orgUnitName }}</small>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="pbar">
+                            <span class="pbar__track"><span class="pbar__fill" [class]="'pbar__fill--' + kpiTone(k.health)" [style.width.%]="barWidth(k.achievement)"></span></span>
+                            <span class="pbar__val">{{ pct(k.achievement) }}</span>
+                          </div>
+                        </td>
+                        <td><span class="chip" [class]="'chip--' + kpiTone(k.health)">{{ k.healthLabel }}</span></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </app-dash-panel>
+
+          <app-dash-panel title="Strategic projects" subtitle="Delivery of the projects linked to these objectives" icon="bi bi-kanban">
+            <button panelActions type="button" class="btn btn-sm btn-outline-primary" (click)="openProjects()">View all {{ d.projectRows.length }}</button>
+            @if (d.projectRows.length === 0) {
+              <p class="panel-empty">No strategic projects are linked to these objectives yet.</p>
+            } @else {
+              <div class="dash-table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Project</th>
+                      <th>Health</th>
+                      <th>Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of d.projectRows.slice(0, tableLimit); track p.id) {
+                      <tr (click)="goToProject(p.id)">
+                        <td>
+                          <div class="cell-title">
+                            <a [routerLink]="['/projects', p.id]" (click)="$event.stopPropagation()">{{ p.name }}</a>
+                            <small>{{ p.code }} · {{ p.workspaceTitle }}</small>
+                          </div>
+                        </td>
+                        <td><span class="chip" [class]="'chip--' + healthTone(p.health)">{{ p.healthLabel }}</span></td>
+                        <td>
+                          <div class="pbar">
+                            <span class="pbar__track"><span class="pbar__fill" [class]="'pbar__fill--' + healthTone(p.health)" [style.width.%]="p.progress"></span></span>
+                            <span class="pbar__val">{{ pct(p.progress) }}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </app-dash-panel>
+        </div>
+
+        <app-dash-panel title="Strategic plans" subtitle="Plans in your scope (archived plans are not shown)" icon="bi bi-journal-bookmark">
+          <div panelActions>
+            <app-dash-legend [items]="planLegend()" (pick)="openPlans($event)" />
+          </div>
+          <div class="dash-table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th class="num">Cycle</th>
+                  <th class="num">Objectives</th>
+                  <th class="num">KPIs</th>
+                  <th>Average achievement</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of d.planRows; track p.id) {
+                  <tr (click)="goToPlan(p)">
+                    <td>
+                      <div class="cell-title">
+                        <a [routerLink]="['/strategy', 'org-units', p.orgUnitId]" (click)="$event.stopPropagation()">{{ p.name }}</a>
+                        <small>{{ p.orgUnitName }}</small>
+                      </div>
+                    </td>
+                    <td><span class="chip" [class]="'chip--' + planTone(p.status)">{{ p.statusLabel }}</span></td>
+                    <td class="num">{{ p.startYear }}–{{ p.endYear }}</td>
+                    <td class="num">{{ p.objectiveCount }}</td>
+                    <td class="num">{{ p.kpiCount }}</td>
+                    <td>
+                      <div class="pbar">
+                        <span class="pbar__track"><span class="pbar__fill" [style.width.%]="barWidth(p.avgAchievement)"></span></span>
+                        <span class="pbar__val">{{ pct(p.avgAchievement) }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </app-dash-panel>
+      }
+    }
+  }
+</div>
+
+<app-drilldown-panel [request]="drill()" (closed)="drill.set(null)" />

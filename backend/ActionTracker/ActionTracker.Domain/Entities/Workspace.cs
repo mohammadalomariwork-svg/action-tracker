@@ -20,6 +20,14 @@ public class Workspace
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Private workspaces are visible only to their own admins and members.
+    /// Everyone else — including system Admins / PMO roles — cannot see the
+    /// workspace, and its projects / milestones / action items are excluded
+    /// from every query and aggregate (enforced by EF global query filters).
+    /// </summary>
+    public bool IsPrivate { get; set; }
+
     /// <summary>Foreign key to the OrgUnit this workspace belongs to (for access scoping).</summary>
     public Guid? OrgUnitId { get; set; }
 

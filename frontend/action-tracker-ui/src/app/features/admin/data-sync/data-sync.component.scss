@@ -1,0 +1,234 @@
+@use '../../../../assets/styles/tile';
+
+// Admin Panel → Data Sync
+// Uses the global theme tokens (--sf surface, --bd border, --t1/--t2/--t3 text)
+// so the page renders correctly in both dark and light modes.
+
+.ds-page {
+  padding: 0.5rem 0 2rem;
+}
+
+// ── Summary strip ─────────────────────────────────────────────────────────────
+.ds-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ds-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--bd);
+  border-radius: 0.6rem;
+  background: var(--sf);
+  min-width: 8rem;
+
+  &.ds-stat-live {
+    align-items: center;
+    border-color: rgba(13, 202, 240, 0.4);
+  }
+}
+
+.ds-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--t1);
+  line-height: 1;
+}
+
+.ds-stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--t3);
+}
+
+// ── Job card ──────────────────────────────────────────────────────────────────
+.ds-job {
+  border-radius: 0.75rem;
+  border: 1px solid var(--bd);
+  background: var(--sf);
+  overflow: hidden;
+
+  &.ds-job-disabled {
+    .ds-job-icon { opacity: 0.45; }
+  }
+}
+
+.ds-job-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: transparent;
+  border-bottom: 1px solid var(--bd);
+  padding: 0.9rem 1.25rem;
+
+  h5 { color: var(--t1); }
+}
+
+.ds-job-icon {
+  @include tile.icon-tile(40px);
+}
+
+.ds-job-key {
+  font-size: 0.75rem;
+  color: var(--t3);
+  background: transparent;
+}
+
+.ds-job-footer {
+  background: transparent;
+  border-top: 1px solid var(--bd);
+}
+
+.ds-section-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+}
+
+// ── Source → Target flow ──────────────────────────────────────────────────────
+.ds-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ds-endpoint {
+  flex: 1 1 16rem;
+  border: 1px dashed var(--bd);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  min-width: 0;
+}
+
+.ds-endpoint-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+}
+
+.ds-endpoint-value {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.82rem;
+  color: var(--t1);
+  word-break: break-all;
+}
+
+.ds-flow-arrow {
+  align-self: center;
+  font-size: 1.6rem;
+  color: var(--t3);
+}
+
+// ── Key/value (read-only schedule) ────────────────────────────────────────────
+.ds-kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+
+  dt { color: var(--t3); font-weight: 500; font-size: 0.85rem; }
+  dd { margin: 0; color: var(--t1); font-size: 0.9rem; }
+}
+
+.ds-next {
+  font-size: 0.875rem;
+  color: var(--t2);
+  strong { color: var(--t1); }
+}
+
+// ── Last run ──────────────────────────────────────────────────────────────────
+.ds-lastrun {
+  border-left: 3px solid var(--bs-success);
+  padding: 0.5rem 0.9rem;
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: rgba(25, 135, 84, 0.06);
+
+  &.ds-lastrun-failed {
+    border-left-color: var(--bs-danger);
+    background: rgba(220, 53, 69, 0.07);
+  }
+}
+
+.ds-lastrun-metrics {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--t2);
+}
+
+.ds-lastrun-msg {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--t2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// ── Probe result ──────────────────────────────────────────────────────────────
+.ds-probe {
+  border: 1px solid var(--bd);
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--t1);
+}
+
+.ds-probe-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.3rem;
+
+  i { flex: 0 0 auto; margin-top: 0.15rem; }
+  span { min-width: 0; word-break: break-word; }
+}
+
+// ── Run history ───────────────────────────────────────────────────────────────
+.ds-history {
+  border-top: 1px solid var(--bd);
+
+  thead th {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--t3);
+    font-weight: 700;
+    border-bottom: 1px solid var(--bd);
+    padding: 0.6rem 1rem;
+    background: transparent;
+  }
+
+  tbody td {
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    color: var(--t1);
+    border-color: var(--bd);
+    background: transparent;
+  }
+
+  .table-danger-subtle td {
+    background: rgba(220, 53, 69, 0.06);
+  }
+}
+
+.ds-history-msg {
+  max-width: 34rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--t2);
+}
+
+.btn-close-sm {
+  font-size: 0.6rem;
+}

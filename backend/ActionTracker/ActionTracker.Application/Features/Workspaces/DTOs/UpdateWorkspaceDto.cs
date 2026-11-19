@@ -51,4 +51,11 @@ public class UpdateWorkspaceDto
     /// Whether the workspace is active. Set to <c>false</c> to deactivate.
     /// </summary>
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// When <c>true</c> the workspace is private: only its admins and members
+    /// can see it, and its data is excluded from everyone else's views and stats.
+    /// <c>null</c> leaves the current setting unchanged.
+    /// </summary>
+    public bool? IsPrivate { get; set; }
 }

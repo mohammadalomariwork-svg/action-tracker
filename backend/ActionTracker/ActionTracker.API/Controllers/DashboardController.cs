@@ -13,11 +13,16 @@ namespace ActionTracker.API.Controllers;
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
+    private readonly IDashboardAnalyticsService _analytics;
     private readonly ILogger<DashboardController> _logger;
 
-    public DashboardController(IDashboardService dashboardService, ILogger<DashboardController> logger)
+    public DashboardController(
+        IDashboardService dashboardService,
+        IDashboardAnalyticsService analytics,
+        ILogger<DashboardController> logger)
     {
         _dashboardService = dashboardService;
+        _analytics        = analytics;
         _logger           = logger;
     }
 
@@ -93,4 +98,45 @@ public class DashboardController : ControllerBase
 
         return Ok(ApiResponse<List<StatusBreakdownDto>>.Ok(breakdown));
     }
+
+    // =========================================================================
+    // Analytics dashboards. Unlike the endpoints above, these are scoped to
+    // what the caller may see (workspace membership / strategic org-unit scope).
+    // =========================================================================
+
+    /// <summary>Charts for the action items assigned to the caller.</summary>
+    [HttpGet("my-actions")]
+    [Authorize(Policy = PermissionPolicies.DashboardView)]
+    [ProducesResponseType(typeof(ApiResponse<MyActionsDashboardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<MyActionsDashboardDto>>> GetMyActions(CancellationToken ct) =>
+        Ok(ApiResponse<MyActionsDashboardDto>.Ok(await _analytics.GetMyActionsAsync(ct)));
+
+    /// <summary>Per-person action-item counts across visible workspaces, busiest first.</summary>
+    [HttpGet("team-activity")]
+    [Authorize(Policy = PermissionPolicies.DashboardView)]
+    [ProducesResponseType(typeof(ApiResponse<List<TeamMemberActivityDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<TeamMemberActivityDto>>>> GetTeamActivity(CancellationToken ct) =>
+        Ok(ApiResponse<List<TeamMemberActivityDto>>.Ok(await _analytics.GetTeamActivityAsync(ct)));
+
+    /// <summary>Action-item performance: status, priority, due and age windows, weekly trend, workspaces, team.</summary>
+    [HttpGet("action-items")]
+    [Authorize(Policy = PermissionPolicies.DashboardView)]
+    [ProducesResponseType(typeof(ApiResponse<ActionItemsDashboardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ActionItemsDashboardDto>>> GetActionItems(CancellationToken ct) =>
+        Ok(ApiResponse<ActionItemsDashboardDto>.Ok(await _analytics.GetActionItemsAsync(ct)));
+
+    /// <summary>Project portfolio: progress and health per project, plus late and upcoming milestones.</summary>
+    [HttpGet("projects")]
+    [Authorize(Policy = PermissionPolicies.DashboardView)]
+    [ProducesResponseType(typeof(ApiResponse<ProjectsDashboardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProjectsDashboardDto>>> GetProjects(CancellationToken ct) =>
+        Ok(ApiResponse<ProjectsDashboardDto>.Ok(await _analytics.GetProjectsAsync(ct)));
+
+    /// <summary>Strategy execution: plans, objectives, KPI achievement for a year, strategic projects.</summary>
+    [HttpGet("strategy")]
+    [Authorize(Policy = PermissionPolicies.StrategicPlansView)]
+    [ProducesResponseType(typeof(ApiResponse<StrategyDashboardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<StrategyDashboardDto>>> GetStrategy(
+        [FromQuery] int? year, CancellationToken ct) =>
+        Ok(ApiResponse<StrategyDashboardDto>.Ok(await _analytics.GetStrategyAsync(year, ct)));
 }

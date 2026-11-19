@@ -53,6 +53,10 @@ public interface IAppDbContext
     DbSet<EmailLog>          EmailLogs            { get; }
     DbSet<MailServerConfig>  MailServerConfigs    { get; }
 
+    // ── Data sync feature sets ───────────────────────────────────────────────
+    DbSet<DataSyncJob>       DataSyncJobs         { get; }
+    DbSet<DataSyncJobRun>    DataSyncJobRuns      { get; }
+
     // ── Notification feature sets ────────────────────────────────────────────
     DbSet<AppNotification>   AppNotifications     { get; }
 
@@ -61,6 +65,13 @@ public interface IAppDbContext
     DbSet<ProjectApprovalRequest> ProjectApprovalRequests { get; }
     DbSet<StrategicPlanApprovalRequest> StrategicPlanApprovalRequests { get; }
     DbSet<StrategicPlanApprover>        StrategicPlanApprovers        { get; }
+
+    /// <summary>
+    /// Authenticated user of the current request (<c>null</c> in system context).
+    /// Drives the private-workspace query filters; also needed to re-apply that
+    /// restriction after <c>IgnoreQueryFilters()</c>.
+    /// </summary>
+    string? CurrentUserId { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

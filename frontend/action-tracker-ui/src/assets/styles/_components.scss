@@ -1,171 +1,443 @@
 // ═══════════════════════════════════════════════════════════════════
-// GLOBAL COMPONENT OVERRIDES — Cards, Buttons
+// GLOBAL COMPONENTS — Cards, Buttons, Badges, Alerts, Tabs, Pagination
 // ═══════════════════════════════════════════════════════════════════
 
 // ── Cards ────────────────────────────────────────────────────────
 .card {
+  --bs-card-bg: var(--sf);
+  --bs-card-border-color: var(--bd);
+  --bs-card-cap-bg: transparent;
+  --bs-card-color: var(--t1);
+
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: var(--r-lg);
   box-shadow: var(--csh);
-  backdrop-filter: blur(16px);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--t1);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
 
   &:hover {
     border-color: var(--bdh);
   }
 
   &.card-glow:hover {
-    box-shadow: 0 0 24px rgba(var(--ar), 0.07);
+    border-color: rgba(var(--ar), 0.35);
+    box-shadow: var(--neon);
+  }
+
+  .card-header,
+  .card-footer {
+    background: transparent;
+    border-color: var(--bd);
+    font-weight: 700;
+    color: var(--th);
+  }
+
+  .card-header:first-child {
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+
+  .card-title {
+    color: var(--th);
   }
 }
 
-// ── Neon primary button ──────────────────────────────────────────
-.btn-primary {
-  background: var(--accent);
-  color: #000;
-  border: none;
+// ── Buttons: shared shape ────────────────────────────────────────
+.btn {
+  --bs-btn-font-family: var(--font);
+  --bs-btn-border-radius: var(--r-md);
+  --bs-btn-focus-box-shadow: none;   // focus ring comes from :focus-visible in _overrides
+
+  font-weight: 600;
+  letter-spacing: 0.005em;
   border-radius: var(--r-md);
+  transition: transform 0.15s var(--ease), box-shadow 0.2s var(--ease),
+              background-color 0.2s var(--ease), border-color 0.2s var(--ease),
+              color 0.2s var(--ease), filter 0.2s var(--ease);
+
+  &:active:not(:disabled):not(.disabled) {
+    transform: scale(0.97);
+  }
+
+  &:disabled,
+  &.disabled {
+    opacity: 0.55;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+.btn-sm {
+  --bs-btn-border-radius: var(--r-sm);
+  border-radius: 10px;
+}
+
+// Filled buttons share the lift + sheen; only colour differs
+%btn-filled {
+  border: none;
   font-weight: 700;
-  box-shadow: var(--neon);
   position: relative;
   overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.2s;
 
+  // Sheen sweep on hover
   &::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      120deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.25) 50%,
-      transparent 70%
-    );
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s var(--ease);
     pointer-events: none;
   }
 
-  &:hover,
-  &:focus {
-    background: var(--accent);
-    color: #000;
+  &:hover:not(:disabled):not(.disabled),
+  &:focus-visible {
     transform: translateY(-1px);
-    box-shadow: var(--neon2);
 
     &::after {
       opacity: 1;
     }
   }
-
-  &:active {
-    transform: scale(0.97);
-  }
 }
 
-// ── Ghost buttons ────────────────────────────────────────────────
-.btn-outline-primary,
-.btn-outline-secondary {
-  background: var(--sf);
-  color: var(--t2);
-  border: 1px solid var(--bd);
-  border-radius: var(--r-md);
-  backdrop-filter: blur(8px);
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+// ── Primary: royal gradient, white label (the logo's front card) ──
+.btn-primary {
+  @extend %btn-filled;
+  background: var(--accent-fill);
+  color: var(--on-fill);
+  box-shadow: 0 1px 2px rgba(var(--brand-navy-r), 0.28), 0 6px 18px rgba(var(--brand-royal-r), 0.30);
 
   &:hover,
-  &:focus {
-    background: var(--sfh);
-    border-color: var(--bdh);
-    color: var(--t1);
+  &:focus,
+  &:active,
+  &.active,
+  &:disabled,
+  &.disabled {
+    background: var(--accent-fill);
+    color: var(--on-fill);
+  }
+
+  &:hover:not(:disabled):not(.disabled),
+  &:focus-visible {
+    background: var(--accent-fill-h);
+    box-shadow: 0 2px 4px rgba(var(--brand-navy-r), 0.30), 0 10px 26px rgba(var(--brand-royal-r), 0.42);
   }
 }
 
-// ── Danger button ────────────────────────────────────────────────
+// ── Danger / Success: same shape, status colour ──────────────────
 .btn-danger {
+  @extend %btn-filled;
   background: var(--danger);
   color: #fff;
-  border: none;
-  border-radius: var(--r-md);
-  font-weight: 700;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.50), 0 0 24px rgba(239, 68, 68, 0.25);
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.2s;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      120deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.20) 50%,
-      transparent 70%
-    );
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(var(--errr), 0.26);
 
   &:hover,
-  &:focus {
+  &:focus,
+  &:active,
+  &:disabled {
     background: var(--danger);
     color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.70), 0 0 36px rgba(239, 68, 68, 0.40);
-
-    &::after {
-      opacity: 1;
-    }
   }
 
-  &:active {
-    transform: scale(0.97);
+  &:hover:not(:disabled):not(.disabled),
+  &:focus-visible {
+    filter: brightness(1.08);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.20), 0 10px 22px rgba(var(--errr), 0.36);
   }
 }
 
-// ── Success button ───────────────────────────────────────────────
 .btn-success {
+  @extend %btn-filled;
   background: var(--success);
   color: #fff;
-  border: none;
-  border-radius: var(--r-md);
-  font-weight: 700;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.50), 0 0 24px rgba(34, 197, 94, 0.25);
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(var(--okr), 0.24);
 
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      120deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.20) 50%,
-      transparent 70%
-    );
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
+  &:hover,
+  &:focus,
+  &:active,
+  &:disabled {
+    background: var(--success);
+    color: #fff;
   }
+
+  &:hover:not(:disabled):not(.disabled),
+  &:focus-visible {
+    filter: brightness(1.08);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.20), 0 10px 22px rgba(var(--okr), 0.34);
+  }
+}
+
+.btn-warning {
+  @extend %btn-filled;
+  background: #F59E0B;
+  color: #3A2300;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(var(--warnr), 0.24);
+
+  &:hover,
+  &:focus,
+  &:active,
+  &:disabled {
+    background: #F59E0B;
+    color: #3A2300;
+  }
+
+  &:hover:not(:disabled):not(.disabled) {
+    filter: brightness(1.06);
+  }
+}
+
+// ── Neutral / ghost buttons ──────────────────────────────────────
+.btn-secondary,
+.btn-outline-secondary,
+.btn-outline-light,
+.btn-light {
+  background: var(--sf);
+  color: var(--t1);
+  border: 1px solid var(--bdh);
+  box-shadow: none;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active {
+    background: var(--sfh);
+    border-color: rgba(var(--ar), 0.45);
+    color: var(--th);
+  }
+
+  &:disabled,
+  &.disabled {
+    background: var(--sf);
+    color: var(--t3);
+    border-color: var(--bd);
+  }
+}
+
+// Tinted outline buttons: transparent until hover, then a soft fill.
+// (A solid flood on hover is too heavy for row-level actions.)
+@mixin btn-tint($color, $rgb) {
+  background: rgba(#{$rgb}, 0.06);
+  color: #{$color};
+  border: 1px solid rgba(#{$rgb}, 0.38);
+  box-shadow: none;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active {
+    background: rgba(#{$rgb}, 0.16);
+    border-color: #{$color};
+    color: #{$color};
+  }
+
+  &:disabled,
+  &.disabled {
+    background: transparent;
+    color: #{$color};
+    border-color: rgba(#{$rgb}, 0.25);
+  }
+}
+
+.btn-outline-primary { @include btn-tint(var(--accent), var(--ar)); }
+.btn-outline-info    { @include btn-tint(var(--accent), var(--ar)); }
+.btn-outline-success { @include btn-tint(var(--ok),     var(--okr)); }
+.btn-outline-danger  { @include btn-tint(var(--err),    var(--errr)); }
+.btn-outline-warning { @include btn-tint(var(--warn),   var(--warnr)); }
+
+.btn-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
 
   &:hover,
   &:focus {
-    background: var(--success);
-    color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 0 12px rgba(34, 197, 94, 0.70), 0 0 36px rgba(34, 197, 94, 0.40);
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
 
-    &::after {
-      opacity: 1;
-    }
+// Joined buttons keep their shared inner edges square
+.btn-group > .btn:not(:last-child)  { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.btn-group > .btn:not(:first-child) { border-top-left-radius: 0;  border-bottom-left-radius: 0; }
+
+// ── Badges ───────────────────────────────────────────────────────
+// Bootstrap's solid badges become soft tinted chips — the same
+// treatment as the app's own status / priority badges — so a table
+// full of them stays calm and the status colour reads as meaning.
+.badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.38em 0.72em;
+  border-radius: var(--r-full);
+
+  &.bg-primary,
+  &.bg-info {
+    background: rgba(var(--ar), 0.15) !important;
+    color: var(--accent) !important;
   }
 
-  &:active {
-    transform: scale(0.97);
+  &.bg-success {
+    background: rgba(var(--okr), 0.15) !important;
+    color: var(--ok) !important;
+  }
+
+  &.bg-danger {
+    background: rgba(var(--errr), 0.15) !important;
+    color: var(--err) !important;
+  }
+
+  &.bg-warning {
+    background: rgba(var(--warnr), 0.17) !important;
+    color: var(--warn) !important;
+  }
+
+  &.bg-secondary,
+  &.bg-light,
+  &.bg-dark {
+    background: var(--sfh) !important;
+    color: var(--t2) !important;
+    box-shadow: inset 0 0 0 1px var(--bd);
+  }
+}
+
+// ── Alerts ───────────────────────────────────────────────────────
+@mixin alert-tint($color, $rgb) {
+  background: rgba(#{$rgb}, 0.10);
+  border-color: rgba(#{$rgb}, 0.28);
+  border-left-color: #{$color};
+  color: var(--t1);
+
+  .alert-link,
+  .bi:first-child {
+    color: #{$color};
+  }
+}
+
+.alert {
+  border: 1px solid var(--bd);
+  border-left-width: 3px;
+  border-radius: var(--r-md);
+  font-size: 13.5px;
+  color: var(--t1);
+
+  &.alert-primary,
+  &.alert-info      { @include alert-tint(var(--accent), var(--ar)); }
+  &.alert-success   { @include alert-tint(var(--ok),     var(--okr)); }
+  &.alert-danger    { @include alert-tint(var(--err),    var(--errr)); }
+  &.alert-warning   { @include alert-tint(var(--warn),   var(--warnr)); }
+
+  &.alert-secondary,
+  &.alert-light,
+  &.alert-dark {
+    background: var(--sf);
+    border-color: var(--bd);
+    border-left-color: var(--t3);
+    color: var(--t2);
+  }
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────
+.nav-tabs {
+  --bs-nav-tabs-border-color: var(--bd);
+  border-bottom: 1px solid var(--bd);
+  gap: 4px;
+
+  .nav-link {
+    position: relative;
+    border: none;
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--t2);
+    background: transparent;
+    transition: color 0.15s var(--ease), background-color 0.15s var(--ease);
+
+    // Brand underline grows in from the centre
+    &::after {
+      content: '';
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: -1px;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--brand-grad-h);
+      transform: scaleX(0);
+      transition: transform 0.2s var(--ease);
+    }
+
+    &:hover {
+      color: var(--th);
+      background: var(--sfh);
+    }
+
+    &.active {
+      color: var(--accent);
+      background: transparent;
+
+      &::after {
+        transform: scaleX(1);
+      }
+    }
+  }
+}
+
+// ── Pagination ───────────────────────────────────────────────────
+.pagination {
+  --bs-pagination-bg: transparent;
+  --bs-pagination-color: var(--t2);
+  --bs-pagination-border-color: var(--bd);
+  --bs-pagination-hover-bg: var(--sfh);
+  --bs-pagination-hover-color: var(--accent);
+  --bs-pagination-hover-border-color: rgba(var(--ar), 0.40);
+  --bs-pagination-focus-bg: var(--sfh);
+  --bs-pagination-focus-color: var(--accent);
+  --bs-pagination-focus-box-shadow: none;
+  --bs-pagination-active-bg: var(--brand-royal);
+  --bs-pagination-active-border-color: var(--brand-royal);
+  --bs-pagination-active-color: #fff;
+  --bs-pagination-disabled-bg: transparent;
+  --bs-pagination-disabled-color: var(--t3);
+  --bs-pagination-disabled-border-color: var(--bd);
+  --bs-pagination-border-radius: var(--r-sm);
+  --bs-pagination-font-size: 13px;
+  gap: 4px;
+
+  .page-link {
+    border-radius: var(--r-sm) !important;
+    font-weight: 600;
+    min-width: 34px;
+    text-align: center;
+  }
+
+  .page-item.active .page-link {
+    background: var(--accent-fill);
+    box-shadow: 0 4px 12px rgba(var(--brand-royal-r), 0.30);
+  }
+
+  .page-item.disabled .page-link {
+    opacity: 0.55;
+  }
+}
+
+// ── Progress ─────────────────────────────────────────────────────
+.progress {
+  --bs-progress-bg: rgba(var(--ar), 0.12);
+  --bs-progress-bar-bg: var(--brand-royal);
+  --bs-progress-border-radius: var(--r-full);
+  background: rgba(var(--ar), 0.12);
+  border-radius: var(--r-full);
+
+  .progress-bar {
+    border-radius: var(--r-full);
+  }
+
+  // Only the un-coloured bar takes the brand gradient; .bg-success etc.
+  // keep their status colour.
+  .progress-bar:not([class*="bg-"]) {
+    background: var(--brand-grad-h);
   }
 }

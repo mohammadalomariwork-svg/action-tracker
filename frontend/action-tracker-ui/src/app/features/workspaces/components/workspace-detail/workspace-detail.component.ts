@@ -890,6 +890,7 @@ export class WorkspaceDetailComponent implements OnInit {
       { Field: 'Title',             Value: this.workspace?.title ?? '' },
       { Field: 'Organization Unit', Value: this.workspace?.organizationUnit ?? '' },
       { Field: 'Status',            Value: this.workspace?.isActive ? 'Active' : 'Inactive' },
+      { Field: 'Visibility',        Value: this.workspace?.isPrivate ? 'Private' : 'Standard' },
       { Field: 'Created',           Value: this.workspace?.createdAt ? new Date(this.workspace.createdAt).toLocaleDateString() : '' },
       { Field: 'Last Updated',      Value: this.workspace?.updatedAt  ? new Date(this.workspace.updatedAt).toLocaleDateString()  : '' },
       { Field: 'Admins',            Value: (this.workspace?.admins ?? []).map(a => a.userName).join(', ') },

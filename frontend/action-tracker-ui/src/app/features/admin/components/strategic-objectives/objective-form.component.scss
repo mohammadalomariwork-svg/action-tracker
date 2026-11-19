@@ -32,7 +32,7 @@
 // ── Themed form inputs ───────────────────────────────────────────────────────
 .form-control,
 .form-select {
-  background: var(--inp);
+  background-color: var(--inp);
   border-color: var(--bd);
   color: var(--t1);
 

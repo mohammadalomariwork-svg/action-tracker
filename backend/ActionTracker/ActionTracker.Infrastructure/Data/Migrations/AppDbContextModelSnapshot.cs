@@ -825,6 +825,129 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("Comments", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.DataSyncJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CronExpression")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("JobKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("LastRunAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("LastRunDurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("LastRunMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int?>("LastRunRowCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LastRunStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TimeZoneId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DataSyncJobs_JobKey");
+
+                    b.ToTable("DataSyncJobs", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.DataSyncJobRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("RowsRead")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RowsWritten")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Trigger")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TriggeredBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_DataSyncJobRuns_Status");
+
+                    b.HasIndex("JobId", "StartedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_DataSyncJobRuns_JobId_StartedAt");
+
+                    b.ToTable("DataSyncJobRuns", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1416,7 +1539,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("NearestAirport")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
@@ -2440,6 +2562,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("bit");
+
                     b.Property<Guid?>("OrgUnitId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2864,6 +2989,17 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Author");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.DataSyncJobRun", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.DataSyncJob", "Job")
+                        .WithMany("Runs")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.Document", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "UploadedBy")
@@ -3216,6 +3352,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("ActionItemAssignments");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.DataSyncJob", b =>
+                {
+                    b.Navigation("Runs");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.Kpi", b =>

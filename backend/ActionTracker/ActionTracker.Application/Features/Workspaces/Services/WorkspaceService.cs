@@ -92,6 +92,7 @@ public class WorkspaceService : IWorkspaceService
                     OrgUnitId        = w.OrgUnitId,
                     AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
                     IsActive         = w.IsActive,
+                    IsPrivate        = w.IsPrivate,
                     CreatedAt        = w.CreatedAt,
                     ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
                     MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
@@ -335,6 +336,7 @@ public class WorkspaceService : IWorkspaceService
                     OrganizationUnit = w.OrganizationUnit,
                     AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
                     IsActive         = w.IsActive,
+                    IsPrivate        = w.IsPrivate,
                     CreatedAt        = w.CreatedAt,
                     ProjectCount     = _db.Projects.Count(p => p.WorkspaceId == w.Id && !p.IsDeleted),
                     MilestoneCount   = _db.Milestones.Count(m => _db.Projects.Any(p => p.Id == m.ProjectId && p.WorkspaceId == w.Id && !p.IsDeleted) && !m.IsDeleted),
@@ -391,7 +393,8 @@ public class WorkspaceService : IWorkspaceService
                 OrgUnitId        = dto.OrgUnitId,
                 StrategicPlanId  = dto.StrategicPlanId,
                 CreatedAt        = DateTime.UtcNow,
-                IsActive         = true
+                IsActive         = true,
+                IsPrivate        = dto.IsPrivate
             };
 
             foreach (var a in dto.Admins)
@@ -507,6 +510,7 @@ public class WorkspaceService : IWorkspaceService
             workspace.OrgUnitId        = dto.OrgUnitId;
             workspace.StrategicPlanId  = dto.StrategicPlanId;
             workspace.IsActive         = dto.IsActive;
+            workspace.IsPrivate        = dto.IsPrivate ?? workspace.IsPrivate;
             workspace.UpdatedAt        = DateTime.UtcNow;
 
             // Replace admin list
@@ -835,6 +839,7 @@ public class WorkspaceService : IWorkspaceService
                             })
                             .ToList(),
         IsActive         = w.IsActive,
+        IsPrivate        = w.IsPrivate,
         CreatedAt        = w.CreatedAt,
         UpdatedAt        = w.UpdatedAt
     };
@@ -846,6 +851,7 @@ public class WorkspaceService : IWorkspaceService
         OrganizationUnit = w.OrganizationUnit,
         AdminUserNames   = string.Join(", ", w.Admins.Select(a => a.AdminUserName)),
         IsActive         = w.IsActive,
+        IsPrivate        = w.IsPrivate,
         CreatedAt        = w.CreatedAt
     };
 

@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .st-page {
   padding: 1.5rem;
@@ -40,24 +42,7 @@
 }
 
 .st-stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-
-  &--blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-  &--green  { background: rgba(34, 197, 94, 0.12);  color: #22c55e; }
-  &--teal   { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
-  &--yellow { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-  &--indigo { background: rgba(var(--ar), 0.12);    color: var(--accent); }
-  &--purple {
-    background: rgba(var(--a2r, 124, 92, 252), 0.12);
-    color: var(--accent2, #7c5cfc);
-  }
+  @include tile.icon-tile(44px);
 }
 
 .st-stat-body {
@@ -126,7 +111,7 @@
     outline: none;
     transition: border-color 0.15s;
     color: var(--t1);
-    background: var(--inp);
+    background-color: var(--inp);
 
     &:focus {
       border-color: var(--accent);
@@ -236,23 +221,23 @@
 
   &--draft {
     background: rgba(100, 116, 139, 0.14);
-    color: #64748b;
+    color: var(--t3);
 
-    .st-status-dot { background: #64748b; }
+    .st-status-dot { background: var(--t3); }
   }
 
   &--pending {
-    background: rgba(245, 158, 11, 0.14);
-    color: #f59e0b;
+    background: rgba(var(--warnr), 0.14);
+    color: var(--warn);
 
-    .st-status-dot { background: #f59e0b; }
+    .st-status-dot { background: var(--warn); }
   }
 
   &--approved {
-    background: rgba(34, 197, 94, 0.14);
-    color: #22c55e;
+    background: rgba(var(--okr), 0.14);
+    color: var(--ok);
 
-    .st-status-dot { background: #22c55e; }
+    .st-status-dot { background: var(--ok); }
   }
 
   &--archived {

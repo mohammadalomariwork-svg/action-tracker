@@ -1,0 +1,403 @@
+<div class="ds-page">
+
+  <app-admin-breadcrumb
+    [items]="[{ label: 'Admin Panel', route: '/admin' }, { label: 'Data Sync' }]"
+    class="mb-3 d-block"
+  />
+
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+    <app-page-header
+      title="Data Sync"
+      subtitle="Scheduled jobs that copy data from external systems into Action Center"
+      icon="bi bi-arrow-repeat"
+    />
+    <button
+      type="button"
+      class="btn btn-outline-secondary btn-sm mt-1"
+      (click)="load(true)"
+      [disabled]="refreshing()"
+      title="Refresh"
+    >
+      @if (refreshing()) {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+      } @else {
+        <i class="bi bi-arrow-clockwise me-1"></i>
+      }
+      Refresh
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  } @else if (jobs().length === 0) {
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-1"></i>
+      No data sync jobs are registered in this build.
+    </div>
+  } @else {
+
+    <!-- ── Summary strip ─────────────────────────────────────────────────── -->
+    <div class="ds-summary mb-4">
+      <div class="ds-stat">
+        <span class="ds-stat-value">{{ jobs().length }}</span>
+        <span class="ds-stat-label">Jobs</span>
+      </div>
+      <div class="ds-stat">
+        <span class="ds-stat-value text-success">{{ enabledCount() }}</span>
+        <span class="ds-stat-label">Enabled</span>
+      </div>
+      <div class="ds-stat">
+        <span class="ds-stat-value" [class.text-danger]="failedCount() > 0">{{ failedCount() }}</span>
+        <span class="ds-stat-label">Last run failed</span>
+      </div>
+      @if (anyRunning()) {
+        <div class="ds-stat ds-stat-live">
+          <span class="spinner-border spinner-border-sm text-info me-2"></span>
+          <span class="ds-stat-label">Sync in progress — auto-refreshing</span>
+        </div>
+      }
+    </div>
+
+    <!-- ── Job cards ─────────────────────────────────────────────────────── -->
+    @for (job of jobs(); track trackJob($index, job)) {
+      @if (edit(job); as e) {
+        <div class="card ds-job mb-4" [class.ds-job-disabled]="!job.isEnabled">
+
+          <!-- Header -->
+          <div class="card-header ds-job-header">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="ds-job-icon" aria-hidden="true"><i class="bi bi-database-fill-gear"></i></span>
+              <h5 class="mb-0 fw-bold">{{ job.name }}</h5>
+              @if (job.isEnabled) {
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Enabled</span>
+              } @else {
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Disabled</span>
+              }
+              @if (job.isRunning) {
+                <span class="badge bg-info text-dark">
+                  <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>
+                  Running
+                </span>
+              }
+              @if (!job.hasHandler) {
+                <span class="badge bg-warning text-dark" title="No code handler is registered for this job key in the running build.">
+                  <i class="bi bi-exclamation-triangle me-1"></i>No handler
+                </span>
+              }
+            </div>
+            <code class="ds-job-key">{{ job.jobKey }}</code>
+          </div>
+
+          <div class="card-body">
+            <p class="text-muted mb-3">{{ job.description }}</p>
+
+            <!-- Source → Target -->
+            <div class="ds-flow mb-4">
+              <div class="ds-endpoint">
+                <div class="ds-endpoint-label">Source</div>
+                <div class="ds-endpoint-value">{{ job.sourceSummary || 'Not configured' }}</div>
+              </div>
+              <i class="bi bi-arrow-right-short ds-flow-arrow"></i>
+              <div class="ds-endpoint">
+                <div class="ds-endpoint-label">Target</div>
+                <div class="ds-endpoint-value">{{ job.targetSummary || '—' }}</div>
+              </div>
+            </div>
+
+            <div class="row g-4">
+
+              <!-- ── Schedule editor ────────────────────────────────────────── -->
+              <div class="col-lg-6">
+                <h6 class="ds-section-title">Schedule</h6>
+
+                <ng-container *appHasPermission="'DataSync'; action: 'Edit'; else readonlySchedule">
+                  <div class="row g-3">
+                    <div class="col-sm-6">
+                      <label class="form-label">Frequency</label>
+                      <select
+                        class="form-select"
+                        [ngModel]="e.presetKey"
+                        (ngModelChange)="onPresetChange(job, $event)"
+                        [disabled]="e.saving"
+                      >
+                        @for (p of presets; track p.key) {
+                          <option [value]="p.key">{{ p.label }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-sm-6">
+                      <label class="form-label">Time zone</label>
+                      <select class="form-select" [(ngModel)]="e.timeZoneId" [disabled]="e.saving">
+                        @for (tz of timeZones; track tz.id) {
+                          <option [value]="tz.id">{{ tz.label }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">
+                        Cron expression
+                        <span class="text-muted small ms-1">(minute hour day month weekday)</span>
+                      </label>
+                      <input
+                        type="text"
+                        class="form-control font-monospace"
+                        [(ngModel)]="e.cron"
+                        (ngModelChange)="onCronTyped(job)"
+                        [disabled]="e.saving"
+                        placeholder="0 * * * *"
+                        spellcheck="false"
+                      />
+                      <div class="form-text">
+                        Examples: <code>0 * * * *</code> every hour · <code>0 2 * * *</code> daily 02:00 ·
+                        <code>*/15 * * * *</code> every 15 min · <code>0 6 * * 1</code> Mondays 06:00
+                      </div>
+                    </div>
+                    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <div class="form-check form-switch mb-0">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          role="switch"
+                          [id]="'enabled-' + job.id"
+                          [(ngModel)]="e.isEnabled"
+                          [disabled]="e.saving"
+                        />
+                        <label class="form-check-label" [for]="'enabled-' + job.id">
+                          Run on schedule
+                        </label>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          (click)="resetEdit(job)"
+                          [disabled]="e.saving || !isDirty(job)"
+                        >
+                          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-primary btn-sm"
+                          (click)="save(job)"
+                          [disabled]="e.saving || !isDirty(job)"
+                        >
+                          @if (e.saving) {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                          } @else {
+                            <i class="bi bi-save me-1"></i>
+                          }
+                          Save schedule
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <ng-template #readonlySchedule>
+                  <dl class="ds-kv">
+                    <dt>Frequency</dt><dd>{{ job.scheduleDescription || job.cronExpression }}</dd>
+                    <dt>Cron</dt><dd><code>{{ job.cronExpression }}</code></dd>
+                    <dt>Time zone</dt><dd>{{ job.timeZoneId || 'UTC' }}</dd>
+                  </dl>
+                </ng-template>
+
+                <div class="ds-next mt-3">
+                  <i class="bi bi-clock-history me-1"></i>
+                  @if (job.isEnabled && job.nextRunAt) {
+                    <span>Next run <strong>{{ job.nextRunAt | date: 'medium' }}</strong>
+                      <span class="text-muted">({{ job.scheduleDescription || job.cronExpression }}, {{ job.timeZoneId || 'UTC' }})</span>
+                    </span>
+                  } @else if (job.isEnabled) {
+                    <span class="text-muted">Next run not yet scheduled.</span>
+                  } @else {
+                    <span class="text-muted">Scheduled runs are off. You can still run it manually.</span>
+                  }
+                </div>
+              </div>
+
+              <!-- ── Last run + actions ─────────────────────────────────────── -->
+              <div class="col-lg-6">
+                <h6 class="ds-section-title">Last run</h6>
+
+                @if (job.lastRunAt) {
+                  <div class="ds-lastrun" [class.ds-lastrun-failed]="job.lastRunStatus === 'Failed'">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <span class="badge" [ngClass]="statusClass(job.lastRunStatus)">
+                        <i class="bi me-1" [ngClass]="statusIcon(job.lastRunStatus)"></i>{{ job.lastRunStatus }}
+                      </span>
+                      <span class="text-muted small">{{ job.lastRunAt | date: 'medium' }}</span>
+                    </div>
+                    <div class="ds-lastrun-metrics">
+                      <span><i class="bi bi-table me-1"></i>{{ job.lastRunRowCount != null ? (job.lastRunRowCount | number) : '—' }} rows</span>
+                      <span><i class="bi bi-stopwatch me-1"></i>{{ duration(job.lastRunDurationMs) }}</span>
+                    </div>
+                    @if (job.lastRunMessage) {
+                      <div class="ds-lastrun-msg">{{ job.lastRunMessage }}</div>
+                    }
+                  </div>
+                } @else {
+                  <div class="text-muted small mb-3">
+                    <i class="bi bi-hourglass me-1"></i>This job has not run yet.
+                  </div>
+                }
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <ng-container *appHasPermission="'DataSync'; action: 'Edit'">
+                    <button
+                      type="button"
+                      class="btn btn-success btn-sm"
+                      (click)="runNow(job)"
+                      [disabled]="job.isRunning || e.running || !job.hasHandler"
+                    >
+                      @if (job.isRunning || e.running) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-play-fill me-1"></i>
+                      }
+                      Run now
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      (click)="probe(job)"
+                      [disabled]="e.probing || !job.hasHandler"
+                    >
+                      @if (e.probing) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-plug me-1"></i>
+                      }
+                      Test connection
+                    </button>
+                  </ng-container>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="toggleHistory(job)"
+                  >
+                    <i class="bi me-1" [class.bi-chevron-down]="!e.showHistory" [class.bi-chevron-up]="e.showHistory"></i>
+                    {{ e.showHistory ? 'Hide history' : 'Run history' }}
+                  </button>
+                </div>
+
+                <!-- Probe result -->
+                @if (e.showProbe && e.probe; as p) {
+                  <div class="ds-probe mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="small text-uppercase">Connection test</strong>
+                      <button type="button" class="btn-close btn-close-sm" aria-label="Close" (click)="e.showProbe = false"></button>
+                    </div>
+                    <div class="ds-probe-row">
+                      <i class="bi" [class.bi-check-circle-fill]="p.sourceReachable" [class.bi-x-circle-fill]="!p.sourceReachable"
+                         [class.text-success]="p.sourceReachable" [class.text-danger]="!p.sourceReachable"></i>
+                      <span>
+                        Source:
+                        @if (p.sourceReachable) {
+                          reachable, <strong>{{ p.sourceRowCount | number }}</strong> rows
+                        } @else {
+                          <span class="text-danger">{{ p.sourceError || 'unreachable' }}</span>
+                        }
+                      </span>
+                    </div>
+                    <div class="ds-probe-row">
+                      <i class="bi" [class.bi-check-circle-fill]="p.targetReachable" [class.bi-x-circle-fill]="!p.targetReachable"
+                         [class.text-success]="p.targetReachable" [class.text-danger]="!p.targetReachable"></i>
+                      <span>
+                        Target:
+                        @if (p.targetReachable) {
+                          reachable, <strong>{{ p.targetRowCount | number }}</strong> rows
+                        } @else {
+                          <span class="text-danger">{{ p.targetError || 'unreachable' }}</span>
+                        }
+                      </span>
+                    </div>
+                    @if (p.sourceReachable && p.targetReachable) {
+                      <div class="ds-probe-row">
+                        <i class="bi bi-columns-gap text-muted"></i>
+                        <span><strong>{{ p.commonColumnCount }}</strong> columns will be copied.</span>
+                      </div>
+                      @if (p.sourceOnlyColumns.length) {
+                        <div class="ds-probe-row small text-muted">
+                          <i class="bi bi-dash-circle"></i>
+                          <span>Ignored (source only): {{ p.sourceOnlyColumns.join(', ') }}</span>
+                        </div>
+                      }
+                      @if (p.targetOnlyColumns.length) {
+                        <div class="ds-probe-row small text-muted">
+                          <i class="bi bi-dash-circle"></i>
+                          <span>Left empty (target only): {{ p.targetOnlyColumns.join(', ') }}</span>
+                        </div>
+                      }
+                    }
+                    <div class="text-muted small mt-1">Checked in {{ duration(p.elapsedMs) }}.</div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Run history ───────────────────────────────────────────────── -->
+          @if (e.showHistory) {
+            <div class="ds-history">
+              @if (e.historyLoading) {
+                <div class="text-center py-3">
+                  <span class="spinner-border spinner-border-sm text-primary"></span>
+                </div>
+              } @else if (e.runs.length === 0) {
+                <div class="text-muted small p-3">No runs recorded yet.</div>
+              } @else {
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Started</th>
+                        <th>Status</th>
+                        <th>Trigger</th>
+                        <th class="text-end">Rows</th>
+                        <th class="text-end">Duration</th>
+                        <th>Message</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (r of e.runs; track trackRun($index, r)) {
+                        <tr [class.table-danger-subtle]="r.status === 'Failed'">
+                          <td class="text-nowrap">{{ r.startedAt | date: 'medium' }}</td>
+                          <td>
+                            <span class="badge" [ngClass]="statusClass(r.status)">
+                              <i class="bi me-1" [ngClass]="statusIcon(r.status)"></i>{{ r.status }}
+                            </span>
+                          </td>
+                          <td class="text-nowrap">
+                            @if (r.trigger === 'Manual') {
+                              <i class="bi bi-person-fill me-1 text-muted"></i>Manual
+                            } @else {
+                              <i class="bi bi-clock me-1 text-muted"></i>Scheduled
+                            }
+                          </td>
+                          <td class="text-end text-nowrap">{{ r.rowsWritten != null ? (r.rowsWritten | number) : '—' }}</td>
+                          <td class="text-end text-nowrap">{{ duration(r.durationMs) }}</td>
+                          <td class="ds-history-msg">{{ r.message || '' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          }
+
+          @if (job.updatedAt) {
+            <div class="card-footer ds-job-footer text-muted small">
+              Schedule last changed {{ job.updatedAt | date: 'medium' }}
+              @if (job.updatedBy) { by {{ job.updatedBy }} }
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+</div>

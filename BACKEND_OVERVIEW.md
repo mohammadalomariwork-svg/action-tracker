@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-05-20 (Mail Server Configuration: admin-managed SMTP settings persisted in DB with DataProtection-encrypted password)
+> Last updated: 2026-11-18 (Dashboard analytics: `IDashboardAnalyticsService`, 5 scoped `/api/dashboard` endpoints, drill-down filters on the action-item list, `DashboardRules`)
 
 ## Tech Stack
 
@@ -56,7 +56,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 **Fine-Grained Permissions (RBAC + ABAC Hybrid)**
 - Permissions defined as Area.Action pairs (e.g., `Projects.View`, `ActionItems.Delete`)
-- **18 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**, **MailServerConfig**
+- **19 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**, **MailServerConfig**, **DataSync**
 - **7 Actions:** View, Create, Edit, Delete, Approve, Export, Assign
 - Stored in `RolePermission` (role-level) and `UserPermissionOverride` (user-level) tables
 - **Effective Permissions** = Role Permissions + User Overrides (denials take precedence)
@@ -102,7 +102,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 ### ActionItemsController (`/api/action-items`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Paginated action items (filtered, org-unit scoped) |
+| GET | `/` | Paginated action items (filtered, org-unit scoped). Dashboard drill-down filters: `openOnly`, `overdueOnly`, `isEscalated`, `dueBucket`, `ageBucket` (definitions in `ActionItemRules`; an unknown bucket key is ignored) |
 | GET | `/my-actions` | Items assigned to current user |
 | GET | `/created-by-me` | Items created by current user |
 | GET | `/my-stats` | Stats for user's assigned items (total, critical, in-progress, completed, overdue) |
@@ -194,6 +194,17 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/management` | Full management dashboard (KPIs, status, workload, at-risk, activity) |
 | GET | `/team-workload` | Per-user workload stats |
 | GET | `/status-breakdown` | Action items grouped by status |
+| GET | `/my-actions` | Caller's own assignments for the Overview charts: totals plus slices by status, by priority (open only) and by due window (open only). Policy `Dashboard.View` |
+| GET | `/team-activity` | Per-person action-item counts (total, open, in progress, completed, overdue) across visible workspaces, busiest first. Policy `Dashboard.View` |
+| GET | `/action-items` | Action-item performance: totals, completion / on-time rates, slices by status / priority / due window / age, 8-week created-vs-completed trend, top workspaces, team. Policy `Dashboard.View` |
+| GET | `/projects` | Every visible project as a row with progress, health, action-item and milestone counts, plus portfolio totals and late / upcoming milestones. Policy `Dashboard.View` |
+| GET | `/strategy?year=` | Plans, objectives and KPIs in strategic scope with KPI achievement for the year (default: current), rolled up to objectives and plans, plus linked strategic projects. Policy `StrategicPlans.View` |
+
+The first four endpoints rely only on the global query filters. The five analytics endpoints (`IDashboardAnalyticsService`) are additionally scoped to the caller: action items and projects by `IWorkspaceAccessResolver`, strategy by `IStrategicScopeService`; `/my-actions` is everything assigned to the caller regardless of workspace. Archived plans are excluded from `/strategy`. Each query is a plain filter + column projection, aggregated in memory with the rules in `Features/Dashboard/DashboardRules.cs`:
+
+- `ActionItemRules` — *open* (To Do / In Progress / In Review / Overdue), *overdue* (open and flagged Overdue **or** past its due date), due windows (`overdue` / `next7` / `next30` / `later`) and age windows (`0-7` / `8-30` / `31-90` / `90+`). Each rule exists as an in-memory function and as an `Expression` used by the list filter — `DashboardAnalyticsServiceTests` asserts they agree.
+- `ProjectRules` — progress (share of action items done; falls back to mean milestone completion; Completed = 100) and health (Delayed = active past planned end; At risk = active with overdue action items or late milestones; else On track).
+- `KpiAchievement` — direction-aware achievement % (now also used by `KpiActualService`) and health bands (≥ 90 on track, ≥ 60 at risk, below off track, none = no data).
 
 ### NotificationsController (`/api/notifications`)
 | Method | Endpoint | Description |
@@ -225,6 +236,35 @@ before being persisted in the `MailServerConfigs` table. `EmailSender` reads the
 active configuration through `IMailServerConfigService.GetActiveSmtpSettingsAsync()`
 at send time and falls back to the bound `Smtp` section of `appsettings.json` when
 no row exists.
+
+### DataSyncController (`/api/data-sync`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/jobs` | All sync jobs with schedule, next run (UTC), running flag and last-run summary (requires `DataSync.View`) |
+| GET | `/jobs/{id}` | Single job |
+| GET | `/jobs/{id}/runs?take=25` | Run history, newest first (max 200) |
+| PUT | `/jobs/{id}` | Update cron / time zone / enabled; validates the cron (Cronos) and re-registers the Hangfire recurring job (requires `DataSync.Edit`) |
+| POST | `/jobs/{id}/run` | Enqueue an immediate run; `409` if a run is already in progress (requires `DataSync.Edit`) |
+| POST | `/jobs/{id}/probe` | Read-only connectivity + schema check of source and target (requires `DataSync.Edit`) |
+
+**Background scheduler:** Hangfire 1.8 with SQL Server storage (`HangFire` schema in
+the application database, created automatically), hosted in the API process with
+2 workers. The dashboard at `/hangfire` is restricted to local requests because the
+API is JWT-only. Each job is an `IDataSyncJobHandler` registered in DI; at startup
+`IDataSyncService.EnsureJobsRegisteredAsync()` seeds a `DataSyncJobs` row per
+handler and pushes every enabled row's cron to Hangfire. Hangfire invokes
+`DataSyncHangfireJob.Run` (`[DisableConcurrentExecution]`, no automatic retries),
+which delegates to `IDataSyncJobRunner` to record a `DataSyncJobRuns` row and
+execute the handler. In the `Testing` environment Hangfire is not registered and a
+`NoOpDataSyncScheduler` is used instead.
+
+**Employee-info handler** (`employee-info-sync`): copies `ku_employee_info` from the
+HR database (`DataSync:EmployeeInfo:SourceConnectionString`) into the app database.
+Full refresh: discovers writable target columns and source columns via `sys.columns`,
+selects only the intersection, loads the source into memory, then `DELETE` +
+`SqlBulkCopy` inside one transaction so readers never see an empty table. Aborts
+(target untouched) when the source is empty or below `MinRowRatio` (default 0.9) of
+the current target row count, or when the post-copy count differs.
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
@@ -320,7 +360,7 @@ All endpoints scoped through `IStrategicScopeService` — Strategy Editors see o
 | GET | `/` | Paged list (filterable by org unit, scope-filtered) |
 | GET | `/{id}` | Single objective (returns 404 when out of scope). Response is enriched with parent strategic-plan context (`strategicPlanId`, `strategicPlanName`, `strategicPlanStatus`, `planStartYear`, `planEndYear`, `isPlanLocked`) so the UI can gate edits and constrain the year picker without a second round-trip; the list endpoints leave these fields null to avoid an N+1 lock-guard probe per row |
 | GET | `/by-orgunit/{orgUnitId}` | Objectives for org unit (empty list when out of scope) |
-| POST | `/` | Create (auto-generates ObjectiveCode SO-001; write scope enforced) |
+| POST | `/` | Create (auto-generates ObjectiveCode `SO-n` from the `dbo.ObjectiveCodeSeq` SQL sequence — atomic, collision-proof; write scope enforced) |
 | PUT | `/{id}` | Update (scope enforced on both source and target org unit) |
 | DELETE | `/{id}` | Soft delete (write scope enforced). Returns **409 Conflict** with the list of project codes when one or more non-deleted projects still link to the objective (`Project.StrategicObjectiveId`) — caller must unlink/reassign those projects before retrying |
 | POST | `/{id}/restore` | Restore (write scope enforced) |
@@ -560,6 +600,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | OrgUnitId | Guid? (FK) | Org unit for access scoping |
 | StrategicPlanId | Guid? (FK) | Optional linked strategic plan — drives the strategic objectives available to projects in this workspace |
 | IsActive | bool | Active flag (default true) |
+| IsPrivate | bool | Private flag (default false). When true, only the workspace's admins + members can see the workspace and its projects / milestones / action items / risks — enforced by global query filters (see `ICurrentUserService`). Create/update DTOs carry `IsPrivate`; on update `null` keeps the current value |
 | **Nav:** | | Admins (WorkspaceAdmin), Members (WorkspaceMember), ProjectManagers (WorkspaceProjectManager), StrategicProjectApprovers (WorkspaceStrategicProjectApprover), Projects, ActionItems |
 
 #### WorkspaceMember (join table for direct user assignment)
@@ -645,7 +686,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | Field | Type | Description |
 |-------|------|-------------|
 | Id | Guid (PK) | Primary key |
-| ObjectiveCode | string | Auto-generated (SO-001) |
+| ObjectiveCode | string | Auto-generated `SO-n` from `dbo.ObjectiveCodeSeq` (SQL SEQUENCE, seeded from highest existing code by the `Add_ObjectiveCodeSequence` migration) |
 | Statement | string | Objective statement |
 | OrgUnitId | Guid (FK) | Scoped to org unit |
 | StrategicPlanId | Guid? (FK) | Optional FK to parent plan (nullable during the migration window — backfilled to a "Legacy Strategy" plan) |
@@ -769,6 +810,30 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | IsActive | bool | Only one row with IsActive=true (filtered unique index) |
 | CreatedAt / CreatedBy / UpdatedAt / UpdatedBy | audit | Standard audit columns |
 
+#### DataSyncJob (`DataSyncJobs`)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| JobKey | string(100) | Unique machine key (e.g. `employee-info-sync`); matches the DI handler and the Hangfire recurring-job id |
+| Name / Description | string(200) / string(1000) | Display text seeded from the handler |
+| CronExpression | string(100) | 5-field cron (6 with seconds) |
+| TimeZoneId | string(100)? | Windows/IANA id used to evaluate the cron; null = UTC |
+| IsEnabled | bool | When false the recurring job is removed from Hangfire (manual runs still allowed) |
+| LastRunAt / LastRunStatus / LastRunMessage / LastRunRowCount / LastRunDurationMs | denormalised | Last-run summary for the list view |
+| CreatedAt / UpdatedAt / UpdatedBy | audit | |
+
+#### DataSyncJobRun (`DataSyncJobRuns`)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| JobId | Guid (FK → DataSyncJobs, cascade) | |
+| StartedAt / FinishedAt | DateTime | UTC |
+| Status | `DataSyncRunStatus` | Running / Succeeded / Failed (Running rows older than 30 min are marked Failed "Interrupted" on the next run) |
+| Trigger | `DataSyncTrigger` | Scheduled / Manual |
+| TriggeredBy | string(256)? | User id for manual runs |
+| RowsRead / RowsWritten | int? | |
+| Message | string(4000)? | Success summary or error text |
+
 #### Document
 | Field | Type | Description |
 |-------|------|-------------|
@@ -876,12 +941,18 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | `IMilestoneService` | CRUD per project, stats, baselining |
 | `IProjectRiskService` | CRUD per project, risk stats, scoring |
 | `IWorkspaceService` | CRUD, summary stats, admin assignment, **member CRUD (add/remove/list)**, **strategic-plan link/unlink**, enriched active-users + strategic-plans dropdowns |
-| `IWorkspaceAccessResolver` | Returns the set of workspace IDs visible to a user; `null` means unrestricted (Admin / PMO Head / PMO Analyst). Drives workspace + project + action-item list filtering. |
+| `IWorkspaceAccessResolver` | Returns the set of workspace IDs visible to a user; `null` means unrestricted (Admin / PMO Head / PMO Analyst). Drives workspace + project + action-item list filtering. Private workspaces are additionally hidden from non-members by the global query filters, even for unrestricted roles. |
+| `ICurrentUserService` | Request user id from `ClaimTypes.NameIdentifier` (`null` outside HTTP requests). Injected into `AppDbContext` and exposed as `IAppDbContext.CurrentUserId`; drives the private-workspace query filters on `Workspace`, `Project`, `Milestone`, `ActionItem` and `ProjectRisk` (combined with their soft-delete filters). `null` = system context, unrestricted. Queries that call `IgnoreQueryFilters()` (include-deleted lists, restores) re-apply the rule via `PrivateWorkspaceQueryExtensions.WhereWorkspaceVisibleTo(userId)` |
 | `IDashboardService` | KPI metrics, management dashboard, team workload |
+| `IDashboardAnalyticsService` | Scoped aggregations for the Overview, Action Items, Projects and Strategy dashboards (`GetMyActionsAsync`, `GetTeamActivityAsync`, `GetActionItemsAsync`, `GetProjectsAsync`, `GetStrategyAsync`) |
 | `INotificationService` | CRUD notifications, read/unread tracking, summary |
 | `IEmailTemplateService` | CRUD templates, delivery logging |
 | `IMailServerConfigService` | Read / upsert the active mail-server configuration; encrypts the password on save (via `ISecretProtector`) and decrypts at send time. `EmailSender` calls `GetActiveSmtpSettingsAsync()` and falls back to bound `SmtpSettings` from `appsettings.json` when no row exists. |
 | `ISecretProtector` | Symmetric-encryption wrapper over `IDataProtectionProvider` (purpose `ActionTracker.MailServerConfig.Password.v1`) used to protect SMTP passwords (and any future secrets at rest). |
+| `IDataSyncService` | Admin Data Sync operations: list jobs (with Hangfire next-run + running flag), update schedule (validates cron/time zone, re-registers), trigger immediate run (409 if already running), probe, run history, and `EnsureJobsRegisteredAsync()` at startup. |
+| `IDataSyncJobHandler` | One per sync job (`JobKey`, defaults, `ExecuteAsync`, `ProbeAsync`). Current implementation: `EmployeeInfoSyncJobHandler` (`employee-info-sync`). |
+| `IDataSyncJobRunner` | Invoked by Hangfire via `DataSyncHangfireJob`; writes the `DataSyncJobRuns` row, resolves the handler, records outcome and updates the job's last-run summary. |
+| `IDataSyncScheduler` | Scheduler abstraction (`AddOrUpdate` / `Remove` / `TriggerNow` / `GetNextExecutionUtc` / validation). `HangfireDataSyncScheduler` in normal environments, `NoOpDataSyncScheduler` under `Testing`. |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
 | `IUserManagementService` | CRUD users, role assignment (with Strategy Editor org-unit-level guard), KU employee search, activation |
 | `ICommentService` | CRUD polymorphic comments (any entity type) |
@@ -987,4 +1058,8 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | `App:FrontendBaseUrl` | Frontend base URL for deep links |
 | `Smtp:Host/Port/UseSsl/FromEmail/FromName/Username/Password` | SMTP email configuration |
 | `FileStorage:Path/MaxFileSizeMB/AllowedExtensions` | File storage settings |
+| `DataSync:EmployeeInfo:SourceConnectionString` | SQL connection string to the HR source (KU1ICDDWV008 / KU_BOT_PROD). Contains credentials — `appsettings.json` is git-ignored; never commit it |
+| `DataSync:EmployeeInfo:SourceTable` / `TargetTable` | Schema-qualified table names (default `dbo.ku_employee_info` on both sides) |
+| `DataSync:EmployeeInfo:MinRowRatio` | Safety guard: abort when source rows < ratio × target rows (default 0.9; 0 disables) |
+| `DataSync:EmployeeInfo:CommandTimeoutSeconds` | Per-command timeout for the sync (default 120) |
 | `Serilog` | Structured logging configuration (Console + File with daily rolling) |

@@ -45,7 +45,7 @@
   border: 1px solid var(--bd);
   border-radius: 8px;
   font-size: 0.95rem;
-  background: var(--inp);
+  background-color: var(--inp);
   color: var(--t1);
 
   &:focus {
@@ -81,8 +81,8 @@
   width: 2.25em;
 
   &:checked {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background-color: var(--brand-royal);
+    border-color: var(--brand-royal);
   }
 }
 
@@ -118,7 +118,7 @@
     background: none; border: none; padding: 0;
     color: var(--accent); cursor: pointer; font-size: 0.9rem;
     line-height: 1; display: inline-flex;
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--err); }
   }
 
   &__dropdown {

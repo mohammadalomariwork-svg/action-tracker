@@ -26,6 +26,11 @@ export class ActionItemService {
     if (filter.isStandalone != null) params = params.set('isStandalone', filter.isStandalone);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
     if (filter.includeDeleted) params = params.set('includeDeleted', true);
+    if (filter.openOnly)            params = params.set('openOnly', true);
+    if (filter.overdueOnly)         params = params.set('overdueOnly', true);
+    if (filter.isEscalated != null) params = params.set('isEscalated', filter.isEscalated);
+    if (filter.dueBucket)           params = params.set('dueBucket', filter.dueBucket);
+    if (filter.ageBucket)           params = params.set('ageBucket', filter.ageBucket);
 
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(this.apiUrl, { params });
   }
@@ -73,6 +78,11 @@ export class ActionItemService {
     if (filter.priority != null) params = params.set('priority', filter.priority);
     if (filter.searchTerm)       params = params.set('searchTerm', filter.searchTerm);
     if (filter.includeDeleted)   params = params.set('includeDeleted', true);
+    if (filter.openOnly)            params = params.set('openOnly', true);
+    if (filter.overdueOnly)         params = params.set('overdueOnly', true);
+    if (filter.isEscalated != null) params = params.set('isEscalated', filter.isEscalated);
+    if (filter.dueBucket)           params = params.set('dueBucket', filter.dueBucket);
+    if (filter.ageBucket)           params = params.set('ageBucket', filter.ageBucket);
 
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
   }

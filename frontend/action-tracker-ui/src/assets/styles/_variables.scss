@@ -1,111 +1,78 @@
 // ═══════════════════════════════════════════════════════════════════
-// THEME SYSTEM — Dark Neon "Command Center" + Light Mode
+// LEGACY TOKEN ALIASES
+//
+// Older components still read long-form names (--primary, --bg-card,
+// --text-primary, --card-shadow …). Each one is an alias of a token
+// defined in _theme-variables.scss, so there is exactly one place to
+// change a colour and the two files can no longer drift apart.
+// Do not add raw colour values here.
 // ═══════════════════════════════════════════════════════════════════
 
-// ── Dark theme (default) ─────────────────────────────────────────
+[data-theme="dark"],
+[data-theme="light"],
+:root {
+  // Surfaces
+  --bg-base:          var(--bg);        // used as an opaque panel fill (drawers)
+  --bg-main:          var(--canvas);
+  --bg-deep:          var(--bg2);
+  --bg-surface:       var(--sf);
+  --bg-card:          var(--sf);
+  --bg-surface-hover: var(--sfh);
+  --bg-elevated:      var(--el);
+  --bg-input:         var(--inp);
+  --bg-input-focus:   var(--inpf);
+  --nav-bg:           var(--nav);
+
+  // Borders
+  --border-default:   var(--bd);
+  --border-color:     var(--bd);
+  --border-hover:     var(--bdh);
+
+  // Text
+  --text-1:           var(--t1);
+  --text-primary:     var(--t1);
+  --text-2:           var(--t2);
+  --text-secondary:   var(--t2);
+  --text-3:           var(--t3);
+
+  // Brand
+  --primary:          var(--accent);
+  --secondary:        var(--accent2);
+
+  // Elevation
+  --shadow-sm:        var(--csh);
+  --shadow-md:        var(--sh-drop);
+  --card-shadow:      var(--csh);
+  --neon-intense:     var(--neon2);
+
+  // Shape
+  --border-radius:    16px;
+  --header-height:    var(--hdr-h);
+}
+
+// Fill colours for solid status buttons / chips. These sit under
+// white text, so they stay mid-tone in both themes (unlike --ok /
+// --err, which are tuned as *text* colours per theme).
 [data-theme="dark"],
 :root {
-  --bg-base: #252A33;
-  --bg-deep: #1D2128;
-  --bg-surface: rgba(255,255,255,0.04);
-  --bg-surface-hover: rgba(255,255,255,0.07);
-  --bg-elevated: rgba(255,255,255,0.06);
-  --bg-input: rgba(255,255,255,0.05);
-  --bg-input-focus: rgba(255,255,255,0.09);
-  --border-default: rgba(255,255,255,0.07);
-  --border-hover: rgba(255,255,255,0.14);
-  --text-1: #E2E8F0;
-  --text-2: #94A3B8;
-  --text-3: #64748B;
-  --accent: #00E5FF;
-  --accent2: #7C5CFC;
-  --nav-bg: rgba(37,42,51,0.88);
-
-  // Map legacy vars → new theme vars
-  --primary: #00E5FF;
-  --primary-dark: #00b8d4;
-  --secondary: #7C5CFC;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --info: #3b82f6;
-  --light: #1e293b;
-  --dark: #E2E8F0;
-  --bg-main: #252A33;
-  --bg-card: rgba(255,255,255,0.04);
-  --text-primary: #E2E8F0;
-  --text-secondary: #94A3B8;
-  --border-color: rgba(255,255,255,0.07);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-  --border-radius: 16px;
-  --header-height: 60px;
-
-  // Neon glow
-  --neon: 0 0 8px rgba(0,229,255,0.50), 0 0 24px rgba(0,229,255,0.25), 0 0 48px rgba(0,229,255,0.10);
-  --neon-intense: 0 0 12px rgba(0,229,255,0.70), 0 0 36px rgba(0,229,255,0.40), 0 0 72px rgba(0,229,255,0.15);
-  --card-shadow: 0 2px 12px rgba(0,0,0,0.3);
-
-  // Side margins for border rails
-  --M: 44px;
+  --primary-dark: #2A5CF0;
+  --success: #16A34A;
+  --danger:  #DC2626;
+  --warning: #F59E0B;
+  --light:   #2B303B;
+  --dark:    #E6EBF5;
 }
 
-// ── Light theme ──────────────────────────────────────────────────
 [data-theme="light"] {
-  --bg-base: #F2F4F8;
-  --bg-deep: #E8EBF0;
-  --bg-surface: rgba(255,255,255,0.82);
-  --bg-surface-hover: rgba(255,255,255,0.95);
-  --bg-elevated: rgba(255,255,255,0.90);
-  --bg-input: rgba(255,255,255,0.85);
-  --bg-input-focus: rgba(255,255,255,1);
-  --border-default: rgba(0,0,0,0.06);
-  --border-hover: rgba(0,0,0,0.12);
-  --text-1: #0B1222;
-  --text-2: #4A5568;
-  --text-3: #94A3B8;
-  --accent: #0055FF;
-  --accent2: #7C5CFC;
-  --nav-bg: rgba(255,255,255,0.85);
-
-  --primary: #0055FF;
-  --primary-dark: #003ecb;
-  --secondary: #7C5CFC;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --info: #3b82f6;
-  --light: #f8fafc;
-  --dark: #1e293b;
-  --bg-main: #F2F4F8;
-  --bg-card: rgba(255,255,255,0.82);
-  --text-primary: #0B1222;
-  --text-secondary: #4A5568;
-  --border-color: rgba(0,0,0,0.06);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-  --border-radius: 16px;
-  --header-height: 60px;
-
-  --neon: 0 0 6px rgba(0,85,255,0.30), 0 0 18px rgba(0,85,255,0.15);
-  --neon-intense: 0 0 10px rgba(0,85,255,0.45), 0 0 28px rgba(0,85,255,0.25);
-  --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
-
-  --M: 44px;
-}
-
-// ── Responsive margins ───────────────────────────────────────────
-@media (max-width: 1024px) {
-  :root, [data-theme="dark"], [data-theme="light"] { --M: 28px; }
-}
-@media (max-width: 600px) {
-  :root, [data-theme="dark"], [data-theme="light"] { --M: 16px; }
-}
-@media (max-width: 480px) {
-  :root, [data-theme="dark"], [data-theme="light"] { --M: 8px; }
+  --primary-dark: #1E46D2;
+  --success: #15803D;
+  --danger:  #B91C1C;
+  --warning: #92400E;
+  --light:   #F3F6FC;
+  --dark:    #253047;
 }
 
 // ── SCSS tokens ──────────────────────────────────────────────────
-$primary: #00E5FF;
-$secondary: #7C5CFC;
+$primary: #2A5CF0;
+$secondary: #6C3BF5;
 $font-family-base: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', system-ui, sans-serif;

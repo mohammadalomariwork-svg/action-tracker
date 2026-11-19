@@ -1,0 +1,189 @@
+<div class="dash">
+
+  <app-breadcrumb [items]="[{ label: 'Dashboard', route: '/dashboard' }, { label: 'Projects' }]" />
+
+  <app-page-header
+    title="Projects"
+    subtitle="Progress and health of every project you can see"
+    icon="bi bi-kanban"
+  >
+    <app-dash-tabs />
+  </app-page-header>
+
+  @if (failed()) {
+    <div class="dash-state dash-state--bad">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <p>The projects dashboard could not be loaded.</p>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="load()">Try again</button>
+    </div>
+  } @else {
+
+    <div class="dash-stats">
+      <app-dash-stat icon="bi bi-kanban" label="Total projects" [value]="data()?.total ?? 0" [loading]="loading()"
+                     hint="Show all projects" (activate)="openAll()" />
+      <app-dash-stat icon="bi bi-play-circle" label="Active" [value]="data()?.active ?? 0" [loading]="loading()"
+                     hint="Show active projects" (activate)="openActive()" />
+      <app-dash-stat icon="bi bi-check2-circle" label="Completed" [value]="data()?.completed ?? 0" [loading]="loading()"
+                     hint="Show completed projects" (activate)="openCompleted()" />
+      <app-dash-stat icon="bi bi-hand-thumbs-up" label="On track" [value]="data()?.onTrack ?? 0" [loading]="loading()"
+                     hint="Show projects on track" (activate)="openHealth('OnTrack')" />
+      <app-dash-stat icon="bi bi-exclamation-diamond" label="At risk" [value]="data()?.atRisk ?? 0" [loading]="loading()"
+                     [tone]="(data()?.atRisk ?? 0) > 0 ? 'danger' : 'brand'"
+                     hint="Show projects at risk" (activate)="openHealth('AtRisk')" />
+      <app-dash-stat icon="bi bi-alarm" label="Delayed" [value]="data()?.delayed ?? 0" [loading]="loading()"
+                     [tone]="(data()?.delayed ?? 0) > 0 ? 'danger' : 'brand'"
+                     hint="Show delayed projects" (activate)="openHealth('Delayed')" />
+      <app-dash-stat icon="bi bi-speedometer" label="Average progress" [value]="pct(data()?.avgProgress)" [loading]="loading()"
+                     hint="Show projects under way, least progress first" (activate)="openUnderWay()" />
+    </div>
+
+    @if (!loading() && data(); as d) {
+      @if (d.total === 0) {
+        <div class="dash-state">
+          <i class="bi bi-kanban" aria-hidden="true"></i>
+          <p>No projects to report on yet.</p>
+        </div>
+      } @else {
+
+        <div class="dash-grid dash-grid--3">
+          <app-dash-panel title="Health" subtitle="Is each project where it should be?" icon="bi bi-heart-pulse">
+            <div class="donut">
+              <div class="donut__chart">
+                <canvas baseChart type="doughnut" [data]="healthChart()" [options]="healthOptions()"
+                        role="img" aria-label="Projects by health"></canvas>
+                <div class="donut__center">
+                  <span class="donut__num">{{ d.total }}</span>
+                  <span class="donut__lbl">Projects</span>
+                </div>
+              </div>
+              <app-dash-legend [items]="healthLegend()" [stacked]="true" (pick)="openHealth($event)" />
+            </div>
+          </app-dash-panel>
+
+          <app-dash-panel title="By status" subtitle="Where projects are in their life cycle" icon="bi bi-diagram-3">
+            <div class="chart-box chart-box--sm">
+              <canvas baseChart type="bar" [data]="statusChart()" [options]="statusOptions()"
+                      role="img" aria-label="Projects by status"></canvas>
+            </div>
+            <app-dash-legend [items]="statusLegend()" (pick)="openStatus($event)" />
+          </app-dash-panel>
+
+          <app-dash-panel title="Strategic vs operational" subtitle="Portfolio mix" icon="bi bi-bullseye">
+            <div class="donut">
+              <div class="donut__chart">
+                <canvas baseChart type="doughnut" [data]="typeChart()" [options]="typeOptions()"
+                        role="img" aria-label="Projects by type"></canvas>
+              </div>
+              <app-dash-legend [items]="typeLegend()" [stacked]="true" (pick)="openType($event)" />
+            </div>
+          </app-dash-panel>
+        </div>
+
+        <div class="dash-grid dash-grid--2">
+          <app-dash-panel title="Progress of projects under way" subtitle="Active and on-hold projects by completion" icon="bi bi-bar-chart-steps">
+            <div class="chart-box">
+              <canvas baseChart type="bar" [data]="progressChart()" [options]="progressOptions()"
+                      role="img" aria-label="Projects under way by progress"></canvas>
+            </div>
+            <app-dash-legend [items]="progressLegend()" (pick)="openProgress($event)" />
+          </app-dash-panel>
+
+          <app-dash-panel title="By workspace" subtitle="Project health in each workspace" icon="bi bi-collection">
+            <app-ranked-bars [items]="workspaceItems()" (pick)="openWorkspace($event)" emptyText="No workspaces with projects." />
+          </app-dash-panel>
+        </div>
+
+        <div class="dash-grid dash-grid--2">
+          <app-dash-panel title="Projects needing attention first" subtitle="Delayed, then at risk, then by end date" icon="bi bi-list-ol">
+            <button panelActions type="button" class="btn btn-sm btn-outline-primary" (click)="openAll()">
+              View all {{ d.projects.length }}
+            </button>
+            <div class="dash-table-wrap">
+              <table class="dash-table">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Health</th>
+                    <th>Progress</th>
+                    <th class="num">Ends</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of d.projects.slice(0, tableLimit); track p.id) {
+                    <tr (click)="goToProject(p)">
+                      <td>
+                        <div class="cell-title">
+                          <a [routerLink]="['/projects', p.id]" (click)="$event.stopPropagation()">{{ p.name }}</a>
+                          <small>{{ p.code }} · {{ p.workspaceTitle }}</small>
+                        </div>
+                      </td>
+                      <td><span class="chip" [class]="'chip--' + healthTone(p.health)">{{ p.healthLabel }}</span></td>
+                      <td>
+                        <div class="pbar">
+                          <span class="pbar__track"><span class="pbar__fill" [class]="'pbar__fill--' + healthTone(p.health)" [style.width.%]="p.progress"></span></span>
+                          <span class="pbar__val">{{ pct(p.progress) }}</span>
+                        </div>
+                      </td>
+                      <td class="num">{{ p.plannedEndDate | date:'MMM d, y' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </app-dash-panel>
+
+          <app-dash-panel title="Milestones" subtitle="Late, or due within 30 days" icon="bi bi-signpost-split">
+            <button panelActions type="button" class="btn btn-sm btn-outline-primary" (click)="openMilestones(false)">
+              View all
+            </button>
+            <div class="ms-summary">
+              <button type="button" class="ms-pill" (click)="openMilestones(false)">
+                <strong>{{ d.milestonesCompleted }}/{{ d.milestonesTotal }}</strong><span>completed</span>
+              </button>
+              <button type="button" class="ms-pill" [class.ms-pill--bad]="d.milestonesDelayed > 0" (click)="openMilestones(true)">
+                <strong>{{ d.milestonesDelayed }}</strong><span>late</span>
+              </button>
+              <button type="button" class="ms-pill" (click)="openMilestones(false)">
+                <strong>{{ d.milestonesDueSoon }}</strong><span>due in 30 days</span>
+              </button>
+            </div>
+
+            @if (d.milestones.length === 0) {
+              <p class="panel-empty">No milestones are late or due soon.</p>
+            } @else {
+              <div class="dash-table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Milestone</th>
+                      <th>Status</th>
+                      <th class="num">Due</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of d.milestones.slice(0, tableLimit); track m.id) {
+                      <tr (click)="goToMilestone(m)">
+                        <td>
+                          <div class="cell-title">
+                            <a [routerLink]="['/projects', m.projectId, 'milestones', m.id]" (click)="$event.stopPropagation()">{{ m.name }}</a>
+                            <small>{{ m.projectName }}</small>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="chip" [class.chip--bad]="m.isLate" [class.chip--brand]="!m.isLate">{{ m.isLate ? 'Late' : m.statusLabel }}</span>
+                        </td>
+                        <td class="num">{{ m.plannedDueDate | date:'MMM d, y' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </app-dash-panel>
+        </div>
+      }
+    }
+  }
+</div>
+
+<app-drilldown-panel [request]="drill()" (closed)="drill.set(null)" />

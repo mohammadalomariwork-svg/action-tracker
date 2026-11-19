@@ -103,6 +103,10 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services)
     {
+        // Current request user — read by AppDbContext's private-workspace filters
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
         // Map IAppDbContext → AppDbContext (registered by AddDbContext)
         services.AddScoped<IAppDbContext>(sp =>
             sp.GetRequiredService<AppDbContext>());
@@ -111,6 +115,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService,       AuthService>();
         services.AddScoped<IActionItemService, ActionItemService>();
         services.AddScoped<IDashboardService,  DashboardService>();
+        services.AddScoped<IDashboardAnalyticsService, DashboardAnalyticsService>();
         services.AddScoped<IReportService,     ReportService>();
         services.AddScoped<IDocumentService,    DocumentService>();
         services.AddScoped<ICommentService,     CommentService>();

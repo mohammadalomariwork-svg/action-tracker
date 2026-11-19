@@ -6,10 +6,11 @@ import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { interval, Subject, switchMap, takeUntil } from 'rxjs';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { DashboardService }       from '../../../core/services/dashboard.service';
 import { WorkspaceService }       from '../../workspaces/services/workspace.service';
+import { ThemeService }           from '../../../services/theme.service';
 import { ManagementDashboard, AtRiskItem, TeamWorkload } from '../../../core/models/dashboard.model';
 import { ActionItem, ActionStatus, ActionPriority }      from '../../../core/models/action-item.model';
 import { WorkspaceSummary }       from '../../workspaces/models/workspace.model';
@@ -24,11 +25,11 @@ const REFRESH_INTERVAL_MS = 30_000;
 
 // Status doughnut colours aligned with StatusBadge
 const STATUS_COLORS: Record<string, string> = {
-  'ToDo':       '#94a3b8',
-  'InProgress': '#0284c7',
-  'InReview':   '#7c3aed',
-  'Done':       '#059669',
-  'Overdue':    '#dc2626',
+  'ToDo':       '#94A3B8',
+  'InProgress': '#4D8BFF',
+  'InReview':   '#8B6CF6',
+  'Done':       '#10B981',
+  'Overdue':    '#EF4444',
 };
 
 @Component({
@@ -40,12 +41,18 @@ const STATUS_COLORS: Record<string, string> = {
     BaseChartDirective,
     KpiCardComponent, StatusBadgeComponent, PriorityBadgeComponent, PageHeaderComponent, BreadcrumbComponent,
   ],
+  // Chart.js is tree-shakeable: without registering its controllers and
+  // scales <canvas baseChart> throws ('"category" is not a registered
+  // scale') and renders blank. Provided here rather than at the root so
+  // chart.js stays in this lazy chunk.
+  providers: [provideCharts(withDefaultRegisterables())],
   templateUrl: './management-dashboard.component.html',
   styleUrl:    './management-dashboard.component.scss',
 })
 export class ManagementDashboardComponent implements OnInit, OnDestroy {
   private readonly dashSvc      = inject(DashboardService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly themeSvc     = inject(ThemeService);
   private readonly cdr          = inject(ChangeDetectorRef);
   readonly router               = inject(Router);
   private readonly destroy$     = new Subject<void>();
@@ -85,30 +92,41 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
 
   doughnutData: ChartData<'doughnut'> = {
     labels:   [],
-    datasets: [{ data: [], backgroundColor: [], borderWidth: 2, hoverOffset: 6 }],
+    datasets: [{ data: [], backgroundColor: [], borderWidth: 0, spacing: 2, hoverOffset: 6 }],
   };
 
-  doughnutOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '68%',
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: { padding: 14, font: { size: 12 }, color: '#cbd5e1' },
-      },
-      tooltip: {
-        backgroundColor: 'var(--el, #1e293b)',
-        borderColor: 'var(--bd, rgba(255,255,255,0.06))',
-        borderWidth: 1,
-        titleColor: 'var(--t1, #f1f5f9)',
-        bodyColor: 'var(--t1, #f1f5f9)',
-        callbacks: {
-          label: ctx => ` ${ctx.label}: ${ctx.parsed} items`,
+  doughnutOptions: ChartConfiguration<'doughnut'>['options'] = this.buildDoughnutOptions();
+
+  /** Chart.js draws on canvas and cannot resolve CSS var() strings —
+   *  custom properties must be resolved to concrete values at build time. */
+  private cssVar(name: string, fallback: string): string {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  private buildDoughnutOptions(): ChartConfiguration<'doughnut'>['options'] {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 14, font: { size: 12 }, color: this.cssVar('--t2', '#AEBBD0') },
+        },
+        tooltip: {
+          backgroundColor: this.cssVar('--el', '#2B303B'),
+          borderColor: this.cssVar('--bdh', 'rgba(160,185,255,0.26)'),
+          borderWidth: 1,
+          titleColor: this.cssVar('--t1', '#f1f5f9'),
+          bodyColor: this.cssVar('--t2', '#94a3b8'),
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} items`,
+          },
         },
       },
-    },
-  };
+    };
+  }
 
   // ── Bar chart ─────────────────────────────────────────
   readonly barType = 'bar' as const;
@@ -119,61 +137,66 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
       {
         label: 'Assigned',
         data: [],
-        backgroundColor: 'rgba(0, 229, 255, 0.65)',
+        backgroundColor: 'rgba(77, 139, 255, 0.85)',
         borderRadius: 4,
       },
       {
         label: 'Completed',
         data: [],
-        backgroundColor: 'rgba(34, 197, 94, 0.70)',
+        backgroundColor: 'rgba(16, 185, 129, 0.85)',
         borderRadius: 4,
       },
     ],
   };
 
-  barOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'y',
-    scales: {
-      x: {
-        beginAtZero: true,
-        ticks: { stepSize: 1, font: { size: 11 }, color: '#94a3b8' },
-        grid: { color: 'rgba(0,229,255,0.06)' },
-      },
-      y: {
-        ticks: { font: { size: 11 }, color: '#94a3b8' },
-        grid: { display: false },
-      },
-    },
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: { padding: 14, font: { size: 12 }, color: '#cbd5e1' },
-      },
-      tooltip: {
-        backgroundColor: 'var(--el, #1e293b)',
-        borderColor: 'var(--bd, rgba(255,255,255,0.06))',
-        borderWidth: 1,
-        titleColor: 'var(--t1, #f1f5f9)',
-        bodyColor: 'var(--t1, #f1f5f9)',
-        callbacks: {
-          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}`,
+  barOptions: ChartConfiguration<'bar'>['options'] = this.buildBarOptions();
+
+  private buildBarOptions(): ChartConfiguration<'bar'>['options'] {
+    const gridColor = this.cssVar('--bd', 'rgba(160,185,255,0.13)');
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, font: { size: 11 }, color: this.cssVar('--t2', '#94a3b8') },
+          grid: { color: gridColor },
+        },
+        y: {
+          ticks: { font: { size: 11 }, color: this.cssVar('--t2', '#94a3b8') },
+          grid: { display: false },
         },
       },
-    },
-    onClick: (_event, elements) => {
-      if (elements.length) {
-        const idx = elements[0].index;
-        const workload = this.dashboard()?.teamWorkload ?? [];
-        if (workload[idx]) {
-          this.router.navigate(['/actions'], {
-            queryParams: { assigneeId: workload[idx].userId },
-          });
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 14, font: { size: 12 }, color: this.cssVar('--t2', '#AEBBD0') },
+        },
+        tooltip: {
+          backgroundColor: this.cssVar('--el', '#2B303B'),
+          borderColor: this.cssVar('--bdh', 'rgba(160,185,255,0.26)'),
+          borderWidth: 1,
+          titleColor: this.cssVar('--t1', '#f1f5f9'),
+          bodyColor: this.cssVar('--t2', '#94a3b8'),
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}`,
+          },
+        },
+      },
+      onClick: (_event, elements) => {
+        if (elements.length) {
+          const idx = elements[0].index;
+          const workload = this.dashboard()?.teamWorkload ?? [];
+          if (workload[idx]) {
+            this.router.navigate(['/actions'], {
+              queryParams: { assigneeId: workload[idx].userId },
+            });
+          }
         }
-      }
-    },
-  };
+      },
+    };
+  }
 
   // ── Computed view helpers ─────────────────────────────
   readonly atRiskItems = computed(() =>
@@ -213,6 +236,15 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
     interval(REFRESH_INTERVAL_MS).pipe(takeUntil(this.destroy$))
       .subscribe(() => this.refresh$.next());
 
+    // Rebuild chart options on theme change so resolved CSS-var colors refresh
+    this.themeSvc.currentTheme$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.doughnutOptions = this.buildDoughnutOptions();
+        this.barOptions      = this.buildBarOptions();
+        this.cdr.markForCheck();
+      });
+
     this.loadWorkspaceSummary();
   }
 
@@ -239,7 +271,8 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
       datasets: [{
         data:            sb.map(s => s.count),
         backgroundColor: sb.map(s => STATUS_COLORS[s.status.replace(/\s/g, '')] ?? s.color),
-        borderWidth: 2,
+        borderWidth: 0,
+        spacing: 2,
         hoverOffset: 6,
       }],
     };
@@ -252,13 +285,13 @@ export class ManagementDashboardComponent implements OnInit, OnDestroy {
         {
           label: 'Assigned',
           data:  wl.map(w => w.assignedCount),
-          backgroundColor: 'rgba(0, 229, 255, 0.65)',
+          backgroundColor: 'rgba(77, 139, 255, 0.85)',
           borderRadius: 4,
         },
         {
           label: 'Completed',
           data:  wl.map(w => w.completedCount),
-          backgroundColor: 'rgba(34, 197, 94, 0.70)',
+          backgroundColor: 'rgba(16, 185, 129, 0.85)',
           borderRadius: 4,
         },
       ],

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════
-// GLOBAL FORM OVERRIDES — Inputs, Selects, Textareas, Labels
+// GLOBAL FORM OVERRIDES — Inputs, Selects, Textareas, Labels, Switches
 // ═══════════════════════════════════════════════════════════════════
 
 // ── All form elements — ensure theme text color ──────────────────
@@ -11,70 +11,103 @@ textarea {
 
 // ── Text inputs & selects ────────────────────────────────────────
 .form-control,
-.form-select {
-  background: var(--inp);
-  border: 1px solid var(--bd);
+.form-select,
+input[type="date"].form-control,
+input[type="datetime-local"].form-control {
+  background-color: var(--inp);
+  border: 1px solid var(--bdh);
   border-radius: var(--r-md);
   padding: 10px 14px;
   color: var(--t1);
   font-size: 14px;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease),
+              box-shadow 0.2s var(--ease);
 
   &::placeholder {
     color: var(--t3);
+    opacity: 0.85;
+  }
+
+  &:hover:not(:focus):not(:disabled):not([readonly]) {
+    border-color: rgba(var(--ar), 0.45);
   }
 
   &:focus {
-    background: var(--inpf);
-    border-color: rgba(var(--ar), 0.40);
-    box-shadow: 0 0 0 3px rgba(var(--ar), 0.06), 0 0 16px rgba(var(--ar), 0.08);
+    background-color: var(--inpf);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.18);
+    color: var(--t1);
     outline: none;
   }
 
   &.is-invalid,
   &:invalid:not(:placeholder-shown) {
-    border-color: var(--danger);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+    border-color: var(--err);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(var(--errr), 0.18);
+    }
   }
 
-  &:disabled {
-    opacity: 0.5;
+  // Disabled / read-only: a recessed fill rather than element opacity,
+  // which would leave half-transparent text that is hard to read
+  &:disabled,
+  &[readonly] {
+    opacity: 1;
+    background-color: var(--bg2);
+    border-color: var(--bd);
+    color: var(--t3);
+    cursor: not-allowed;
   }
+}
+
+// Compact controls keep the same proportions
+.form-control-sm,
+.form-select-sm {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+// Bootstrap paints the select caret as a dark SVG; recolour per theme
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238593AE' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px 10px;
+  padding-right: 36px;
+}
+
+[data-theme="light"] .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%235F6C86' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
 // ── Textareas ────────────────────────────────────────────────────
 textarea.form-control {
   min-height: 100px;
   resize: vertical;
+  line-height: 1.55;
 }
 
-// ── Date inputs ──────────────────────────────────────────────────
-input[type="date"].form-control,
-input[type="datetime-local"].form-control {
-  background: var(--inp);
-  border: 1px solid var(--bd);
-  border-radius: var(--r-md);
-  padding: 10px 14px;
-  color: var(--t1);
-  font-size: 14px;
-
-  &:focus {
-    background: var(--inpf);
-    border-color: rgba(var(--ar), 0.40);
-    box-shadow: 0 0 0 3px rgba(var(--ar), 0.06), 0 0 16px rgba(var(--ar), 0.08);
-    outline: none;
-  }
-}
-
-// ── Labels ───────────────────────────────────────────────────────
+// ── Labels & help text ───────────────────────────────────────────
 .form-label {
-  font-size: 11px;
+  margin-bottom: 6px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--t3);
-  letter-spacing: 0.03em;
+  color: var(--t2);
+  letter-spacing: 0.01em;
 }
 
-// ── Checkboxes ───────────────────────────────────────────────────
+.form-text {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.invalid-feedback {
+  font-size: 12px;
+  color: var(--err);
+}
+
 // ── Native <option> inside selects ──────────────────────────────
 .form-select option,
 .form-control option,
@@ -83,19 +116,73 @@ select option {
   color: var(--t1);
 }
 
+// ── Checkboxes, radios, switches ─────────────────────────────────
 .form-check-input {
   background-color: var(--inp);
-  border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  border: 1px solid var(--bdh);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease),
+              box-shadow 0.15s var(--ease);
 
-  &:checked {
-    background-color: var(--accent);
+  &[type="checkbox"] {
+    border-radius: 5px;
+  }
+
+  &:hover:not(:disabled) {
     border-color: var(--accent);
   }
 
-  &:focus {
-    border-color: rgba(var(--ar), 0.40);
-    box-shadow: 0 0 0 3px rgba(var(--ar), 0.06);
+  &:checked {
+    background-color: var(--brand-royal);
+    border-color: var(--brand-royal);
   }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--ar), 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.form-check-label {
+  color: var(--t1);
+  cursor: pointer;
+}
+
+// Switch knob: Bootstrap's default is a translucent dark dot that
+// vanishes on dark surfaces
+.form-switch .form-check-input {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%238593AE'/%3e%3c/svg%3e");
+
+  &:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%237AADFF'/%3e%3c/svg%3e");
+  }
+
+  &:checked,
+  &:checked:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+  }
+}
+
+// ── Range ────────────────────────────────────────────────────────
+.form-range {
+  accent-color: var(--brand-royal);
+
+  &::-webkit-slider-runnable-track { background: rgba(var(--ar), 0.18); }
+  &::-moz-range-track              { background: rgba(var(--ar), 0.18); }
+  &::-webkit-slider-thumb          { background: var(--brand-royal); }
+  &::-moz-range-thumb              { background: var(--brand-royal); }
+}
+
+// ── Input groups ─────────────────────────────────────────────────
+.input-group-text {
+  background: var(--sfh);
+  border: 1px solid var(--bdh);
+  border-radius: var(--r-md);
+  color: var(--t2);
+  font-size: 14px;
 }

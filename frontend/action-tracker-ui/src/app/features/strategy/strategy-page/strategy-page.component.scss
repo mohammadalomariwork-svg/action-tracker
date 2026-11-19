@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .sp-page {
   padding: 1.5rem;
@@ -32,11 +34,11 @@
   }
 
   &--warning {
-    border-color: rgba(245, 158, 11, 0.4);
-    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(var(--warnr), 0.4);
+    background: rgba(var(--warnr), 0.08);
     color: var(--t1);
 
-    i { color: #f59e0b; }
+    i { color: var(--warn); }
   }
 
   &--locked {
@@ -117,24 +119,7 @@
 }
 
 .sp-stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-
-  &--blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-  &--green  { background: rgba(34, 197, 94, 0.12);  color: #22c55e; }
-  &--teal   { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
-  &--yellow { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-  &--indigo { background: rgba(var(--ar), 0.12);    color: var(--accent); }
-  &--purple {
-    background: rgba(var(--a2r, 124, 92, 252), 0.12);
-    color: var(--accent2, #7c5cfc);
-  }
+  @include tile.icon-tile(44px);
 }
 
 .sp-stat-body {
@@ -230,23 +215,23 @@
 
   &--draft {
     background: rgba(100, 116, 139, 0.14);
-    color: #64748b;
+    color: var(--t3);
 
-    .sp-status-dot { background: #64748b; }
+    .sp-status-dot { background: var(--t3); }
   }
 
   &--pending {
-    background: rgba(245, 158, 11, 0.14);
-    color: #f59e0b;
+    background: rgba(var(--warnr), 0.14);
+    color: var(--warn);
 
-    .sp-status-dot { background: #f59e0b; }
+    .sp-status-dot { background: var(--warn); }
   }
 
   &--approved {
-    background: rgba(34, 197, 94, 0.14);
-    color: #22c55e;
+    background: rgba(var(--okr), 0.14);
+    color: var(--ok);
 
-    .sp-status-dot { background: #22c55e; }
+    .sp-status-dot { background: var(--ok); }
   }
 
   &--archived {
@@ -532,18 +517,18 @@
   }
 
   &--warning {
-    background: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
+    background: rgba(var(--warnr), 0.12);
+    color: var(--warn);
   }
 
   &--success {
-    background: rgba(34, 197, 94, 0.12);
-    color: #22c55e;
+    background: rgba(var(--okr), 0.12);
+    color: var(--ok);
   }
 
   &--danger {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: rgba(var(--errr), 0.12);
+    color: var(--err);
   }
 }
 
@@ -573,12 +558,12 @@
   transition: border-color 0.15s, background-color 0.15s;
 
   &[data-state="current"] {
-    border-color: rgba(245, 158, 11, 0.5);
-    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(var(--warnr), 0.5);
+    background: rgba(var(--warnr), 0.06);
   }
   &[data-state="past"] {
-    border-color: rgba(34, 197, 94, 0.4);
-    background: rgba(34, 197, 94, 0.05);
+    border-color: rgba(var(--okr), 0.4);
+    background: rgba(var(--okr), 0.05);
   }
   &[data-state="upcoming"] {
     opacity: 0.85;
@@ -599,12 +584,12 @@
   font-size: 0.78rem;
 
   [data-state="past"] & {
-    background: rgba(34, 197, 94, 0.16);
-    color: #22c55e;
+    background: rgba(var(--okr), 0.16);
+    color: var(--ok);
   }
   [data-state="current"] & {
-    background: rgba(245, 158, 11, 0.16);
-    color: #f59e0b;
+    background: rgba(var(--warnr), 0.16);
+    color: var(--warn);
   }
 }
 
@@ -636,8 +621,8 @@
   align-items: center;
   gap: 0.3rem;
 
-  [data-state="past"] & i { color: #22c55e; }
-  [data-state="current"] & i { color: #f59e0b; }
+  [data-state="past"] & i { color: var(--ok); }
+  [data-state="current"] & i { color: var(--warn); }
   [data-state="upcoming"] & i { color: var(--t3); }
 }
 
@@ -650,7 +635,7 @@
   background: var(--el);
   border-left: 1px solid var(--bd);
   backdrop-filter: blur(24px);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sh-panel);
 
   &.show { transform: translateX(0); }
 
@@ -667,4 +652,4 @@
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 .text-muted { color: var(--t2); }
-.text-warning { color: #f59e0b; }
+.text-warning { color: var(--warn); }

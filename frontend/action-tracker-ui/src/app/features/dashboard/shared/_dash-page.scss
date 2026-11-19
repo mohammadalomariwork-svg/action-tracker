@@ -1,0 +1,277 @@
+// ═══════════════════════════════════════════════════════════════════
+// Page-level layout shared by the dashboards (Overview, Action Items,
+// Projects, Strategy). Each page's SCSS starts with:
+//   @use '../shared/dash-page';
+// ═══════════════════════════════════════════════════════════════════
+
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 0.5rem 1.5rem 2.5rem;
+
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.75rem 2rem;
+  }
+}
+
+app-breadcrumb,
+app-page-header {
+  display: block;
+}
+
+// The shared page header carries its own bottom margin; the flex gap
+// already spaces the dashboard's sections.
+app-page-header {
+  margin-bottom: -1rem;
+}
+
+// ── Stat cards ─────────────────────────────────────────────
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));   // two per row on a phone
+  gap: 12px;
+}
+
+// ── Panel grids ────────────────────────────────────────────
+// minmax(0, …) so a track can shrink below its content (wide tables,
+// canvases) instead of pushing the page sideways.
+.dash-grid {
+  display: grid;
+  gap: 1.1rem;
+
+  &--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  &--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  @media (max-width: 1280px) {
+    &--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 900px) {
+    &--2,
+    &--3 { grid-template-columns: minmax(0, 1fr); }
+  }
+}
+
+// ── Charts ─────────────────────────────────────────────────
+// Fixed-height boxes. Chart.js sizes its canvas from the parent, so a
+// box that grows with its content would feed a resize loop.
+.chart-box {
+  position: relative;
+  flex: none;
+  height: 240px;
+
+  &--sm { height: 190px; }
+  &--lg { height: 290px; }
+}
+
+// Doughnut beside its legend
+.donut {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 200px);
+  gap: 1rem;
+  align-items: center;
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.donut__chart {
+  position: relative;
+  height: 210px;
+}
+
+// Figure in the hole of the doughnut
+.donut__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donut__num {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--th);
+}
+
+.donut__lbl {
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--t3);
+}
+
+.chart-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--t3);
+
+  .bi { margin-right: 4px; }
+}
+
+// ── Tables ─────────────────────────────────────────────────
+.dash-table-wrap {
+  overflow-x: auto;
+  margin: 0 -0.4rem;
+}
+
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--t3);
+    background: rgba(var(--ar), 0.05);
+    white-space: nowrap;
+
+    &:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+    &:last-child  { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+  }
+
+  td {
+    padding: 0.7rem 0.75rem;
+    color: var(--t2);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--bd);
+  }
+
+  tbody tr {
+    cursor: pointer;
+    transition: background-color 0.12s var(--ease);
+
+    &:last-child td { border-bottom: none; }
+    &:hover { background: rgba(var(--ar), 0.06); }
+  }
+
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.cell-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+
+  a {
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  small {
+    font-size: 11.5px;
+    color: var(--t3);
+  }
+}
+
+.cell-code {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--t2);
+  white-space: nowrap;
+}
+
+// ── Chips ──────────────────────────────────────────────────
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: var(--sfh);
+  color: var(--t2);
+
+  &--brand { background: rgba(var(--ar), 0.15);    color: var(--accent); }
+  &--good  { background: rgba(var(--okr), 0.15);   color: var(--ok); }
+  &--warn  { background: rgba(var(--warnr), 0.17); color: var(--warn); }
+  &--bad   { background: rgba(var(--errr), 0.15);  color: var(--err); }
+}
+
+// ── Inline progress bar ────────────────────────────────────
+.pbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.pbar__track {
+  flex: 1;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: rgba(var(--ar), 0.14);
+  overflow: hidden;
+}
+
+.pbar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-grad-h);
+
+  &--good    { background: #10B981; }
+  &--warn    { background: #F59E0B; }
+  &--bad     { background: #EF4444; }
+  &--neutral { background: #94A3B8; }
+}
+
+.pbar__val {
+  min-width: 38px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Loading / error / empty ────────────────────────────────
+.dash-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 3rem 1rem;
+  border: 1px dashed var(--bdh);
+  border-radius: var(--r-lg);
+  text-align: center;
+  color: var(--t3);
+  font-size: 14px;
+
+  .bi { font-size: 2.2rem; color: var(--accent); opacity: 0.8; }
+  p   { margin: 0; }
+
+  &--bad .bi { color: var(--err); }
+}
+
+.panel-empty {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--t3);
+}

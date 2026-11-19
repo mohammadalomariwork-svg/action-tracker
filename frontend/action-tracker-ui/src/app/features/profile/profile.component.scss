@@ -1,3 +1,5 @@
+@use '../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .wd-page {
   padding: 1.5rem;
@@ -53,7 +55,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2, #7c3aed));
+  background: var(--brand-grad);
   color: #fff;
   font-size: 1.5rem;
   font-weight: 700;
@@ -204,4 +206,15 @@
     height: 48px;
     font-size: 1.2rem;
   }
+}
+
+// ── Section titles: glyph on the shared icon tile ─────────────────────────────
+.pf-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.pf-section-icon {
+  @include tile.icon-tile(34px);
 }

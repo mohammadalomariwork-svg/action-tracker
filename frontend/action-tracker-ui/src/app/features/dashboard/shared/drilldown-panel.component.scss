@@ -1,0 +1,332 @@
+// ═══════════════════════════════════════════════════════════════════
+// DRILL-DOWN DRAWER — slides in from the right over the dashboard
+// ═══════════════════════════════════════════════════════════════════
+.dd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: var(--ov);
+  backdrop-filter: blur(3px);
+  animation: ddFade 0.2s var(--ease);
+}
+
+.dd {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1041;
+  width: 560px;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--el);
+  border-left: 1px solid var(--bdh);
+  box-shadow: var(--sh-panel);
+  animation: ddSlide 0.25s var(--ease);
+}
+
+@keyframes ddFade  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ddSlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+// ── Header ─────────────────────────────────────────────────
+.dd__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--bd);
+  flex-shrink: 0;
+}
+
+.dd__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.dd__eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.dd__title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--th);
+  line-height: 1.25;
+}
+
+.dd__sub {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--t3);
+}
+
+.dd__count {
+  flex-shrink: 0;
+  min-width: 34px;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  background: rgba(var(--ar), 0.14);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.dd__close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
+
+  &:hover {
+    background: var(--sfh);
+    border-color: var(--bdh);
+    color: var(--th);
+  }
+}
+
+// ── Body ───────────────────────────────────────────────────
+.dd__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dd-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  background: var(--sf);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease), transform 0.15s var(--ease);
+
+  &:hover {
+    opacity: 1;
+    border-color: rgba(var(--ar), 0.45);
+    background: rgba(var(--ar), 0.06);
+    transform: translateX(-2px);
+
+    .dd-row__go { color: var(--accent); }
+  }
+}
+
+.dd-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dd-row__code {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+}
+
+.dd-row__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--th);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.dd-row__sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.dd-row__dot {
+  opacity: 0.6;
+}
+
+.dd-row__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.dd-row__side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+
+.dd-row__meta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+
+  &--bad { color: var(--err); }
+}
+
+.dd-row__note {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  white-space: nowrap;
+
+  &--bad   { color: var(--err); }
+  &--warn  { color: var(--warn); }
+  &--good  { color: var(--ok); }
+  &--brand { color: var(--accent); }
+}
+
+.dd-row__go {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--t3);
+  transition: color 0.15s var(--ease);
+}
+
+// ── Chips & bars ───────────────────────────────────────────
+.dd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: var(--sfh);
+  color: var(--t2);
+
+  &--brand { background: rgba(var(--ar), 0.15);    color: var(--accent); }
+  &--good  { background: rgba(var(--okr), 0.15);   color: var(--ok); }
+  &--warn  { background: rgba(var(--warnr), 0.17); color: var(--warn); }
+  &--bad   { background: rgba(var(--errr), 0.15);  color: var(--err); }
+}
+
+.dd-bar {
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: var(--r-full);
+  background: rgba(var(--ar), 0.14);
+  overflow: hidden;
+}
+
+.dd-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-grad-h);
+
+  &--good    { background: #10B981; }
+  &--warn    { background: #F59E0B; }
+  &--bad     { background: #EF4444; }
+  &--neutral { background: #94A3B8; }
+}
+
+// ── States ─────────────────────────────────────────────────
+.dd-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--t3);
+  font-size: 13.5px;
+
+  .bi { font-size: 2rem; opacity: 0.7; }
+  p   { margin: 0; }
+
+  &--bad .bi { color: var(--err); }
+}
+
+.dd-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+
+  span {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--sf) 25%, var(--sfh) 50%, var(--sf) 75%);
+    background-size: 200% 100%;
+    animation: ddShimmer 1.4s ease-in-out infinite;
+
+    &:first-child { width: 70%; }
+    &:last-child  { width: 40%; }
+  }
+}
+
+@keyframes ddShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.dd__more {
+  align-self: center;
+  margin: 6px 0 4px;
+}
+
+// ── Footer ─────────────────────────────────────────────────
+.dd__foot {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--bd);
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dd-row {
+    flex-wrap: wrap;
+  }
+
+  .dd-row__side {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    order: 3;
+  }
+
+  .dd-row__go {
+    display: none;
+  }
+}

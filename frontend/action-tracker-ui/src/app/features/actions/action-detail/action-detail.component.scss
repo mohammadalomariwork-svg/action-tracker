@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .wd-page {
   padding: 1.5rem;
@@ -54,11 +56,7 @@
 }
 
 .wd-merged-header__icon {
-  font-size: 2.5rem;
-  color: var(--accent);
-  line-height: 1;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 6px var(--accent));
+  @include tile.icon-tile(50px);
 }
 
 .wd-merged-header__title {
@@ -277,7 +275,7 @@
     line-height: 1;
     display: inline-flex;
 
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--err); }
   }
 
   &__dropdown {
@@ -289,7 +287,7 @@
     background: var(--bg);
     border: 1px solid var(--bd);
     border-radius: var(--r-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--sh-drop);
     margin-top: 2px;
     max-height: 280px;
     display: flex;
@@ -415,13 +413,13 @@
 }
 
 .wf-alert--warning {
-  background: rgba(255, 193, 7, 0.08);
-  border-color: rgba(255, 193, 7, 0.3);
+  background: rgba(var(--warnr), 0.08);
+  border-color: rgba(var(--warnr), 0.3);
 }
 
 .wf-alert__icon {
   font-size: 1.4rem;
-  color: #ffc107;
+  color: var(--warn);
   flex-shrink: 0;
 }
 
@@ -487,7 +485,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--ov);
   z-index: 1050;
 }
 
@@ -508,7 +506,7 @@
   border: 1px solid var(--bd);
   border-radius: var(--r-md);
   pointer-events: all;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--sh-modal);
   backdrop-filter: blur(12px);
 
   &__header {
@@ -533,10 +531,10 @@
     .form-label { color: var(--t2); font-size: 0.85rem; }
 
     .form-control {
-      background: var(--inp);
+      background-color: var(--inp);
       border: 1px solid var(--bd);
       color: var(--t1);
-      &:focus { border-color: var(--accent); background: var(--inpf); outline: none; }
+      &:focus { border-color: var(--accent); background-color: var(--inpf); outline: none; }
     }
   }
 

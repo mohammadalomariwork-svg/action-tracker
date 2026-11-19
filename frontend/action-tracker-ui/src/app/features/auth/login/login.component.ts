@@ -1,10 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MsalService } from '@azure/msal-angular';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest } from '../../../core/models/auth.models';
+import { ThemeService } from '../../../services/theme.service';
 import { environment } from '../../../../environments/environment';
 
 const MSAL_CONFIGURED =
@@ -19,10 +21,11 @@ const MSAL_CONFIGURED =
   styleUrl: './login.component.scss',
 })
 export class LoginComponent implements OnInit {
-  private readonly fb          = inject(FormBuilder);
-  private readonly authService = inject(AuthService);
-  private readonly msalService = inject(MsalService);
-  private readonly router      = inject(Router);
+  private readonly fb           = inject(FormBuilder);
+  private readonly authService  = inject(AuthService);
+  private readonly msalService  = inject(MsalService);
+  private readonly router       = inject(Router);
+  private readonly themeService = inject(ThemeService);
 
   readonly form: FormGroup = this.fb.group({
     email:    ['', [Validators.required, Validators.email]],
@@ -33,6 +36,7 @@ export class LoginComponent implements OnInit {
   readonly msalLoading = signal(false);
   readonly errorMsg    = signal<string | null>(null);
   readonly showPwd     = signal(false);
+  readonly isDark      = toSignal(this.themeService.isDark$, { initialValue: true });
 
   readonly currentYear = new Date().getFullYear();
 

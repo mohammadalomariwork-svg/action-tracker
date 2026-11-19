@@ -5,7 +5,13 @@
     <div class="kpi-card__header">
       <span class="kpi-card__title">{{ title() }}</span>
       @if (icon()) {
-        <span class="kpi-card__icon">{{ icon() }}</span>
+        <span class="kpi-card__icon" aria-hidden="true">
+          @if (isIconClass()) {
+            <i [class]="icon()"></i>
+          } @else {
+            {{ icon() }}
+          }
+        </span>
       }
     </div>
 

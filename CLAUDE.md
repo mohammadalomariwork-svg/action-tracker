@@ -1,7 +1,7 @@
 # CLAUDE.MD — KU Action Tracker
 
 > **Purpose**: This file is read automatically by Claude Code at session start.
-> Keep it updated as features land. Last updated: 2026-05-20
+> Keep it updated as features land. Last updated: 2026-11-18
 
 
 ---
@@ -24,7 +24,8 @@
 | Architecture  | Clean Architecture (4-layer)        |
 | Database      | SQL Server (instance: `localhost`)  |
 | Auth          | Azure AD SSO (MSAL)                |
-| UI Theme      | Fluent / Palantir aesthetic, dark & light modes |
+| Background jobs | Hangfire 1.8 (SQL Server storage, `HangFire` schema) |
+| UI Theme      | Fluent / Palantir aesthetic in the KUmmand Center logo palette, dark & light modes |
 
 ---
 
@@ -100,6 +101,8 @@ ACTION-TRACKER/
 - **WorkspaceProjectManager** — Whitelist of users eligible to be picked as PM for projects in a workspace. The PM dropdown on the project form is restricted to this list; create/edit is rejected when the chosen PM isn't on it.
 - **WorkspaceStrategicProjectApprover** — Sequential approver chain (1-based `Order`) for strategic projects in a workspace. Mirrors the strategic-plan pattern: a single `ProjectApprovalRequest` is created at level 1, each Approve advances the chain, and rejection at any level sends the project back to Draft. Operational projects bypass the chain — their submit short-circuits Draft → Active with a self-approved historical request.
 - **User** — Synced from Azure AD; linked to roles and org units
+- **DataSyncJob** / **DataSyncJobRun** — Admin-configurable background sync jobs (cron, time zone, enabled) and their run history. `JobKey` maps to an `IDataSyncJobHandler` in Infrastructure and doubles as the Hangfire recurring-job id
+- **KuEmployeeInfo** — Keyless mirror of the HR `ku_employee_info` table (read-only from the app); refreshed by the `employee-info-sync` data-sync job
 
 ## Application Roles (`AppRoles` constants)
 
@@ -133,6 +136,8 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 ### UI / UX
 - [x] Fluent / Palantir design aesthetic
 - [x] Dark and light theme toggle
+- [x] **Brand theme from the KUmmand Center logo** — tokens live only in `src/assets/styles/_theme-variables.scss` (`_variables.scss` is aliases). Logo palette: navy `#0B1B4A`, royal `#2A5CF0`, blue `#4D8BFF`, sky `#7AADFF`, slate `#262A33`. Filled controls use `--accent-fill` + `--on-fill`; `--accent` is for text/icons/borders. The logo PNGs are **not** transparent — the header/drawer background (`--nav` / `--bg`) must stay exactly `#262A33` (dark) / white (light).
+- [x] Charts: each chart component provides `provideCharts(withDefaultRegisterables())` (ng2-charts); chart containers need a fixed height
 - [x] Login page with KU branding
 - [x] Footer logo
 
@@ -142,6 +147,7 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] Created by Me section in My Actions
 - [x] Default assignee on action items
 - [x] Workspaces with workspace-membership access control (`IWorkspaceAccessResolver`) — privileged roles (Admin / PMO Head / PMO Analyst) see everything; everyone else only sees workspaces where they are an admin or member. Projects and action items inherit the same scoping.
+- [x] **Private workspaces** (`Workspace.IsPrivate`) — visible only to the workspace's admins + members; hidden from everyone else (incl. Admin / PMO) and excluded from all their stats, dashboards and reports. Enforced by EF global query filters in `AppDbContext` keyed on `ICurrentUserService` (null user = system context, unrestricted). Code using `IgnoreQueryFilters()` on projects/action items must re-apply `WhereWorkspaceVisibleTo(_db.CurrentUserId)`.
 - [x] Workspace direct user assignment (`WorkspaceMember` table + `GET/POST/DELETE /api/workspaces/{id}/members`)
 - [x] **Workspace Settings page** (`/workspaces/:id/settings`) — single home for managing Admins, Members, **Project Managers**, **Strategic Project Approvers** (ordered chain with up/down reorder), and the Linked Strategic Plan. The workspace detail page now shows a read-only access summary + a "Configure Workspace" button (gated by `Workspaces.Edit`) instead of inline editors.
 - [x] PM-list gating — project create/edit rejects PMs that aren't on the workspace's `WorkspaceProjectManager` list. The PM dropdown on the project form pulls from `GET /api/workspaces/{id}/project-managers`.
@@ -150,6 +156,7 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] Projects with role-based access (My Projects page)
 - [x] Milestones with validation on status transitions
 - [x] Dashboard with stat cards
+- [x] **Dashboard hub with drill-down** — `/dashboard` (Overview), `/dashboard/actions`, `/dashboard/projects`, `/dashboard/strategy`. Every stat card / chart segment / list row opens a drawer of the records behind it (`DrilldownPanelComponent`), each linking to its page. Backed by `IDashboardAnalyticsService` (`GET /api/dashboard/my-actions | team-activity | action-items | projects | strategy`), scoped via `IWorkspaceAccessResolver` / `IStrategicScopeService`. Counting rules (open, overdue, due/age windows, project health, KPI achievement) live in `Features/Dashboard/DashboardRules.cs` and are shared with the action-item list filters (`openOnly`, `overdueOnly`, `isEscalated`, `dueBucket`, `ageBucket`) so a drill-down list always matches its chart — change both sides together.
 - [x] Interactive Gantt chart with hover tooltips
 - [x] Filtering & search
 - [x] Export to Excel and Print to PDF (workspaces, projects, milestones, my actions)
@@ -176,7 +183,8 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] Workspace admin custom multi-select picker (filter across name/email/org-unit, lazy-loaded users)
 - [x] Auto-launch Swagger UI on .NET host startup in Development
 - [x] **Mail Server Configuration (Admin Panel)** — Admin-managed SMTP settings stored in `MailServerConfigs` table (Host, Port, UseSsl, From, Username, EncryptedPassword). Password encrypted at rest via ASP.NET Core Data Protection (`ISecretProtector`). `EmailSender` reads the active DB row at send time and falls back to `appsettings.json` `Smtp` section when no row exists. Gated by new `MailServerConfig.View` / `MailServerConfig.Edit` permissions; Admin role only by default.
-- [ ] Scheduled reminders (automated due-date reminders)
+- [x] **Data Sync (Admin Panel)** — Hangfire-hosted background jobs configured from `/admin/data-sync`. `DataSyncJobs` / `DataSyncJobRuns` tables hold the schedule (cron + time zone + enabled) and run history. First job: **HR Employee Info Sync** (`employee-info-sync`) copying `ku_employee_info` from KU_BOT_PROD (KU1ICDDWV008) into Action Center — full refresh via `DELETE` + `SqlBulkCopy` in one transaction, common-column matching, row-count safety guard. Source connection string is read from `DataSync:EmployeeInfo:SourceConnectionString` in the git-ignored `appsettings.json` (placeholders `<USERNAME>` / `<PASSWORD>` must be replaced). Gated by `DataSync.View` / `DataSync.Edit`. Hangfire dashboard at `/hangfire` is local-requests only. New jobs = implement `IDataSyncJobHandler` + register it in `DataSyncServiceCollectionExtensions`; the row is seeded automatically at startup.
+- [ ] Scheduled reminders (automated due-date reminders) — Hangfire is now available for this
 - [ ] Audit trail / activity log
 - [ ] Advanced search (cross-entity, full-text)
 

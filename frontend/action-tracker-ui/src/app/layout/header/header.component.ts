@@ -176,7 +176,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   /** Check if a nav link should be highlighted based on current URL. */
   isLinkActive(link: NavLink): boolean {
     const url = this.currentUrl();
-    if (link.path === '/dashboard') return url === '/dashboard';
+    if (link.path === '/dashboard') return url === '/dashboard' || url.startsWith('/dashboard/') || url.startsWith('/dashboard?');
     if (url.startsWith(link.path)) return true;
     return link.alsoActivePrefixes?.some(prefix => url.startsWith(prefix)) ?? false;
   }

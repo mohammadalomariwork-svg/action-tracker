@@ -120,4 +120,16 @@ export interface ActionItemFilter {
   sortBy: string;
   sortDescending: boolean;
   includeDeleted?: boolean;
+
+  // Dashboard drill-down filters — the server applies the same definitions
+  // the dashboards count by, so a list matches the chart segment it came from.
+  /** Only items that still need work. */
+  openOnly?: boolean;
+  /** Only open items flagged Overdue or past their due date. */
+  overdueOnly?: boolean;
+  isEscalated?: boolean;
+  /** overdue | next7 | next30 | later */
+  dueBucket?: string;
+  /** 0-7 | 8-30 | 31-90 | 90+ (days since creation) */
+  ageBucket?: string;
 }

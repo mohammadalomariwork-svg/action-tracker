@@ -128,6 +128,33 @@
           }
         </div>
 
+        <!-- Private visibility -->
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            <input
+              id="wfIsPrivate"
+              type="checkbox"
+              class="form-check-input"
+              formControlName="isPrivate"
+              role="switch"
+            />
+            <label for="wfIsPrivate" class="form-check-label">
+              <i class="bi bi-lock-fill me-1"></i>Private workspace
+            </label>
+          </div>
+          <div class="form-text">
+            Only this workspace's admins and members can see it. Everyone else (including system
+            admins and PMO) won't see it, and its projects and action items are excluded from their
+            dashboards, stats and reports.
+          </div>
+          @if (form.get('isPrivate')?.value) {
+            <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mt-2 mb-0 small" role="alert">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>If you are not one of this workspace's admins or members, you will lose access to it after saving.</span>
+            </div>
+          }
+        </div>
+
         <!-- isActive toggle (edit mode only) -->
         @if (isEditMode) {
           <div class="mb-3">

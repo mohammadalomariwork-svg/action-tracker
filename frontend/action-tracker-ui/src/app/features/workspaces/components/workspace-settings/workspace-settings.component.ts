@@ -295,6 +295,7 @@ export class WorkspaceSettingsComponent implements OnInit {
       strategicPlanId: this.workspace.strategicPlanId,
       admins: updatedAdmins,
       isActive: this.workspace.isActive,
+      isPrivate: this.workspace.isPrivate,
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -436,6 +437,7 @@ export class WorkspaceSettingsComponent implements OnInit {
       strategicPlanId: this.workspace.strategicPlanId,
       admins: updated,
       isActive: this.workspace.isActive,
+      isPrivate: this.workspace.isPrivate,
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+.dt {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  background: var(--sf);
+  box-shadow: var(--csh);
+}
+
+.dt__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+
+  .bi { font-size: 15px; }
+
+  &:hover {
+    opacity: 1;
+    background: var(--sfh);
+    color: var(--th);
+  }
+
+  &--active,
+  &--active:hover {
+    background: var(--accent-fill);
+    color: var(--on-fill);
+    box-shadow: 0 4px 12px rgba(var(--brand-royal-r), 0.28);
+  }
+}
+
+@media (max-width: 600px) {
+  .dt {
+    display: flex;
+  }
+
+  .dt__tab {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+  }
+}

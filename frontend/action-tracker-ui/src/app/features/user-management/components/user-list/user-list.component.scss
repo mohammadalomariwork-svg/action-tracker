@@ -15,13 +15,13 @@
   max-width: 480px;
 
   .input-group-text {
-    background: var(--inp);
+    background-color: var(--inp);
     border: 1px solid var(--bd);
     color: var(--t3);
   }
 
   .form-control {
-    background: var(--inp);
+    background-color: var(--inp);
     border: 1px solid var(--bd);
     color: var(--t1);
 
@@ -30,7 +30,7 @@
     }
 
     &:focus {
-      background: var(--inpf);
+      background-color: var(--inpf);
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(var(--ar), 0.12);
       color: var(--t1);
@@ -118,16 +118,16 @@
 
   // ── Active status: green/red dot badges ────────────────────────────────────
   .badge.bg-success {
-    background: rgba(34, 197, 94, 0.15) !important;
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.25);
+    background: rgba(var(--okr), 0.15) !important;
+    color: var(--ok);
+    border: 1px solid rgba(var(--okr), 0.25);
     font-weight: 600;
   }
 
   .badge.bg-danger {
-    background: rgba(239, 68, 68, 0.15) !important;
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(var(--errr), 0.15) !important;
+    color: var(--err);
+    border: 1px solid rgba(var(--errr), 0.25);
     font-weight: 600;
   }
 }
@@ -171,16 +171,16 @@
   }
 
   .badge.bg-success {
-    background: rgba(34, 197, 94, 0.15) !important;
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.25);
+    background: rgba(var(--okr), 0.15) !important;
+    color: var(--ok);
+    border: 1px solid rgba(var(--okr), 0.25);
     font-weight: 600;
   }
 
   .badge.bg-danger {
-    background: rgba(239, 68, 68, 0.15) !important;
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(var(--errr), 0.15) !important;
+    color: var(--err);
+    border: 1px solid rgba(var(--errr), 0.25);
     font-weight: 600;
   }
 }

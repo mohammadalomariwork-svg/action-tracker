@@ -1,3 +1,5 @@
+@use '../../../../assets/styles/tile';
+
 // ── Page shell ────────────────────────────────────────────────────────────────
 .od-page {
   padding: 1.5rem;
@@ -33,21 +35,7 @@
 }
 
 .od-stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-
-  &--blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-  &--teal   { background: rgba(13, 148, 136, 0.12); color: #0d9488; }
-  &--purple {
-    background: rgba(var(--a2r, 124, 92, 252), 0.12);
-    color: var(--accent2, #7c5cfc);
-  }
+  @include tile.icon-tile(44px);
 }
 
 .od-stat-body {
@@ -278,11 +266,11 @@
   }
 
   &--good    .od-pct-value,
-  &--good.od-pct-pill { color: #22c55e; }
+  &--good.od-pct-pill { color: var(--ok); }
   &--warn    .od-pct-value,
-  &--warn.od-pct-pill { color: #f59e0b; }
+  &--warn.od-pct-pill { color: var(--warn); }
   &--bad     .od-pct-value,
-  &--bad.od-pct-pill  { color: #ef4444; }
+  &--bad.od-pct-pill  { color: var(--err); }
   &--neutral .od-pct-value { color: var(--t3); }
 }
 
@@ -296,9 +284,9 @@
   background: var(--sf);
   border: 1px solid var(--bd);
 
-  &.od-pct--good { background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
-  &.od-pct--warn { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); }
-  &.od-pct--bad  { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+  &.od-pct--good { background: rgba(var(--okr), 0.1); border-color: rgba(var(--okr), 0.3); }
+  &.od-pct--warn { background: rgba(var(--warnr), 0.1); border-color: rgba(var(--warnr), 0.3); }
+  &.od-pct--bad  { background: rgba(var(--errr), 0.1); border-color: rgba(var(--errr), 0.3); }
 }
 
 // ── Manage targets button ─────────────────────────────────────────────────────
@@ -468,7 +456,7 @@
 .offcanvas-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.50);
+  background: var(--ov);
   z-index: 1040;
 }
 

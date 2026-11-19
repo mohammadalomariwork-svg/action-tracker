@@ -10,6 +10,7 @@ using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -243,11 +244,35 @@ public class StrategicObjectiveService : IStrategicObjectiveService
                     $"Org unit '{request.OrgUnitId}' does not exist or has been deleted.",
                     nameof(request.OrgUnitId));
 
-            var count = await _context.StrategicObjectives
-                .IgnoreQueryFilters()
-                .CountAsync(ct);
+            // Atomic, collision-proof numbering: the DB sequence hands out
+            // each number exactly once, is immune to concurrent creates and
+            // to hard-deleted rows (unlike the previous COUNT(*)+1), and is
+            // seeded from the highest existing code by the
+            // Add_ObjectiveCodeSequence migration.
+            // Fetched via raw ADO: EF's SqlQuery composes the statement into
+            // a derived table (SELECT TOP(n) ... FROM (...)), where SQL
+            // Server forbids NEXT VALUE FOR (error 11719).
+            int nextNumber;
+            var connection = _context.Database.GetDbConnection();
+            var wasOpen = connection.State == System.Data.ConnectionState.Open;
+            if (!wasOpen)
+                await _context.Database.OpenConnectionAsync(ct);
+            try
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT NEXT VALUE FOR dbo.ObjectiveCodeSeq;";
+                command.Transaction =
+                    _context.Database.CurrentTransaction?.GetDbTransaction();
+                nextNumber = Convert.ToInt32(
+                    await command.ExecuteScalarAsync(ct));
+            }
+            finally
+            {
+                if (!wasOpen)
+                    await _context.Database.CloseConnectionAsync();
+            }
 
-            var objectiveCode = $"SO-{count + 1}";
+            var objectiveCode = $"SO-{nextNumber}";
 
             var objective = new StrategicObjective
             {

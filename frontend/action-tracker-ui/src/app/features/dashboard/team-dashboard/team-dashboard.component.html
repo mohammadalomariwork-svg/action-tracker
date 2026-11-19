@@ -1,285 +1,152 @@
 <div class="td-page">
 
-  <app-breadcrumb [items]="[{ label: 'Dashboard' }]" />
-
-  <app-page-header
-    title="Dashboard"
-    subtitle="Overview of your actions and team activity"
-    icon="bi bi-speedometer2"
-  />
-
-  <!-- ── Greeting banner ──────────────────────────────── -->
-  <div class="greeting-banner">
-    <div class="greeting-banner__left">
-      <h1 class="greeting-title">
-        {{ greeting() }}, {{ firstName() }}! 👋
+  <!-- ── Page top: greeting (the page heading) · New Action · dashboard tabs ── -->
+  <div class="td-top">
+    <div class="td-top__lead">
+      <app-breadcrumb [items]="[{ label: 'Dashboard' }]" />
+      <h1 class="td-greeting">
+        <!-- One wrapper so the flex gap only separates the greeting from the date -->
+        <span>{{ greeting() }}, <span class="greeting-name">{{ firstName() }}</span>! 👋</span>
+        <span class="td-greeting__date">{{ today | date:'EEEE, d MMMM' }}</span>
       </h1>
-      <p class="greeting-sub">
-        Here's an overview of your actions and team activity.
-      </p>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
+    <div class="td-top__tools">
       <button *appHasPermission="'ActionItems'; action: 'Create'"
               type="button" class="btn btn-primary"
-              (click)="openNewActionForm()" [disabled]="showActionForm">+ New Action</button>
-      <a routerLink="/actions"       class="btn btn-outline">View All Actions</a>
-      @if (isPrivileged()) {
-        <a routerLink="/management" class="btn btn-outline btn-outline--purple">📊 Management View</a>
-      }
+              (click)="openNewActionForm()" [disabled]="showActionForm">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>New Action
+      </button>
+      <app-dash-tabs />
     </div>
   </div>
 
   <div class="td-body">
 
-    <!-- ── Portfolio overview (Admin / Manager only) ──── -->
-    @if (isPrivileged()) {
-      @if (loadingWorkspaceSummary()) {
-        <div class="stats-bar">
-          @for (i of [1,2,3,4]; track i) {
-            <div class="stat-card">
-              <span class="sk" style="height:36px;width:50%"></span>
-              <span class="sk sk--sm"></span>
-            </div>
-          }
-        </div>
-      }
-      @if (!loadingWorkspaceSummary() && workspaceSummary()) {
-        <div class="stats-bar stats-bar--portfolio">
-          <div class="stat-card stat-card--indigo">
-            <div class="stat-body">
-              <span class="stat-value">{{ totalWorkspaces() }}</span>
-              <span class="stat-label">Total Workspaces</span>
-            </div>
-            <span class="stat-icon">🏢</span>
-          </div>
-          <div class="stat-card stat-card--teal">
-            <div class="stat-body">
-              <span class="stat-value">{{ totalProjects() }}</span>
-              <span class="stat-label">Total Projects</span>
-            </div>
-            <span class="stat-icon">📁</span>
-          </div>
-          <div class="stat-card stat-card--purple">
-            <div class="stat-body">
-              <span class="stat-value">{{ strategicProjectsCount() }}</span>
-              <span class="stat-label">Strategic Projects</span>
-            </div>
-            <span class="stat-icon">🎯</span>
-          </div>
-          <div class="stat-card stat-card--warning">
-            <div class="stat-body">
-              <span class="stat-value">{{ operationalProjectsCount() }}</span>
-              <span class="stat-label">Operational Projects</span>
-            </div>
-            <span class="stat-icon">⚙️</span>
-          </div>
-          <div class="stat-card stat-card--teal">
-            <div class="stat-body">
-              <span class="stat-value">{{ projectCompletionPct() }}%</span>
-              <span class="stat-label">Project Completion Rate</span>
-            </div>
-            <span class="stat-icon">✅</span>
-          </div>
-          <div class="stat-card stat-card--indigo">
-            <div class="stat-body">
-              <span class="stat-value">{{ projectDeliveryPct() }}%</span>
-              <span class="stat-label">Project On-Time Delivery</span>
-            </div>
-            <span class="stat-icon">🕐</span>
-          </div>
-        </div>
-      }
-    }
-
-    <!-- ── Stats bar ──────────────────────────────────── -->
-    @if (loadingKpis()) {
-      <div class="stats-bar">
-        @for (i of [1,2,3,4,5]; track i) {
-          <div class="stat-card">
-            <span class="sk" style="height:36px;width:50%"></span>
-            <span class="sk sk--sm"></span>
-          </div>
-        }
+    <!-- ── Portfolio (Admin only) — each card opens the matching page ── -->
+    @if (isPrivileged() && (loadingWorkspaceSummary() || workspaceSummary())) {
+      <div class="dash-stats">
+        <app-dash-stat icon="bi bi-building" label="Total workspaces" [value]="totalWorkspaces()" [loading]="loadingWorkspaceSummary()"
+                       hint="Open Workspaces" (activate)="go('/workspaces')" />
+        <app-dash-stat icon="bi bi-folder2-open" label="Total projects" [value]="totalProjects()" [loading]="loadingWorkspaceSummary()"
+                       hint="Open the Projects dashboard" (activate)="go('/dashboard/projects')" />
+        <app-dash-stat icon="bi bi-bullseye" label="Strategic projects" [value]="strategicProjectsCount()" [loading]="loadingWorkspaceSummary()"
+                       hint="Open the Projects dashboard" (activate)="go('/dashboard/projects')" />
+        <app-dash-stat icon="bi bi-gear" label="Operational projects" [value]="operationalProjectsCount()" [loading]="loadingWorkspaceSummary()"
+                       hint="Open the Projects dashboard" (activate)="go('/dashboard/projects')" />
+        <app-dash-stat icon="bi bi-check2-circle" label="Project completion rate" [value]="projectCompletionPct() + '%'" [loading]="loadingWorkspaceSummary()"
+                       hint="Open the Projects dashboard" (activate)="go('/dashboard/projects')" />
+        <app-dash-stat icon="bi bi-clock-history" label="Project on-time delivery" [value]="projectDeliveryPct() + '%'" [loading]="loadingWorkspaceSummary()"
+                       hint="Open the Projects dashboard" (activate)="go('/dashboard/projects')" />
       </div>
     }
 
-    @if (!loadingKpis()) {
-      <div class="stats-bar">
-        <div class="stat-card stat-card--primary">
-          <div class="stat-body">
-            <span class="stat-value">{{ totalActions() }}</span>
-            <span class="stat-label">Total Actions</span>
-          </div>
-          <span class="stat-icon">📋</span>
-        </div>
-        <div class="stat-card stat-card--success">
-          <div class="stat-body">
-            <span class="stat-value">{{ completionRate() }}%</span>
-            <span class="stat-label">Completion Rate</span>
-          </div>
-          <span class="stat-icon">✅</span>
-        </div>
-        <div class="stat-card stat-card--info">
-          <div class="stat-body">
-            <span class="stat-value">{{ onTimeRate() }}%</span>
-            <span class="stat-label">On-Time Delivery</span>
-          </div>
-          <span class="stat-icon">📅</span>
-        </div>
-        <div class="stat-card" [class.stat-card--danger]="escalations() > 0" [class.stat-card--success]="escalations() === 0">
-          <div class="stat-body">
-            <span class="stat-value">{{ escalations() }}</span>
-            <span class="stat-label">Escalations</span>
-          </div>
-          <span class="stat-icon">🚨</span>
-        </div>
-        <div class="stat-card" [class.stat-card--danger]="overdueCount() > 0" [class.stat-card--success]="overdueCount() === 0">
-          <div class="stat-body">
-            <span class="stat-value">{{ overdueCount() }}</span>
-            <span class="stat-label">Overdue</span>
-          </div>
-          <span class="stat-icon">⏰</span>
-        </div>
-      </div>
-    }
+    <!-- ── Action items — each card opens the items behind the figure ── -->
+    <div class="dash-stats">
+      <app-dash-stat icon="bi bi-list-check" label="Total actions" [value]="stat(actions()?.total)" [loading]="loadingActions()"
+                     hint="Show all action items" (activate)="openAllActions()" />
+      <app-dash-stat icon="bi bi-check2-circle" label="Completion rate" [value]="stat(pct(actions()?.completionRate))" [loading]="loadingActions()"
+                     hint="Show completed action items" (activate)="openCompleted()" />
+      <app-dash-stat icon="bi bi-calendar-check" label="On-time delivery" [value]="stat(pct(actions()?.onTimeRate))" [loading]="loadingActions()"
+                     hint="Open the Action Items dashboard" (activate)="go('/dashboard/actions')" />
+      <app-dash-stat icon="bi bi-exclamation-triangle" label="Escalations" [value]="stat(actions()?.escalated)" [loading]="loadingActions()"
+                     [tone]="(actions()?.escalated ?? 0) > 0 ? 'danger' : 'brand'"
+                     hint="Show escalated action items" (activate)="openEscalated()" />
+      <app-dash-stat icon="bi bi-alarm" label="Overdue" [value]="stat(actions()?.overdue)" [loading]="loadingActions()"
+                     [tone]="(actions()?.overdue ?? 0) > 0 ? 'danger' : 'brand'"
+                     hint="Show overdue action items" (activate)="openOverdue()" />
+    </div>
 
-    <!-- ── Two-column layout ──────────────────────────── -->
-    <div class="two-col">
+    <div class="dash-grid dash-grid--2">
 
-      <!-- ── My Actions ─────────────────────────────────── -->
-      <section class="panel">
-        <div class="panel__header">
-          <h2 class="panel__title">📌 My Actions</h2>
-          <a
-            [routerLink]="myActionsLink()"
-            [queryParams]="myActionsQueryParams()"
-            class="panel__link"
-          >View all →</a>
-        </div>
+      <!-- ── My Actions, as charts ──────────────────────── -->
+      <app-dash-panel title="My Actions" subtitle="Select any segment to see the items" icon="bi bi-pin-angle">
+        <a panelActions routerLink="/actions" class="panel-link">Open My Actions <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
 
         @if (loadingMine()) {
-          @for (r of skeletonRows; track $index) {
-            <div class="sk-row">
-              <span class="sk" style="width:55%"></span>
-              <span class="sk" style="width:20%"></span>
-              <span class="sk" style="width:18%"></span>
-              <span class="sk" style="width:15%"></span>
-            </div>
-          }
-        }
-
-        @if (!loadingMine()) {
-          @if (myActions().length === 0) {
-            <div class="empty-panel">
-              <span class="empty-panel__icon">🎉</span>
-              <p>No actions assigned to you — great work!</p>
-            </div>
-          } @else {
-            <div class="mini-table-wrap">
-              <table class="mini-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Due</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of myActions(); track item.id) {
-                    <tr class="mini-row" [routerLink]="['/actions', item.id, 'edit']">
-                      <td class="td-title">
-                        <a class="wa-title text-decoration-none title-ellipsis" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
-                      </td>
-                      <td><app-priority-badge [priority]="item.priority" /></td>
-                      <td><app-status-badge   [status]="item.status"   /></td>
-                      <td>
-                        <div class="due-cell" [class]="dueDateClass(item)">
-                          <span class="due-date">{{ item.dueDate | date:'MMM d' }}</span>
-                          <span class="due-badge">{{ dueDateLabel(item) }}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        }
-      </section>
-
-      <!-- ── Team Activity ──────────────────────────────── -->
-      <section class="panel">
-        <div class="panel__header">
-          <h2 class="panel__title">📊 Team Activity</h2>
-        </div>
-
-        <!-- Summary pills -->
-        <div class="activity-pills">
-          <div class="activity-pill activity-pill--danger">
-            <span class="pill-val">{{ overdueCount() }}</span>
-            <span class="pill-lbl">Overdue</span>
+          <div class="chart-skel" aria-hidden="true"></div>
+        } @else if (mineFailed()) {
+          <div class="empty-panel">
+            <span class="empty-panel__icon"><i class="bi bi-exclamation-circle" aria-hidden="true"></i></span>
+            <p>Your actions could not be loaded.</p>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="loadAnalytics()">Try again</button>
           </div>
-          <div class="activity-pill activity-pill--warning">
-            <span class="pill-val">{{ dueThisWeek() }}</span>
-            <span class="pill-lbl">Due this week</span>
-          </div>
-          <div class="activity-pill activity-pill--success">
-            <span class="pill-val">{{ doneCount() }}</span>
-            <span class="pill-lbl">Completed</span>
-          </div>
-        </div>
-
-        <!-- Status distribution horizontal bar chart -->
-        @if (statusBreakdown().length > 0) {
-          <div class="chart-wrap">
-            <canvas baseChart
-              [data]="hBarData"
-              [type]="hBarType"
-              [options]="hBarOptions"
-            ></canvas>
+        } @else if (!mine() || mine()!.total === 0) {
+          <div class="empty-panel">
+            <span class="empty-panel__icon"><i class="bi bi-emoji-smile" aria-hidden="true"></i></span>
+            <p>No actions assigned to you — great work!</p>
           </div>
         } @else {
-          <div class="chart-wrap chart-wrap--empty">
-            <p class="chart-empty-msg">No status data available yet.</p>
+          <div class="my-summary">
+            <button type="button" class="my-pill" (click)="openMyOpen()">
+              <strong>{{ mine()!.open }}</strong><span>Open</span>
+            </button>
+            <button type="button" class="my-pill" [class.my-pill--bad]="mine()!.overdue > 0" (click)="openMyOverdue()">
+              <strong>{{ mine()!.overdue }}</strong><span>Overdue</span>
+            </button>
+            <button type="button" class="my-pill" (click)="openMyDue('next7')">
+              <strong>{{ mine()!.dueThisWeek }}</strong><span>Due in 7 days</span>
+            </button>
+            <button type="button" class="my-pill" (click)="openMyStatus('4')">
+              <strong>{{ pct(mine()!.completionRate) }}</strong><span>Completed</span>
+            </button>
+          </div>
+
+          <div class="donut">
+            <div class="donut__chart">
+              <canvas baseChart type="doughnut" [data]="myStatusChart()" [options]="myStatusOptions()"
+                      role="img" aria-label="My action items by status"></canvas>
+              <div class="donut__center">
+                <span class="donut__num">{{ mine()!.total }}</span>
+                <span class="donut__lbl">Assigned</span>
+              </div>
+            </div>
+            <app-dash-legend [items]="myStatusLegend()" [stacked]="true" (pick)="openMyStatus($event)" />
+          </div>
+
+          <div class="my-bars">
+            <div>
+              <h3 class="mini-title">Open by priority</h3>
+              <div class="chart-box chart-box--xs">
+                <canvas baseChart type="bar" [data]="myPriorityChart()" [options]="myPriorityOptions()"
+                        role="img" aria-label="My open action items by priority"></canvas>
+              </div>
+              <app-dash-legend [items]="myPriorityLegend()" (pick)="openMyPriority($event)" />
+            </div>
+            <div>
+              <h3 class="mini-title">Open by due date</h3>
+              <div class="chart-box chart-box--xs">
+                <canvas baseChart type="bar" [data]="myDueChart()" [options]="myDueOptions()"
+                        role="img" aria-label="My open action items by due date"></canvas>
+              </div>
+              <app-dash-legend [items]="myDueLegend()" (pick)="openMyDue($event)" />
+            </div>
           </div>
         }
+      </app-dash-panel>
 
-        <!-- Stacked progress bar (visual summary) -->
-        @if (statusBreakdown().length > 0) {
-          <div class="stacked-bar">
-            @for (item of statusBreakdown(); track item.status) {
-              @if (item.percentage > 0) {
-                <div
-                  class="stacked-segment"
-                  [style.width.%]="item.percentage"
-                  [style.background]="'#94a3b8'"
-                  [title]="item.status + ': ' + item.count + ' (' + (item.percentage | number:'1.0-0') + '%)'"
-                ></div>
-              }
-            }
+      <!-- ── Team Activity: tasks per person, most first ── -->
+      <app-dash-panel title="Team Activity" subtitle="Action items per person, busiest first — select a person to see theirs" icon="bi bi-people">
+        <a panelActions routerLink="/dashboard/actions" class="panel-link">More <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+
+        @if (loadingActions()) {
+          <div class="chart-skel" aria-hidden="true"></div>
+        } @else if (actionsFailed()) {
+          <div class="empty-panel">
+            <span class="empty-panel__icon"><i class="bi bi-exclamation-circle" aria-hidden="true"></i></span>
+            <p>Team activity could not be loaded.</p>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="loadAnalytics()">Try again</button>
           </div>
-          <div class="stacked-legend">
-            @for (item of statusBreakdown(); track item.status) {
-              <span class="legend-item">
-                <span class="legend-dot" [style.background]="'var(--status-' + item.status.replace(' ','').toLowerCase() + ', #94a3b8)'"></span>
-                {{ item.status }} ({{ item.count }})
-              </span>
-            }
-          </div>
+        } @else {
+          <app-ranked-bars [items]="teamItems()" [avatars]="true" [limit]="10" (pick)="openMember($event)"
+                           emptyText="No one has action items assigned yet." />
         }
-
-      </section>
+      </app-dash-panel>
     </div>
 
     <!-- ── Recent Items ───────────────────────────────── -->
-    <section class="panel panel--full">
-      <div class="panel__header">
-        <h2 class="panel__title">🕐 Recent Items</h2>
-        <a routerLink="/actions" class="panel__link">View all →</a>
-      </div>
+    <app-dash-panel title="Recent Items" subtitle="Latest action items — select a row to open it" icon="bi bi-clock-history">
+      <a panelActions routerLink="/actions" class="panel-link">View all <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
 
       @if (loadingRecent()) {
         @for (r of skeletonRows; track $index) {
@@ -296,11 +163,13 @@
       @if (!loadingRecent()) {
         @if (recentActions().length === 0) {
           <div class="empty-panel">
-            <span class="empty-panel__icon">📭</span>
+            <span class="empty-panel__icon"><i class="bi bi-inbox" aria-hidden="true"></i></span>
             <p>No action items yet. Create your first one!</p>
             <button *appHasPermission="'ActionItems'; action: 'Create'"
                     type="button" class="btn btn-primary" style="margin-top:.75rem"
-                    (click)="openNewActionForm()" [disabled]="showActionForm">+ New Action</button>
+                    (click)="openNewActionForm()" [disabled]="showActionForm">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i>New Action
+            </button>
           </div>
         } @else {
           <div class="mini-table-wrap">
@@ -317,7 +186,7 @@
               </thead>
               <tbody>
                 @for (item of recentActions(); track item.id) {
-                  <tr class="mini-row" [routerLink]="['/actions', item.id, 'edit']">
+                  <tr class="mini-row" [routerLink]="['/actions', item.id, 'view']">
                     <td><a class="action-id" [routerLink]="['/actions', item.id, 'view']">{{ item.actionId }}</a></td>
                     <td class="td-title">
                       <a class="wa-title text-decoration-none title-ellipsis" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
@@ -347,7 +216,7 @@
           </div>
         }
       }
-    </section>
+    </app-dash-panel>
 
   </div><!-- /td-body -->
 </div><!-- /td-page -->
@@ -514,3 +383,5 @@
 @if (showActionForm) {
   <div class="offcanvas-backdrop fade show" (click)="cancelActionForm()"></div>
 }
+
+<app-drilldown-panel [request]="drill()" (closed)="drill.set(null)" />

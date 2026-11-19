@@ -14,9 +14,24 @@ namespace ActionTracker.Infrastructure.Data;
 
 public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 {
+    private readonly ICurrentUserService? _currentUser;
+
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUser)
+        : base(options)
+    {
+        _currentUser = currentUser;
+    }
+
+    /// <summary>
+    /// Authenticated user of the current request, read by the private-workspace
+    /// query filters. <c>null</c> = system context (background jobs, seeders,
+    /// design-time) and disables the private-workspace restriction.
+    /// </summary>
+    public string? CurrentUserId => _currentUser?.UserId;
 
     // ── Legacy / shared domain sets ───────────────────────────────────────────
     public DbSet<ActionItem>           ActionItems           => Set<ActionItem>();
@@ -60,6 +75,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<EmailLog>          EmailLogs            => Set<EmailLog>();
     public DbSet<MailServerConfig>  MailServerConfigs    => Set<MailServerConfig>();
 
+    // ── Data sync ─────────────────────────────────────────────────────────────
+    public DbSet<DataSyncJob>       DataSyncJobs         => Set<DataSyncJob>();
+    public DbSet<DataSyncJobRun>    DataSyncJobRuns      => Set<DataSyncJobRun>();
+
     // ── Notification feature sets ────────────────────────────────────────────
     public DbSet<AppNotification>   AppNotifications     => Set<AppNotification>();
 
@@ -95,7 +114,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             }
         }
 
-        modelBuilder.Entity<ActionItem>().HasQueryFilter(e => !e.IsDeleted);
+        // Private workspaces: only their admins + members can see the workspace
+        // or anything under it. These filters make every query and aggregate
+        // (dashboards, reports, stats, strategy roll-ups) skip private data for
+        // everyone else. CurrentUserId == null (system context) is unrestricted.
+        modelBuilder.Entity<Workspace>().HasQueryFilter(w =>
+            CurrentUserId == null || !w.IsPrivate
+            || w.Admins.Any(a => a.AdminUserId == CurrentUserId)
+            || w.Members.Any(m => m.UserId == CurrentUserId));
+
+        modelBuilder.Entity<ActionItem>().HasQueryFilter(e => !e.IsDeleted
+            && (CurrentUserId == null || !e.Workspace.IsPrivate
+                || e.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || e.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         // Drafts (IsDraft = true) are hidden from every "live" query — the
         // draft service uses IgnoreQueryFilters() to reach them. CR-001-G.
@@ -103,10 +134,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<StrategicPlan>().HasQueryFilter(p => !p.IsDeleted && !p.IsDraft);
         modelBuilder.Entity<Kpi>().HasQueryFilter(o => !o.IsDeleted && !o.IsDraft);
         modelBuilder.Entity<KpiTarget>().HasQueryFilter(t => !t.IsDraft);
-        modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted);
-        modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted);
+        modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted
+            && (CurrentUserId == null || !p.Workspace.IsPrivate
+                || p.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || p.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+        modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted
+            && (CurrentUserId == null || !m.Project.Workspace.IsPrivate
+                || m.Project.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || m.Project.Workspace.Members.Any(wm => wm.UserId == CurrentUserId)));
         modelBuilder.Entity<EmailTemplate>().HasQueryFilter(e => !e.IsDeleted);
-        modelBuilder.Entity<ProjectRisk>().HasQueryFilter(r => !r.IsDeleted);
+        modelBuilder.Entity<ProjectRisk>().HasQueryFilter(r => !r.IsDeleted
+            && (CurrentUserId == null || !r.Project.Workspace.IsPrivate
+                || r.Project.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || r.Project.Workspace.Members.Any(wm => wm.UserId == CurrentUserId)));
         modelBuilder.Entity<ProjectApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<StrategicPlanApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<KpiActual>().HasQueryFilter(a => !a.IsDeleted);
@@ -179,6 +219,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             entity.Property(e => e.IsActive)
                   .IsRequired()
                   .HasDefaultValue(true);
+
+            entity.Property(e => e.IsPrivate)
+                  .IsRequired();
 
             entity.HasIndex(e => e.OrganizationUnit);
             entity.HasIndex(e => e.StrategicPlanId);

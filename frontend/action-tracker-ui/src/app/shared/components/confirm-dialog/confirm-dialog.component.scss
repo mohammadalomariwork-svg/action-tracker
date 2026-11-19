@@ -1,6 +1,6 @@
 // ── Backdrop ─────────────────────────────────────────
 ::ng-deep .modal-backdrop.show {
-  background: rgba(0, 0, 0, 0.50);
+  background: var(--ov);
   backdrop-filter: blur(4px);
 }
 
@@ -9,7 +9,7 @@
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: var(--r-xl);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--sh-modal);
   overflow: hidden;
   backdrop-filter: blur(20px);
   padding: 28px;
@@ -24,8 +24,8 @@
   font-size: 2.5rem;
   line-height: 1;
 
-  &--danger { color: #ef4444; }
-  &--warning { color: #f59e0b; }
+  &--danger { color: var(--err); }
+  &--warning { color: var(--warn); }
 }
 
 // ── Header ───────────────────────────────────────────
@@ -37,7 +37,7 @@
   border-bottom: 1px solid var(--bd);
 
   &--danger {
-    border-bottom-color: rgba(239, 68, 68, 0.2);
+    border-bottom-color: rgba(var(--errr), 0.2);
   }
 }
 
@@ -105,8 +105,8 @@
 
 // Confirm — neon primary
 .btn-primary-custom {
-  background: var(--accent);
-  color: #000;
+  background: var(--accent-fill);
+  color: var(--on-fill);
   font-weight: 700;
   box-shadow: var(--neon);
 
@@ -115,10 +115,10 @@
 
 // Confirm — neon danger
 .btn-danger {
-  background: #ef4444;
+  background: var(--err);
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 12px rgba(var(--errr), 0.3);
 
-  &:hover { box-shadow: 0 0 18px rgba(239, 68, 68, 0.45); }
+  &:hover { box-shadow: 0 0 18px rgba(var(--errr), 0.45); }
 }

@@ -1,0 +1,53 @@
+@use '../shared/dash-page';
+
+// ── Milestone summary pills ────────────────────────────────
+.ms-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.ms-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0.7rem 0.5rem;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  background: rgba(var(--ar), 0.06);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+
+  strong {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--th);
+    font-variant-numeric: tabular-nums;
+  }
+
+  span {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--t3);
+    text-align: center;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(var(--ar), 0.45);
+    background: rgba(var(--ar), 0.12);
+  }
+
+  &--bad {
+    border-color: rgba(var(--errr), 0.35);
+    background: rgba(var(--errr), 0.08);
+
+    strong { color: var(--err); }
+  }
+}

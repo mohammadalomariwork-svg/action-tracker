@@ -26,7 +26,7 @@ public class KuEmployeeInfoConfiguration : IEntityTypeConfiguration<KuEmployeeIn
             .HasMaxLength(100);
 
         // ── required nvarchar columns ────────────────────────────────────────
-        builder.Property(e => e.NearestAirport).IsRequired().HasMaxLength(255);
+        builder.Property(e => e.NearestAirport).HasMaxLength(255); // nullable — HR source has NULLs
 
         // ── string lengths ───────────────────────────────────────────────────
         builder.Property(e => e.EmpNo)             .HasMaxLength(255);

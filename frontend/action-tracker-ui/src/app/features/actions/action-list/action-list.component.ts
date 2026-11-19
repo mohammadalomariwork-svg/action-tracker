@@ -2,7 +2,7 @@ import {
   Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
   inject, signal, computed, ViewChild, HostListener,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import * as XLSX from 'xlsx';
@@ -73,6 +73,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   private readonly workspaceSvc = inject(WorkspaceService);
   private readonly authSvc      = inject(AuthService);
   private readonly cdr          = inject(ChangeDetectorRef);
+  private readonly route        = inject(ActivatedRoute);
   private readonly destroy$     = new Subject<void>();
 
   readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
@@ -165,6 +166,14 @@ export class ActionListComponent implements OnInit, OnDestroy {
       this.pageNumber.set(1);
       this.load();
     });
+
+    // A dashboard drill-down can open this page pre-filtered:
+    // /actions?status=2 or /actions?priority=4 (enum values).
+    const params   = this.route.snapshot.queryParamMap;
+    const status   = Number(params.get('status'));
+    const priority = Number(params.get('priority'));
+    if (status in ActionStatus)     this.filterStatus.set(status as ActionStatus);
+    if (priority in ActionPriority) this.filterPriority.set(priority as ActionPriority);
 
     this.loadStats();
     this.load();

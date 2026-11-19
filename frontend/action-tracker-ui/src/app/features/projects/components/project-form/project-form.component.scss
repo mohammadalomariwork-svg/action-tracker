@@ -14,7 +14,7 @@
   background: var(--sf);
   border: 1px solid var(--bd);
   border-radius: var(--border-radius, 12px);
-  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--card-shadow, 0 2px 12px rgba(0, 0, 0, 0.15));
   backdrop-filter: blur(16px);
   align-self: flex-start;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -81,7 +81,7 @@
   border: 1px solid var(--bd);
   border-radius: 8px;
   font-size: 0.95rem;
-  background: var(--inp);
+  background-color: var(--inp);
   color: var(--t1);
 
   &:focus {
@@ -120,9 +120,9 @@
 // ── Btn-group radio styling ──────────────────────────────────────────────────
 .btn-group {
   .btn-check:checked + .btn-outline-primary {
-    background-color: var(--accent);
+    background: var(--accent-fill);
     border-color: var(--accent);
-    color: #000;
+    color: var(--on-fill);
     box-shadow: var(--neon);
   }
 
@@ -184,7 +184,7 @@
     line-height: 1;
     display: inline-flex;
 
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--err); }
   }
 
   &__dropdown {
@@ -196,7 +196,7 @@
     background: var(--bg);
     border: 1px solid var(--bd);
     border-radius: var(--r-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--sh-drop);
     margin-top: 2px;
     max-height: 280px;
     display: flex;
@@ -240,15 +240,15 @@
 
 // ── Alert overrides ──────────────────────────────────────────────────────────
 .alert-warning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  background: rgba(var(--warnr), 0.08);
+  border-color: rgba(var(--warnr), 0.2);
+  color: var(--warn);
 }
 
 .alert-danger {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: rgba(var(--errr), 0.08);
+  border-color: rgba(var(--errr), 0.2);
+  color: var(--err);
 }
 
 .alert-info {

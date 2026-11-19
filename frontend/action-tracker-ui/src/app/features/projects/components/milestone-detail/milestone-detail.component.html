@@ -70,28 +70,28 @@
     @if (milestoneStats) {
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-card__icon stat-card__icon--total">📋</div>
+          <div class="stat-card__icon stat-card__icon--total"><i class="bi bi-list-check" aria-hidden="true"></i></div>
           <div class="stat-card__body">
             <span class="stat-card__value">{{ milestoneStats.totalActionItems }}</span>
             <span class="stat-card__label">Action Items</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__icon stat-card__icon--completion">✅</div>
+          <div class="stat-card__icon stat-card__icon--completion"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
           <div class="stat-card__body">
             <span class="stat-card__value">{{ milestoneStats.completionRate }}%</span>
             <span class="stat-card__label">Completion Rate</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__icon stat-card__icon--ontime">⏱</div>
+          <div class="stat-card__icon stat-card__icon--ontime"><i class="bi bi-stopwatch" aria-hidden="true"></i></div>
           <div class="stat-card__body">
             <span class="stat-card__value">{{ milestoneStats.onTimeDeliveryRate }}%</span>
             <span class="stat-card__label">On-Time Delivery</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-card__icon stat-card__icon--escalated">⚠</div>
+          <div class="stat-card__icon stat-card__icon--escalated"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></div>
           <div class="stat-card__body">
             <span class="stat-card__value">{{ milestoneStats.escalatedActionItems }}</span>
             <span class="stat-card__label">Escalated Items</span>

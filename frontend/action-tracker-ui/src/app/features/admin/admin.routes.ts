@@ -62,6 +62,14 @@ export const ADMIN_ROUTES: Routes = [
         .then(m => m.MailServerConfigComponent),
   },
   {
+    path: 'data-sync',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'DataSync', requiredAction: 'View' },
+    loadComponent: () =>
+      import('./data-sync/data-sync.component')
+        .then(m => m.DataSyncComponent),
+  },
+  {
     path: 'permissions/roles',
     canActivate: [permissionGuard],
     data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },

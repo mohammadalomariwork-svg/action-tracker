@@ -1,11 +1,14 @@
-<!-- Animated Background (duplicated from LayoutComponent — auth pages live outside the shell) -->
-<div class="bg">
-  <div class="bg-diag"></div>
-  <div class="bg-wave w1"></div>
-  <div class="bg-wave w2"></div>
-  <div class="bg-wave w3"></div>
-  <div class="bg-orb o1"></div>
-  <div class="bg-orb o2"></div>
+<!-- Brand backdrop — pure CSS (no images). Echoes the KUmmand Center
+     logo mark: layered slanted ribbons in sky → royal blue and the
+     square "pixel" clusters, over soft brand-blue light. -->
+<div class="login-bg" aria-hidden="true">
+  <div class="login-bg__dots login-bg__dots--tl"></div>
+  <div class="login-bg__dots login-bg__dots--br"></div>
+  <div class="login-bg__ribbons">
+    <span class="login-bg__ribbon login-bg__ribbon--1"></span>
+    <span class="login-bg__ribbon login-bg__ribbon--2"></span>
+    <span class="login-bg__ribbon login-bg__ribbon--3"></span>
+  </div>
 </div>
 
 <div class="login-page">
@@ -14,14 +17,14 @@
     <!-- Logo mark -->
     <div class="card-logo">
       <img
-        src="assets/images/logo-full-dark.svg"
-        alt="ActionsCenter"
+        [src]="isDark() ? 'assets/images/kummand_center_dark_mode_transparent.png' : 'assets/images/kummand_center_light_mode_transparent.png'"
+        alt="KUmmand Center"
         class="card-logo__img"
       />
     </div>
 
     <h1 class="card-title">Welcome back</h1>
-    <p class="card-sub">Sign in to ActionsCenter</p>
+    <p class="card-sub">Sign in to Command Center</p>
 
     <!-- Error banner -->
     @if (errorMsg()) {
@@ -43,7 +46,7 @@
           <span class="spinner"></span>
           Signing in…
         } @else {
-          <img src="assets/images/cropped-logo.png" alt="Khalifa University" class="btn-ku-logo" />
+          <img src="assets/images/cropped-logo.png" alt="" class="btn-ku-logo" />
           Sign in with Khalifa University
         }
       </button>

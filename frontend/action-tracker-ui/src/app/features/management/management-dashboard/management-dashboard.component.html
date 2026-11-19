@@ -39,7 +39,7 @@
             title="Total Workspaces"
             [value]="totalWorkspaces()"
             subtitle="across all org units"
-            icon="🏢"
+            icon="bi bi-building"
             colorClass="primary"
             [trend]="null"
           />
@@ -47,7 +47,7 @@
             title="Total Projects"
             [value]="totalProjects()"
             subtitle="all project types"
-            icon="📁"
+            icon="bi bi-folder2-open"
             colorClass="info"
             [trend]="null"
           />
@@ -55,7 +55,7 @@
             title="Strategic Projects"
             [value]="strategicProjectsCount()"
             subtitle="linked to objectives"
-            icon="🎯"
+            icon="bi bi-bullseye"
             colorClass="purple"
             [trend]="null"
           />
@@ -63,7 +63,7 @@
             title="Operational Projects"
             [value]="operationalProjectsCount()"
             subtitle="execution-focused"
-            icon="⚙️"
+            icon="bi bi-gear"
             colorClass="warning"
             [trend]="null"
           />
@@ -71,7 +71,7 @@
             title="Project Completion Rate"
             [value]="projectCompletionPct() + '%'"
             subtitle="projects completed"
-            icon="✅"
+            icon="bi bi-check2-circle"
             colorClass="success"
             [trend]="null"
           />
@@ -79,7 +79,7 @@
             title="Project On-Time Delivery"
             [value]="projectDeliveryPct() + '%'"
             subtitle="delivered on time"
-            icon="🕐"
+            icon="bi bi-clock-history"
             colorClass="info"
             [trend]="null"
           />
@@ -92,7 +92,7 @@
           title="Completion Rate"
           [value]="completionRate() + '%'"
           subtitle="actions closed"
-          icon="✅"
+          icon="bi bi-check2-circle"
           colorClass="success"
           [trend]="null"
         />
@@ -100,7 +100,7 @@
           title="On-Time Delivery"
           [value]="onTimeRate() + '%'"
           subtitle="delivered on schedule"
-          icon="📅"
+          icon="bi bi-calendar-check"
           colorClass="primary"
           [trend]="null"
         />
@@ -108,7 +108,7 @@
           title="Active Escalations"
           [value]="escalations()"
           subtitle="require attention"
-          icon="🚨"
+          icon="bi bi-exclamation-triangle"
           [colorClass]="escalations() > 0 ? 'danger' : 'success'"
           [trend]="null"
         />
@@ -116,7 +116,7 @@
           title="Team Velocity"
           [value]="velocity()"
           subtitle="actions completed this period"
-          icon="⚡"
+          icon="bi bi-lightning-charge"
           colorClass="purple"
           [trend]="null"
         />

@@ -34,6 +34,12 @@ public class CreateWorkspaceDto
     public Guid? StrategicPlanId { get; set; }
 
     /// <summary>
+    /// When <c>true</c> the workspace is private: only its admins and members
+    /// can see it, and its data is excluded from everyone else's views and stats.
+    /// </summary>
+    public bool IsPrivate { get; set; }
+
+    /// <summary>
     /// One or more admin users to assign to the workspace.
     /// At least one admin is required.
     /// </summary>

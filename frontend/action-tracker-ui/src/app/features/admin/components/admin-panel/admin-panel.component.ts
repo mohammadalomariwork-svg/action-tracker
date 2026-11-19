@@ -78,10 +78,19 @@ export class AdminPanelComponent {
       id:              'mail-server-config',
       title:           'Mail Server Configuration',
       description:     'Configure the SMTP server used by Command Center to send all outgoing emails. Password is encrypted at rest.',
-      icon:            'bi-envelope-gear-fill',
+      icon:            'bi-envelope-at-fill',
       route:           '/admin/mail-server-config',
       color:           'warning',
       permissionArea:  'MailServerConfig',
+    },
+    {
+      id:              'data-sync',
+      title:           'Data Sync',
+      description:     'Schedule and monitor jobs that copy data from external systems (e.g. HR employee info) into Command Center.',
+      icon:            'bi-arrow-repeat',
+      route:           '/admin/data-sync',
+      color:           'info',
+      permissionArea:  'DataSync',
     },
     // Permissions Management card hidden per business request
     // {

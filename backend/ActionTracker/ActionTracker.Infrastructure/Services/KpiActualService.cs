@@ -1,3 +1,4 @@
+using ActionTracker.Application.Features.Dashboard;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.KpiActuals;
 using ActionTracker.Application.Features.KpiActuals.DTOs;
@@ -385,19 +386,6 @@ public class KpiActualService : IKpiActualService
     /// Direction-aware achievement percent. Only meaningful when the actual is
     /// Approved (the UI hides the column otherwise).
     /// </summary>
-    private static decimal? ComputeAchievementPercent(KpiActual a, KpiTarget target)
-    {
-        if (target.Target is null or 0) return null;
-        var t = target.Target.Value;
-
-        return target.Direction switch
-        {
-            KpiDirection.HigherIsBetter => Math.Round((a.ActualValue / t) * 100m, 2),
-            KpiDirection.LowerIsBetter when a.ActualValue == 0 => 100m,
-            KpiDirection.LowerIsBetter => Math.Round((t / a.ActualValue) * 100m, 2),
-            KpiDirection.OnTarget when a.ActualValue == t => 100m,
-            KpiDirection.OnTarget => Math.Round(100m - Math.Abs((a.ActualValue - t) / t) * 100m, 2),
-            _ => null,
-        };
-    }
+    private static decimal? ComputeAchievementPercent(KpiActual a, KpiTarget target) =>
+        KpiAchievement.Compute(a.ActualValue, target.Target, target.Direction);
 }

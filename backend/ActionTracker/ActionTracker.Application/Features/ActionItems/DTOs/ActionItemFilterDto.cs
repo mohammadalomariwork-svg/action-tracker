@@ -14,6 +14,20 @@ public class ActionItemFilterDto
     public bool?           IsStandalone { get; set; }
     public string          SearchTerm  { get; set; } = string.Empty;
 
+    // ── Dashboard drill-down filters ─────────────────────────────────────────
+    // These use the same definitions the dashboards count by
+    // (ActionItemRules), so a list opened from a chart segment matches it.
+
+    /// <summary>Only items that still need work (To Do / In Progress / In Review / Overdue).</summary>
+    public bool? OpenOnly    { get; set; }
+    /// <summary>Only open items that are flagged Overdue or past their due date.</summary>
+    public bool? OverdueOnly { get; set; }
+    public bool? IsEscalated { get; set; }
+    /// <summary>Due window for open items: overdue | next7 | next30 | later.</summary>
+    public string? DueBucket { get; set; }
+    /// <summary>Age window for open items (days since creation): 0-7 | 8-30 | 31-90 | 90+.</summary>
+    public string? AgeBucket { get; set; }
+
     public int PageNumber { get; set; } = 1;
 
     private int _pageSize = 20;

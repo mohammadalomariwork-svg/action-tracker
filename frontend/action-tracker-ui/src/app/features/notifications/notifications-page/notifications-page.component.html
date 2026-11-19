@@ -2,15 +2,15 @@
 
   <app-breadcrumb [items]="[{ label: 'Notifications' }]" />
 
-  <!-- ── Page header ─────────────────────────────────────────────────────────── -->
+  <!-- ── Page header (actions sit in the header's action slot) ──────────────── -->
   <app-page-header
     title="Notifications"
     subtitle="View and manage your notifications"
     icon="bi bi-bell-fill"
-  />
-
-  <!-- ── Action buttons ──────────────────────────────────────────────────────── -->
-  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  >
+    <span class="unread-pill" [class.unread-pill--none]="unreadCount() === 0">
+      {{ unreadCount() }} unread
+    </span>
     <button
       class="btn btn-outline-primary btn-sm"
       [disabled]="unreadCount() === 0"
@@ -24,10 +24,7 @@
     >
       <i class="bi bi-trash me-1"></i> Clear read
     </button>
-    <span class="text-muted ms-auto small">
-      {{ unreadCount() }} unread
-    </span>
-  </div>
+  </app-page-header>
 
   <!-- ── Filters ─────────────────────────────────────────────────────────────── -->
   <div class="row g-2 mb-4">
@@ -149,7 +146,7 @@
         </div>
         <span class="ms-2 text-muted">Loading...</span>
       } @else if (hasMore()) {
-        <button class="btn btn-outline-primary btn-sm" (click)="loadMore()">
+        <button class="btn btn-outline-primary btn-sm load-more-btn" (click)="loadMore()">
           Load more
         </button>
       } @else if (notifications().length > 0) {

@@ -36,8 +36,8 @@
 
   // Neon submit button
   &.btn-primary {
-    background: var(--accent);
-    color: #000;
+    background: var(--accent-fill);
+    color: var(--on-fill);
     font-weight: 700;
     box-shadow: var(--neon);
     &:hover:not(:disabled) { box-shadow: var(--neon-intense); }
@@ -155,7 +155,7 @@
 
   // High-importance
   &--important {
-    background: rgba(217, 119, 6, 0.04);
+    background: rgba(var(--warnr), 0.04);
     border-left: 3px solid var(--warning, #f59e0b);
     padding-left: 0.75rem;
     margin: 0.25rem -0.5rem;
@@ -238,7 +238,7 @@
   transition: background 0.12s;
 
   &:hover { background: rgba(var(--ar), 0.08); }
-  &--delete:hover { background: rgba(220, 38, 38, 0.08); }
+  &--delete:hover { background: rgba(var(--errr), 0.08); }
 }
 
 .comment-edit-actions {

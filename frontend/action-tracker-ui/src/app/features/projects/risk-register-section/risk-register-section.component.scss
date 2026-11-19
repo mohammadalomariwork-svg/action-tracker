@@ -15,6 +15,10 @@
 .stat-card--high {
   border-left: 3px solid #fd7e14;
   .stat-value { color: #fd7e14; }
+
+  :host-context([data-theme="light"]) & .stat-value {
+    color: #C2410C;
+  }
 }
 
 .stat-card--medium {

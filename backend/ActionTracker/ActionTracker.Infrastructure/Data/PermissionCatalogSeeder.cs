@@ -32,6 +32,7 @@ public static class PermissionCatalogSeeder
     public static readonly Guid AreaKpiActuals               = new("10000017-0000-0000-0000-000000000000");
     public static readonly Guid AreaManagementDashboard      = new("10000018-0000-0000-0000-000000000000");
     public static readonly Guid AreaMailServerConfig         = new("10000019-0000-0000-0000-000000000000");
+    public static readonly Guid AreaDataSync                 = new("1000001a-0000-0000-0000-000000000000");
 
     // ── Action IDs (stable across re-runs) ───────────────────────────────────
 
@@ -91,6 +92,7 @@ public static class PermissionCatalogSeeder
             Area(AreaKpiActuals,            "KpiActuals",            "KPI Actuals",           17),
             Area(AreaManagementDashboard,   "ManagementDashboard",   "Management Dashboard",  18),
             Area(AreaMailServerConfig,      "MailServerConfig",      "Mail Server Config",    19),
+            Area(AreaDataSync,              "DataSync",              "Data Sync",             20),
         };
 
         var toInsert = areas.Where(a => !existingIds.Contains(a.Id)).ToList();
@@ -267,6 +269,10 @@ public static class PermissionCatalogSeeder
             // Mail Server Configuration: View, Edit (Admin-only by default).
             (AreaMailServerConfig, "MailServerConfig", 19, ActionView, "View", 1),
             (AreaMailServerConfig, "MailServerConfig", 19, ActionEdit, "Edit", 3),
+
+            // Data Sync (Admin Panel): View, Edit (Edit also covers "Run now" / "Test connection").
+            (AreaDataSync, "DataSync", 20, ActionView, "View", 1),
+            (AreaDataSync, "DataSync", 20, ActionEdit, "Edit", 3),
         };
 
         var toInsert = desiredMappings
