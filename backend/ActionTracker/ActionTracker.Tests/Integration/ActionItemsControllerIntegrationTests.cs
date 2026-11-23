@@ -7,6 +7,7 @@ using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.Auth.DTOs;
 using ActionTracker.Application.Helpers;
+using ActionTracker.Domain.Constants;
 using ActionTracker.Domain.Enums;
 using FluentAssertions;
 
@@ -21,6 +22,7 @@ namespace ActionTracker.Tests.Integration;
 public class ActionItemsControllerIntegrationTests
     : IClassFixture<ActionTrackerWebApplicationFactory>
 {
+    private readonly ActionTrackerWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -31,7 +33,8 @@ public class ActionItemsControllerIntegrationTests
 
     public ActionItemsControllerIntegrationTests(ActionTrackerWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _factory = factory;
+        _client  = factory.CreateClient();
     }
 
     // -------------------------------------------------------------------------
@@ -48,9 +51,14 @@ public class ActionItemsControllerIntegrationTests
         return body!.Data!;
     }
 
-    /// <summary>Logs in as the seeded admin user, sets Bearer token, and returns the DTO.</summary>
+    /// <summary>
+    /// Creates the local admin user if needed (the app no longer seeds one with
+    /// these credentials), logs in, sets the Bearer token, and returns the DTO.
+    /// </summary>
     private async Task<LoginResponseDto> AuthenticateAsAdminAsync()
     {
+        await _factory.EnsureUserAsync("admin@actiontracker.com", "Admin@2026!", AppRoles.Admin);
+
         var tokens = await LoginAsync("admin@actiontracker.com", "Admin@2026!");
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", tokens.AccessToken);

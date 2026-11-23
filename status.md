@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-11-18 (Dashboards: drill-down everywhere, My Actions as charts, ranked Team Activity, new Action Items / Projects / Strategy dashboards; brand redesign of inner pages)
+> Last updated: 2026-11-23 (Work calendars, backend only — WO-2026-11 C-1: calendar entities, calculation service, `/api/calendars` admin API, `Calendars` permissions)
 
 ---
 
@@ -37,7 +37,7 @@
 - **Deprecated:** Manager and User — auto-deleted by `RoleSeeder` on startup if still present
 
 ### Policies Implemented
-Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces, User Management, Roles, Permissions Management, Reports, Dashboard, Notifications, Email Templates, Mail Server Config, Data Sync, Risks
+Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces, User Management, Roles, Permissions Management, Reports, Dashboard, Notifications, Email Templates, Mail Server Config, Data Sync, Calendars, Risks
 
 ---
 
@@ -341,6 +341,18 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - [x] Startup seeds a job row per registered handler and pushes schedules to Hangfire; `Testing` environment uses a no-op scheduler so integration tests never open a Hangfire SQL connection
 - [x] `ku_employee_info.NearestAirport` relaxed to NULL (raw-SQL migration `Relax_KuEmployeeInfo_NearestAirport_Nullable`) — the HR source allows NULL there and the first sync failed on it
 
+### Work Calendars (WO-2026-11 C-1 — backend only)
+- [x] Entities `WorkCalendar`, `WorkCalendarDay` (weekly pattern, always 7 rows), `WorkCalendarException` (holidays, special working days, reduced-hours periods; inclusive date range) and nullable `Workspace.WorkCalendarId` (`Restrict` FK; null = use the default calendar)
+- [x] Additive migration `Add_WorkCalendars` — three new tables, one nullable column, indexes; no backfill, no existing column touched
+- [x] Default calendar **"KU Standard"** (Monday–Friday 08:00–17:00, Saturday–Sunday off, `Asia/Dubai`) seeded at startup by `WorkCalendarSeeder` when no calendar exists — on a clean database and on an existing one
+- [x] `IWorkCalendarService` — CRUD, set default, restore, usage, and the calculation API for other features: `GetForWorkspaceAsync(workspaceId)` / `GetDefaultAsync()` return a `ResolvedWorkCalendar` with `IsWorkingDay`, `NextWorkingDay`, `AddWorkingDays`, `WorkingDaysBetween` (exceptions override the weekly pattern); resolved calendars cached in memory and invalidated on every save
+- [x] Rules: exactly one default calendar at all times (also enforced by a filtered unique index); the default calendar and any calendar a workspace uses cannot be deleted or deactivated (`409`); working day needs `StartTime < EndTime`; exception needs `EndDate ≥ StartDate`; name unique among non-deleted calendars
+- [x] Admin API `/api/calendars` — list, get, create, update, soft delete, restore, `PUT /{id}/default`, `GET /{id}/usage` (names only workspaces the caller may see; private ones are reported as a count)
+- [x] New permission area **`Calendars`** (View / Create / Edit / Delete) — Admin: all, Workspace Admin: View
+- [x] Tests: calculation API (weekend, holiday range, special working day, year boundary, overlapping exceptions), service rules incl. the delete-in-use guard, seeder, endpoint policies, and a controller integration test (401 / 403 / 409)
+- [ ] Admin Calendars page `/admin/calendars` (WO-2026-11 C-2) — no UI yet; the API is reachable through Swagger only
+- [ ] Workspace calendar setting and working-day date rules on action items / milestones / projects (WO-2026-11 C-3) — nothing sets `Workspace.WorkCalendarId` yet, so every workspace currently resolves to the default calendar and no existing date behaviour has changed
+
 ---
 
 ## 14. UI / UX
@@ -581,6 +593,7 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - **Auto-launch Swagger UI on startup (Development only):** `Program.cs` registers a lifetime callback that opens the browser to `{baseUrl}/swagger` once the host is ready, regardless of how the app is launched (`dotnet run`, Visual Studio, VS Code). `launchSettings.json` `launchBrowser` set to `false` to avoid duplicate browser tabs
 - **Angular CLI analytics disabled** in `angular.json`
 - **ng-select default theme CSS** bundled in `angular.json` build/test asset lists
+- **Integration test host repaired (2026-11-23):** `ActionTrackerWebApplicationFactory` now also removes EF Core 9's `IDbContextOptionsConfiguration<AppDbContext>` (the SQL Server provider used to stay registered next to InMemory and the host never started), starts hosts one at a time (Serilog bootstrap logger), and offers `EnsureUserAsync` to create test users; `Program.cs` calls `MigrateAsync` only on a relational provider and `EnsureCreatedAsync` otherwise. The older Auth / ActionItems integration tests were updated to the current login contract (`AuthResponseDto`, `/api/auth/refresh-token`). Known remaining failure, unrelated to calendars: unit test `ActionItemServiceTests.UpdateStatusAsync_SetToDone_SetsProgressTo100`
 
 ---
 
@@ -589,3 +602,4 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - [ ] Audit trail / activity log
 - [ ] Advanced search (cross-entity, full-text)
 - [ ] Scheduled reminders (automated due-date reminders)
+- [ ] Work calendars — admin Calendars page (WO-2026-11 C-2) and workspace calendar setting + working-day date rules (WO-2026-11 C-3); the backend foundation (C-1) is done, see section 13

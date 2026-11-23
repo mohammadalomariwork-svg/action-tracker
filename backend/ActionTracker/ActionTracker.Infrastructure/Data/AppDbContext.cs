@@ -79,6 +79,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<DataSyncJob>       DataSyncJobs         => Set<DataSyncJob>();
     public DbSet<DataSyncJobRun>    DataSyncJobRuns      => Set<DataSyncJobRun>();
 
+    // ── Work calendars ────────────────────────────────────────────────────────
+    public DbSet<WorkCalendar>          WorkCalendars          => Set<WorkCalendar>();
+    public DbSet<WorkCalendarDay>       WorkCalendarDays       => Set<WorkCalendarDay>();
+    public DbSet<WorkCalendarException> WorkCalendarExceptions => Set<WorkCalendarException>();
+
     // ── Notification feature sets ────────────────────────────────────────────
     public DbSet<AppNotification>   AppNotifications     => Set<AppNotification>();
 
@@ -225,6 +230,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
 
             entity.HasIndex(e => e.OrganizationUnit);
             entity.HasIndex(e => e.StrategicPlanId);
+            entity.HasIndex(e => e.WorkCalendarId);
+
+            // Null = the workspace uses the default calendar. Restrict: a
+            // calendar a workspace points at cannot be removed from under it.
+            entity.HasOne(e => e.WorkCalendar)
+                  .WithMany()
+                  .HasForeignKey(e => e.WorkCalendarId)
+                  .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(e => e.Admins)
                   .WithOne(a => a.Workspace)

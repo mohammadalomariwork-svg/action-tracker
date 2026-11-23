@@ -117,6 +117,12 @@ public static class PermissionPolicies
     public const string DataSyncView = "DataSync.View";
     public const string DataSyncEdit = "DataSync.Edit";
 
+    // ── Work Calendars (Admin Panel) ──────────────────────────────────────────
+    public const string CalendarsView   = "Calendars.View";
+    public const string CalendarsCreate = "Calendars.Create";
+    public const string CalendarsEdit   = "Calendars.Edit";
+    public const string CalendarsDelete = "Calendars.Delete";
+
     // ── Notifications ─────────────────────────────────────────────────────────
     public const string NotificationsView   = "Notifications.View";
     public const string NotificationsDelete = "Notifications.Delete";

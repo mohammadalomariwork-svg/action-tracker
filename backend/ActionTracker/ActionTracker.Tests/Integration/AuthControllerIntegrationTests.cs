@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Auth.DTOs;
+using ActionTracker.Domain.Constants;
 using FluentAssertions;
 
 namespace ActionTracker.Tests.Integration;
@@ -17,6 +18,12 @@ namespace ActionTracker.Tests.Integration;
 public class AuthControllerIntegrationTests
     : IClassFixture<ActionTrackerWebApplicationFactory>
 {
+    // Local admin created by the test itself — the app no longer seeds one
+    // with these credentials.
+    private const string AdminEmail    = "admin@actiontracker.com";
+    private const string AdminPassword = "Admin@2026!";
+
+    private readonly ActionTrackerWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -27,8 +34,12 @@ public class AuthControllerIntegrationTests
 
     public AuthControllerIntegrationTests(ActionTrackerWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _factory = factory;
+        _client  = factory.CreateClient();
     }
+
+    private Task EnsureAdminAsync() =>
+        _factory.EnsureUserAsync(AdminEmail, AdminPassword, AppRoles.Admin);
 
     // -------------------------------------------------------------------------
     // POST api/auth/login — valid credentials → 200 with tokens
@@ -37,8 +48,9 @@ public class AuthControllerIntegrationTests
     [Fact]
     public async Task Login_WithValidCredentials_Returns200WithTokens()
     {
-        // Arrange — admin user is seeded during app startup
-        var payload = new { email = "admin@actiontracker.com", password = "Admin@2026!" };
+        // Arrange
+        await EnsureAdminAsync();
+        var payload = new { email = AdminEmail, password = AdminPassword };
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/auth/login", payload);
@@ -47,15 +59,15 @@ public class AuthControllerIntegrationTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var json = await response.Content.ReadAsStringAsync();
-        var body = JsonSerializer.Deserialize<ApiResponse<LoginResponseDto>>(json, JsonOptions);
+        var body = JsonSerializer.Deserialize<ApiResponse<AuthResponseDto>>(json, JsonOptions);
 
         body.Should().NotBeNull();
         body!.Success.Should().BeTrue();
         body.Data.Should().NotBeNull();
         body.Data!.AccessToken.Should().NotBeNullOrEmpty();
         body.Data.RefreshToken.Should().NotBeNullOrEmpty();
-        body.Data.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
-        body.Data.User.Email.Should().Be("admin@actiontracker.com");
+        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.UtcNow);
+        body.Data.Email.Should().Be(AdminEmail);
     }
 
     // -------------------------------------------------------------------------
@@ -66,7 +78,8 @@ public class AuthControllerIntegrationTests
     public async Task Login_WithInvalidCredentials_Returns401()
     {
         // Arrange
-        var payload = new { email = "admin@actiontracker.com", password = "WrongPassword!" };
+        await EnsureAdminAsync();
+        var payload = new { email = AdminEmail, password = "WrongPassword!" };
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/auth/login", payload);
@@ -76,31 +89,34 @@ public class AuthControllerIntegrationTests
     }
 
     // -------------------------------------------------------------------------
-    // POST api/auth/refresh — valid refresh token → 200 with new tokens
+    // POST api/auth/refresh-token — valid token pair → 200 with new tokens
     // -------------------------------------------------------------------------
 
     [Fact]
     public async Task Refresh_WithValidRefreshToken_Returns200WithNewTokens()
     {
-        // Arrange — first login to acquire a refresh token
-        var loginPayload = new { email = "admin@actiontracker.com", password = "Admin@2026!" };
+        // Arrange — first login to acquire a token pair
+        await EnsureAdminAsync();
+        var loginPayload = new { email = AdminEmail, password = AdminPassword };
         var loginResp    = await _client.PostAsJsonAsync("/api/auth/login", loginPayload);
         loginResp.EnsureSuccessStatusCode();
 
         var loginJson    = await loginResp.Content.ReadAsStringAsync();
-        var loginBody    = JsonSerializer.Deserialize<ApiResponse<LoginResponseDto>>(loginJson, JsonOptions);
-        var refreshToken = loginBody!.Data!.RefreshToken;
+        var loginBody    = JsonSerializer.Deserialize<ApiResponse<AuthResponseDto>>(loginJson, JsonOptions);
+        var accessToken  = loginBody!.Data!.AccessToken;
+        var refreshToken = loginBody.Data.RefreshToken;
 
-        var refreshPayload = new { refreshToken };
+        // The endpoint identifies the user from the (possibly expired) access token.
+        var refreshPayload = new { accessToken, refreshToken };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/refresh", refreshPayload);
+        var response = await _client.PostAsJsonAsync("/api/auth/refresh-token", refreshPayload);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var json = await response.Content.ReadAsStringAsync();
-        var body = JsonSerializer.Deserialize<ApiResponse<LoginResponseDto>>(json, JsonOptions);
+        var body = JsonSerializer.Deserialize<ApiResponse<AuthResponseDto>>(json, JsonOptions);
 
         body.Should().NotBeNull();
         body!.Success.Should().BeTrue();

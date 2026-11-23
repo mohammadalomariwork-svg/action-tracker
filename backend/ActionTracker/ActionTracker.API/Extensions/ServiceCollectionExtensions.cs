@@ -9,6 +9,8 @@ using ActionTracker.Application.Features.ActionItems.Services;
 using ActionTracker.Application.Features.EmailTemplates;
 using ActionTracker.Application.Features.MailServerConfig;
 using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Calendars.Interfaces;
+using ActionTracker.Application.Features.Calendars.Services;
 using ActionTracker.Application.Features.Auth.Interfaces;
 using ActionTracker.Application.Features.Auth.Services;
 using ActionTracker.Application.Features.Dashboard.Interfaces;
@@ -122,6 +124,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectService,     ProjectService>();
         services.AddScoped<IMilestoneService,   MilestoneService>();
         services.AddScoped<IProjectRiskService, ProjectRiskService>();
+
+        // Work calendars — the cache is process-wide, the service per request
+        services.AddSingleton<WorkCalendarCache>();
+        services.AddScoped<IWorkCalendarService, WorkCalendarService>();
 
         // Workflow
         services.AddScoped<IActionItemWorkflowService, ActionItemWorkflowService>();

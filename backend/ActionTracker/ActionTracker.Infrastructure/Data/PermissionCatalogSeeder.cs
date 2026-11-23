@@ -33,6 +33,7 @@ public static class PermissionCatalogSeeder
     public static readonly Guid AreaManagementDashboard      = new("10000018-0000-0000-0000-000000000000");
     public static readonly Guid AreaMailServerConfig         = new("10000019-0000-0000-0000-000000000000");
     public static readonly Guid AreaDataSync                 = new("1000001a-0000-0000-0000-000000000000");
+    public static readonly Guid AreaCalendars                = new("1000001b-0000-0000-0000-000000000000");
 
     // ── Action IDs (stable across re-runs) ───────────────────────────────────
 
@@ -93,6 +94,7 @@ public static class PermissionCatalogSeeder
             Area(AreaManagementDashboard,   "ManagementDashboard",   "Management Dashboard",  18),
             Area(AreaMailServerConfig,      "MailServerConfig",      "Mail Server Config",    19),
             Area(AreaDataSync,              "DataSync",              "Data Sync",             20),
+            Area(AreaCalendars,             "Calendars",             "Calendars",             21),
         };
 
         var toInsert = areas.Where(a => !existingIds.Contains(a.Id)).ToList();
@@ -273,6 +275,13 @@ public static class PermissionCatalogSeeder
             // Data Sync (Admin Panel): View, Edit (Edit also covers "Run now" / "Test connection").
             (AreaDataSync, "DataSync", 20, ActionView, "View", 1),
             (AreaDataSync, "DataSync", 20, ActionEdit, "Edit", 3),
+
+            // Calendars (Admin Panel): View, Create, Edit, Delete
+            // (Edit also covers "Set as default" and "Restore").
+            (AreaCalendars, "Calendars", 21, ActionView,   "View",   1),
+            (AreaCalendars, "Calendars", 21, ActionCreate, "Create", 2),
+            (AreaCalendars, "Calendars", 21, ActionEdit,   "Edit",   3),
+            (AreaCalendars, "Calendars", 21, ActionDelete, "Delete", 4),
         };
 
         var toInsert = desiredMappings

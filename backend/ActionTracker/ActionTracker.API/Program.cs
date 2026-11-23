@@ -382,7 +382,13 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
+
+        // The integration-test host swaps SQL Server for the EF InMemory
+        // provider, which has no migrations — create its schema from the model.
+        if (db.Database.IsRelational())
+            await db.Database.MigrateAsync();
+        else
+            await db.Database.EnsureCreatedAsync();
     }
 
     // -----------------------------------------------------------------------
@@ -420,6 +426,17 @@ try
                          .GetRequiredService<ILoggerFactory>()
                          .CreateLogger(nameof(EmailTemplateSeeder));
         await EmailTemplateSeeder.SeedAsync(db, logger);
+    }
+
+    // -----------------------------------------------------------------------
+    // Seed the default work calendar ("KU Standard") when none exists
+    using (var scope = app.Services.CreateScope())
+    {
+        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var logger = scope.ServiceProvider
+                         .GetRequiredService<ILoggerFactory>()
+                         .CreateLogger(nameof(WorkCalendarSeeder));
+        await WorkCalendarSeeder.SeedAsync(db, logger);
     }
 
     // -----------------------------------------------------------------------

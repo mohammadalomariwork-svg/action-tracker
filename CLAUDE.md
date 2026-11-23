@@ -1,7 +1,7 @@
 # CLAUDE.MD — KU Action Tracker
 
 > **Purpose**: This file is read automatically by Claude Code at session start.
-> Keep it updated as features land. Last updated: 2026-11-18
+> Keep it updated as features land. Last updated: 2026-11-23
 
 
 ---
@@ -103,6 +103,7 @@ ACTION-TRACKER/
 - **User** — Synced from Azure AD; linked to roles and org units
 - **DataSyncJob** / **DataSyncJobRun** — Admin-configurable background sync jobs (cron, time zone, enabled) and their run history. `JobKey` maps to an `IDataSyncJobHandler` in Infrastructure and doubles as the Hangfire recurring-job id
 - **KuEmployeeInfo** — Keyless mirror of the HR `ku_employee_info` table (read-only from the app); refreshed by the `employee-info-sync` data-sync job
+- **WorkCalendar** / **WorkCalendarDay** / **WorkCalendarException** — Working calendar: weekly pattern (always 7 day rows with working hours) plus dated exceptions (holidays, special working days, reduced-hours periods; inclusive range). Exactly one non-deleted calendar is the default (filtered unique index). `Workspace.WorkCalendarId` (nullable, `Restrict`) points a workspace at a calendar; null = use the default
 
 ## Application Roles (`AppRoles` constants)
 
@@ -184,6 +185,8 @@ Single source of truth: `ActionTracker.Domain.Constants.AppRoles`. The `RoleSeed
 - [x] Auto-launch Swagger UI on .NET host startup in Development
 - [x] **Mail Server Configuration (Admin Panel)** — Admin-managed SMTP settings stored in `MailServerConfigs` table (Host, Port, UseSsl, From, Username, EncryptedPassword). Password encrypted at rest via ASP.NET Core Data Protection (`ISecretProtector`). `EmailSender` reads the active DB row at send time and falls back to `appsettings.json` `Smtp` section when no row exists. Gated by new `MailServerConfig.View` / `MailServerConfig.Edit` permissions; Admin role only by default.
 - [x] **Data Sync (Admin Panel)** — Hangfire-hosted background jobs configured from `/admin/data-sync`. `DataSyncJobs` / `DataSyncJobRuns` tables hold the schedule (cron + time zone + enabled) and run history. First job: **HR Employee Info Sync** (`employee-info-sync`) copying `ku_employee_info` from KU_BOT_PROD (KU1ICDDWV008) into Action Center — full refresh via `DELETE` + `SqlBulkCopy` in one transaction, common-column matching, row-count safety guard. Source connection string is read from `DataSync:EmployeeInfo:SourceConnectionString` in the git-ignored `appsettings.json` (placeholders `<USERNAME>` / `<PASSWORD>` must be replaced). Gated by `DataSync.View` / `DataSync.Edit`. Hangfire dashboard at `/hangfire` is local-requests only. New jobs = implement `IDataSyncJobHandler` + register it in `DataSyncServiceCollectionExtensions`; the row is seeded automatically at startup.
+- [x] **Work calendars — backend (WO-2026-11 C-1)** — `IWorkCalendarService` (`Application/Features/Calendars`) with admin API `/api/calendars` (list, get, create, update, soft delete, restore, `PUT /{id}/default`, `GET /{id}/usage`), gated by the `Calendars.View / Create / Edit / Delete` permissions (Admin: all, Workspace Admin: View). Default calendar "KU Standard" (Mon–Fri 08:00–17:00, Asia/Dubai) is seeded at startup by `WorkCalendarSeeder`. For any working-day maths call `GetForWorkspaceAsync(workspaceId)` (or `GetDefaultAsync()`) and use the returned `ResolvedWorkCalendar` (`IsWorkingDay`, `NextWorkingDay`, `AddWorkingDays`, `WorkingDaysBetween`) — do not hand-roll weekend checks. Rules: one default at all times; the default and any calendar a workspace uses cannot be deleted or deactivated (409). Resolved calendars are cached in the singleton `WorkCalendarCache`; every calendar write must go through the service so the cache is cleared.
+- [ ] Work calendars — admin Calendars page (WO-2026-11 C-2) and workspace calendar setting + working-day date rules (WO-2026-11 C-3). Nothing sets `Workspace.WorkCalendarId` yet, so no existing date behaviour has changed
 - [ ] Scheduled reminders (automated due-date reminders) — Hangfire is now available for this
 - [ ] Audit trail / activity log
 - [ ] Advanced search (cross-entity, full-text)

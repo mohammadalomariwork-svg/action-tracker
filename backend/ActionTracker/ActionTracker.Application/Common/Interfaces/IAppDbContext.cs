@@ -57,6 +57,11 @@ public interface IAppDbContext
     DbSet<DataSyncJob>       DataSyncJobs         { get; }
     DbSet<DataSyncJobRun>    DataSyncJobRuns      { get; }
 
+    // ── Work calendars ────────────────────────────────────────────────────────
+    DbSet<WorkCalendar>          WorkCalendars          { get; }
+    DbSet<WorkCalendarDay>       WorkCalendarDays       { get; }
+    DbSet<WorkCalendarException> WorkCalendarExceptions { get; }
+
     // ── Notification feature sets ────────────────────────────────────────────
     DbSet<AppNotification>   AppNotifications     { get; }
 

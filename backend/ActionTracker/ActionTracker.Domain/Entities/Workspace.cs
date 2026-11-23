@@ -34,6 +34,14 @@ public class Workspace
     /// <summary>Optional strategic plan whose objectives this workspace's projects may pull from.</summary>
     public Guid? StrategicPlanId { get; set; }
 
+    /// <summary>
+    /// Working calendar used for this workspace's date calculations.
+    /// Null means "use the default calendar".
+    /// </summary>
+    public Guid? WorkCalendarId { get; set; }
+
+    public WorkCalendar? WorkCalendar { get; set; }
+
     public ICollection<WorkspaceAdmin> Admins { get; set; } = new List<WorkspaceAdmin>();
 
     public ICollection<WorkspaceMember> Members { get; set; } = new List<WorkspaceMember>();

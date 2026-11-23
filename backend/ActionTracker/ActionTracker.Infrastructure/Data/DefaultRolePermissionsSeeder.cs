@@ -92,6 +92,7 @@ public static class DefaultRolePermissionsSeeder
         var ka      = (PermissionCatalogSeeder.AreaKpiActuals,            "KpiActuals");
         var mailCfg = (PermissionCatalogSeeder.AreaMailServerConfig,      "MailServerConfig");
         var dataSync= (PermissionCatalogSeeder.AreaDataSync,              "DataSync");
+        var calendars = (PermissionCatalogSeeder.AreaCalendars,           "Calendars");
 
         // Actions
         var view       = (PermissionCatalogSeeder.ActionView,       "View");
@@ -113,7 +114,7 @@ public static class DefaultRolePermissionsSeeder
             => (role, area.Id, area.Name, action.Id, action.Name);
 
         // ── Admin — every area × every action ─────────────────────────────────
-        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif, sp, ka, mailCfg, dataSync };
+        var allAreas = new[] { dash, ws, proj, mile, ai, so, kpi, rep, org, um, pm, roles, risks, emailT, notif, sp, ka, mailCfg, dataSync, calendars };
         foreach (var area   in allAreas)
         foreach (var action in allActions)
             yield return P(AppRoles.Admin, area, action);
@@ -283,6 +284,13 @@ public static class DefaultRolePermissionsSeeder
         yield return P(AppRoles.StrategyEditor, ka, view);
         yield return P(AppRoles.StrategyEditor, ka, create);
         yield return P(AppRoles.StrategyEditor, ka, edit);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // Work calendars (WO-2026-11 C-1).
+        // Admin already gets every Calendars action via the allAreas loop.
+        // Workspace Admin: View only (needed to pick a calendar for a workspace).
+        // ══════════════════════════════════════════════════════════════════════
+        yield return P(AppRoles.WorkspaceAdmin, calendars, view);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

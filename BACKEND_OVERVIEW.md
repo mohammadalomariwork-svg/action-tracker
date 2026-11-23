@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-18 (Dashboard analytics: `IDashboardAnalyticsService`, 5 scoped `/api/dashboard` endpoints, drill-down filters on the action-item list, `DashboardRules`)
+> Last updated: 2026-11-23 (Work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`)
 
 ## Tech Stack
 
@@ -56,7 +56,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 **Fine-Grained Permissions (RBAC + ABAC Hybrid)**
 - Permissions defined as Area.Action pairs (e.g., `Projects.View`, `ActionItems.Delete`)
-- **19 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**, **MailServerConfig**, **DataSync**
+- **20 Areas:** Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **KpiActuals**, **MailServerConfig**, **DataSync**, **Calendars** (View / Create / Edit / Delete — Admin: all, Workspace Admin: View)
 - **7 Actions:** View, Create, Edit, Delete, Approve, Export, Assign
 - Stored in `RolePermission` (role-level) and `UserPermissionOverride` (user-level) tables
 - **Effective Permissions** = Role Permissions + User Overrides (denials take precedence)
@@ -89,7 +89,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
-## API Controllers & Endpoints (22 Controllers)
+## API Controllers & Endpoints (23 Controllers)
 
 ### AuthController (`/api/auth`)
 | Method | Endpoint | Description |
@@ -265,6 +265,47 @@ selects only the intersection, loads the source into memory, then `DELETE` +
 `SqlBulkCopy` inside one transaction so readers never see an empty table. Aborts
 (target untouched) when the source is empty or below `MinRowRatio` (default 0.9) of
 the current target row count, or when the post-copy count differs.
+
+### CalendarsController (`/api/calendars`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/?includeDeleted=false` | All calendars with their weekly pattern and exceptions, default first then by name (requires `Calendars.View`) |
+| GET | `/{id}` | Single calendar (requires `Calendars.View`) |
+| GET | `/{id}/usage` | Workspaces using the calendar. Names only the workspaces the caller may see (private-workspace filter + `IWorkspaceAccessResolver`); the rest are reported as `hiddenWorkspaceCount`. For the default calendar also returns `inheritingWorkspaceCount` — visible active workspaces with no calendar of their own (requires `Calendars.View`) |
+| POST | `/` | Create a calendar. Body: name, description, timeZoneId, isActive, `days` (exactly 7), `exceptions` (requires `Calendars.Create`) |
+| PUT | `/{id}` | Update a calendar, its 7 day rows and its **full** exception list — rows with an `id` are updated, rows without are added, rows left out are removed (requires `Calendars.Edit`) |
+| PUT | `/{id}/default` | Make this calendar the default; the previous default loses the flag in the same transaction (requires `Calendars.Edit`) |
+| PATCH | `/{id}/restore` | Restore a soft-deleted calendar (requires `Calendars.Edit`) |
+| DELETE | `/{id}` | Soft delete (requires `Calendars.Delete`) |
+
+**Status codes:** `400` invalid input (FluentValidation or `ArgumentException`), `404` unknown
+calendar, `409 Conflict` when a rule forbids the change — duplicate name, deleting or
+deactivating the default calendar, deleting or deactivating a calendar a workspace uses,
+making an inactive calendar the default, restoring a calendar whose name is now taken.
+
+**Wire format:** `dayOfWeek` is a string enum (`sunday` … `saturday`), times are
+`HH:mm:ss` (`TimeOnly`), dates are `yyyy-MM-dd` (`DateOnly`). Times are wall-clock in
+the calendar's `timeZoneId`.
+
+**Rules** (enforced in `WorkCalendarService`, with the database as a second line of
+defence):
+- Exactly one default calendar at all times — filtered unique index
+  `IX_WorkCalendars_IsDefault`; `WorkCalendarSeeder` inserts "KU Standard" at startup
+  when no calendar exists. `SetDefaultAsync` releases the old flag and claims the new one
+  as two ordered saves inside one transaction (EF does not order a one-save swap reliably
+  under the filtered index).
+- The default calendar, and a calendar any workspace points at, cannot be deleted or
+  deactivated. The in-use count ignores query filters on purpose so private and archived
+  workspaces also protect their calendar; only the number leaves the service.
+  `FK_Workspaces_WorkCalendars_WorkCalendarId` is `Restrict`.
+- A working day needs `StartTime < EndTime`; the week needs all 7 days and at least one
+  working day; an exception needs `EndDate ≥ StartDate`; `TimeZoneId` must resolve via
+  `TimeZoneInfo` (IANA or Windows id).
+- Name is unique among non-deleted calendars (case-insensitive; filtered unique index
+  `IX_WorkCalendars_Name`).
+
+Not built yet (later work packages): the admin Calendars page (C-2) and the workspace
+calendar setting + date rules that consume the calculation API (C-3).
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
@@ -497,7 +538,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 
 ---
 
-## Database Entities (23 Entities)
+## Database Entities (26 Entities)
 
 ### Core Entities
 
@@ -601,6 +642,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | StrategicPlanId | Guid? (FK) | Optional linked strategic plan — drives the strategic objectives available to projects in this workspace |
 | IsActive | bool | Active flag (default true) |
 | IsPrivate | bool | Private flag (default false). When true, only the workspace's admins + members can see the workspace and its projects / milestones / action items / risks — enforced by global query filters (see `ICurrentUserService`). Create/update DTOs carry `IsPrivate`; on update `null` keeps the current value |
+| WorkCalendarId | Guid? (FK → WorkCalendars, Restrict) | Working calendar for this workspace's date calculations. `null` = use the default calendar. Column added by `Add_WorkCalendars`; no API sets it yet (the workspace calendar setting is WO-2026-11 C-3) |
 | **Nav:** | | Admins (WorkspaceAdmin), Members (WorkspaceMember), ProjectManagers (WorkspaceProjectManager), StrategicProjectApprovers (WorkspaceStrategicProjectApprover), Projects, ActionItems |
 
 #### WorkspaceMember (join table for direct user assignment)
@@ -834,6 +876,40 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | RowsRead / RowsWritten | int? | |
 | Message | string(4000)? | Success summary or error text |
 
+#### WorkCalendar (`WorkCalendars`)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| Name | string(100) | Unique among non-deleted calendars (filtered unique index) |
+| Description | string(500)? | |
+| TimeZoneId | string(100) | IANA or Windows time-zone id; default `Asia/Dubai` |
+| IsDefault | bool | Exactly one non-deleted row is the default (filtered unique index `[IsDefault] = 1 AND [IsDeleted] = 0`) |
+| IsActive | bool | Inactive calendars cannot be the default |
+| IsDeleted | bool | Soft delete (global query filter) |
+| CreatedAt / CreatedBy / UpdatedAt / UpdatedBy | audit | Standard audit columns |
+| **Nav:** | | Days (WorkCalendarDay, cascade), Exceptions (WorkCalendarException, cascade) |
+
+#### WorkCalendarDay (`WorkCalendarDays`)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| WorkCalendarId | Guid (FK → WorkCalendars, cascade) | |
+| DayOfWeek | int (`System.DayOfWeek`) | 0 = Sunday … 6 = Saturday; unique per calendar — always exactly 7 rows |
+| IsWorkingDay | bool | |
+| StartTime / EndTime | `time`? (`TimeOnly`) | Working hours; null on a non-working day |
+
+#### WorkCalendarException (`WorkCalendarExceptions`)
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | Primary key |
+| WorkCalendarId | Guid (FK → WorkCalendars, cascade) | |
+| Name | string(150) | e.g. "National Day", "Ramadan hours" |
+| StartDate / EndDate | `date` (`DateOnly`) | Inclusive range |
+| IsWorkingDay | bool | `false` = holiday; `true` = special working day or reduced-hours period |
+| StartTime / EndTime | `time`? (`TimeOnly`) | Optional hours for a working exception; null keeps the weekly pattern's hours |
+
+Exception rows have no `IsDeleted` — removing one from a calendar deletes the row; the calendar itself is soft-deleted.
+
 #### Document
 | Field | Type | Description |
 |-------|------|-------------|
@@ -953,6 +1029,9 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | `IDataSyncJobHandler` | One per sync job (`JobKey`, defaults, `ExecuteAsync`, `ProbeAsync`). Current implementation: `EmployeeInfoSyncJobHandler` (`employee-info-sync`). |
 | `IDataSyncJobRunner` | Invoked by Hangfire via `DataSyncHangfireJob`; writes the `DataSyncJobRuns` row, resolves the handler, records outcome and updates the job's last-run summary. |
 | `IDataSyncScheduler` | Scheduler abstraction (`AddOrUpdate` / `Remove` / `TriggerNow` / `GetNextExecutionUtc` / validation). `HangfireDataSyncScheduler` in normal environments, `NoOpDataSyncScheduler` under `Testing`. |
+| `IWorkCalendarService` | Work calendars (WO-2026-11 C-1). Admin CRUD, `SetDefaultAsync`, `RestoreAsync`, `GetUsageAsync`, and the calculation API for other features: `GetDefaultAsync()` / `GetForWorkspaceAsync(workspaceId)` return a `ResolvedWorkCalendar` (the workspace's own calendar, or the default when it has none or the caller cannot see the workspace). Implementation `WorkCalendarService` lives in `Application/Features/Calendars/Services`. Throws `KeyNotFoundException` (404), `ArgumentException` (400), `InvalidOperationException` (409). |
+| `ResolvedWorkCalendar` | Immutable in-memory snapshot of one calendar — no database access. `IsWorkingDay(date)`, `NextWorkingDay(date)` (the date itself when it is already a working day), `PreviousWorkingDay(date)`, `AddWorkingDays(date, n)` (start date not counted; negative moves back; 0 = unchanged), `WorkingDaysBetween(start, end)` (both ends counted; 0 when end < start), `GetWorkingHours(date)`. An exception overrides the weekly pattern; when several cover a date the shortest wins, and on a tie a non-working one wins. |
+| `WorkCalendarCache` | Singleton cache of resolved calendars. Cleared after every calendar write; a version stamp stops a calendar read before a concurrent write from being cached after it; entries also expire after 10 minutes so a second app instance cannot serve a stale calendar for long. |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
 | `IUserManagementService` | CRUD users, role assignment (with Strategy Editor org-unit-level guard), KU employee search, activation |
 | `ICommentService` | CRUD polymorphic comments (any entity type) |
@@ -1005,11 +1084,13 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 
 ## Database Seeding (Startup)
 
-1. **Auto-migrate** database on startup
+1. **Auto-migrate** database on startup (`MigrateAsync` on SQL Server; `EnsureCreatedAsync` when the integration-test host swaps in the EF InMemory provider)
 2. **RoleSeeder** — seeds the 10 application roles (Admin, Workspace Admin, PMO Head, PMO Analyst, Project Sponsor, Project Manager, Project Coordinator, Team Member, Strategy Editor, Viewer); idempotent. Also deletes deprecated **Manager** and **User** roles when they are still present
 3. **PermissionCatalogSeeder** — seeds permission areas, actions, area-action mappings
 4. **DefaultRolePermissionsSeeder** — seeds default permissions for each role (idempotent — only inserts missing rows). Includes the Strategy Editor permission set (View/Create/Edit/Delete on Strategic Objectives + KPIs, View on Dashboard / OrgChart / Notifications)
-5. **AdminBootstrapSeeder** — seeds the bootstrap admin user
+5. **EmailTemplateSeeder** — seeds / refreshes the email templates
+6. **WorkCalendarSeeder** — inserts the default calendar "KU Standard" (Monday–Friday 08:00–17:00, Saturday–Sunday off, `Asia/Dubai`) when no calendar exists, so it runs once on a clean database and once on an existing database after `Add_WorkCalendars`; promotes the oldest active calendar if calendars exist but none is the default. Idempotent
+7. **AdminBootstrapSeeder** — seeds the bootstrap admin user
 
 ### Developer Experience (Startup)
 - In **Development** environment, the host registers an `ApplicationStarted` callback that opens the system browser to `{baseUrl}/swagger` automatically. Works regardless of `dotnet run` / Visual Studio / VS Code launch path. `launchSettings.json` keeps `launchBrowser=false` to prevent duplicate tabs.
@@ -1037,6 +1118,7 @@ Period-aware measured value. Acts as its own workflow record (Status / Submitted
 | Centralized Role Constants | All role names live in `AppRoles` — no magic strings |
 | Two-Layer Org Scoping | `IOrgUnitScopeResolver` (data-tier visibility) + `IStrategicScopeService` (role-driven Strategy/KPI scope) |
 | Per-Entity Document Caps | Document attachments throttled per entity type (e.g. KpiTarget → 10 files) |
+| Working Calendars | Date maths goes through `IWorkCalendarService` → `ResolvedWorkCalendar` (pure, cached) rather than ad-hoc weekend checks; one default calendar is guaranteed by a filtered unique index plus the startup seeder |
 
 ---
 

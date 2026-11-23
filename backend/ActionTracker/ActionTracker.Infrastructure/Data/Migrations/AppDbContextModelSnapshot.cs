@@ -2545,6 +2545,132 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("StrategicPlanApprovers", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDefault")
+                        .IsUnique()
+                        .HasFilter("[IsDefault] = 1 AND [IsDeleted] = 0");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("WorkCalendars", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendarDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsWorkingDay")
+                        .HasColumnType("bit");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<Guid>("WorkCalendarId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkCalendarId", "DayOfWeek")
+                        .IsUnique();
+
+                    b.ToTable("WorkCalendarDays", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendarException", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsWorkingDay")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<Guid>("WorkCalendarId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkCalendarId", "StartDate", "EndDate");
+
+                    b.ToTable("WorkCalendarExceptions", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.Workspace", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2584,11 +2710,16 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("WorkCalendarId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationUnit");
 
                     b.HasIndex("StrategicPlanId");
+
+                    b.HasIndex("WorkCalendarId");
 
                     b.ToTable("Workspaces", (string)null);
                 });
@@ -3243,6 +3374,38 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("StrategicPlan");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendarDay", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.WorkCalendar", "WorkCalendar")
+                        .WithMany("Days")
+                        .HasForeignKey("WorkCalendarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkCalendar");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendarException", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.WorkCalendar", "WorkCalendar")
+                        .WithMany("Exceptions")
+                        .HasForeignKey("WorkCalendarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkCalendar");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Workspace", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.WorkCalendar", "WorkCalendar")
+                        .WithMany()
+                        .HasForeignKey("WorkCalendarId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("WorkCalendar");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceAdmin", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
@@ -3392,6 +3555,13 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Approvers");
 
                     b.Navigation("Objectives");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendar", b =>
+                {
+                    b.Navigation("Days");
+
+                    b.Navigation("Exceptions");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.Workspace", b =>
