@@ -86,6 +86,84 @@
       </div>
     </section>
 
+    <!-- ── Working Calendar (WO-2026-11 C-3) ────────────────────────────── -->
+    <section class="ws-section" aria-labelledby="wsCalendarHeading">
+      <div class="ws-section__header">
+        <h5 id="wsCalendarHeading"><i class="bi bi-calendar-week text-primary me-2"></i>Working Calendar</h5>
+        <p class="text-muted small mb-0">
+          Start and end dates of action items, milestones and projects in this workspace must fall on a working
+          day of this calendar. A change applies to dates saved from now on; existing dates are left as they are.
+        </p>
+      </div>
+
+      @if (workspaceCalendar; as cal) {
+        <dl class="ws-calendar">
+          <div class="ws-calendar__item">
+            <dt>In use</dt>
+            <dd>
+              {{ cal.calendarName }}
+              @if (cal.isInherited) {
+                <span class="badge bg-secondary ms-1">Default</span>
+              }
+            </dd>
+          </div>
+          <div class="ws-calendar__item">
+            <dt>Working days</dt>
+            <dd>{{ summarizeWorkingDays(cal.days) }}</dd>
+          </div>
+          <div class="ws-calendar__item">
+            <dt>Hours</dt>
+            <dd>{{ summarizeHours(cal.days) }} <span class="text-muted">({{ cal.timeZoneId }})</span></dd>
+          </div>
+          <div class="ws-calendar__item">
+            <dt>Next exception</dt>
+            <dd>
+              @if (nextCalendarException; as ex) {
+                {{ ex.name }} · {{ formatDateRange(ex.startDate, ex.endDate) }}
+              } @else {
+                None scheduled
+              }
+            </dd>
+          </div>
+        </dl>
+      } @else if (calendarLoadError) {
+        <p class="text-danger small mb-0">{{ calendarLoadError }}</p>
+      }
+
+      @if (canManage) {
+        <div *appHasPermission="'Workspaces'; action: 'Edit'" class="ws-calendar__edit">
+          <div class="ws-inline-form mb-1">
+            <label for="wsCalendarSelect" class="visually-hidden">Working calendar</label>
+            <select
+              id="wsCalendarSelect"
+              class="form-select form-select-sm"
+              [(ngModel)]="selectedCalendarId"
+              [disabled]="isSavingCalendar">
+              <option [ngValue]="''">Use the default calendar ({{ defaultCalendarName }})</option>
+              @for (option of calendarOptions; track option.id) {
+                <option [ngValue]="option.id">
+                  {{ option.name }} — {{ summarizeWorkingDays(option.days) }}{{ option.isDefault ? ' · current default' : '' }}
+                </option>
+              }
+            </select>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="onSaveCalendar()"
+              [disabled]="isSavingCalendar || !workspaceCalendar || selectedCalendarId === (workspaceCalendar.workCalendarId ?? '')">
+              @if (isSavingCalendar) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+              }
+              <i class="bi bi-save me-1"></i>Save
+            </button>
+          </div>
+          <p class="text-muted small mb-0">
+            "Use the default" follows whichever calendar is the default. Picking a calendar by name keeps this
+            workspace on it even if the default changes.
+          </p>
+        </div>
+      }
+    </section>
+
     <!-- ── Admins ───────────────────────────────────────────────────────── -->
     <section class="ws-section">
       <div class="ws-section__header">

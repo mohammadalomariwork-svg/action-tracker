@@ -198,6 +198,60 @@ public class ResolvedWorkCalendarTests
     }
 
     [Fact]
+    public void TiedNonWorkingAndWorkingExceptions_TheNonWorkingOneWins_WhateverTheOrder()
+    {
+        var open   = Working("Open day", D(2026, 12, 10), D(2026, 12, 10), null, null);
+        var closed = Holiday("Closed", D(2026, 12, 10), D(2026, 12, 10));
+
+        Standard(open, closed).IsWorkingDay(D(2026, 12, 10)).Should().BeFalse();
+        Standard(closed, open).IsWorkingDay(D(2026, 12, 10)).Should().BeFalse();
+    }
+
+    // Two working exceptions of the same length on the same date used to be
+    // decided by the order the rows came from the database.
+
+    [Fact]
+    public void TiedWorkingExceptions_WithDifferentHours_TheShorterWorkingDayWins_WhateverTheOrder()
+    {
+        var examHours = Working("Exam week hours", D(2026, 12, 7), D(2026, 12, 11), new TimeOnly(8, 0), new TimeOnly(15, 0));
+        var shortDay  = Working("Short week",      D(2026, 12, 7), D(2026, 12, 11), new TimeOnly(9, 0), new TimeOnly(13, 0));
+
+        foreach (var calendar in new[] { Standard(examHours, shortDay), Standard(shortDay, examHours) })
+        {
+            calendar.GetWorkingHours(D(2026, 12, 9))
+                .Should().Be((new TimeOnly(9, 0), new TimeOnly(13, 0)), "a four-hour day is more specific than a seven-hour one");
+        }
+    }
+
+    [Fact]
+    public void TiedWorkingExceptions_WithEqualLengthHours_TheEarlierStartWins_WhateverTheOrder()
+    {
+        var morning   = Working("Morning shift",   D(2026, 12, 10), D(2026, 12, 10), new TimeOnly(8, 0), new TimeOnly(12, 0));
+        var afternoon = Working("Afternoon shift", D(2026, 12, 10), D(2026, 12, 10), new TimeOnly(9, 0), new TimeOnly(13, 0));
+
+        foreach (var calendar in new[] { Standard(morning, afternoon), Standard(afternoon, morning) })
+            calendar.GetWorkingHours(D(2026, 12, 10)).Should().Be((new TimeOnly(8, 0), new TimeOnly(12, 0)));
+    }
+
+    [Fact]
+    public void TiedWorkingExceptions_OneWithHoursOfItsOwn_BeatsOneWithout_WhateverTheOrder()
+    {
+        var marked  = Working("Marked day",   D(2026, 12, 10), D(2026, 12, 10), null, null);
+        var reduced = Working("Reduced hours", D(2026, 12, 10), D(2026, 12, 10), new TimeOnly(10, 0), new TimeOnly(14, 0));
+
+        foreach (var calendar in new[] { Standard(marked, reduced), Standard(reduced, marked) })
+            calendar.GetWorkingHours(D(2026, 12, 10)).Should().Be((new TimeOnly(10, 0), new TimeOnly(14, 0)));
+    }
+
+    private static WorkCalendarException Working(
+        string name, DateOnly start, DateOnly end, TimeOnly? startTime, TimeOnly? endTime) =>
+        new()
+        {
+            Name = name, StartDate = start, EndDate = end, IsWorkingDay = true,
+            StartTime = startTime, EndTime = endTime,
+        };
+
+    [Fact]
     public void WorkingException_WithoutHours_KeepsTheWeeklyHours()
     {
         var calendar = Standard(new WorkCalendarException

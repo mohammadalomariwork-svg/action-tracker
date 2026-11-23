@@ -9,6 +9,14 @@ import { catchError } from 'rxjs/operators';
 import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
+import { PermissionStateService } from '../../../permissions/services/permission-state.service';
+import { WorkspaceCalendarService } from '../../../../services/workspace-calendar.service';
+import { WorkspaceCalendar, WorkspaceCalendarOption } from '../../../../models/work-calendar.model';
+import { todayIso } from '../../../../shared/utils/work-calendar.util';
+import {
+  apiErrorMessage, formatDateRange, nextException, summarizeHours, summarizeWorkingDays,
+} from '../../../admin/calendars/calendar-ui';
 import {
   Workspace, WorkspaceAdmin, WorkspaceMember,
   WorkspaceProjectManager, WorkspaceStrategicProjectApprover,
@@ -20,7 +28,7 @@ type AddResult<T> = { failed?: boolean; data?: T; user: UserDropdownItem; err?: 
 @Component({
   selector: 'app-workspace-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, HasPermissionDirective],
   templateUrl: './workspace-settings.component.html',
   styleUrl: './workspace-settings.component.scss',
 })
@@ -30,6 +38,8 @@ export class WorkspaceSettingsComponent implements OnInit {
   private readonly route            = inject(ActivatedRoute);
   private readonly router           = inject(Router);
   private readonly destroyRef       = inject(DestroyRef);
+  private readonly calendarService  = inject(WorkspaceCalendarService);
+  private readonly permissions      = inject(PermissionStateService);
 
   workspaceId!: string;
   workspace: Workspace | null = null;
@@ -40,6 +50,18 @@ export class WorkspaceSettingsComponent implements OnInit {
 
   // Shared user catalog
   private allActiveUsers: UserDropdownItem[] = [];
+
+  // ── Working calendar (WO-2026-11 C-3) ───────────────────────
+  workspaceCalendar: WorkspaceCalendar | null = null;
+  calendarOptions: WorkspaceCalendarOption[] = [];
+  /** '' = use the default calendar. */
+  selectedCalendarId = '';
+  isSavingCalendar = false;
+  calendarLoadError: string | null = null;
+
+  readonly summarizeWorkingDays = summarizeWorkingDays;
+  readonly summarizeHours       = summarizeHours;
+  readonly formatDateRange      = formatDateRange;
 
   // ── Linked strategic plan ───────────────────────────────────
   strategicPlanOptions: StrategicPlanDropdownItem[] = [];
@@ -111,10 +133,12 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.selectedStrategicPlanId = this.workspace?.strategicPlanId ?? '';
           this.resolvePermissions();
           this.isLoading = false;
+          this.loadWorkspaceCalendar();
           if (this.canManage) {
             this.loadActiveUsers();
             this.loadStrategicPlans();
             this.loadOrgUnitsForBulk();
+            this.loadCalendarOptions();
           }
         },
         error: (err) => {
@@ -147,6 +171,70 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.recomputeAvailable();
         },
         error: () => {},
+      });
+  }
+
+  private loadWorkspaceCalendar(): void {
+    this.calendarLoadError = null;
+    this.calendarService.getCalendar(this.workspaceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.workspaceCalendar  = res.data ?? null;
+          this.selectedCalendarId = res.data?.workCalendarId ?? '';
+        },
+        error: (err) => this.calendarLoadError = apiErrorMessage(err, 'Failed to load the working calendar.'),
+      });
+  }
+
+  /** The dropdown needs `Workspaces.View`; without it the list stays empty instead of raising a 403. */
+  private loadCalendarOptions(): void {
+    if (!this.permissions.hasPermission('Workspaces', 'View')) return;
+    this.calendarService.getOptions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => this.calendarOptions = res.data ?? [],
+        error: () => {},
+      });
+  }
+
+  /** The next holiday or special day that has not ended yet. */
+  get nextCalendarException() {
+    return this.workspaceCalendar ? nextException(this.workspaceCalendar.exceptions ?? [], todayIso()) : null;
+  }
+
+  /** Name of the current default calendar, for the "Use the default" option. */
+  get defaultCalendarName(): string {
+    const fromOptions = this.calendarOptions.find(c => c.isDefault)?.name;
+    if (fromOptions) return fromOptions;
+    return this.workspaceCalendar?.isDefault ? this.workspaceCalendar.calendarName : 'default';
+  }
+
+  onSaveCalendar(): void {
+    if (!this.workspace) return;
+    this.isSavingCalendar = true;
+    this.errorMessage = null;
+    this.successMessage = null;
+
+    const calendarId = this.selectedCalendarId || null;
+    this.calendarService.setCalendar(this.workspaceId, calendarId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          if (res.data) {
+            this.workspaceCalendar  = res.data;
+            this.selectedCalendarId = res.data.workCalendarId ?? '';
+          }
+          const name = res.data?.calendarName ?? 'the default calendar';
+          this.successMessage = calendarId
+            ? `Working calendar set to ${name}. Dates saved from now on must fall on its working days; existing dates are not changed.`
+            : `This workspace now uses the default calendar (${name}). Existing dates are not changed.`;
+          this.isSavingCalendar = false;
+        },
+        error: (err) => {
+          this.errorMessage = apiErrorMessage(err, 'Failed to update the working calendar.');
+          this.isSavingCalendar = false;
+        },
       });
   }
 

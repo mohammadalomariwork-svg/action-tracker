@@ -749,6 +749,8 @@
         <div class="col-6">
           <label class="form-label">Planned Start <span class="text-danger">*</span></label>
           <input type="date" class="form-control" [(ngModel)]="editForm.plannedStartDate" />
+          <app-working-day-hint field="Planned start date" [calendar]="calendar()" [date]="editForm.plannedStartDate"
+                                [original]="originalPlannedStart" (useDate)="editForm.plannedStartDate = $event" />
         </div>
         <div class="col-6">
           <label class="form-label">Planned End <span class="text-danger">*</span></label>
@@ -757,6 +759,11 @@
           @if (hasDateRangeError) {
             <small class="text-danger">End must be after start.</small>
           }
+          <app-working-day-hint field="Planned end date" [calendar]="calendar()" [date]="editForm.plannedEndDate"
+                                [original]="originalPlannedEnd" (useDate)="editForm.plannedEndDate = $event" />
+        </div>
+        <div class="col-12">
+          <app-working-days [calendar]="calendar()" [start]="editForm.plannedStartDate" [end]="editForm.plannedEndDate" />
         </div>
       </div>
 

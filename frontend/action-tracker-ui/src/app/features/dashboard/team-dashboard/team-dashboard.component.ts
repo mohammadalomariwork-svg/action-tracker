@@ -14,6 +14,10 @@ import { ActionItemService } from '../../../core/services/action-item.service';
 import { DashboardAnalyticsService } from '../../../core/services/dashboard-analytics.service';
 import { AuthService }       from '../../../core/services/auth.service';
 import { ToastService }      from '../../../core/services/toast.service';
+import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
+import { WorkingDayHintComponent } from '../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.validator';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 import { ThemeService }      from '../../../services/theme.service';
 
@@ -90,6 +94,7 @@ function greeting(): string {
     HasPermissionDirective,
     DashTabsComponent, DashStatComponent, DashPanelComponent, DashLegendComponent,
     RankedBarsComponent, DrilldownPanelComponent,
+    WorkingDayHintComponent, WorkingDaysComponent,
   ],
   // Chart.js is tree-shakeable: without registering its controllers and
   // scales <canvas baseChart> throws ('"category" is not a registered
@@ -288,6 +293,11 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
   showActionForm = false;
   actionSaving   = false;
   actionForm: ActionItemFormData = this.emptyActionForm();
+
+  // Working calendar of the drawer's workspace (WO-2026-11 C-3). Create only,
+  // so every date entered is checked.
+  private readonly formWorkspaceId = signal('');
+  readonly calendar = injectWorkspaceCalendar(() => this.formWorkspaceId());
   assigneeDropdownOpen = false;
   assigneeSearchTerm   = '';
   allUsers:      AssignableUser[] = [];
@@ -401,6 +411,7 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
 
   openNewActionForm(): void {
     this.actionForm = this.emptyActionForm();
+    this.formWorkspaceId.set('');
     this.allUsers = [];
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
@@ -416,6 +427,7 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
   }
 
   onWorkspaceChange(workspaceId: string): void {
+    this.formWorkspaceId.set(workspaceId ?? '');
     if (!workspaceId) {
       this.allUsers = [];
       this.actionForm.assigneeIds = [];
@@ -476,6 +488,16 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
   saveAction(): void {
     if (!this.actionForm.title.trim() || !this.actionForm.workspaceId ||
         this.actionForm.assigneeIds.length === 0 || !this.actionForm.dueDate) return;
+
+    // Working-day rule — the server applies the same check and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: this.actionForm.startDate },
+      { field: 'Due date',   value: this.actionForm.dueDate },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
+      return;
+    }
 
     this.actionSaving = true;
     this.cdr.markForCheck();

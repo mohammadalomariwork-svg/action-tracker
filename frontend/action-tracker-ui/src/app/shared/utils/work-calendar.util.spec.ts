@@ -9,9 +9,11 @@ import {
 } from './work-calendar.util';
 
 /**
- * Same cases as `ResolvedWorkCalendarTests` on the server (the functions the
- * preview uses: working day, hours, working days between). If one of these
- * fails, the Calendars page preview no longer matches `IWorkCalendarService`.
+ * Same cases as `ResolvedWorkCalendarTests` on the server (working day, hours,
+ * working days between, next / previous working day, adding working days, and
+ * the tie-break between overlapping exceptions). If one of these fails, the
+ * Calendars page preview and the date-field warnings no longer match
+ * `IWorkCalendarService`.
  * Reference week: Monday 23 Nov 2026 … Sunday 29 Nov 2026.
  */
 describe('work-calendar.util', () => {
@@ -151,6 +153,83 @@ describe('work-calendar.util', () => {
 
     expect(standard(working, off).isWorkingDay('2026-12-10')).toBeFalse();
     expect(standard(off, working).isWorkingDay('2026-12-10')).toBeFalse();
+  });
+
+  // Two working exceptions of the same length on the same date — same cases as
+  // the `TiedWorkingExceptions_*` tests on the server.
+
+  function working(name: string, startDate: string, endDate: string, startTime?: string, endTime?: string): WorkCalendarException {
+    return { name, startDate, endDate, isWorkingDay: true, startTime: startTime ?? null, endTime: endTime ?? null };
+  }
+
+  it('lets the shorter working day win a tie of equal length, whatever the order', () => {
+    const examHours = working('Exam week hours', '2026-12-07', '2026-12-11', '08:00:00', '15:00:00');
+    const shortDay  = working('Short week', '2026-12-07', '2026-12-11', '09:00:00', '13:00:00');
+
+    for (const calendar of [standard(examHours, shortDay), standard(shortDay, examHours)]) {
+      expect(calendar.getWorkingHours('2026-12-09')).toEqual({ start: '09:00:00', end: '13:00:00' });
+      expect(calendar.resolve('2026-12-09').exception?.name).toBe('Short week');
+    }
+  });
+
+  it('lets the earlier start win a tie of equal-length hours, whatever the order', () => {
+    const morning   = working('Morning shift', '2026-12-10', '2026-12-10', '08:00:00', '12:00:00');
+    const afternoon = working('Afternoon shift', '2026-12-10', '2026-12-10', '09:00:00', '13:00:00');
+
+    for (const calendar of [standard(morning, afternoon), standard(afternoon, morning)]) {
+      expect(calendar.getWorkingHours('2026-12-10')).toEqual({ start: '08:00:00', end: '12:00:00' });
+    }
+  });
+
+  it('lets a working exception with hours of its own beat one without, whatever the order', () => {
+    const marked  = working('Marked day', '2026-12-10', '2026-12-10');
+    const reduced = working('Reduced hours', '2026-12-10', '2026-12-10', '10:00:00', '14:00:00');
+
+    for (const calendar of [standard(marked, reduced), standard(reduced, marked)]) {
+      expect(calendar.getWorkingHours('2026-12-10')).toEqual({ start: '10:00:00', end: '14:00:00' });
+    }
+  });
+
+  it('settles identical exceptions by name (ordinal), then start date, whatever the order', () => {
+    const b = holiday('Bank holiday', '2026-12-10', '2026-12-10');
+    const a = holiday('Annual closure', '2026-12-10', '2026-12-10');
+    for (const calendar of [standard(a, b), standard(b, a)]) {
+      expect(calendar.resolve('2026-12-10').exception?.name).toBe('Annual closure');
+    }
+
+    // Same name and length, overlapping on 2–3 Dec: the earlier start decides both days.
+    const first  = holiday('Closure', '2026-12-01', '2026-12-03');
+    const second = holiday('Closure', '2026-12-02', '2026-12-04');
+    for (const calendar of [standard(first, second), standard(second, first)]) {
+      expect(calendar.resolve('2026-12-02').exception?.startDate).toBe('2026-12-01');
+    }
+  });
+
+  // ── Working-day search ─────────────────────────────────────────────────────
+
+  it('finds the next and previous working day, keeping a working day as it is', () => {
+    const calendar = standard(holiday('National Day', '2026-11-30', '2026-12-01'));
+
+    expect(calendar.nextWorkingDay('2026-11-28')).toBe('2026-12-02'); // Sat → past Mon–Tue holiday → Wed
+    expect(calendar.nextWorkingDay('2026-11-25')).toBe('2026-11-25');
+    expect(calendar.previousWorkingDay('2026-11-29')).toBe('2026-11-27'); // Sun → Fri
+    expect(calendar.previousWorkingDay('2026-11-27')).toBe('2026-11-27');
+  });
+
+  it('adds working days like the server (start not counted, negative goes back)', () => {
+    const calendar = standard();
+
+    expect(calendar.addWorkingDays('2026-11-27', 1)).toBe('2026-11-30'); // Fri + 1 → Mon
+    expect(calendar.addWorkingDays('2026-11-23', 5)).toBe('2026-11-30');
+    expect(calendar.addWorkingDays('2026-11-30', -1)).toBe('2026-11-27');
+    expect(calendar.addWorkingDays('2026-11-28', 0)).toBe('2026-11-28');
+  });
+
+  it('returns null instead of looping when no working day is reachable', () => {
+    const closed = createCalendarRules(standardWeek().map(d => ({ ...d, isWorkingDay: false })), []);
+
+    expect(closed.nextWorkingDay('2026-11-23')).toBeNull();
+    expect(closed.addWorkingDays('2026-11-23', 1)).toBeNull();
   });
 
   it('keeps the weekly hours on a working exception without hours', () => {

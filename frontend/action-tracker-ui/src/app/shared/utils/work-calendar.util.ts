@@ -4,12 +4,16 @@
  * Mirrors `ResolvedWorkCalendar` in
  * `ActionTracker.Application/Features/Calendars/Services/ResolvedWorkCalendar.cs`
  * so the Calendars admin page can preview a calendar — including unsaved edits —
- * exactly as the server will evaluate it. Change both sides together.
+ * exactly as the server will evaluate it, and so date fields can warn about a
+ * non-working day before the server refuses it. Change both sides together.
  *
  * Rules (same as the server):
  *  - An exception covering a date overrides the weekly pattern for that date.
- *  - When several exceptions cover the same date the shortest wins; on a tie a
- *    non-working exception wins.
+ *  - When several exceptions cover the same date the most specific wins, in this
+ *    order: shortest range; non-working before working; a working exception with
+ *    hours of its own before one without; shorter working day; earlier start
+ *    time; name (ordinal); earlier start date. The result never depends on the
+ *    order the exceptions arrive in.
  *  - A day of week with no row is non-working.
  *  - Non-working days and holidays carry no hours; a working exception without
  *    hours keeps the weekly pattern's hours.
@@ -22,6 +26,13 @@
 import type { WorkCalendarDay, WorkCalendarException } from '../../models/work-calendar.model';
 
 const MS_PER_DAY = 86_400_000;
+
+/**
+ * How far a search for a working day walks, as on the server
+ * (`ResolvedWorkCalendar.MaxSearchDays`). The server throws past it; the client
+ * returns null.
+ */
+export const MAX_WORKING_DAY_SEARCH_DAYS = 3660;
 
 const DAY_INDEX: Record<string, number> = {
   sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
@@ -64,6 +75,15 @@ export interface CalendarRules {
   getWorkingHours(date: string): WorkingHours | null;
   /** Working days from `start` to `end`, both ends counted; 0 when `end` is before `start`. */
   workingDaysBetween(start: string, end: string): number;
+  /** First working day on or after `date` (`date` itself when it is one); null when none is reachable. */
+  nextWorkingDay(date: string): string | null;
+  /** Last working day on or before `date` (`date` itself when it is one); null when none is reachable. */
+  previousWorkingDay(date: string): string | null;
+  /**
+   * Moves `workingDays` working days from `date`; `date` itself is not counted.
+   * Negative moves backwards, zero returns `date`. Null when no working day is reachable.
+   */
+  addWorkingDays(date: string, workingDays: number): string | null;
 }
 
 interface DayRule {
@@ -101,11 +121,8 @@ export function createCalendarRules(
       source: e,
       hours: e.isWorkingDay ? hoursOf(e.startTime, e.endTime) : null,
     }))
-    // Most specific first: shortest range, then non-working before working.
-    // Array.prototype.sort is stable, matching LINQ OrderBy/ThenBy.
-    .sort((a, b) =>
-      (a.end - a.start) - (b.end - b.start)
-      || Number(a.source.isWorkingDay) - Number(b.source.isWorkingDay));
+    // Most specific first — same keys, same order as `SpecificityOrder` on the server.
+    .sort(compareSpecificity);
 
   const findException = (dayNumber: number): ExceptionRule | null => {
     for (const rule of rules) {
@@ -143,20 +160,89 @@ export function createCalendarRules(
     };
   };
 
+  const isWorkingDayNumber = (dayNumber: number): boolean => resolveDayNumber(dayNumber).isWorkingDay;
+
+  /** Same walk as `Seek` on the server: `from` itself first, then one day at a time. */
+  const seek = (from: number, step: 1 | -1): number | null => {
+    let current = from;
+    for (let i = 0; i < MAX_WORKING_DAY_SEARCH_DAYS; i++) {
+      if (isWorkingDayNumber(current)) return current;
+      current += step;
+    }
+    return null;
+  };
+
   return {
     resolve: date => resolveDayNumber(toDayNumber(date)),
-    isWorkingDay: date => resolveDayNumber(toDayNumber(date)).isWorkingDay,
+    isWorkingDay: date => isWorkingDayNumber(toDayNumber(date)),
     getWorkingHours: date => resolveDayNumber(toDayNumber(date)).hours,
     workingDaysBetween: (start, end) => {
       const from = toDayNumber(start);
       const to   = toDayNumber(end);
       let count = 0;
       for (let n = from; n <= to; n++) {
-        if (resolveDayNumber(n).isWorkingDay) count++;
+        if (isWorkingDayNumber(n)) count++;
       }
       return count;
     },
+    nextWorkingDay: date => {
+      const found = seek(toDayNumber(date), 1);
+      return found === null ? null : fromDayNumber(found);
+    },
+    previousWorkingDay: date => {
+      const found = seek(toDayNumber(date), -1);
+      return found === null ? null : fromDayNumber(found);
+    },
+    addWorkingDays: (date, workingDays) => {
+      if (!workingDays) return date;
+      const step: 1 | -1 = workingDays > 0 ? 1 : -1;
+      let current: number | null = toDayNumber(date);
+      for (let remaining = Math.abs(workingDays); remaining > 0; remaining--) {
+        current = seek(current + step, step);
+        if (current === null) return null;
+      }
+      return fromDayNumber(current);
+    },
   };
+}
+
+/**
+ * Most specific exception first. Mirrors `SpecificityOrder` in
+ * `ResolvedWorkCalendar` key for key; every key is a value of the exception, so
+ * the input order never decides the winner.
+ */
+function compareSpecificity(a: ExceptionRule, b: ExceptionRule): number {
+  return (a.end - a.start) - (b.end - b.start)                               // 1. shortest range
+    || Number(!!a.source.isWorkingDay) - Number(!!b.source.isWorkingDay)    // 2. non-working first
+    || Number(a.hours === null) - Number(b.hours === null)                  // 3. own hours first
+    || hoursLength(a.hours) - hoursLength(b.hours)                          // 4. shorter working day
+    || hoursStart(a.hours) - hoursStart(b.hours)                            // 5. earlier start time
+    || compareOrdinal(exceptionName(a), exceptionName(b))                   // 6. name, ordinal
+    || a.start - b.start;                                                   // 7. earlier start date
+}
+
+function hoursLength(hours: WorkingHours | null): number {
+  return hours ? secondsOf(hours.end) - secondsOf(hours.start) : Number.MAX_SAFE_INTEGER;
+}
+
+function hoursStart(hours: WorkingHours | null): number {
+  return hours ? secondsOf(hours.start) : Number.MAX_SAFE_INTEGER;
+}
+
+/** The server stores names trimmed, so a draft name is compared trimmed too. */
+function exceptionName(rule: ExceptionRule): string {
+  return (rule.source.name ?? '').trim();
+}
+
+/** UTF-16 code-unit comparison — the same as .NET `StringComparer.Ordinal`. */
+function compareOrdinal(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** `HH:mm:ss` → seconds since midnight. */
+function secondsOf(wire: string): number {
+  const [h, m, s] = wire.split(':').map(Number);
+  return (h || 0) * 3600 + (m || 0) * 60 + (s || 0);
 }
 
 // ── Dates (ISO yyyy-MM-dd, whole UTC days) ────────────────────────────────────

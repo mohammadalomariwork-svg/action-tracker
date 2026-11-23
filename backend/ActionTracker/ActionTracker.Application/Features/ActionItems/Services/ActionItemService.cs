@@ -4,6 +4,8 @@ using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.Dashboard;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Mappers;
+using ActionTracker.Application.Features.Calendars;
+using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.Workflow.DTOs;
@@ -26,6 +28,7 @@ public class ActionItemService : IActionItemService
     private readonly INotificationService _notificationService;
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IWorkCalendarService _calendars;
 
     public ActionItemService(
         IAppDbContext dbContext,
@@ -33,7 +36,8 @@ public class ActionItemService : IActionItemService
         IEmailSender emailSender,
         INotificationService notificationService,
         IOptions<AppSettings> appSettings,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IWorkCalendarService calendars)
     {
         _dbContext            = dbContext;
         _logger               = logger;
@@ -41,6 +45,7 @@ public class ActionItemService : IActionItemService
         _notificationService  = notificationService;
         _appSettings          = appSettings.Value;
         _scopeFactory         = scopeFactory;
+        _calendars            = calendars;
     }
 
     // -------------------------------------------------------------------------
@@ -195,6 +200,13 @@ public class ActionItemService : IActionItemService
             if (parentProject != null && parentProject.Status != ProjectStatus.Draft)
                 throw new ArgumentException("New action items cannot be added to a project after it has been submitted for approval or activated.");
         }
+
+        // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
+        await _calendars.EnsureWorkingDaysAsync(dto.WorkspaceId, new[]
+        {
+            WorkingDateCheck.New("Start date", dto.StartDate),
+            WorkingDateCheck.New("Due date",   dto.DueDate),
+        }, ct);
 
         // Determine next ActionId sequence across all rows including soft-deleted ones
         var maxSeq = await _dbContext.ActionItems
@@ -368,6 +380,19 @@ public class ActionItemService : IActionItemService
                     throw new ArgumentException("Action item dates cannot be changed after the parent project has been submitted for approval or activated.");
             }
         }
+
+        // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
+        // Runs before the standalone branch below. That branch turns a date
+        // change into an approval request and only logs a failure, so a refused
+        // date has to stop the save here or it would be dropped silently.
+        // Only dates whose day changes are checked (Q8). A standalone item is
+        // checked against its current workspace, as its request will be.
+        var calendarWorkspaceId = item.IsStandalone ? item.WorkspaceId : dto.WorkspaceId ?? item.WorkspaceId;
+        await _calendars.EnsureWorkingDaysAsync(calendarWorkspaceId, new[]
+        {
+            WorkingDateCheck.Changed("Start date", dto.StartDate, item.StartDate),
+            WorkingDateCheck.Changed("Due date",   dto.DueDate,   item.DueDate),
+        }, ct);
 
         // ── Workflow auto-request for standalone items ─────────────────────────
         if (item.IsStandalone)

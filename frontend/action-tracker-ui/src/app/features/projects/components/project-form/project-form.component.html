@@ -226,6 +226,9 @@
               @if (hasError('plannedStartDate', 'required')) {
                 <div class="invalid-feedback">Required.</div>
               }
+              <app-working-day-hint field="Planned start date" [calendar]="calendar()"
+                                    [date]="form.get('plannedStartDate')?.value" [original]="originalDates.start"
+                                    (useDate)="form.patchValue({ plannedStartDate: $event })" />
             </div>
             <div class="col-md-6 mb-3">
               <label for="pfEnd" class="form-label">Planned End Date <span class="text-danger">*</span></label>
@@ -236,6 +239,14 @@
               } @else if (hasDateRangeError) {
                 <div class="invalid-feedback d-block">End date must be after start date.</div>
               }
+              <app-working-day-hint field="Planned end date" [calendar]="calendar()"
+                                    [date]="form.get('plannedEndDate')?.value" [original]="originalDates.end"
+                                    (useDate)="form.patchValue({ plannedEndDate: $event })" />
+            </div>
+            <div class="col-12 mb-3">
+              <app-working-days [calendar]="calendar()"
+                                [start]="form.get('plannedStartDate')?.value"
+                                [end]="form.get('plannedEndDate')?.value" />
             </div>
           </div>
 

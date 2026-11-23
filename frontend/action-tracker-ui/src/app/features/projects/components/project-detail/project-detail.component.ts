@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject, HostListener } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +30,10 @@ import { DocumentsSectionComponent } from '../../../../shared/components/documen
 import { MilestoneSectionComponent } from '../milestone-section/milestone-section.component';
 import { RiskRegisterSectionComponent } from '../../risk-register-section/risk-register-section.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
+import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
+import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
 
 interface EditFormData {
   name: string;
@@ -53,6 +57,7 @@ interface EditFormData {
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
     MilestoneSectionComponent, RiskRegisterSectionComponent, BreadcrumbComponent, HasPermissionDirective,
+    WorkingDayHintComponent, WorkingDaysComponent,
   ],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',
@@ -70,6 +75,10 @@ export class ProjectDetailComponent implements OnInit {
 
   projectId!: string;
   project: ProjectResponse | null = null;
+
+  // Working calendar of the project's workspace (WO-2026-11 C-3)
+  private readonly calendarWorkspaceId = signal<string | null>(null);
+  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId());
   stats: ProjectStats | null = null;
   isLoading = false;
   errorMessage: string | null = null;
@@ -164,6 +173,7 @@ export class ProjectDetailComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.project = res.data ?? null;
+          this.calendarWorkspaceId.set(this.project?.workspaceId ?? null);
           this.isLoading = false;
           if (this.project?.workspaceId) {
             this.loadUsers(this.project.workspaceId);
@@ -364,6 +374,15 @@ export class ProjectDetailComponent implements OnInit {
     this.showEditForm = true;
   }
 
+  /** Planned dates the project holds now; unchanged dates are never flagged (Q8). */
+  get originalPlannedStart(): string | null {
+    return this.project?.plannedStartDate ? String(this.project.plannedStartDate).substring(0, 10) : null;
+  }
+
+  get originalPlannedEnd(): string | null {
+    return this.project?.plannedEndDate ? String(this.project.plannedEndDate).substring(0, 10) : null;
+  }
+
   cancelEditForm(): void {
     this.showEditForm = false;
     this.saveEditError = null;
@@ -414,6 +433,16 @@ export class ProjectDetailComponent implements OnInit {
       return;
     }
     if (this.isProjectStrategic && !this.editForm.strategicObjectiveId) {
+      return;
+    }
+
+    // Working-day rule on the planned dates — the server applies the same check.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Planned start date', value: this.editForm.plannedStartDate, original: this.originalPlannedStart },
+      { field: 'Planned end date',   value: this.editForm.plannedEndDate,   original: this.originalPlannedEnd },
+    ]);
+    if (dateProblem) {
+      this.saveEditError = dateProblem;
       return;
     }
 

@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy, ChangeDetectionStrategy,
-  inject, signal, computed,
+  inject, signal, computed, effect, untracked,
 } from '@angular/core';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Subject, takeUntil } from 'rxjs';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
@@ -30,6 +31,10 @@ import {
 import { WorkspaceList }     from '../../workspaces/models/workspace.model';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { WorkingDayHintComponent } from '../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage, workingDayValidator } from '../../../shared/validators/working-day.validator';
+import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 
@@ -55,7 +60,10 @@ const TODAY = new Date().toISOString().slice(0, 10);
   selector: 'app-action-form',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, CommonModule, FormsModule, RouterLink, PageHeaderComponent, BreadcrumbComponent],
+  imports: [
+    ReactiveFormsModule, CommonModule, FormsModule, RouterLink, PageHeaderComponent, BreadcrumbComponent,
+    WorkingDayHintComponent, WorkingDaysComponent,
+  ],
   templateUrl: './action-form.component.html',
   styleUrl:    './action-form.component.scss',
 })
@@ -136,6 +144,24 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     progress:    [0,  [Validators.min(0), Validators.max(100)]],
   });
 
+  // ── Working calendar (WO-2026-11 C-3) ─────────────────
+  private readonly selectedWorkspaceId = toSignal(this.form.get('workspaceId')!.valueChanges, { initialValue: '' });
+  /** Calendar of the chosen workspace: drives the date hints and the save guard. */
+  readonly calendar = injectWorkspaceCalendar(() => this.selectedWorkspaceId());
+  /** Dates the item holds now (`yyyy-MM-dd`); unchanged dates are never flagged (Q8). */
+  readonly originalStartDate = computed(() => this.editItem()?.startDate?.slice(0, 10) ?? null);
+  readonly originalDueDate   = computed(() => this.editItem()?.dueDate?.slice(0, 10) ?? null);
+  /** Re-runs the date validators when the calendar loads or the edited item arrives. */
+  private readonly revalidateDates = effect(() => {
+    this.calendar();
+    this.originalStartDate();
+    this.originalDueDate();
+    untracked(() => {
+      this.form.get('startDate')!.updateValueAndValidity({ emitEvent: false });
+      this.form.get('dueDate')!.updateValueAndValidity({ emitEvent: false });
+    });
+  });
+
   // ── Lifecycle ─────────────────────────────────────────
   ngOnInit(): void {
     this.workspaceSvc.getWorkspaces().subscribe({
@@ -154,6 +180,11 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     }
 
     this.wireValueChanges();
+
+    this.form.get('startDate')!.addValidators(
+      workingDayValidator(() => this.calendar(), () => this.originalStartDate(), 'Start date'));
+    this.form.get('dueDate')!.addValidators(
+      workingDayValidator(() => this.calendar(), () => this.originalDueDate(), 'Due date'));
   }
 
   private onWorkspaceChange(workspaceId: string): void {
@@ -268,6 +299,15 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     const item = this.editItem();
     if (!item) return;
 
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Requested start date', value: this.requestedNewStartDate(), original: this.originalStartDate() },
+      { field: 'Requested due date',   value: this.requestedNewDueDate(),   original: this.originalDueDate() },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
+      return;
+    }
+
     const dto: CreateDateChangeRequest = {
       actionItemId: item.id,
       newStartDate: this.requestedNewStartDate() || null,
@@ -371,13 +411,26 @@ export class ActionFormComponent implements OnInit, OnDestroy {
 
   // ── Submit ────────────────────────────────────────────
   submit(): void {
+    const raw = this.form.getRawValue();
+
+    // Working-day rule (the date validators block the save too; this says why).
+    // The server applies the same rule and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: raw.startDate, original: this.originalStartDate() },
+      { field: 'Due date',   value: raw.dueDate,   original: this.originalDueDate() },
+    ]);
+    if (dateProblem) {
+      this.form.markAllAsTouched();
+      this.toastSvc.error(dateProblem);
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     this.saving.set(true);
-    const raw = this.form.getRawValue();
 
     const payload: ActionItemCreate = {
       title:       raw.title.trim(),

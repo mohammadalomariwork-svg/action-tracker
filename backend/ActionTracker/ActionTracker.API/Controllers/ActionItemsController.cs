@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
+using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -136,7 +137,17 @@ public class ActionItemsController : ControllerBase
             return BadRequest(ModelState);
 
         var userId  = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        var created = await _service.CreateAsync(dto, userId, ct);
+        ActionItemResponseDto created;
+        try
+        {
+            created = await _service.CreateAsync(dto, userId, ct);
+        }
+        catch (NonWorkingDateException ex)
+        {
+            // Returned here because the exception middleware hides the
+            // message in Production, and the user needs to see which date.
+            return BadRequest(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
+        }
 
         _logger.LogInformation("ActionItem {ActionId} created", created.ActionId);
 
@@ -153,6 +164,7 @@ public class ActionItemsController : ControllerBase
     /// <summary>Updates an existing action item. Only supplied fields are changed.</summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> Update(
         Guid id, [FromBody] ActionItemUpdateDto dto, CancellationToken ct)
@@ -167,6 +179,10 @@ public class ActionItemsController : ControllerBase
         {
             _logger.LogWarning(ex, "ActionItem {Id} not found for update", id);
             return NotFound(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
+        }
+        catch (NonWorkingDateException ex)
+        {
+            return BadRequest(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
         }
     }
 

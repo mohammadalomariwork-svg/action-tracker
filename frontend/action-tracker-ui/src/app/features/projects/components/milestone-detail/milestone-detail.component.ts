@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject, HostListener } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -29,11 +29,19 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
+import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
+import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-milestone-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent,
+    WorkingDayHintComponent, WorkingDaysComponent,
+  ],
   templateUrl: './milestone-detail.component.html',
   styleUrl: './milestone-detail.component.scss',
 })
@@ -44,6 +52,7 @@ export class MilestoneDetailComponent implements OnInit {
   private readonly workspaceSvc = inject(WorkspaceService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toastSvc = inject(ToastService);
 
   projectId!: string;
   milestoneId!: string;
@@ -55,6 +64,13 @@ export class MilestoneDetailComponent implements OnInit {
   // Workspace/Project context (loaded from project)
   workspaceId: string | null = null;
   workspaceTitle: string | null = null;
+
+  // Working calendar of the project's workspace (WO-2026-11 C-3)
+  private readonly calendarWorkspaceId = signal<string | null>(null);
+  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId());
+  /** Dates the edited record holds now; unchanged dates are never flagged (Q8). */
+  originalActionDates: { start: string | null; due: string | null } = { start: null, due: null };
+  originalMilestoneDates: { start: string | null; due: string | null } = { start: null, due: null };
   projectName: string | null = null;
 
   // Stats
@@ -187,6 +203,7 @@ export class MilestoneDetailComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.workspaceId = res.data?.workspaceId ?? null;
+          this.calendarWorkspaceId.set(this.workspaceId);
           this.workspaceTitle = res.data?.workspaceTitle ?? null;
           this.projectName = res.data?.name ?? null;
           this.loadActionItems();
@@ -289,6 +306,7 @@ export class MilestoneDetailComponent implements OnInit {
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
+    this.originalActionDates = { start: null, due: null };
     this.editingEscalations = [];
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
@@ -309,6 +327,7 @@ export class MilestoneDetailComponent implements OnInit {
       isEscalated: false,
       escalationExplanation: '',
     };
+    this.originalActionDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
     this.editingEscalations = item.escalations ?? [];
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
@@ -355,6 +374,16 @@ export class MilestoneDetailComponent implements OnInit {
       return;
     }
     if (this.actionForm.isEscalated && !this.actionForm.escalationExplanation?.trim()) {
+      return;
+    }
+
+    // Working-day rule — the server applies the same check and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: this.actionForm.startDate, original: this.originalActionDates.start },
+      { field: 'Due date',   value: this.actionForm.dueDate,   original: this.originalActionDates.due },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
       return;
     }
 
@@ -456,6 +485,10 @@ export class MilestoneDetailComponent implements OnInit {
       completionPercentage: this.milestone.completionPercentage,
       approverUserId: this.milestone.approverUserId ?? '',
     };
+    this.originalMilestoneDates = {
+      start: this.milestoneEditForm.plannedStartDate || null,
+      due:   this.milestoneEditForm.plannedDueDate || null,
+    };
     this.showEditMilestoneForm = true;
   }
 
@@ -467,6 +500,17 @@ export class MilestoneDetailComponent implements OnInit {
     if (!this.milestoneEditForm.name.trim() || !this.milestoneEditForm.plannedStartDate || !this.milestoneEditForm.plannedDueDate) {
       return;
     }
+
+    // Working-day rule on the planned dates only (the actual completion date is not checked).
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Planned start date', value: this.milestoneEditForm.plannedStartDate, original: this.originalMilestoneDates.start },
+      { field: 'Planned due date',   value: this.milestoneEditForm.plannedDueDate,   original: this.originalMilestoneDates.due },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
+      return;
+    }
+
     this.milestoneSaving = true;
 
     const payload: MilestoneUpdate = {

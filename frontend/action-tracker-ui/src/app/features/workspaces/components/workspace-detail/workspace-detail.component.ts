@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject, HostListener } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -10,6 +10,11 @@ import { WorkspaceService } from '../../services/workspace.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../shared';
+import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
+import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { ProjectService } from '../../../projects/services/project.service';
 import { MilestoneService } from '../../../projects/services/milestone.service';
@@ -30,7 +35,10 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective],
+  imports: [
+    CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective,
+    WorkingDayHintComponent, WorkingDaysComponent,
+  ],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
 })
@@ -42,8 +50,16 @@ export class WorkspaceDetailComponent implements OnInit {
   private readonly milestoneService = inject(MilestoneService);
   private readonly route            = inject(ActivatedRoute);
   private readonly destroyRef       = inject(DestroyRef);
+  private readonly toastSvc         = inject(ToastService);
 
   workspaceId!: string;
+
+  // Working calendar of this workspace (WO-2026-11 C-3)
+  private readonly calendarWorkspaceId = signal<string | null>(null);
+  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId());
+  /** Dates the edited record holds now; unchanged dates are never flagged (Q8). */
+  originalActionDates: { start: string | null; due: string | null } = { start: null, due: null };
+  originalProjectDates: { start: string | null; end: string | null } = { start: null, end: null };
   workspace: Workspace | null = null;
   isLoading = false;
   errorMessage: string | null = null;
@@ -172,6 +188,7 @@ export class WorkspaceDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.workspaceId = this.route.snapshot.paramMap.get('id')!;
+    this.calendarWorkspaceId.set(this.workspaceId);
     this.loadData();
   }
 
@@ -315,6 +332,7 @@ export class WorkspaceDetailComponent implements OnInit {
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
+    this.originalActionDates = { start: null, due: null };
     this.editingEscalations = [];
     this.originalEscalated = false;
     this.originalEscalationText = '';
@@ -346,6 +364,7 @@ export class WorkspaceDetailComponent implements OnInit {
       isEscalated: !!item.isEscalated,
       escalationExplanation: latestExplanation,
     };
+    this.originalActionDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
 
     this.originalEscalated = !!item.isEscalated;
     this.originalEscalationText = latestExplanation;
@@ -400,6 +419,16 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
     if (this.actionForm.isEscalated && !this.actionForm.escalationExplanation?.trim()) {
+      return;
+    }
+
+    // Working-day rule — the server applies the same check and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: this.actionForm.startDate, original: this.originalActionDates.start },
+      { field: 'Due date',   value: this.actionForm.dueDate,   original: this.originalActionDates.due },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
       return;
     }
 
@@ -606,6 +635,7 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editingProjectOriginalStatus = null;
     this.projectFormError = null;
     this.projectForm = this.emptyProjectForm();
+    this.originalProjectDates = { start: null, end: null };
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';
     this.strategicObjectives = [];
@@ -630,6 +660,10 @@ export class WorkspaceDetailComponent implements OnInit {
       approvedBudget: prj.approvedBudget ?? null,
       status: prj.status,
       actualStartDate: prj.actualStartDate ? String(prj.actualStartDate).substring(0, 10) : '',
+    };
+    this.originalProjectDates = {
+      start: this.projectForm.plannedStartDate || null,
+      end:   this.projectForm.plannedEndDate || null,
     };
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';
@@ -713,6 +747,16 @@ export class WorkspaceDetailComponent implements OnInit {
       return;
     }
     if (this.isProjectStrategic && !this.projectForm.strategicObjectiveId) {
+      return;
+    }
+
+    // Working-day rule on the planned dates — the server applies the same check.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Planned start date', value: this.projectForm.plannedStartDate, original: this.originalProjectDates.start },
+      { field: 'Planned end date',   value: this.projectForm.plannedEndDate,   original: this.originalProjectDates.end },
+    ]);
+    if (dateProblem) {
+      this.projectFormError = dateProblem;
       return;
     }
 

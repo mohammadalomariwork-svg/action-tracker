@@ -1,6 +1,8 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.Calendars;
+using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.Projects.DTOs;
@@ -23,6 +25,7 @@ public class ProjectService : IProjectService
     private readonly INotificationService _notificationService;
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IWorkCalendarService _calendars;
 
     public ProjectService(
         IAppDbContext db,
@@ -30,7 +33,8 @@ public class ProjectService : IProjectService
         IEmailSender emailSender,
         INotificationService notificationService,
         IOptions<AppSettings> appSettings,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IWorkCalendarService calendars)
     {
         _db                  = db;
         _logger              = logger;
@@ -38,6 +42,7 @@ public class ProjectService : IProjectService
         _notificationService = notificationService;
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
+        _calendars           = calendars;
     }
 
     public async Task<PagedResult<ProjectResponseDto>> GetAllAsync(ProjectFilterDto filter, CancellationToken ct)
@@ -180,6 +185,13 @@ public class ProjectService : IProjectService
             throw new ArgumentException(
                 "The selected user is not on this workspace's Project Managers list. " +
                 "Add them on the workspace settings page first.");
+
+        // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
+        await _calendars.EnsureWorkingDaysAsync(dto.WorkspaceId, new[]
+        {
+            WorkingDateCheck.New("Planned start date", dto.PlannedStartDate),
+            WorkingDateCheck.New("Planned end date",   dto.PlannedEndDate),
+        }, ct);
 
         // Generate project code: PRJ-{year}-{sequence}
         var year = DateTime.UtcNow.Year;
@@ -335,6 +347,15 @@ public class ProjectService : IProjectService
             if (dto.PlannedStartDate != project.PlannedStartDate || dto.PlannedEndDate != project.PlannedEndDate)
                 throw new ArgumentException("Project dates cannot be changed after the project has been submitted for approval or activated.");
         }
+
+        // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
+        // Only planned dates whose day changes (Q8). The actual start date is
+        // set to "now" on activation and is not checked.
+        await _calendars.EnsureWorkingDaysAsync(project.WorkspaceId, new[]
+        {
+            WorkingDateCheck.Changed("Planned start date", dto.PlannedStartDate, project.PlannedStartDate),
+            WorkingDateCheck.Changed("Planned end date",   dto.PlannedEndDate,   project.PlannedEndDate),
+        }, ct);
 
         // Validate milestones/phases/action items when transitioning to Active or Completed
         if ((dto.Status == ProjectStatus.Active || dto.Status == ProjectStatus.Completed)

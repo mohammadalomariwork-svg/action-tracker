@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ActionTracker.API.Models;
+using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Workflow.DTOs;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -36,6 +37,7 @@ public class ActionItemWorkflowController : ControllerBase
     [HttpPost("date-change-request")]
     [Authorize(Policy = PermissionPolicies.ActionItemsEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkflowRequestResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<WorkflowRequestResponseDto>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateDateChangeRequest(
         [FromBody] CreateDateChangeRequestDto dto)
     {
@@ -44,8 +46,17 @@ public class ActionItemWorkflowController : ControllerBase
             "POST /api/action-items/workflow/date-change-request by {UserId} for ActionItem {ActionItemId}",
             userId, dto.ActionItemId);
 
-        var result = await _workflowService.CreateDateChangeRequestAsync(dto, userId);
-        return Ok(ApiResponse<WorkflowRequestResponseDto>.Ok(result));
+        try
+        {
+            var result = await _workflowService.CreateDateChangeRequestAsync(dto, userId);
+            return Ok(ApiResponse<WorkflowRequestResponseDto>.Ok(result));
+        }
+        catch (NonWorkingDateException ex)
+        {
+            // A requested date is not a working day (WO-2026-11 C-3). Returned
+            // here so the message survives Production's ProblemDetails.
+            return BadRequest(ApiResponse<WorkflowRequestResponseDto>.Fail(ex.Message));
+        }
     }
 
     // -------------------------------------------------------------------------

@@ -11,6 +11,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { ToastService }      from '../../../core/services/toast.service';
+import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
+import { WorkingDayHintComponent } from '../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.validator';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
 import { AuthService }       from '../../../core/services/auth.service';
 
@@ -62,7 +66,7 @@ interface ActionItemFormData {
   imports: [
     FormsModule, ReactiveFormsModule, RouterLink, DatePipe,
     ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
-    HasPermissionDirective,
+    HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent,
   ],
   templateUrl: './action-list.component.html',
   styleUrl:    './action-list.component.scss',
@@ -134,6 +138,12 @@ export class ActionListComponent implements OnInit, OnDestroy {
   assigneeSearchTerm    = '';
   editingEscalations: EscalationInfo[] = [];
   private originalEscalated     = false;
+
+  // ── Working calendar of the form's workspace (WO-2026-11 C-3) ──
+  private readonly formWorkspaceId = signal('');
+  readonly calendar = injectWorkspaceCalendar(() => this.formWorkspaceId());
+  /** Dates the edited item holds now; unchanged dates are never flagged (Q8). */
+  originalDates: { start: string | null; due: string | null } = { start: null, due: null };
   private originalEscalationText = '';
 
   allUsers:      AssignableUser[] = [];
@@ -264,6 +274,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   }
 
   onWorkspaceChange(workspaceId: string): void {
+    this.formWorkspaceId.set(workspaceId ?? '');
     if (!workspaceId) {
       this.allUsers = [];
       this.actionForm.assigneeIds = [];
@@ -375,6 +386,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   openNewActionForm(): void {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
+    this.formWorkspaceId.set('');
+    this.originalDates = { start: null, due: null };
     // Assignees can't be pre-selected — list is workspace-scoped and workspace starts empty.
     this.allUsers = [];
     this.editingEscalations = [];
@@ -409,6 +422,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
       isEscalated: !!item.isEscalated,
       escalationExplanation: latestExplanation,
     };
+    this.formWorkspaceId.set(this.actionForm.workspaceId);
+    this.originalDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
 
     this.originalEscalated = !!item.isEscalated;
     this.originalEscalationText = latestExplanation;
@@ -474,6 +489,16 @@ export class ActionListComponent implements OnInit, OnDestroy {
     if (!this.actionForm.title.trim() || !this.actionForm.workspaceId ||
         this.actionForm.assigneeIds.length === 0 || !this.actionForm.dueDate) return;
     if (this.actionForm.isEscalated && !this.actionForm.escalationExplanation?.trim()) return;
+
+    // Working-day rule — the server applies the same check and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: this.actionForm.startDate, original: this.originalDates.start },
+      { field: 'Due date',   value: this.actionForm.dueDate,   original: this.originalDates.due },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
+      return;
+    }
 
     this.actionSaving = true;
     this.cdr.markForCheck();

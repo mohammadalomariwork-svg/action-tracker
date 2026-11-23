@@ -1,6 +1,8 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.Calendars;
+using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.Workflow.DTOs;
@@ -23,6 +25,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ActionItemWorkflowService> _logger;
+    private readonly IWorkCalendarService _calendars;
 
     // Statuses that block new workflow requests
     private static readonly HashSet<ActionStatus> TerminalStatuses = new()
@@ -56,7 +59,8 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         IEmailSender emailSender,
         IOptions<AppSettings> appSettings,
         IServiceScopeFactory scopeFactory,
-        ILogger<ActionItemWorkflowService> logger)
+        ILogger<ActionItemWorkflowService> logger,
+        IWorkCalendarService calendars)
     {
         _db                  = db;
         _notificationService = notificationService;
@@ -64,6 +68,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
         _logger              = logger;
+        _calendars           = calendars;
     }
 
     // -------------------------------------------------------------------------
@@ -89,6 +94,16 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
                         && r.Status == WorkflowRequestStatus.Pending);
         if (hasPending)
             throw new InvalidOperationException("A pending date change request already exists for this action item.");
+
+        // Working-day rule (WO-2026-11 C-3): checked when the change is
+        // requested. ReviewRequestAsync applies an approved request as it
+        // stands, so a request accepted here is never refused at approval.
+        // Only requested dates that differ from the item's current ones (Q8).
+        await _calendars.EnsureWorkingDaysAsync(actionItem.WorkspaceId, new[]
+        {
+            WorkingDateCheck.Changed("Requested start date", dto.NewStartDate, actionItem.StartDate),
+            WorkingDateCheck.Changed("Requested due date",   dto.NewDueDate,   actionItem.DueDate),
+        });
 
         var requesterName = await GetUserDisplayNameAsync(requestedByUserId) ?? "Unknown User";
 

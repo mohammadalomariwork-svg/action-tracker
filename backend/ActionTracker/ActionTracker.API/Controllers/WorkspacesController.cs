@@ -2,6 +2,8 @@ using System;
 using System.Security.Claims;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ActionItems.DTOs;
+using ActionTracker.Application.Features.Calendars.DTOs;
+using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -21,15 +23,18 @@ public class WorkspacesController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
     private readonly IWorkspaceAccessResolver _accessResolver;
+    private readonly IWorkCalendarService _calendarService;
     private readonly ILogger<WorkspacesController> _logger;
 
     public WorkspacesController(
         IWorkspaceService workspaceService,
         IWorkspaceAccessResolver accessResolver,
+        IWorkCalendarService calendarService,
         ILogger<WorkspacesController> logger)
     {
         _workspaceService = workspaceService;
         _accessResolver   = accessResolver;
+        _calendarService  = calendarService;
         _logger           = logger;
     }
 
@@ -397,6 +402,84 @@ public class WorkspacesController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Working calendar (WO-2026-11 C-3)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Active calendars a workspace can use — the Workspace Settings dropdown.
+    /// Gated like the strategic-plan dropdown, so workspace editors without
+    /// <c>Calendars.View</c> (e.g. PMO Head) can still pick one.
+    /// </summary>
+    [HttpGet("calendars")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesView)]
+    [ProducesResponseType(typeof(ApiResponse<List<WorkspaceCalendarOptionDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCalendarOptions(CancellationToken ct)
+    {
+        var items = await _calendarService.GetWorkspaceCalendarOptionsAsync(ct);
+        return Ok(ApiResponse<List<WorkspaceCalendarOptionDto>>.Ok(items));
+    }
+
+    /// <summary>
+    /// The calendar that applies to the workspace, with the exceptions in
+    /// <paramref name="from"/>..<paramref name="to"/> (default: one year back
+    /// to three years ahead, at most 3660 days). Read by every date form of
+    /// the workspace, so it is open to any signed-in user like the other
+    /// form lookups (assignable-users, project-managers); a private workspace
+    /// the caller is not part of returns 404.
+    /// </summary>
+    [HttpGet("{id:guid}/calendar")]
+    [Authorize(Policy = "LocalOrAzureAD")]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceCalendarDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCalendar(
+        Guid id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct)
+    {
+        try
+        {
+            var calendar = await _calendarService.GetWorkspaceCalendarAsync(id, from, to, ct);
+            return Ok(ApiResponse<WorkspaceCalendarDto>.Ok(calendar));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Points the workspace at a calendar, or back at the default
+    /// (<c>workCalendarId: null</c>). Dates saved afterwards follow the new
+    /// calendar; existing records are not re-checked.
+    /// </summary>
+    [HttpPut("{id:guid}/calendar")]
+    [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
+    [ProducesResponseType(typeof(ApiResponse<WorkspaceCalendarDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetCalendar(
+        Guid id, [FromBody] SetWorkspaceCalendarDto dto, CancellationToken ct)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        try
+        {
+            var calendar = await _calendarService.SetWorkspaceCalendarAsync(id, dto, userId, ct);
+            return Ok(ApiResponse<WorkspaceCalendarDto>.Ok(calendar));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
 

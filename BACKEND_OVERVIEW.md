@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-23 (Work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-23 (Workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -107,8 +107,8 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/created-by-me` | Items created by current user |
 | GET | `/my-stats` | Stats for user's assigned items (total, critical, in-progress, completed, overdue) |
 | GET | `/{id}` | Single action item by GUID |
-| POST | `/` | Create action item (auto-generates ActionId ACT-001) |
-| PUT | `/{id}` | Update action item |
+| POST | `/` | Create action item (auto-generates ActionId ACT-001). Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the reason comes back as `ApiResponse.message` |
+| PUT | `/{id}` | Update action item. Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) — for a standalone item the check runs before the date edit is turned into a date-change request |
 | PATCH | `/{id}/status` | Update status (Done sets Progress=100%) |
 | DELETE | `/{id}` | Soft delete (requires ActionItems.Delete) |
 | PATCH | `/{id}/restore` | Restore soft-deleted item |
@@ -144,6 +144,9 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | DELETE | `/{id}/strategic-project-approvers/{userId}` | Remove an approver; remaining entries re-densify their `Order` |
 | PUT | `/{id}/strategic-project-approvers/reorder` | Replace the chain in the given UserId order (must list every existing approver) |
 | PUT | `/{id}/strategy` | Link or unlink a strategic plan (`{ strategicPlanId: Guid? }`, gated by `Workspaces.Edit`) |
+| GET | `/calendars` | Active work calendars for the Workspace Settings "Working Calendar" dropdown — `{ id, name, description, timeZoneId, isDefault, days[7] }`, default first then by name (requires `Workspaces.View`; WO-2026-11 C-3) |
+| GET | `/{id}/calendar?from=&to=` | The calendar that applies to the workspace (its own, or the default) for date forms: `{ workspaceId, workCalendarId (own setting, null = default), calendarId, calendarName, timeZoneId, isDefault, isInherited, from, to, days[7], exceptions overlapping from..to }`. Default window one year back to three years ahead; `to < from` or more than 3660 days = 400. Any signed-in user (`LocalOrAzureAD`, like `assignable-users`); 404 for an unknown workspace or a private one the caller is not part of (C-3) |
+| PUT | `/{id}/calendar` | Point the workspace at a calendar or back at the default — body `{ workCalendarId: Guid? }` (null = default). 404 when the caller cannot see the workspace (private filter + `IWorkspaceAccessResolver`); 400 for an unknown, deleted or inactive calendar. Returns the same shape as the GET. Dates saved afterwards follow the new calendar; existing records are not re-checked (requires `Workspaces.Edit`; C-3) |
 | DELETE | `/{id}` | Soft delete (sets IsActive=false) |
 | PATCH | `/{id}/restore` | Restore deleted workspace |
 
@@ -158,8 +161,8 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/by-plan/{planId}` | Returns all non-deleted strategic objectives that belong to the specified `StrategicPlan`. Used by the strategy page to scope objectives strictly to the currently-viewed plan; refuses to return data when the plan's owning org unit is outside the caller's role-based scope. |
 | POST | `/` | Create objective. The DTO now accepts an optional `StrategicPlanId`: when supplied, the service validates the plan exists, isn't archived, isn't locked, and the request's `OrgUnitId` is inside the plan's subtree (via `IOrgUnitScopeResolver.GetDescendantOrgUnitIdsAsync`) — then attaches the objective to that plan directly. Lets the Strategy page create objectives in sub-units that don't have their own plan while keeping them linked to the parent plan. When `StrategicPlanId` is omitted (admin / legacy flow) the service falls back to auto-linking the new row to the org unit's newest non-archived plan, or `null` if none exists. |
 | GET | `/{id}` | Single project |
-| POST | `/` | Create project (status=Draft) |
-| PUT | `/{id}` | Update project |
+| POST | `/` | Create project (status=Draft). Planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) |
+| PUT | `/{id}` | Update project. Changed planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the actual start date is not checked |
 | GET | `/{id}/stats` | Project statistics (milestones, action items, rates) |
 | GET | `/strategic-objectives-for-workspace/{workspaceId}` | Objectives for workspace |
 | DELETE | `/{id}` | Soft delete (cascades to milestones/items) |
@@ -170,8 +173,8 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 |--------|----------|-------------|
 | GET | `/` | All milestones for project (ordered by sequence) |
 | GET | `/{milestoneId}` | Single milestone |
-| POST | `/` | Create milestone (auto-generates MS-YYYY-001) |
-| PUT | `/{milestoneId}` | Update milestone |
+| POST | `/` | Create milestone (auto-generates MS-YYYY-001). Planned start / due: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) |
+| PUT | `/{milestoneId}` | Update milestone. Changed planned start / due: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the actual completion date is not checked |
 | DELETE | `/{milestoneId}` | Soft delete |
 | GET | `/{milestoneId}/stats` | Action-item stats for milestone |
 | POST | `/baseline` | Lock milestone dates (save baseline values) |
@@ -306,8 +309,33 @@ defence):
 
 The admin UI for this API is the Calendars page (`/admin/calendars`, WO-2026-11 C-2 —
 frontend only, no API change). Its month preview repeats the `ResolvedWorkCalendar` rules in
-`frontend/.../shared/utils/work-calendar.util.ts`; change both together. Not built yet: the
-workspace calendar setting + date rules that consume the calculation API (C-3).
+`frontend/.../shared/utils/work-calendar.util.ts`; change both together. The workspace
+setting (`/api/workspaces/{id}/calendar`) and the working-day rule are WO-2026-11 C-3 (below).
+
+**Working-day rule (WO-2026-11 C-3, Q7 / Q8).** `IWorkCalendarService.EnsureWorkingDaysAsync(workspaceId, checks)`
+takes `WorkingDateCheck(field, value, current)` entries and throws `NonWorkingDateException`
+(an `ArgumentException`, so 400) listing every date that is created or changed and is not a
+working day in the workspace's calendar. Dates are compared by calendar day
+(`DateOnly.FromDateTime`), so a date the record already holds is never checked — legacy
+records on weekends keep saving. Message, one sentence per refused date:
+`Due date 2026-11-28 (Saturday) is not a working day in the workspace calendar "KU Standard". Next working day: 2026-11-30 (Monday).`
+Called after the existing guards (Draft / freeze / ordering) and before any change, from:
+
+| Caller | Dates checked | Calendar of |
+|--------|---------------|-------------|
+| `ActionItemService.CreateAsync` | Start, Due | `dto.WorkspaceId` |
+| `ActionItemService.UpdateAsync` | changed Start, Due — before the standalone branch, which turns a date edit into a request and only logs a failure | standalone item: its current workspace; otherwise `dto.WorkspaceId ?? item.WorkspaceId` |
+| `ActionItemWorkflowService.CreateDateChangeRequestAsync` | requested Start / Due that differ from the item's | the item's workspace |
+| `MilestoneService.CreateAsync` / `UpdateAsync` | planned Start, planned Due (changed only on update) | the project's workspace |
+| `ProjectService.CreateAsync` / `UpdateAsync` | planned Start, planned End (changed only on update) | `dto.WorkspaceId` / the project's workspace |
+
+Not checked: `ReviewRequestAsync` (approval applies the stored request), the unused
+`ApplyApprovedDateChangeAsync`, actual dates, and unchanged dates of an item moved to
+another workspace. `DashboardRules` (overdue and due windows) is unchanged. If no calendar
+is configured at all the rule logs a warning and lets the save through. `ActionItemsController`
+(POST / PUT) and `ActionItemWorkflowController` (`date-change-request`) catch the exception and
+return `ApiResponse.Fail(message)`; `MilestonesController` and `ProjectsController` already
+return `ArgumentException` messages that way.
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
@@ -470,7 +498,7 @@ Controller error mapping for KPIs and Strategic Objectives: `UnauthorizedAccessE
 ### ActionItemWorkflowController (`/api/action-items/workflow`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/date-change-request` | Create date change request (dates frozen on standalone items) |
+| POST | `/date-change-request` | Create date change request (dates frozen on standalone items). Requested dates that differ from the item's current ones: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below). Checked here, at request time; approving (`PUT /requests/{requestId}/review`) applies the request as it stands |
 | POST | `/status-change-request` | Create status change request (terminal transitions require approval) |
 | PUT | `/requests/{requestId}/review` | Approve or reject a workflow request |
 | GET | `/pending-reviews` | Get pending requests for current user to review |
@@ -644,7 +672,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | StrategicPlanId | Guid? (FK) | Optional linked strategic plan — drives the strategic objectives available to projects in this workspace |
 | IsActive | bool | Active flag (default true) |
 | IsPrivate | bool | Private flag (default false). When true, only the workspace's admins + members can see the workspace and its projects / milestones / action items / risks — enforced by global query filters (see `ICurrentUserService`). Create/update DTOs carry `IsPrivate`; on update `null` keeps the current value |
-| WorkCalendarId | Guid? (FK → WorkCalendars, Restrict) | Working calendar for this workspace's date calculations. `null` = use the default calendar. Column added by `Add_WorkCalendars`; no API sets it yet (the workspace calendar setting is WO-2026-11 C-3) |
+| WorkCalendarId | Guid? (FK → WorkCalendars, Restrict) | Working calendar for this workspace's date calculations. `null` = use the default calendar. Column added by `Add_WorkCalendars`; set through `PUT /api/workspaces/{id}/calendar` (WO-2026-11 C-3) |
 | **Nav:** | | Admins (WorkspaceAdmin), Members (WorkspaceMember), ProjectManagers (WorkspaceProjectManager), StrategicProjectApprovers (WorkspaceStrategicProjectApprover), Projects, ActionItems |
 
 #### WorkspaceMember (join table for direct user assignment)
@@ -1031,8 +1059,9 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | `IDataSyncJobHandler` | One per sync job (`JobKey`, defaults, `ExecuteAsync`, `ProbeAsync`). Current implementation: `EmployeeInfoSyncJobHandler` (`employee-info-sync`). |
 | `IDataSyncJobRunner` | Invoked by Hangfire via `DataSyncHangfireJob`; writes the `DataSyncJobRuns` row, resolves the handler, records outcome and updates the job's last-run summary. |
 | `IDataSyncScheduler` | Scheduler abstraction (`AddOrUpdate` / `Remove` / `TriggerNow` / `GetNextExecutionUtc` / validation). `HangfireDataSyncScheduler` in normal environments, `NoOpDataSyncScheduler` under `Testing`. |
-| `IWorkCalendarService` | Work calendars (WO-2026-11 C-1). Admin CRUD, `SetDefaultAsync`, `RestoreAsync`, `GetUsageAsync`, and the calculation API for other features: `GetDefaultAsync()` / `GetForWorkspaceAsync(workspaceId)` return a `ResolvedWorkCalendar` (the workspace's own calendar, or the default when it has none or the caller cannot see the workspace). Implementation `WorkCalendarService` lives in `Application/Features/Calendars/Services`. Throws `KeyNotFoundException` (404), `ArgumentException` (400), `InvalidOperationException` (409). |
-| `ResolvedWorkCalendar` | Immutable in-memory snapshot of one calendar — no database access. `IsWorkingDay(date)`, `NextWorkingDay(date)` (the date itself when it is already a working day), `PreviousWorkingDay(date)`, `AddWorkingDays(date, n)` (start date not counted; negative moves back; 0 = unchanged), `WorkingDaysBetween(start, end)` (both ends counted; 0 when end < start), `GetWorkingHours(date)`. An exception overrides the weekly pattern; when several cover a date the shortest wins, and on a tie a non-working one wins. |
+| `IWorkCalendarService` | Work calendars (WO-2026-11 C-1). Admin CRUD, `SetDefaultAsync`, `RestoreAsync`, `GetUsageAsync`, and the calculation API for other features: `GetDefaultAsync()` / `GetForWorkspaceAsync(workspaceId)` return a `ResolvedWorkCalendar` (the workspace's own calendar, or the default when it has none or the caller cannot see the workspace). Implementation `WorkCalendarService` lives in `Application/Features/Calendars/Services`. Throws `KeyNotFoundException` (404), `ArgumentException` (400), `InvalidOperationException` (409). C-3 adds the working-day rule `EnsureWorkingDaysAsync(workspaceId, checks)` (throws `NonWorkingDateException`) and the workspace setting: `GetWorkspaceCalendarAsync(workspaceId, from, to)`, `SetWorkspaceCalendarAsync(workspaceId, dto, userId)` (validated by `SetWorkspaceCalendarDtoValidator`), `GetWorkspaceCalendarOptionsAsync()`. Changing a workspace's calendar needs no cache clear — the cache is keyed by calendar and the workspace → calendar link is read from the database each time. |
+| `WorkingDateCheck` / `NonWorkingDateException` | `Application/Features/Calendars`. One date being saved with the value it replaces (`New(field, value)` on create, `Changed(field, value, current)` on update; `IsChanged` compares calendar days), and the 400 raised when a checked date is not a working day (`CalendarName`, `Dates` = field, date, next working day). |
+| `ResolvedWorkCalendar` | Immutable in-memory snapshot of one calendar — no database access. `IsWorkingDay(date)`, `NextWorkingDay(date)` (the date itself when it is already a working day), `PreviousWorkingDay(date)`, `AddWorkingDays(date, n)` (start date not counted; negative moves back; 0 = unchanged), `WorkingDaysBetween(start, end)` (both ends counted; 0 when end < start), `GetWorkingHours(date)`. An exception overrides the weekly pattern; when several cover a date the most specific wins, in this order (C-3 — the result no longer depends on database order): shortest range; non-working before working; a working exception with hours of its own before one without; shorter working day; earlier start time; name (ordinal); earlier start date. The client copy in `work-calendar.util.ts` uses the same order. |
 | `WorkCalendarCache` | Singleton cache of resolved calendars. Cleared after every calendar write; a version stamp stops a calendar read before a concurrent write from being cached after it; entries also expire after 10 minutes so a second app instance cannot serve a stale calendar for long. |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
 | `IUserManagementService` | CRUD users, role assignment (with Strategy Editor org-unit-level guard), KU employee search, activation |

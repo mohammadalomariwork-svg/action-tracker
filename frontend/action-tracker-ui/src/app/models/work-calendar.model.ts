@@ -112,6 +112,39 @@ export interface WorkCalendarUsage {
   inheritingWorkspaceCount: number;
 }
 
+/**
+ * `GET /api/workspaces/{id}/calendar` (WO-2026-11 C-3): the calendar that applies
+ * to a workspace, with the exceptions that overlap `from`..`to`.
+ */
+export interface WorkspaceCalendar {
+  workspaceId: string;
+  /** The workspace's own setting; null = "use the default calendar". */
+  workCalendarId: string | null;
+  /** The calendar that actually applies (the workspace's own, or the default). */
+  calendarId: string;
+  calendarName: string;
+  timeZoneId: string;
+  /** The calendar that applies is the default calendar. */
+  isDefault: boolean;
+  /** The workspace has no (active) calendar of its own, so the default applies. */
+  isInherited: boolean;
+  /** `yyyy-MM-dd`, inclusive: the window `exceptions` covers. */
+  from: string;
+  to: string;
+  days: WorkCalendarDay[];
+  exceptions: WorkCalendarException[];
+}
+
+/** `GET /api/workspaces/calendars`: an active calendar a workspace can use. */
+export interface WorkspaceCalendarOption {
+  id: string;
+  name: string;
+  description?: string | null;
+  timeZoneId: string;
+  isDefault: boolean;
+  days: WorkCalendarDay[];
+}
+
 export const DEFAULT_CALENDAR_TIME_ZONE = 'Asia/Dubai';
 
 /** Time zones offered in the editor. A calendar holding another id keeps it as an extra option. */

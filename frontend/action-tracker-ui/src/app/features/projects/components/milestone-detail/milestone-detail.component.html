@@ -499,6 +499,8 @@
         <div class="form-col">
           <label class="form-label">Planned Start <span class="text-danger">*</span></label>
           <input type="date" class="form-control" [(ngModel)]="milestoneEditForm.plannedStartDate" />
+          <app-working-day-hint field="Planned start date" [calendar]="calendar()" [date]="milestoneEditForm.plannedStartDate"
+                                [original]="originalMilestoneDates.start" (useDate)="milestoneEditForm.plannedStartDate = $event" />
         </div>
         <div class="form-col">
           <label class="form-label">Planned Due <span class="text-danger">*</span></label>
@@ -506,8 +508,12 @@
           @if (milestoneEditForm.plannedStartDate && milestoneEditForm.plannedDueDate && milestoneEditForm.plannedDueDate < milestoneEditForm.plannedStartDate) {
             <small class="text-danger">Due date must be after start date.</small>
           }
+          <app-working-day-hint field="Planned due date" [calendar]="calendar()" [date]="milestoneEditForm.plannedDueDate"
+                                [original]="originalMilestoneDates.due" (useDate)="milestoneEditForm.plannedDueDate = $event" />
         </div>
       </div>
+      <app-working-days class="d-block mb-3" [calendar]="calendar()"
+                        [start]="milestoneEditForm.plannedStartDate" [end]="milestoneEditForm.plannedDueDate" />
 
       <!-- Actual Completion Date -->
       <div class="mb-3">
@@ -643,6 +649,8 @@
         <div class="form-col">
           <label class="form-label">Start Date</label>
           <input type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
+          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="actionForm.startDate"
+                                [original]="originalActionDates.start" (useDate)="actionForm.startDate = $event" />
         </div>
         <div class="form-col">
           <label class="form-label">Due Date <span class="text-danger">*</span></label>
@@ -650,8 +658,12 @@
           @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
             <small class="text-danger">Due date must be same or after start date.</small>
           }
+          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="actionForm.dueDate"
+                                [original]="originalActionDates.due" (useDate)="actionForm.dueDate = $event" />
         </div>
       </div>
+      <app-working-days class="d-block mb-3" [calendar]="calendar()"
+                        [start]="actionForm.startDate" [end]="actionForm.dueDate" />
 
       <!-- Progress -->
       <div class="mb-3">

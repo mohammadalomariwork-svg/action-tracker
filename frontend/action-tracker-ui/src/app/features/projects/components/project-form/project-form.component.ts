@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject, HostListener } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal, effect, untracked, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -31,6 +31,10 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 import { MilestoneResponse } from '../../models/milestone.models';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage, workingDayValidator } from '../../../../shared/validators/working-day.validator';
+import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
 
 function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value;
@@ -42,7 +46,10 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-project-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BreadcrumbComponent, PageHeaderComponent],
+  imports: [
+    CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BreadcrumbComponent, PageHeaderComponent,
+    WorkingDayHintComponent, WorkingDaysComponent,
+  ],
   templateUrl: './project-form.component.html',
   styleUrl: './project-form.component.scss',
 })
@@ -81,6 +88,20 @@ export class ProjectFormComponent implements OnInit {
 
   form!: FormGroup;
 
+  // ── Working calendar of the project's workspace (WO-2026-11 C-3) ──
+  private readonly calendarWorkspaceId = signal<string | null>(null);
+  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId());
+  /** Planned dates the edited project holds now; unchanged dates are never flagged (Q8). */
+  originalDates: { start: string | null; end: string | null } = { start: null, end: null };
+  /** Re-runs the date validators when the calendar finishes loading. */
+  private readonly revalidateDates = effect(() => {
+    this.calendar();
+    untracked(() => {
+      this.form?.get('plannedStartDate')?.updateValueAndValidity({ emitEvent: false });
+      this.form?.get('plannedEndDate')?.updateValueAndValidity({ emitEvent: false });
+    });
+  });
+
   readonly ProjectType = ProjectType;
   readonly ProjectStatus = ProjectStatus;
   readonly ProjectPriority = ProjectPriority;
@@ -102,6 +123,7 @@ export class ProjectFormComponent implements OnInit {
     const wsId = this.route.snapshot.queryParamMap.get('workspaceId');
     if (wsId) {
       this.workspaceId = wsId;
+      this.calendarWorkspaceId.set(wsId);
     } else if (!this.isEditMode) {
       this.needsWorkspaceSelector = true;
     }
@@ -169,6 +191,20 @@ export class ProjectFormComponent implements OnInit {
   }
 
   onSubmit(): void {
+    const v = this.form.getRawValue();
+
+    // Working-day rule on the planned dates (the validators block the save too;
+    // this says why). The server applies the same check.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Planned start date', value: v.plannedStartDate, original: this.originalDates.start },
+      { field: 'Planned end date',   value: v.plannedEndDate,   original: this.originalDates.end },
+    ]);
+    if (dateProblem) {
+      this.form.markAllAsTouched();
+      this.errorMessage = dateProblem;
+      return;
+    }
+
     if (this.form.invalid || this.selectedSponsorIds.length === 0) {
       this.form.markAllAsTouched();
       if (this.selectedSponsorIds.length === 0)
@@ -178,7 +214,6 @@ export class ProjectFormComponent implements OnInit {
 
     this.isLoading = true;
     this.errorMessage = null;
-    const v = this.form.getRawValue();
 
     if (this.isEditMode && this.projectId) {
       // Validate milestones/action items when transitioning to Active or Completed
@@ -328,8 +363,10 @@ export class ProjectFormComponent implements OnInit {
       strategicObjectiveId: [null as string | null],
       priority: [ProjectPriority.Medium, [Validators.required]],
       projectManagerUserId: ['', [Validators.required]],
-      plannedStartDate: ['', [Validators.required]],
-      plannedEndDate: ['', [Validators.required]],
+      plannedStartDate: ['', [Validators.required,
+        workingDayValidator(() => this.calendar(), () => this.originalDates.start, 'Planned start date')]],
+      plannedEndDate: ['', [Validators.required,
+        workingDayValidator(() => this.calendar(), () => this.originalDates.end, 'Planned end date')]],
       approvedBudget: [null as number | null],
       status: [ProjectStatus.Draft],
       actualStartDate: [''],
@@ -348,6 +385,7 @@ export class ProjectFormComponent implements OnInit {
       this.form.get('selectedWorkspaceId')!.valueChanges
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((wsId: string) => {
+          this.calendarWorkspaceId.set(wsId || null);
           this.form.patchValue({ projectManagerUserId: '' });
           // Sponsors are workspace-scoped — drop any stale selections.
           this.selectedSponsorIds = [];
@@ -443,9 +481,14 @@ export class ProjectFormComponent implements OnInit {
         next: (res) => {
           const p: ProjectResponse = res.data;
           this.workspaceId = p.workspaceId;
+          this.calendarWorkspaceId.set(p.workspaceId);
           this.isBaselined = p.isBaselined;
           this.originalStatus = p.status;
           this.selectedSponsorIds = p.sponsors.map(s => s.userId);
+          this.originalDates = {
+            start: p.plannedStartDate ? String(p.plannedStartDate).substring(0, 10) : null,
+            end:   p.plannedEndDate ? String(p.plannedEndDate).substring(0, 10) : null,
+          };
           this.loadUsers(this.workspaceId);
           this.loadWorkspacePms(this.workspaceId);
 

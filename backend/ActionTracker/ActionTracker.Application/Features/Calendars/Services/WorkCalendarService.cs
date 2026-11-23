@@ -321,7 +321,157 @@ public class WorkCalendarService : IWorkCalendarService
 
     // ── Calculation API ───────────────────────────────────────────────────────
 
-    public async Task<ResolvedWorkCalendar> GetDefaultAsync(CancellationToken ct = default)
+    private const string NoDefaultMessage = "No default work calendar is configured.";
+
+    public async Task<ResolvedWorkCalendar> GetDefaultAsync(CancellationToken ct = default) =>
+        await FindDefaultAsync(ct) ?? throw new InvalidOperationException(NoDefaultMessage);
+
+    public async Task<ResolvedWorkCalendar> GetForWorkspaceAsync(Guid workspaceId, CancellationToken ct = default) =>
+        await FindForWorkspaceAsync(workspaceId, ct) ?? throw new InvalidOperationException(NoDefaultMessage);
+
+    public async Task EnsureWorkingDaysAsync(
+        Guid? workspaceId, IReadOnlyCollection<WorkingDateCheck> checks, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(checks);
+
+        // Q8: only dates that are created or changed. No change = no lookup.
+        var changed = checks.Where(c => c.IsChanged).ToList();
+        if (changed.Count == 0) return;
+
+        var calendar = workspaceId.HasValue
+            ? await FindForWorkspaceAsync(workspaceId.Value, ct)
+            : await FindDefaultAsync(ct);
+
+        // The seeder guarantees a default calendar. Should it ever be missing,
+        // saving work must not stop because of it: skip the rule and say so.
+        if (calendar is null)
+        {
+            _logger.LogWarning(
+                "No work calendar is configured; the working-day check was skipped for workspace {WorkspaceId}.",
+                workspaceId);
+            return;
+        }
+
+        var refused = new List<NonWorkingDate>();
+        foreach (var check in changed)
+        {
+            var date = check.Date!.Value;
+            if (calendar.IsWorkingDay(date)) continue;
+
+            refused.Add(new NonWorkingDate(check.Field, date, TryNextWorkingDay(calendar, date)));
+        }
+
+        if (refused.Count > 0)
+            throw new NonWorkingDateException(calendar.Name, refused);
+    }
+
+    // ── Workspace setting ─────────────────────────────────────────────────────
+
+    /// <summary>Default window of <see cref="GetWorkspaceCalendarAsync"/>: one year back.</summary>
+    public const int DefaultWindowDaysBack = 366;
+
+    /// <summary>Default window of <see cref="GetWorkspaceCalendarAsync"/>: three years ahead.</summary>
+    public const int DefaultWindowDaysAhead = 3 * 366;
+
+    /// <summary>Longest window a caller may ask for (the working-day search limit).</summary>
+    public const int MaxWindowDays = 3660;
+
+    public async Task<WorkspaceCalendarDto> GetWorkspaceCalendarAsync(
+        Guid workspaceId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default)
+    {
+        var today       = DateOnly.FromDateTime(DateTime.UtcNow);
+        var windowStart = from ?? (to?.AddDays(-(DefaultWindowDaysBack + DefaultWindowDaysAhead)) ?? today.AddDays(-DefaultWindowDaysBack));
+        var windowEnd   = to   ?? windowStart.AddDays(DefaultWindowDaysBack + DefaultWindowDaysAhead);
+
+        if (windowEnd < windowStart)
+            throw new ArgumentException("'to' must be on or after 'from'.");
+        if (windowEnd.DayNumber - windowStart.DayNumber + 1 > MaxWindowDays)
+            throw new ArgumentException($"The window may cover at most {MaxWindowDays} days.");
+
+        // Normal workspace query filter: a private workspace the caller is
+        // not part of is reported as not found, never as "uses the default".
+        var workspace = await _db.Workspaces
+            .AsNoTracking()
+            .Where(w => w.Id == workspaceId)
+            .Select(w => new { w.Id, w.WorkCalendarId })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new KeyNotFoundException($"Workspace {workspaceId} not found.");
+
+        return await BuildWorkspaceCalendarAsync(workspace.Id, workspace.WorkCalendarId, windowStart, windowEnd, ct);
+    }
+
+    public async Task<WorkspaceCalendarDto> SetWorkspaceCalendarAsync(
+        Guid workspaceId, SetWorkspaceCalendarDto dto, string userId, CancellationToken ct = default)
+    {
+        EnsureValid(new SetWorkspaceCalendarDtoValidator(), dto);
+
+        // Global filter hides private workspaces the caller is not part of;
+        // the resolver narrows non-privileged roles to their own workspaces.
+        var workspace = await _db.Workspaces.FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+            ?? throw new KeyNotFoundException($"Workspace {workspaceId} not found.");
+
+        var visibleIds = await _workspaceAccess.GetVisibleWorkspaceIdsAsync(userId);
+        if (visibleIds is not null && !visibleIds.Contains(workspaceId))
+            throw new KeyNotFoundException($"Workspace {workspaceId} not found.");
+
+        if (dto.WorkCalendarId is { } calendarId)
+        {
+            // The soft-delete filter on calendars hides deleted ones.
+            var calendar = await _db.WorkCalendars
+                .AsNoTracking()
+                .Where(c => c.Id == calendarId)
+                .Select(c => new { c.IsActive, c.Name })
+                .FirstOrDefaultAsync(ct)
+                ?? throw new ArgumentException($"Calendar {calendarId} does not exist or has been deleted.");
+
+            if (!calendar.IsActive)
+                throw new ArgumentException($"Calendar '{calendar.Name}' is inactive. Activate it before assigning it to a workspace.");
+        }
+
+        if (workspace.WorkCalendarId != dto.WorkCalendarId)
+        {
+            var previous = workspace.WorkCalendarId;
+            workspace.WorkCalendarId = dto.WorkCalendarId;
+            workspace.UpdatedAt      = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            // No cache clear: the cache holds calendars by id, and the
+            // workspace → calendar link is read from the database every time.
+            _logger.LogInformation(
+                "Workspace {WorkspaceId} calendar changed from {Previous} to {Current} by {UserId}",
+                workspaceId, previous?.ToString() ?? "default", dto.WorkCalendarId?.ToString() ?? "default", userId);
+        }
+
+        return await GetWorkspaceCalendarAsync(workspaceId, ct: ct);
+    }
+
+    public async Task<List<WorkspaceCalendarOptionDto>> GetWorkspaceCalendarOptionsAsync(CancellationToken ct = default)
+    {
+        var calendars = await _db.WorkCalendars
+            .AsNoTracking()
+            .Include(c => c.Days)
+            .Where(c => c.IsActive)
+            .OrderByDescending(c => c.IsDefault)
+            .ThenBy(c => c.Name)
+            .ToListAsync(ct);
+
+        return calendars
+            .Select(c => new WorkspaceCalendarOptionDto
+            {
+                Id          = c.Id,
+                Name        = c.Name,
+                Description = c.Description,
+                TimeZoneId  = c.TimeZoneId,
+                IsDefault   = c.IsDefault,
+                Days        = MapDays(c.Days),
+            })
+            .ToList();
+    }
+
+    // ── Calendar resolution ───────────────────────────────────────────────────
+
+    /// <summary>The default calendar, or null when none is configured.</summary>
+    private async Task<ResolvedWorkCalendar?> FindDefaultAsync(CancellationToken ct)
     {
         if (_cache.TryGetDefault(out var cached))
             return cached;
@@ -332,15 +482,17 @@ public class WorkCalendarService : IWorkCalendarService
             .AsNoTracking()
             .Include(c => c.Days)
             .Include(c => c.Exceptions)
-            .FirstOrDefaultAsync(c => c.IsDefault, ct)
-            ?? throw new InvalidOperationException("No default work calendar is configured.");
+            .FirstOrDefaultAsync(c => c.IsDefault, ct);
+
+        if (calendar is null) return null;
 
         var resolved = new ResolvedWorkCalendar(calendar);
         _cache.Set(resolved, version);
         return resolved;
     }
 
-    public async Task<ResolvedWorkCalendar> GetForWorkspaceAsync(Guid workspaceId, CancellationToken ct = default)
+    /// <summary>The workspace's calendar, else the default, else null when none is configured.</summary>
+    private async Task<ResolvedWorkCalendar?> FindForWorkspaceAsync(Guid workspaceId, CancellationToken ct)
     {
         // Goes through the normal workspace query filter: a workspace the
         // caller cannot see resolves to the default calendar, like one that
@@ -351,7 +503,7 @@ public class WorkCalendarService : IWorkCalendarService
             .FirstOrDefaultAsync(ct);
 
         if (calendarId is null)
-            return await GetDefaultAsync(ct);
+            return await FindDefaultAsync(ct);
 
         if (_cache.TryGet(calendarId.Value, out var cached))
             return cached;
@@ -371,12 +523,66 @@ public class WorkCalendarService : IWorkCalendarService
             _logger.LogWarning(
                 "Workspace {WorkspaceId} points at calendar {CalendarId}, which is missing or inactive; using the default.",
                 workspaceId, calendarId);
-            return await GetDefaultAsync(ct);
+            return await FindDefaultAsync(ct);
         }
 
         var resolved = new ResolvedWorkCalendar(calendar);
         _cache.Set(resolved, version);
         return resolved;
+    }
+
+    /// <summary>
+    /// Same fallback as <see cref="FindForWorkspaceAsync"/> (own calendar when
+    /// active, else the default), read straight from the database because the
+    /// page needs the rows, not just the answers.
+    /// </summary>
+    private async Task<WorkspaceCalendarDto> BuildWorkspaceCalendarAsync(
+        Guid workspaceId, Guid? ownCalendarId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        WorkCalendar? calendar = null;
+        if (ownCalendarId is { } id)
+            calendar = await LoadCalendarAsync(c => c.Id == id && c.IsActive, from, to, ct);
+
+        var inherited = calendar is null;
+        calendar ??= await LoadCalendarAsync(c => c.IsDefault, from, to, ct)
+            ?? throw new InvalidOperationException(NoDefaultMessage);
+
+        return new WorkspaceCalendarDto
+        {
+            WorkspaceId    = workspaceId,
+            WorkCalendarId = ownCalendarId,
+            CalendarId     = calendar.Id,
+            CalendarName   = calendar.Name,
+            TimeZoneId     = calendar.TimeZoneId,
+            IsDefault      = calendar.IsDefault,
+            IsInherited    = inherited,
+            From           = from,
+            To             = to,
+            Days           = MapDays(calendar.Days),
+            Exceptions     = MapExceptions(calendar.Exceptions),
+        };
+    }
+
+    private Task<WorkCalendar?> LoadCalendarAsync(
+        System.Linq.Expressions.Expression<Func<WorkCalendar, bool>> predicate,
+        DateOnly from, DateOnly to, CancellationToken ct) =>
+        _db.WorkCalendars
+            .AsNoTracking()
+            .Include(c => c.Days)
+            .Include(c => c.Exceptions.Where(e => e.StartDate <= to && e.EndDate >= from))
+            .FirstOrDefaultAsync(predicate, ct);
+
+    private static DateOnly? TryNextWorkingDay(ResolvedWorkCalendar calendar, DateOnly date)
+    {
+        try
+        {
+            return calendar.NextWorkingDay(date);
+        }
+        catch (InvalidOperationException)
+        {
+            // No working day within the search limit: refuse without a suggestion.
+            return null;
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -483,7 +689,12 @@ public class WorkCalendarService : IWorkCalendarService
         CreatedBy   = c.CreatedBy,
         UpdatedAt   = c.UpdatedAt,
         UpdatedBy   = c.UpdatedBy,
-        Days = c.Days
+        Days        = MapDays(c.Days),
+        Exceptions  = MapExceptions(c.Exceptions),
+    };
+
+    private static List<WorkCalendarDayDto> MapDays(IEnumerable<WorkCalendarDay> days) =>
+        days
             .OrderBy(d => d.DayOfWeek)
             .Select(d => new WorkCalendarDayDto
             {
@@ -492,8 +703,10 @@ public class WorkCalendarService : IWorkCalendarService
                 StartTime    = d.StartTime,
                 EndTime      = d.EndTime,
             })
-            .ToList(),
-        Exceptions = c.Exceptions
+            .ToList();
+
+    private static List<WorkCalendarExceptionDto> MapExceptions(IEnumerable<WorkCalendarException> exceptions) =>
+        exceptions
             .OrderBy(e => e.StartDate)
             .ThenBy(e => e.Name)
             .Select(e => new WorkCalendarExceptionDto
@@ -506,6 +719,5 @@ public class WorkCalendarService : IWorkCalendarService
                 StartTime    = e.StartTime,
                 EndTime      = e.EndTime,
             })
-            .ToList(),
-    };
+            .ToList();
 }

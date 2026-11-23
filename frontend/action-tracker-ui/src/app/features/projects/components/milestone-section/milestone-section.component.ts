@@ -10,6 +10,10 @@ import { HasPermissionDirective } from '../../../../shared';
 import { ProjectPhase, ProjectPhaseLabels, ProjectPhaseFromApi } from '../../models/milestone.models';
 import { MilestoneService } from '../../services/milestone.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
+import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
 import { ProjectService } from '../../services/project.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
@@ -30,7 +34,7 @@ import { PagedResult } from '../../../../core/models/api-response.model';
   selector: 'app-milestone-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent],
   templateUrl: './milestone-section.component.html',
   styleUrl: './milestone-section.component.scss',
 })
@@ -43,6 +47,9 @@ export class MilestoneSectionComponent implements OnInit {
   private readonly milestoneSvc       = inject(MilestoneService);
   private readonly projectSvc         = inject(ProjectService);
   private readonly toastSvc           = inject(ToastService);
+
+  /** Working calendar of the project's workspace (WO-2026-11 C-3). */
+  readonly calendar = injectWorkspaceCalendar(() => this.workspaceId());
   private readonly actionItemSvc      = inject(ActionItemService);
   private readonly workspaceSvc       = inject(WorkspaceService);
 
@@ -68,6 +75,9 @@ export class MilestoneSectionComponent implements OnInit {
   readonly formSequenceOrder = signal(1);
   readonly formPlannedStartDate = signal('');
   readonly formPlannedDueDate = signal('');
+  /** Planned dates of the milestone being edited; unchanged dates are never flagged (Q8). */
+  readonly originalPlannedStartDate = signal<string | null>(null);
+  readonly originalPlannedDueDate = signal<string | null>(null);
   readonly formActualCompletionDate = signal('');
   readonly formPhase = signal<ProjectPhase>(ProjectPhase.Initiation);
   readonly formIsDeadlineFixed = signal(false);
@@ -256,6 +266,8 @@ export class MilestoneSectionComponent implements OnInit {
   openCreateForm(): void {
     this.editingId.set(null);
     this.resetForm();
+    this.originalPlannedStartDate.set(null);
+    this.originalPlannedDueDate.set(null);
     const nextSeq = this.milestones().length > 0
       ? Math.max(...this.milestones().map(m => m.sequenceOrder)) + 1
       : 1;
@@ -274,6 +286,8 @@ export class MilestoneSectionComponent implements OnInit {
     this.formPhase.set(phase);
     this.formPlannedStartDate.set(m.plannedStartDate?.substring(0, 10) ?? '');
     this.formPlannedDueDate.set(m.plannedDueDate?.substring(0, 10) ?? '');
+    this.originalPlannedStartDate.set(this.formPlannedStartDate() || null);
+    this.originalPlannedDueDate.set(this.formPlannedDueDate() || null);
     this.formActualCompletionDate.set(m.actualCompletionDate?.substring(0, 10) ?? '');
     this.formIsDeadlineFixed.set(m.isDeadlineFixed);
     const status = typeof m.status === 'string'
@@ -296,6 +310,17 @@ export class MilestoneSectionComponent implements OnInit {
       this.toastSvc.warning('Name is required.');
       return;
     }
+
+    // Working-day rule on the planned dates — the server applies the same check.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Planned start date', value: this.formPlannedStartDate(), original: this.editingId() ? this.originalPlannedStartDate() : null },
+      { field: 'Planned due date',   value: this.formPlannedDueDate(),   original: this.editingId() ? this.originalPlannedDueDate() : null },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
+      return;
+    }
+
     this.submitting.set(true);
     const editing = this.editingId();
     if (editing) {
@@ -579,6 +604,16 @@ export class MilestoneSectionComponent implements OnInit {
     }
     if (this.aiAssigneeIds().length === 0) {
       this.actionFormError = 'At least one assignee is required.';
+      return;
+    }
+
+    // Working-day rule — the server applies the same check and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: this.aiStartDate() },
+      { field: 'Due date',   value: this.aiDueDate() },
+    ]);
+    if (dateProblem) {
+      this.actionFormError = dateProblem;
       return;
     }
 

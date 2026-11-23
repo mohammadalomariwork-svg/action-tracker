@@ -171,6 +171,12 @@
                 formControlName="startDate"
                 [readonly]="areDatesLocked()"
               />
+              <app-working-day-hint
+                field="Start date"
+                [calendar]="calendar()"
+                [date]="form.get('startDate')?.value"
+                [original]="originalStartDate()"
+                (useDate)="form.patchValue({ startDate: $event })" />
             </div>
 
             <!-- Due Date -->
@@ -194,6 +200,16 @@
               @if (isInvalid('dueDate')) {
                 <span class="field__error">Due date is required.</span>
               }
+              <app-working-day-hint
+                field="Due date"
+                [calendar]="calendar()"
+                [date]="form.get('dueDate')?.value"
+                [original]="originalDueDate()"
+                (useDate)="form.patchValue({ dueDate: $event })" />
+              <app-working-days
+                [calendar]="calendar()"
+                [start]="form.get('startDate')?.value"
+                [end]="form.get('dueDate')?.value" />
               @if (areDatesLocked()) {
                 <button type="button" class="btn-wf-request mt-1" (click)="openDateChangeDialog()">
                   <i class="bi bi-calendar-event"></i> Request Date Change
@@ -354,12 +370,28 @@
         <input type="date" class="form-control"
                [ngModel]="requestedNewStartDate()"
                (ngModelChange)="requestedNewStartDate.set($event)" />
+        <app-working-day-hint
+          field="Requested start date"
+          [calendar]="calendar()"
+          [date]="requestedNewStartDate()"
+          [original]="originalStartDate()"
+          (useDate)="requestedNewStartDate.set($event)" />
       </div>
       <div class="mb-3">
         <label class="form-label">New Due Date</label>
         <input type="date" class="form-control"
                [ngModel]="requestedNewDueDate()"
                (ngModelChange)="requestedNewDueDate.set($event)" />
+        <app-working-day-hint
+          field="Requested due date"
+          [calendar]="calendar()"
+          [date]="requestedNewDueDate()"
+          [original]="originalDueDate()"
+          (useDate)="requestedNewDueDate.set($event)" />
+        <app-working-days
+          [calendar]="calendar()"
+          [start]="requestedNewStartDate()"
+          [end]="requestedNewDueDate()" />
       </div>
       <div class="mb-3">
         <label class="form-label">Reason <span class="text-danger">*</span></label>

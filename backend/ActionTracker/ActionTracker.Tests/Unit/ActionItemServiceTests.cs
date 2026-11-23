@@ -1,6 +1,8 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Services;
+using ActionTracker.Application.Features.Calendars.Services;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
@@ -8,6 +10,7 @@ using ActionTracker.Infrastructure.Data;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -37,7 +40,12 @@ public class ActionItemServiceTests : IDisposable
         var notificationServiceMock = new Mock<INotificationService>();
         var appSettings = Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" });
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
-        _service    = new ActionItemService(_dbContext, _loggerMock.Object, emailSenderMock.Object, notificationServiceMock.Object, appSettings, scopeFactoryMock.Object);
+        // Real calendar service over the same database. No calendar is seeded
+        // here, so the working-day rule (WO-2026-11 C-3) stands aside and these
+        // tests keep using dates relative to today; WorkingDateRuleTests covers it.
+        var calendars = new WorkCalendarService(
+            _dbContext, Mock.Of<IWorkspaceAccessResolver>(), new WorkCalendarCache(), NullLogger<WorkCalendarService>.Instance);
+        _service    = new ActionItemService(_dbContext, _loggerMock.Object, emailSenderMock.Object, notificationServiceMock.Object, appSettings, scopeFactoryMock.Object, calendars);
     }
 
     public void Dispose() => _dbContext.Dispose();

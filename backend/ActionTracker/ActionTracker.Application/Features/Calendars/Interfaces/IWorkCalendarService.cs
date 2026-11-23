@@ -52,4 +52,42 @@ public interface IWorkCalendarService
     /// <c>AddWorkingDays</c> and <c>WorkingDaysBetween</c>.
     /// </summary>
     Task<ResolvedWorkCalendar> GetForWorkspaceAsync(Guid workspaceId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The working-day rule for saved dates (WO-2026-11 C-3, Q7 / Q8). Checks
+    /// every entry of <paramref name="checks"/> whose date is created or
+    /// changed (<see cref="WorkingDateCheck.IsChanged"/>) against the calendar
+    /// of <paramref name="workspaceId"/> (the default calendar when null) and
+    /// throws <see cref="NonWorkingDateException"/> listing every one that is
+    /// not a working day. Unchanged dates are never checked, so existing
+    /// records keep saving. Does nothing when no calendar is configured at all.
+    /// </summary>
+    Task EnsureWorkingDaysAsync(
+        Guid? workspaceId, IReadOnlyCollection<WorkingDateCheck> checks, CancellationToken ct = default);
+
+    // ── Workspace setting (WO-2026-11 C-3) ────────────────────────────────────
+
+    /// <summary>
+    /// The calendar that applies to a workspace, with its weekly pattern and
+    /// the exceptions overlapping <paramref name="from"/>..<paramref name="to"/>
+    /// (default: one year back to three years ahead).
+    /// <see cref="KeyNotFoundException"/> when the workspace does not exist or
+    /// is a private workspace the caller is not part of;
+    /// <see cref="ArgumentException"/> for a reversed or over-long window.
+    /// </summary>
+    Task<WorkspaceCalendarDto> GetWorkspaceCalendarAsync(
+        Guid workspaceId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Points a workspace at a calendar, or back at the default (null).
+    /// <see cref="KeyNotFoundException"/> when <paramref name="userId"/> cannot
+    /// see the workspace; <see cref="ArgumentException"/> when the calendar does
+    /// not exist, is deleted or is inactive. Only dates saved afterwards are
+    /// checked against the new calendar; existing records are left alone.
+    /// </summary>
+    Task<WorkspaceCalendarDto> SetWorkspaceCalendarAsync(
+        Guid workspaceId, SetWorkspaceCalendarDto dto, string userId, CancellationToken ct = default);
+
+    /// <summary>Active calendars a workspace can be pointed at, default first then by name.</summary>
+    Task<List<WorkspaceCalendarOptionDto>> GetWorkspaceCalendarOptionsAsync(CancellationToken ct = default);
 }

@@ -842,6 +842,8 @@
         <div class="col-6">
           <label class="form-label">Start Date</label>
           <input type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
+          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="actionForm.startDate"
+                                [original]="originalDates.start" (useDate)="actionForm.startDate = $event" />
         </div>
         <div class="col-6">
           <label class="form-label">Due Date <span class="text-danger">*</span></label>
@@ -850,6 +852,11 @@
           @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
             <small class="text-danger">Due date must be same or after start date.</small>
           }
+          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="actionForm.dueDate"
+                                [original]="originalDates.due" (useDate)="actionForm.dueDate = $event" />
+        </div>
+        <div class="col-12">
+          <app-working-days [calendar]="calendar()" [start]="actionForm.startDate" [end]="actionForm.dueDate" />
         </div>
       </div>
 

@@ -2,6 +2,7 @@ using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Services;
+using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Dashboard;
 using ActionTracker.Application.Features.Dashboard.Services;
 using ActionTracker.Application.Features.Notifications;
@@ -119,7 +120,8 @@ public class DashboardAnalyticsServiceTests : IDisposable
 
     private ActionItemService MakeActionItemService() => new(
         _db, Mock.Of<ILogger<ActionItemService>>(), Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-        Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost" }), Mock.Of<IServiceScopeFactory>());
+        Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost" }), Mock.Of<IServiceScopeFactory>(),
+        Mock.Of<IWorkCalendarService>()); // list queries only — the working-day rule is never reached
 
     private async Task<int> ListCountAsync(Action<ActionItemFilterDto> configure)
     {

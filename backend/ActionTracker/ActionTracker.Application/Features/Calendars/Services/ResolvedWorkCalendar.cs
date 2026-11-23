@@ -10,10 +10,17 @@ namespace ActionTracker.Application.Features.Calendars.Services;
 /// Rules:
 /// <list type="bullet">
 /// <item>An exception covering a date overrides the weekly pattern for that date.</item>
-/// <item>When several exceptions cover the same date, the shortest one wins
-/// (a three-day holiday inside a month of reduced hours beats the month);
-/// on a tie a non-working exception wins.</item>
+/// <item>When several exceptions cover the same date, the most specific one
+/// wins, decided in this order (see <see cref="SpecificityOrder"/>):
+/// the shortest range (a three-day holiday inside a month of reduced hours
+/// beats the month); then a non-working exception; then a working exception
+/// with hours of its own over one without; then the shorter working day; then
+/// the earlier start time; then the name (ordinal); then the earlier start
+/// date. Two exceptions still tied after that are identical in every value
+/// the calendar exposes, so the result never depends on database order.</item>
 /// </list>
+/// The client copy in <c>shared/utils/work-calendar.util.ts</c> applies the
+/// same order — change both together.
 /// </summary>
 public sealed class ResolvedWorkCalendar
 {
@@ -44,13 +51,33 @@ public sealed class ResolvedWorkCalendar
         foreach (var day in calendar.Days)
             _week[(int)day.DayOfWeek] = new DayRule(day.IsWorkingDay, day.StartTime, day.EndTime);
 
-        _exceptions = calendar.Exceptions
-            .Select(e => new ExceptionRule(e.StartDate, e.EndDate, e.IsWorkingDay, e.StartTime, e.EndTime))
-            // Most specific first: shortest range, then non-working before working.
-            .OrderBy(e => e.EndDate.DayNumber - e.StartDate.DayNumber)
-            .ThenBy(e => e.IsWorkingDay)
+        _exceptions = SpecificityOrder(calendar.Exceptions
+                .Select(e => new ExceptionRule(
+                    e.Name ?? string.Empty, e.StartDate, e.EndDate, e.IsWorkingDay, e.StartTime, e.EndTime)))
             .ToArray();
     }
+
+    /// <summary>
+    /// Most specific first. Every key is a value of the exception itself, so
+    /// the order — and therefore which exception decides a date — never
+    /// depends on the order the rows came from the database.
+    /// </summary>
+    private static IOrderedEnumerable<ExceptionRule> SpecificityOrder(IEnumerable<ExceptionRule> rules) =>
+        rules
+            // 1. Shortest range.
+            .OrderBy(e => e.EndDate.DayNumber - e.StartDate.DayNumber)
+            // 2. Non-working before working.
+            .ThenBy(e => e.IsWorkingDay)
+            // 3. A working exception with hours of its own before one without.
+            .ThenBy(e => e.Hours is null)
+            // 4. Shorter working day first.
+            .ThenBy(e => e.Hours is { } h ? h.End.Ticks - h.Start.Ticks : long.MaxValue)
+            // 5. Earlier start time first.
+            .ThenBy(e => e.Hours is { } h ? h.Start.Ticks : long.MaxValue)
+            // 6. Name, ordinal (matches JavaScript's default string comparison).
+            .ThenBy(e => e.Name, StringComparer.Ordinal)
+            // 7. Earlier start date (same length, so also the earlier end date).
+            .ThenBy(e => e.StartDate.DayNumber);
 
     /// <summary>True when <paramref name="date"/> is a working day in this calendar.</summary>
     public bool IsWorkingDay(DateOnly date)
@@ -161,9 +188,10 @@ public sealed class ResolvedWorkCalendar
     }
 
     private readonly record struct ExceptionRule(
-        DateOnly StartDate, DateOnly EndDate, bool IsWorkingDay, TimeOnly? StartTime, TimeOnly? EndTime)
+        string Name, DateOnly StartDate, DateOnly EndDate, bool IsWorkingDay, TimeOnly? StartTime, TimeOnly? EndTime)
     {
+        /// <summary>Hours of a working exception; a non-working exception never has any.</summary>
         public (TimeOnly Start, TimeOnly End)? Hours =>
-            StartTime.HasValue && EndTime.HasValue ? (StartTime.Value, EndTime.Value) : null;
+            IsWorkingDay && StartTime.HasValue && EndTime.HasValue ? (StartTime.Value, EndTime.Value) : null;
     }
 }

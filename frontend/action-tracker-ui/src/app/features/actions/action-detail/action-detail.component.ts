@@ -27,6 +27,10 @@ import { CommentsSectionComponent }  from '../../../shared/components/comments-s
 import { DocumentsSectionComponent } from '../../../shared/components/documents-section/documents-section.component';
 import { BreadcrumbComponent }       from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { WorkflowReviewDialogComponent } from '../../../shared/components/workflow-review-dialog/workflow-review-dialog.component';
+import { WorkingDayHintComponent } from '../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.validator';
+import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
 
 interface EditFormData {
   title: string;
@@ -49,6 +53,7 @@ interface EditFormData {
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
     BreadcrumbComponent, WorkflowReviewDialogComponent,
+    WorkingDayHintComponent, WorkingDaysComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',
@@ -85,6 +90,12 @@ export class ActionDetailComponent implements OnInit {
   readonly ActionPriority = ActionPriority;
 
   readonly workspaceId = computed(() => this.item()?.workspaceId ?? '');
+
+  // ── Working calendar (WO-2026-11 C-3) ─────────────────
+  readonly calendar = injectWorkspaceCalendar(() => this.workspaceId());
+  /** Dates the item holds now; unchanged dates are never flagged (Q8). */
+  readonly originalStartDate = computed(() => this.item()?.startDate?.slice(0, 10) ?? null);
+  readonly originalDueDate   = computed(() => this.item()?.dueDate?.slice(0, 10) ?? null);
 
   readonly breadcrumbItems = computed(() => {
     const ai = this.item();
@@ -262,6 +273,16 @@ export class ActionDetailComponent implements OnInit {
     if (!ai) return;
     if (!this.editForm.title.trim() || this.editForm.assigneeIds.length === 0 || !this.editForm.dueDate) return;
     if (this.editForm.isEscalated && !this.editForm.escalationExplanation?.trim()) return;
+
+    // Working-day rule — the server applies the same check and stays the authority.
+    const dateProblem = nonWorkingDatesMessage(this.calendar(), [
+      { field: 'Start date', value: this.editForm.startDate, original: this.originalStartDate() },
+      { field: 'Due date',   value: this.editForm.dueDate,   original: this.originalDueDate() },
+    ]);
+    if (dateProblem) {
+      this.toastSvc.error(dateProblem);
+      return;
+    }
 
     this.saving = true;
 

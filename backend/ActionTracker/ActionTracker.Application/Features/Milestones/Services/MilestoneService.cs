@@ -1,5 +1,7 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.Calendars;
+using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Milestones.DTOs;
 using ActionTracker.Application.Features.Milestones.Interfaces;
 using ActionTracker.Application.Features.Notifications;
@@ -21,6 +23,7 @@ public class MilestoneService : IMilestoneService
     private readonly INotificationService _notificationService;
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IWorkCalendarService _calendars;
 
     public MilestoneService(
         IAppDbContext db,
@@ -28,7 +31,8 @@ public class MilestoneService : IMilestoneService
         IEmailSender emailSender,
         INotificationService notificationService,
         IOptions<AppSettings> appSettings,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IWorkCalendarService calendars)
     {
         _db                  = db;
         _logger              = logger;
@@ -36,6 +40,7 @@ public class MilestoneService : IMilestoneService
         _notificationService = notificationService;
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
+        _calendars           = calendars;
     }
 
     public async Task<List<MilestoneResponseDto>> GetByProjectAsync(Guid projectId, CancellationToken ct)
@@ -69,6 +74,13 @@ public class MilestoneService : IMilestoneService
 
         if (dto.PlannedDueDate < dto.PlannedStartDate)
             throw new ArgumentException("Planned due date must be on or after the planned start date.");
+
+        // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
+        await _calendars.EnsureWorkingDaysAsync(project.WorkspaceId, new[]
+        {
+            WorkingDateCheck.New("Planned start date", dto.PlannedStartDate),
+            WorkingDateCheck.New("Planned due date",   dto.PlannedDueDate),
+        }, ct);
 
         // Generate a globally unique milestone code for the current year.
         // We look at ALL milestones (across every project) that share the
@@ -186,6 +198,15 @@ public class MilestoneService : IMilestoneService
 
         if (dto.PlannedDueDate < dto.PlannedStartDate)
             throw new ArgumentException("Planned due date must be on or after the planned start date.");
+
+        // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
+        // Only planned dates whose day changes (Q8). The actual completion date
+        // records when the work finished and is not checked.
+        await _calendars.EnsureWorkingDaysAsync(project?.WorkspaceId, new[]
+        {
+            WorkingDateCheck.Changed("Planned start date", dto.PlannedStartDate, milestone.PlannedStartDate),
+            WorkingDateCheck.Changed("Planned due date",   dto.PlannedDueDate,   milestone.PlannedDueDate),
+        }, ct);
 
         milestone.Name = dto.Name.Trim();
         milestone.Description = dto.Description?.Trim();

@@ -1,6 +1,6 @@
 import {
   Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
-  inject, signal, HostListener, DestroyRef,
+  inject, signal, HostListener, DestroyRef, effect, untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
@@ -15,6 +15,10 @@ import { ActionItemService } from '../../../../core/services/action-item.service
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import { WorkspaceList } from '../../../workspaces/models/workspace.model';
 import { ToastService } from '../../../../core/services/toast.service';
+import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
+import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
+import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
+import { nonWorkingDatesMessage, workingDayValidator } from '../../../../shared/validators/working-day.validator';
 import {
   ProjectResponse, ProjectUpdate, ProjectStatus, ProjectPriority, ProjectType,
   StrategicObjectiveOption,
@@ -51,7 +55,7 @@ const AVATAR_COLORS = [
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, HasPermissionDirective,
-            BreadcrumbComponent, PageHeaderComponent],
+            BreadcrumbComponent, PageHeaderComponent, WorkingDayHintComponent, WorkingDaysComponent],
   templateUrl: './my-projects.component.html',
   styleUrl: './my-projects.component.scss',
 })
@@ -123,6 +127,25 @@ export class MyProjectsComponent implements OnInit {
   editSponsorDropdownOpen = false;
   editSponsorSearchTerm   = '';
   editStrategicObjectives: StrategicObjectiveOption[] = [];
+
+  // ── Working calendars (WO-2026-11 C-3) ────────────────
+  private readonly createWorkspaceId = signal('');
+  private readonly editWorkspaceId   = signal('');
+  /** Calendar of the workspace picked in the create drawer. */
+  readonly createCalendar = injectWorkspaceCalendar(() => this.createWorkspaceId());
+  /** Calendar of the edited project's workspace. */
+  readonly editCalendar   = injectWorkspaceCalendar(() => this.editWorkspaceId());
+  /** Planned dates the edited project holds now; unchanged dates are never flagged (Q8). */
+  editOriginalDates: { start: string | null; end: string | null } = { start: null, end: null };
+  /** Re-runs the date validators when a calendar finishes loading. */
+  private readonly revalidateCreateDates = effect(() => {
+    this.createCalendar();
+    untracked(() => this.revalidate(this.createForm, ['plannedStartDate', 'plannedEndDate']));
+  });
+  private readonly revalidateEditDates = effect(() => {
+    this.editCalendar();
+    untracked(() => this.revalidate(this.editForm, ['plannedStartDate', 'plannedEndDate']));
+  });
 
   readonly STATUS_OPTIONS = [
     { value: ProjectStatus.Draft,     label: 'Draft' },
@@ -315,12 +338,15 @@ export class MyProjectsComponent implements OnInit {
       strategicObjectiveId: [null as string | null],
       priority:             [ProjectPriority.Medium, [Validators.required]],
       projectManagerUserId: ['', [Validators.required]],
-      plannedStartDate:     ['', [Validators.required]],
-      plannedEndDate:       ['', [Validators.required]],
+      plannedStartDate:     ['', [Validators.required,
+        workingDayValidator(() => this.createCalendar(), () => null, 'Planned start date')]],
+      plannedEndDate:       ['', [Validators.required,
+        workingDayValidator(() => this.createCalendar(), () => null, 'Planned end date')]],
       approvedBudget:       [null as number | null],
     }, { validators: dateRangeValidator });
 
     this.createForm.get('workspaceId')!.valueChanges.subscribe(wsId => {
+      this.createWorkspaceId.set(wsId ?? '');
       // Sponsors are workspace-scoped — drop stale selections and reload list.
       this.selectedSponsorIds = [];
       this.availableUsers = [];
@@ -378,6 +404,11 @@ export class MyProjectsComponent implements OnInit {
     this.showDrawer = false;
   }
 
+  private revalidate(form: FormGroup | undefined, controls: string[]): void {
+    if (!form) return;
+    for (const name of controls) form.get(name)?.updateValueAndValidity({ emitEvent: false });
+  }
+
   get isStrategic(): boolean {
     return this.createForm.get('projectType')?.value === ProjectType.Strategic;
   }
@@ -425,6 +456,19 @@ export class MyProjectsComponent implements OnInit {
 
   onDrawerSubmit(): void {
     this.createForm.markAllAsTouched();
+
+    // Working-day rule on the planned dates (the validators block the save too;
+    // this says why). The server applies the same check.
+    const created = this.createForm.getRawValue();
+    const dateProblem = nonWorkingDatesMessage(this.createCalendar(), [
+      { field: 'Planned start date', value: created.plannedStartDate },
+      { field: 'Planned end date',   value: created.plannedEndDate },
+    ]);
+    if (dateProblem) {
+      this.drawerError = dateProblem;
+      return;
+    }
+
     if (this.createForm.invalid || this.selectedSponsorIds.length === 0) return;
 
     this.drawerSaving = true;
@@ -467,8 +511,10 @@ export class MyProjectsComponent implements OnInit {
       strategicObjectiveId: [null as string | null],
       priority:             [ProjectPriority.Medium, [Validators.required]],
       projectManagerUserId: ['', [Validators.required]],
-      plannedStartDate:     ['', [Validators.required]],
-      plannedEndDate:       ['', [Validators.required]],
+      plannedStartDate:     ['', [Validators.required,
+        workingDayValidator(() => this.editCalendar(), () => this.editOriginalDates.start, 'Planned start date')]],
+      plannedEndDate:       ['', [Validators.required,
+        workingDayValidator(() => this.editCalendar(), () => this.editOriginalDates.end, 'Planned end date')]],
       approvedBudget:       [null as number | null],
       status:               [ProjectStatus.Draft],
       actualStartDate:      [''],
@@ -478,6 +524,8 @@ export class MyProjectsComponent implements OnInit {
   openEditDrawer(entry: MyProjectEntry): void {
     this.editProjectId = entry.project.id;
     this.editDrawerError = null;
+    this.editWorkspaceId.set('');
+    this.editOriginalDates = { start: null, end: null };
     this.editSponsorSearchTerm = '';
 
     if (!this.editForm) this.buildEditForm();
@@ -497,6 +545,10 @@ export class MyProjectsComponent implements OnInit {
           this.editOriginalStatus = p.status;
           this.editIsBaselined = p.isBaselined;
           this.editSponsorIds = p.sponsors.map(s => s.userId);
+          this.editOriginalDates = {
+            start: p.plannedStartDate ? String(p.plannedStartDate).substring(0, 10) : null,
+            end:   p.plannedEndDate ? String(p.plannedEndDate).substring(0, 10) : null,
+          };
 
           this.editForm.patchValue({
             name: p.name,
@@ -511,6 +563,7 @@ export class MyProjectsComponent implements OnInit {
             status: p.status,
             actualStartDate: p.actualStartDate ? String(p.actualStartDate).substring(0, 10) : '',
           });
+          this.editWorkspaceId.set(p.workspaceId);
 
           // Freeze dates when not Draft
           const isNotDraft = p.status !== ProjectStatus.Draft;
@@ -600,6 +653,19 @@ export class MyProjectsComponent implements OnInit {
 
   onEditSubmit(): void {
     this.editForm.markAllAsTouched();
+    const v = this.editForm.getRawValue();
+
+    // Working-day rule on the planned dates (the validators block the save too;
+    // this says why). The server applies the same check.
+    const dateProblem = nonWorkingDatesMessage(this.editCalendar(), [
+      { field: 'Planned start date', value: v.plannedStartDate, original: this.editOriginalDates.start },
+      { field: 'Planned end date',   value: v.plannedEndDate,   original: this.editOriginalDates.end },
+    ]);
+    if (dateProblem) {
+      this.editDrawerError = dateProblem;
+      return;
+    }
+
     if (this.editForm.invalid || this.editSponsorIds.length === 0) {
       if (this.editSponsorIds.length === 0)
         this.editDrawerError = 'At least one sponsor is required.';
@@ -608,7 +674,6 @@ export class MyProjectsComponent implements OnInit {
 
     this.editDrawerSaving = true;
     this.editDrawerError = null;
-    const v = this.editForm.getRawValue();
 
     const needsValidation =
       (v.status === ProjectStatus.Active || v.status === ProjectStatus.Completed)

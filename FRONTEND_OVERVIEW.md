@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-11-23 (Admin Panel → Calendars page — WO-2026-11 C-2; `ConfirmDialogComponent` moves its modal to `<body>` so it can be clicked. Previous: 2026-11-18 dashboard hub with drill-down and brand redesign of inner pages)
+> Last updated: 2026-11-23 (Workspace Settings → Working Calendar and working-day warnings on every action-item, milestone and project date — WO-2026-11 C-3. Earlier the same day: Admin Panel → Calendars page — WO-2026-11 C-2; `ConfirmDialogComponent` moves its modal to `<body>` so it can be clicked. Previous: 2026-11-18 dashboard hub with drill-down and brand redesign of inner pages)
 
 ## Tech Stack
 
@@ -74,7 +74,7 @@
 | `/workspaces/new` | Create workspace | Workspaces.Create |
 | `/workspaces/edit/:id` | Edit workspace | Workspaces.Edit |
 | `/workspaces/:id` | Workspace detail | Workspaces.View |
-| `/workspaces/:id/settings` | Workspace settings — admins, members, PMs, strategic approvers, strategic plan link | Workspaces.View (write actions still need Workspaces.Edit) |
+| `/workspaces/:id/settings` | Workspace settings — admins, members, PMs, strategic approvers, strategic plan link, working calendar (C-3) | Workspaces.View (write actions still need Workspaces.Edit) |
 | `/projects/my` | My Projects | - |
 | `/projects/new` | Create project | Projects.Create |
 | `/projects/edit/:id` | Edit project | Projects.Edit |
@@ -105,7 +105,7 @@
 
 ---
 
-## Components (~77 Total)
+## Components (~79 Total)
 
 ### Layout
 | Component | Description |
@@ -129,7 +129,7 @@
 | My Approvals | `/approvals` | All authenticated users (with pending count badge) |
 | Admin Panel | `/admin` | Admin role only |
 
-### Shared UI Components (13)
+### Shared UI Components (15)
 | Component | Description |
 |-----------|-------------|
 | `BreadcrumbComponent` | Navigation breadcrumb trail (home glyph on the first crumb, current page in accent). `AdminBreadcrumbComponent` shares the same styling |
@@ -145,6 +145,8 @@
 | `KpiCardComponent` | KPI figure card. `icon` accepts a Bootstrap Icons class (`"bi bi-building"`) or a literal glyph; uses the shared icon tile; every card is brand blue and `colorClass="danger"` is the only value that changes colour (red tile, top bar and hover ring) — the other values are accepted and render as the default |
 | `NotificationBellComponent` | Header notification bell with unread count |
 | `WorkflowReviewDialogComponent` | Reusable approve/reject dialog for workflow requests |
+| `WorkingDayHintComponent` | `<app-working-day-hint>` (WO-2026-11 C-3) — under a date input: when the chosen date is not a working day in the workspace calendar, shows "Saturday 28 Nov 2026 is not a working day in KU Standard." (or names the holiday) on a tinted `--err` callout with a **"Use Mon 30 Nov 2026"** button (`(useDate)` emits the next working day). Inputs `calendar`, `date`, `original` (an unchanged date is never flagged — Q8), `field`. Says nothing while the calendar loads or for a date outside the loaded window. Must sit in the same container as its `input[type=date]`: taking the suggestion moves focus back to that input (`afterNextRender`) |
+| `WorkingDaysComponent` | `<app-working-days>` (C-3) — "N working days · <calendar>" under a start / end pair (both ends counted), "No working days in this range" for 0, nothing until both dates and the calendar are there |
 
 ### Shared Directives
 | Directive | Description |
@@ -161,7 +163,8 @@
 ### Shared Utils
 | Util | Description |
 |------|-------------|
-| `work-calendar.util.ts` | Client copy of the server's `ResolvedWorkCalendar` rules — `createCalendarRules(days, exceptions)` returns `resolve(date)` (working / off / holiday / special + hours + deciding exception), `isWorkingDay`, `getWorkingHours`, `workingDaysBetween`; plus ISO-date helpers (whole UTC days, so the browser time zone never shifts a date) and `HH:mm` ↔ `HH:mm:ss` conversion. Used by the Calendars page preview; change it together with `ResolvedWorkCalendar.cs`. Covered by `work-calendar.util.spec.ts` (same cases as `ResolvedWorkCalendarTests`; run with `ng test --watch=false --browsers=ChromeHeadless --include src/app/shared/utils/work-calendar.util.spec.ts`) |
+| `validators/working-day.validator.ts` | WO-2026-11 C-3 working-day rule on the client: `checkWorkingDay(calendar, value, original, field)`, `findNonWorkingDates` / `nonWorkingDatesMessage` (the save guard — same wording as the server's `NonWorkingDateException`), `workingDayValidator(...)` for reactive forms (`{ nonWorkingDay }`; re-run it with `updateValueAndValidity()` when the calendar loads), `workingDayCount(calendar, start, end)`. Never refuses what it cannot judge (no calendar, date outside the loaded window). Covered by `working-day.validator.spec.ts` |
+| `work-calendar.util.ts` | Client copy of the server's `ResolvedWorkCalendar` rules — `createCalendarRules(days, exceptions)` returns `resolve(date)` (working / off / holiday / special + hours + deciding exception), `isWorkingDay`, `getWorkingHours`, `workingDaysBetween`, and (C-3) `nextWorkingDay`, `previousWorkingDay`, `addWorkingDays` (null instead of the server's exception when no working day is reachable within 3660 days); overlapping exceptions are ordered exactly like the server (shortest range; non-working first; own hours first; shorter day; earlier start time; name ordinal; earlier start date); plus ISO-date helpers (whole UTC days, so the browser time zone never shifts a date) and `HH:mm` ↔ `HH:mm:ss` conversion. Used by the Calendars page preview and, through `WorkspaceCalendarService`, by every date form; change it together with `ResolvedWorkCalendar.cs`. Covered by `work-calendar.util.spec.ts` (same cases as `ResolvedWorkCalendarTests`; run with `ng test --watch=false --browsers=ChromeHeadless --include src/app/shared/utils/work-calendar.util.spec.ts`) |
 
 ### Dashboard (5 pages + shared pieces in `features/dashboard/shared/`)
 | Component | Description |
@@ -194,7 +197,7 @@
 | `WorkspaceListComponent` | All workspaces with filters, org-unit dropdown, stats (projects, milestones, action items), export/print, **inline create/edit drawer** with custom searchable multi-select admin picker (filters across name, email, org unit; chip-style selected display); admin users loaded lazily on first drawer open. Reads `?orgUnitId=<id>` on init so deep-links from `StrategyPageComponent`'s "Projects" stat card land on a pre-filtered list |
 | `WorkspaceFormComponent` | Standalone create/edit workspace screen (kept for direct routes) — also uses the same custom multi-select admin picker as the list drawer. Both this form and the list drawer have a **Private workspace** switch (`isPrivate`, create + edit) with a warning that non-members lose access after saving; the list shows a lock **Private** badge (`.wl-private-badge`) and the detail page a **Visibility** row. `Workspace` / `WorkspaceList` models carry `isPrivate`; `CreateWorkspace` / `UpdateWorkspace` send it (the settings page passes the current value through so admin edits don't reset it) |
 | `WorkspaceDetailComponent` | Detail view with projects, milestones, action items, stats, export/print. Access management (admins, members, project managers, strategic-project approvers, strategic plan link) is **no longer** inline — replaced by a read-only access summary (admin/member counts) and a **"Configure Workspace"** button that routes to `/workspaces/:id/settings`. The PM dropdown in the create/edit project drawer is restricted to the workspace's Project Managers list. |
-| `WorkspaceSettingsComponent` | Dedicated `/workspaces/:id/settings` page that owns all access configuration: Linked Strategic Plan, Admins, Members, **Project Managers**, and **Strategic Project Approvers** (sequential chain with up/down arrows to reorder; level-1 badge on each entry). Every section uses the same searchable multi-select picker pattern, supporting bulk add. Operational projects bypass the approver chain — only strategic submissions consult it. The Members section also exposes a bulk **"Add org unit users"** action — an org-unit picker (uses `getOrgUnitsForDropdown()`) + button that calls `POST /api/workspaces/{id}/members/from-org-unit` and appends the returned members in one round-trip (existing members are skipped server-side). |
+| `WorkspaceSettingsComponent` | Dedicated `/workspaces/:id/settings` page that owns all access configuration: Linked Strategic Plan, Admins, Members, **Project Managers**, and **Strategic Project Approvers** (sequential chain with up/down arrows to reorder; level-1 badge on each entry). Every section uses the same searchable multi-select picker pattern, supporting bulk add. **Working Calendar** section (WO-2026-11 C-3): the calendar in effect — name with a "Default" badge when inherited, working days, hours and time zone, next exception (helpers from `features/admin/calendars/calendar-ui.ts`) — for everyone who can open the page; for workspace managers a dropdown "Use the default calendar (…)" + every active calendar (`GET /workspaces/calendars`, loaded only with `Workspaces.View`) and Save behind `*appHasPermission="'Workspaces'; action: 'Edit'"`; the success message says existing dates are not changed. Operational projects bypass the approver chain — only strategic submissions consult it. The Members section also exposes a bulk **"Add org unit users"** action — an org-unit picker (uses `getOrgUnitsForDropdown()`) + button that calls `POST /api/workspaces/{id}/members/from-org-unit` and appends the returned members in one round-trip (existing members are skipped server-side). |
 
 ### Projects (7)
 | Component | Description |
@@ -323,6 +326,7 @@
 | `EmailTemplateService` | `GET /email-templates`, `PUT /email-templates/:id`, `GET /email-templates/logs` |
 | `MailServerConfigService` | `GET /mail-server-config`, `PUT /mail-server-config` |
 | `DataSyncService` | `GET /data-sync/jobs`, `GET /data-sync/jobs/:id`, `PUT /data-sync/jobs/:id`, `POST /data-sync/jobs/:id/run`, `POST /data-sync/jobs/:id/probe`, `GET /data-sync/jobs/:id/runs?take=` |
+| `WorkspaceCalendarService` (`services/workspace-calendar.service.ts`) | WO-2026-11 C-3. `getCalendar(id)` → `GET /workspaces/:id/calendar`, `getOptions()` → `GET /workspaces/calendars`, `setCalendar(id, calendarId \| null)` → `PUT /workspaces/:id/calendar` (drops that workspace's cached calendar). `get(id)` returns the calendar wrapped in the `work-calendar.util` rules (`WorkspaceCalendarRules` — `calendar`, `rules`, `covers(date)`), cached per workspace for 10 minutes and dropped whenever `WorkCalendarService` writes; null on error so forms fall back to the server. `injectWorkspaceCalendar(() => workspaceId)` gives a component a signal that follows its current workspace |
 | `WorkCalendarService` | `GET /calendars?includeDeleted=`, `GET /calendars/:id`, `GET /calendars/:id/usage`, `POST /calendars`, `PUT /calendars/:id` (full day + exception list), `PUT /calendars/:id/default`, `DELETE /calendars/:id`, `PATCH /calendars/:id/restore` |
 | `PermissionCatalogService` | Permission areas and actions catalog |
 | `PermissionStateService` | `GET /user-permissions/me/effective`, `GET /users/me/org-units`; manages permission state, loads via APP_INITIALIZER |
@@ -387,6 +391,8 @@
 | `CRON_PRESETS` / `TIME_ZONE_OPTIONS` | UI presets for the schedule editor (15 min, 30 min, hourly, 6 h, daily 02:00 / 06:00, custom; UTC / Gulf Standard Time) |
 | `WorkCalendar` (`work-calendar.model.ts`) | id, name, description, timeZoneId, isDefault, isActive, isDeleted, created/updated audit, `days` (`WorkCalendarDay[]`, 7 rows Sunday–Saturday), `exceptions` (`WorkCalendarException[]`, by start date). Wire format from the C-1 API: `dayOfWeek` camelCase string (`'sunday'` … `'saturday'`), times `HH:mm:ss`, dates `yyyy-MM-dd` |
 | `WorkCalendarDay` / `WorkCalendarException` | dayOfWeek, isWorkingDay, startTime, endTime / id (null = new), name, startDate, endDate (inclusive), isWorkingDay (false = holiday, true = special working day or changed hours), optional startTime / endTime |
+| `WorkspaceCalendar` | `GET /workspaces/:id/calendar` (C-3): workspaceId, workCalendarId (own setting, null = default), calendarId / calendarName / timeZoneId of the calendar in effect, isDefault, isInherited, from / to (window), days, exceptions overlapping the window |
+| `WorkspaceCalendarOption` | `GET /workspaces/calendars` (C-3): id, name, description, timeZoneId, isDefault, days |
 | `WorkCalendarInput` | Body of create and update: name, description, timeZoneId, isActive, all 7 `days`, the **full** `exceptions` list (rows with an id are updated, without are added, missing ones removed) |
 | `WorkCalendarUsage` | calendarId, isDefault, totalWorkspaceCount (incl. ones the caller cannot see — drives the delete guard), workspaces (visible `{ id, title, isActive }`), hiddenWorkspaceCount, inheritingWorkspaceCount (default calendar only) |
 | `WEEK_DAY_NAMES` / `WEEK_DAYS_MONDAY_FIRST` / `WEEK_DAY_LABELS` / `CALENDAR_TIME_ZONE_OPTIONS` / `CALENDAR_LIMITS` | Day order (Sunday-first = `DayOfWeek`; Monday-first for display), short/long labels, time zones offered (Asia/Dubai, UTC; a calendar holding another id keeps it as an extra option), field limits mirroring the server validator |
@@ -477,6 +483,7 @@
 - Org-unit filter dropdown (sorted by org-unit level)
 - Soft delete and restore
 - Excel export and PDF print
+- **Working calendar per workspace** (WO-2026-11 C-3) — Workspace Settings → Working Calendar picks one of the active calendars or "Use the default calendar"; dates saved afterwards must fall on its working days
 
 ### Notifications
 - In-app notification center
@@ -496,7 +503,7 @@
 - **Email Templates:** Template management with subject/HTML body editing, active/inactive toggle, delivery logs
 - **Mail Server Configuration:** Admin-managed SMTP settings (host, port, SSL/TLS, from, username, password) persisted in the database and used for all outgoing emails; password is stored encrypted via ASP.NET Core Data Protection and never returned to the client (a `hasPassword` flag is shown); leaving the password field blank on save keeps the existing stored value
 - **Data Sync:** Admin Panel page for Hangfire-scheduled sync jobs (currently the HR `ku_employee_info` copy from KU_BOT_PROD). Per job: frequency presets or raw cron, time zone, enable/disable, next-run display, Run now, Test connection with column diff, and run history; auto-refreshes while a run is in progress. Gated by `DataSync.View` / `DataSync.Edit`
-- **Calendars (WO-2026-11 C-2):** Admin Panel page for working calendars — list with working days, hours, exceptions and the workspaces using each calendar; drawer to create / edit (details, weekly pattern with hours, holidays / special days / changed-hours periods) with a month preview of the unsaved values that follows the server's rules; set default; soft delete and restore. Gated by `Calendars.View` / `Create` / `Edit` / `Delete` (Admin: all; Workspace Admin: View — read-only drawer). The workspace calendar setting and the working-day date rules are WO-2026-11 C-3
+- **Calendars (WO-2026-11 C-2):** Admin Panel page for working calendars — list with working days, hours, exceptions and the workspaces using each calendar; drawer to create / edit (details, weekly pattern with hours, holidays / special days / changed-hours periods) with a month preview of the unsaved values that follows the server's rules; set default; soft delete and restore. Gated by `Calendars.View` / `Create` / `Edit` / `Delete` (Admin: all; Workspace Admin: View — read-only drawer). The workspace calendar setting and the working-day date rules followed in C-3: start and end dates in the action form (create / edit and its date-change request), My Actions panel, action detail, Overview "New Action" drawer, milestone detail (action + milestone forms), milestone section (milestone + action forms), workspace detail (action + project forms), My Projects (create + edit), project form, project detail (15 date pairs) show the inline warning with "Use <next working day>", "N working days" under the pair, and refuse a save with the server's wording; the action form, My Projects and the project form also attach `workingDayValidator` to their reactive controls. Unchanged dates are never flagged. Gantt shading of non-working days is WO-2026-11 P-3
 
 ### Permission System
 - **15 Permission Areas** x **7 Permission Actions** = 105 possible permissions

@@ -471,12 +471,21 @@
           <input type="date" class="form-control"
                  [ngModel]="formPlannedStartDate()" (ngModelChange)="formPlannedStartDate.set($event)"
                  [disabled]="isBaselined() && !!editingId()">
+          <app-working-day-hint field="Planned start date" [calendar]="calendar()" [date]="formPlannedStartDate()"
+                                [original]="editingId() ? originalPlannedStartDate() : null"
+                                (useDate)="formPlannedStartDate.set($event)" />
         </div>
         <div class="col-6">
           <label class="form-label">Planned Due <span class="text-danger">*</span></label>
           <input type="date" class="form-control"
                  [ngModel]="formPlannedDueDate()" (ngModelChange)="formPlannedDueDate.set($event)"
                  [disabled]="isBaselined() && !!editingId()">
+          <app-working-day-hint field="Planned due date" [calendar]="calendar()" [date]="formPlannedDueDate()"
+                                [original]="editingId() ? originalPlannedDueDate() : null"
+                                (useDate)="formPlannedDueDate.set($event)" />
+        </div>
+        <div class="col-12">
+          <app-working-days [calendar]="calendar()" [start]="formPlannedStartDate()" [end]="formPlannedDueDate()" />
         </div>
       </div>
 
@@ -601,11 +610,18 @@
           <label class="form-label">Start Date</label>
           <input type="date" class="form-control"
                  [ngModel]="aiStartDate()" (ngModelChange)="aiStartDate.set($event)">
+          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="aiStartDate()"
+                                (useDate)="aiStartDate.set($event)" />
         </div>
         <div class="col-6">
           <label class="form-label">Due Date <span class="text-danger">*</span></label>
           <input type="date" class="form-control"
                  [ngModel]="aiDueDate()" (ngModelChange)="aiDueDate.set($event)">
+          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="aiDueDate()"
+                                (useDate)="aiDueDate.set($event)" />
+        </div>
+        <div class="col-12">
+          <app-working-days [calendar]="calendar()" [start]="aiStartDate()" [end]="aiDueDate()" />
         </div>
       </div>
 
