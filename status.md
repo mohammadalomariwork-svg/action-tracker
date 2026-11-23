@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-11-23 (Work calendars, backend only — WO-2026-11 C-1: calendar entities, calculation service, `/api/calendars` admin API, `Calendars` permissions)
+> Last updated: 2026-11-23 (Admin Panel → Calendars page — WO-2026-11 C-2; shared confirm dialog clickable again. Earlier the same day: work calendars backend — WO-2026-11 C-1)
 
 ---
 
@@ -341,7 +341,7 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - [x] Startup seeds a job row per registered handler and pushes schedules to Hangfire; `Testing` environment uses a no-op scheduler so integration tests never open a Hangfire SQL connection
 - [x] `ku_employee_info.NearestAirport` relaxed to NULL (raw-SQL migration `Relax_KuEmployeeInfo_NearestAirport_Nullable`) — the HR source allows NULL there and the first sync failed on it
 
-### Work Calendars (WO-2026-11 C-1 — backend only)
+### Work Calendars (WO-2026-11 C-1 backend + C-2 admin page)
 - [x] Entities `WorkCalendar`, `WorkCalendarDay` (weekly pattern, always 7 rows), `WorkCalendarException` (holidays, special working days, reduced-hours periods; inclusive date range) and nullable `Workspace.WorkCalendarId` (`Restrict` FK; null = use the default calendar)
 - [x] Additive migration `Add_WorkCalendars` — three new tables, one nullable column, indexes; no backfill, no existing column touched
 - [x] Default calendar **"KU Standard"** (Monday–Friday 08:00–17:00, Saturday–Sunday off, `Asia/Dubai`) seeded at startup by `WorkCalendarSeeder` when no calendar exists — on a clean database and on an existing one
@@ -350,7 +350,13 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - [x] Admin API `/api/calendars` — list, get, create, update, soft delete, restore, `PUT /{id}/default`, `GET /{id}/usage` (names only workspaces the caller may see; private ones are reported as a count)
 - [x] New permission area **`Calendars`** (View / Create / Edit / Delete) — Admin: all, Workspace Admin: View
 - [x] Tests: calculation API (weekend, holiday range, special working day, year boundary, overlapping exceptions), service rules incl. the delete-in-use guard, seeder, endpoint policies, and a controller integration test (401 / 403 / 409)
-- [ ] Admin Calendars page `/admin/calendars` (WO-2026-11 C-2) — no UI yet; the API is reachable through Swagger only
+- [x] **Admin Panel → Calendars page** `/admin/calendars` (WO-2026-11 C-2) — "Calendars" card on the Admin Panel; route gated by `Calendars.View`. Frontend only — it uses the C-1 API unchanged
+  - List: name with Default / Inactive badges and description, working days ("Mon–Fri", runs wrap round the week), hours ("08:00–17:00" or "Varies by day"), time zone, exception count with the next upcoming one, and the workspaces using it (names the caller may see, a count of private ones, and for the default calendar the workspaces that inherit it). Summary strip, Refresh, "Show deleted" with Restore. Stacked cards below 768px
+  - Actions behind `*appHasPermission`: New (`Calendars.Create`), Edit / Set default / Restore (`Calendars.Edit`), Delete (`Calendars.Delete`). Delete is disabled with the reason for the default calendar and for a calendar a workspace uses; Set default is disabled for an inactive calendar; the API's 409 message is shown on the page if it still refuses. Users with View only get a read-only View drawer
+  - Editor drawer: **details** (name, description, time zone, active — the switch is locked with the reason on the default or an in-use calendar), **weekly pattern** (7 rows Monday first, working/off switch + start/end time), **exceptions** (table with add / edit / remove; off = holiday or closure, working = special working day or changed hours with optional times; dates inclusive), and a **month preview** that colours working days, off days, holidays and special days (each with an icon too) from the drawer's unsaved values, with month navigation, today marker and working-day count. Client checks mirror the server validator; server 400/409 messages are shown in the drawer. Unsaved changes ask before closing; Esc closes; focus moves into the drawer, stays inside it, and returns to the button that opened it
+  - New calendars start as Monday–Friday 08:00–17:00, `Asia/Dubai`
+  - The preview uses `shared/utils/work-calendar.util.ts`, a client copy of the `ResolvedWorkCalendar` rules (exceptions override the week; shortest exception wins, non-working on a tie; off days carry no hours). Verified against the server: the spec `work-calendar.util.spec.ts` repeats the `ResolvedWorkCalendarTests` cases, a one-off comparison through `IWorkCalendarService` matched 517 days (Nov 2026 – Mar 2028) and 17 monthly counts of a calendar with overlapping, year-boundary and tie exceptions, and the page's own create request replayed through the API on the test host matched its preview for every day of December 2026
+  - Checked in a headless browser against a mocked API holding the seeded "KU Standard" row: dark and light, 1440 and 390px, keyboard only, View-only user, and the create → add holiday → set default flow (70 checks)
 - [ ] Workspace calendar setting and working-day date rules on action items / milestones / projects (WO-2026-11 C-3) — nothing sets `Workspace.WorkCalendarId` yet, so every workspace currently resolves to the default calendar and no existing date behaviour has changed
 
 ---
@@ -370,6 +376,7 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - **Loading bar** on route transitions
 - **Browser title:** KU Action Tracker with KU favicon
 - **Responsive:** Mobile card layouts for actions and lists
+- **Confirm dialogs clickable again (2026-11-23)** — the shared `ConfirmDialogComponent` (Bootstrap modal) rendered inside `app-layout`, whose host is `position: relative; z-index: 1`; Bootstrap puts the backdrop on `<body>` at z-index 1050, so the backdrop covered the dialog and mouse users could not press Confirm or Cancel (keyboard still worked). The component now moves its modal element to `<body>` when it is created and removes it when destroyed. Fixes the Calendars page and the existing dialogs on Notifications ("Clear read"), user permission overrides, risk detail, risk register and My Actions
 - **Standalone components** throughout (Angular best practice)
 - **Angular signals** for state management
 
@@ -602,4 +609,4 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - [ ] Audit trail / activity log
 - [ ] Advanced search (cross-entity, full-text)
 - [ ] Scheduled reminders (automated due-date reminders)
-- [ ] Work calendars — admin Calendars page (WO-2026-11 C-2) and workspace calendar setting + working-day date rules (WO-2026-11 C-3); the backend foundation (C-1) is done, see section 13
+- [ ] Work calendars — workspace calendar setting + working-day date rules (WO-2026-11 C-3); the backend (C-1) and the admin Calendars page (C-2) are done, see section 13

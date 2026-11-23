@@ -1,6 +1,6 @@
 # KU Action Tracker - Frontend Overview
 
-> Last updated: 2026-11-18 (Dashboard hub with drill-down: Overview reworked, new Action Items / Projects / Strategy dashboards, shared dashboard components; brand redesign of inner pages)
+> Last updated: 2026-11-23 (Admin Panel → Calendars page — WO-2026-11 C-2; `ConfirmDialogComponent` moves its modal to `<body>` so it can be clicked. Previous: 2026-11-18 dashboard hub with drill-down and brand redesign of inner pages)
 
 ## Tech Stack
 
@@ -92,6 +92,7 @@
 | `/admin/email-templates` | Email templates | EmailTemplates.View |
 | `/admin/mail-server-config` | Mail server configuration (SMTP settings) | MailServerConfig.View |
 | `/admin/data-sync` | Scheduled data-sync jobs (HR employee info) — schedule, run now, test connection, history | DataSync.View |
+| `/admin/calendars` | Working calendars — weekly pattern, hours, exceptions, month preview, default calendar (WO-2026-11 C-2) | Calendars.View (create / edit / delete still need Calendars.Create / Edit / Delete) |
 | `/admin/permissions/roles` | Role permission matrix | PermissionsManagement.View |
 | `/admin/permissions/users` | User permission overrides | PermissionsManagement.View |
 | `/admin/roles` | Roles list | Roles.View |
@@ -104,7 +105,7 @@
 
 ---
 
-## Components (~74 Total)
+## Components (~77 Total)
 
 ### Layout
 | Component | Description |
@@ -138,7 +139,7 @@
 | `RiskRatingBadgeComponent` | Color-coded risk rating badge (Critical/High/Medium/Low) |
 | `ProgressBarComponent` | Visual progress bar (0-100%) |
 | `DataTableComponent` | Reusable sortable/paginated data table |
-| `ConfirmDialogComponent` | Confirmation modal dialog |
+| `ConfirmDialogComponent` | Confirmation modal dialog (Bootstrap modal, opened from code with `open()`). Moves its modal element to `<body>` on creation and removes it on destroy: inside a page it was trapped in `app-layout`'s stacking context (`z-index: 1`) under Bootstrap's `<body>` backdrop (z-index 1050), so mouse clicks hit the backdrop. It does not hand focus back on close — the caller restores focus to its trigger |
 | `CommentsSectionComponent` | Comments display with CRUD, high-importance flag |
 | `DocumentsSectionComponent` | File upload, download, and delete |
 | `KpiCardComponent` | KPI figure card. `icon` accepts a Bootstrap Icons class (`"bi bi-building"`) or a literal glyph; uses the shared icon tile; every card is brand blue and `colorClass="danger"` is the only value that changes colour (red tile, top bar and hover ring) — the other values are accepted and render as the default |
@@ -156,6 +157,11 @@
 |------|-------------|
 | `OrgUnitScopePipe` | Formats org unit scope display |
 | `PermissionSourcePipe` | Formats permission source (Role/Override) |
+
+### Shared Utils
+| Util | Description |
+|------|-------------|
+| `work-calendar.util.ts` | Client copy of the server's `ResolvedWorkCalendar` rules — `createCalendarRules(days, exceptions)` returns `resolve(date)` (working / off / holiday / special + hours + deciding exception), `isWorkingDay`, `getWorkingHours`, `workingDaysBetween`; plus ISO-date helpers (whole UTC days, so the browser time zone never shifts a date) and `HH:mm` ↔ `HH:mm:ss` conversion. Used by the Calendars page preview; change it together with `ResolvedWorkCalendar.cs`. Covered by `work-calendar.util.spec.ts` (same cases as `ResolvedWorkCalendarTests`; run with `ng test --watch=false --browsers=ChromeHeadless --include src/app/shared/utils/work-calendar.util.spec.ts`) |
 
 ### Dashboard (5 pages + shared pieces in `features/dashboard/shared/`)
 | Component | Description |
@@ -212,7 +218,7 @@
 |-----------|-------------|
 | `MyApprovalsComponent` | My Approvals page with five tabs (Pending Reviews, My Requests, Project Approvals, **Strategy Approvals**, **KPI Actuals**), stat cards, approve/reject with comments, pagination. Pending reviews show date/status change details; Project / Strategy / KPI Actual tabs each split into Pending and My Requests/Submissions sections, each with an inline review modal (rejection requires comment). Strategy tab shows the request type badge (Initial / Revision) and the org-unit name. KPI Actuals tab (CR-001-F) shows the period label, actual vs target, and evidence count |
 
-### Admin Panel (10)
+### Admin Panel (13)
 | Component | Description |
 |-----------|-------------|
 | `AdminPanelComponent` | Admin dashboard home with feature cards |
@@ -228,6 +234,9 @@
 | `EmailTemplateEditComponent` | Edit email template subject and HTML body |
 | `MailServerConfigComponent` | Admin form to configure the SMTP server used by Command Center (host, port, SSL, from, credentials); password stored encrypted via DataProtection on the backend |
 | `DataSyncComponent` | Admin page listing every background sync job as a card: source → target summary, schedule editor (frequency presets + raw cron + time zone + enabled switch, Save gated by `DataSync.Edit`), next-run time, last-run status/rows/duration/message, **Run now**, **Test connection** (source/target reachability, row counts, column diff), collapsible run-history table. Polls every 3 s while a run is in progress |
+| `CalendarsComponent` | `/admin/calendars` (WO-2026-11 C-2, page pattern copied from Data Sync). Summary strip (calendars, active, default, workspaces on the default), table of calendars — name with Default / Inactive badges and description, working days ("Mon–Fri"), hours ("08:00–17:00" / "Varies by day"), time zone, exception count + next upcoming, workspaces using it (from one `/usage` call per calendar: visible names, private count, inheriting count for the default) — stacked cards below 768px. New (`Calendars.Create`), Edit / Set default / Restore (`Calendars.Edit`), Delete (`Calendars.Delete`) behind `*appHasPermission`; Delete disabled with the reason for the default or an in-use calendar, Set default disabled for an inactive one; Set default and Delete confirm through `ConfirmDialogComponent`. "Show deleted" lists soft-deleted calendars with Restore. 409 reasons are shown in a page alert (the global interceptor only reports "Unexpected error (409)"). Restores focus to the triggering button after the drawer or dialog closes |
+| `CalendarEditorComponent` | Right-hand drawer (780px, full width on phones) mounted by `CalendarsComponent` for create / edit / view. Typed reactive form: details (name, description, time zone, active — locked with the reason on the default or an in-use calendar), weekly pattern (7 rows, Monday first; turning a day on pre-fills another working day's hours), exceptions table with an inline add / edit sub-form (off or working, inclusive dates, optional hours; end date follows the start). Validators mirror `WorkCalendarInputValidator`; server 400 (ProblemDetails `errors`) and 409 messages appear in the drawer. Read-only when the user lacks the write permission. `role="dialog"`, focus to the title on open, Tab trapped inside, Esc cancels the exception form / closes, unsaved changes ask "Keep editing / Discard changes". Focus moves use `afterNextRender` because the app coalesces change detection (`eventCoalescing: true`) — a `setTimeout` would run before the element exists |
+| `CalendarMonthPreviewComponent` | One month of a calendar as a Monday-first table, coloured by `work-calendar.util` (working / off / holiday / special working day or changed hours, with icons as well as colours), hours or exception name in each cell, today marked (`aria-current="date"`), full description per day for screen readers, previous / next / this-month buttons, working-day count and per-kind legend. Fed the editor's unsaved values; `month` is a two-way model so the editor can jump to an exception's month |
 
 ### Permissions (7)
 | Component | Description |
@@ -314,6 +323,7 @@
 | `EmailTemplateService` | `GET /email-templates`, `PUT /email-templates/:id`, `GET /email-templates/logs` |
 | `MailServerConfigService` | `GET /mail-server-config`, `PUT /mail-server-config` |
 | `DataSyncService` | `GET /data-sync/jobs`, `GET /data-sync/jobs/:id`, `PUT /data-sync/jobs/:id`, `POST /data-sync/jobs/:id/run`, `POST /data-sync/jobs/:id/probe`, `GET /data-sync/jobs/:id/runs?take=` |
+| `WorkCalendarService` | `GET /calendars?includeDeleted=`, `GET /calendars/:id`, `GET /calendars/:id/usage`, `POST /calendars`, `PUT /calendars/:id` (full day + exception list), `PUT /calendars/:id/default`, `DELETE /calendars/:id`, `PATCH /calendars/:id/restore` |
 | `PermissionCatalogService` | Permission areas and actions catalog |
 | `PermissionStateService` | `GET /user-permissions/me/effective`, `GET /users/me/org-units`; manages permission state, loads via APP_INITIALIZER |
 | `RolePermissionService` | Role-level permission assignment |
@@ -375,6 +385,11 @@
 | `DataSyncJobRun` | id, jobId, startedAt, finishedAt, durationMs, status (`Running`/`Succeeded`/`Failed`), trigger (`Scheduled`/`Manual`), triggeredBy, rowsRead, rowsWritten, message |
 | `DataSyncProbeResult` | sourceReachable/RowCount/Error, targetReachable/RowCount/Error, sourceOnlyColumns, targetOnlyColumns, commonColumnCount, elapsedMs |
 | `CRON_PRESETS` / `TIME_ZONE_OPTIONS` | UI presets for the schedule editor (15 min, 30 min, hourly, 6 h, daily 02:00 / 06:00, custom; UTC / Gulf Standard Time) |
+| `WorkCalendar` (`work-calendar.model.ts`) | id, name, description, timeZoneId, isDefault, isActive, isDeleted, created/updated audit, `days` (`WorkCalendarDay[]`, 7 rows Sunday–Saturday), `exceptions` (`WorkCalendarException[]`, by start date). Wire format from the C-1 API: `dayOfWeek` camelCase string (`'sunday'` … `'saturday'`), times `HH:mm:ss`, dates `yyyy-MM-dd` |
+| `WorkCalendarDay` / `WorkCalendarException` | dayOfWeek, isWorkingDay, startTime, endTime / id (null = new), name, startDate, endDate (inclusive), isWorkingDay (false = holiday, true = special working day or changed hours), optional startTime / endTime |
+| `WorkCalendarInput` | Body of create and update: name, description, timeZoneId, isActive, all 7 `days`, the **full** `exceptions` list (rows with an id are updated, without are added, missing ones removed) |
+| `WorkCalendarUsage` | calendarId, isDefault, totalWorkspaceCount (incl. ones the caller cannot see — drives the delete guard), workspaces (visible `{ id, title, isActive }`), hiddenWorkspaceCount, inheritingWorkspaceCount (default calendar only) |
+| `WEEK_DAY_NAMES` / `WEEK_DAYS_MONDAY_FIRST` / `WEEK_DAY_LABELS` / `CALENDAR_TIME_ZONE_OPTIONS` / `CALENDAR_LIMITS` | Day order (Sunday-first = `DayOfWeek`; Monday-first for display), short/long labels, time zones offered (Asia/Dubai, UTC; a calendar holding another id keeps it as an extra option), field limits mirroring the server validator |
 | `PermissionArea` (enum) | Dashboard, Workspaces, Projects, Milestones, ActionItems, StrategicObjectives, KPIs, Reports, OrgChart, UserManagement, PermissionsManagement, Roles, EmailTemplates, Notifications, Risks, **StrategicPlans**, **MailServerConfig** |
 | `PermissionAction` (enum) | View, Create, Edit, Delete, Approve, Export, Assign, **AssignHead** |
 | `Kpi` | id, kpiNumber, name, calculationMethod, period, unit, strategicObjectiveId |
@@ -481,6 +496,7 @@
 - **Email Templates:** Template management with subject/HTML body editing, active/inactive toggle, delivery logs
 - **Mail Server Configuration:** Admin-managed SMTP settings (host, port, SSL/TLS, from, username, password) persisted in the database and used for all outgoing emails; password is stored encrypted via ASP.NET Core Data Protection and never returned to the client (a `hasPassword` flag is shown); leaving the password field blank on save keeps the existing stored value
 - **Data Sync:** Admin Panel page for Hangfire-scheduled sync jobs (currently the HR `ku_employee_info` copy from KU_BOT_PROD). Per job: frequency presets or raw cron, time zone, enable/disable, next-run display, Run now, Test connection with column diff, and run history; auto-refreshes while a run is in progress. Gated by `DataSync.View` / `DataSync.Edit`
+- **Calendars (WO-2026-11 C-2):** Admin Panel page for working calendars — list with working days, hours, exceptions and the workspaces using each calendar; drawer to create / edit (details, weekly pattern with hours, holidays / special days / changed-hours periods) with a month preview of the unsaved values that follows the server's rules; set default; soft delete and restore. Gated by `Calendars.View` / `Create` / `Edit` / `Delete` (Admin: all; Workspace Admin: View — read-only drawer). The workspace calendar setting and the working-day date rules are WO-2026-11 C-3
 
 ### Permission System
 - **15 Permission Areas** x **7 Permission Actions** = 105 possible permissions

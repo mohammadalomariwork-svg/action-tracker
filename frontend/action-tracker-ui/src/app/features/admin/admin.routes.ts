@@ -70,6 +70,14 @@ export const ADMIN_ROUTES: Routes = [
         .then(m => m.DataSyncComponent),
   },
   {
+    path: 'calendars',
+    canActivate: [permissionGuard],
+    data: { requiredArea: 'Calendars', requiredAction: 'View' },
+    loadComponent: () =>
+      import('./calendars/calendars.component')
+        .then(m => m.CalendarsComponent),
+  },
+  {
     path: 'permissions/roles',
     canActivate: [permissionGuard],
     data: { requiredArea: 'PermissionsManagement', requiredAction: 'View' },

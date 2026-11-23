@@ -1,0 +1,457 @@
+<div class="ce-backdrop" (click)="requestClose()" aria-hidden="true"></div>
+
+<aside
+  #drawer
+  class="ce-drawer"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="ce-title"
+  (keydown)="onKeydown($event)"
+>
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
+  <header class="ce-header">
+    <div class="ce-header-text">
+      <h2 id="ce-title" class="ce-title" tabindex="-1" #titleRef>
+        <i class="bi me-2" aria-hidden="true"
+           [class.bi-plus-circle-fill]="isNew()"
+           [class.bi-pencil-fill]="!isNew() && !readOnly()"
+           [class.bi-eye-fill]="!isNew() && readOnly()"></i>{{ title() }}
+      </h2>
+      @if (calendar(); as c) {
+        <div class="ce-subtitle">
+          {{ c.name }}
+          @if (c.isDefault) { <span class="badge bg-primary ms-1">Default</span> }
+          @if (!c.isActive) { <span class="badge bg-secondary ms-1">Inactive</span> }
+        </div>
+      }
+    </div>
+    <button type="button" class="btn-close" aria-label="Close" (click)="requestClose()"></button>
+  </header>
+
+  <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+  <div class="ce-body">
+
+    @if (serverError(); as message) {
+      <div id="ce-server-error" class="alert alert-danger d-flex gap-2" role="alert" tabindex="-1">
+        <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+        <div>{{ message }}</div>
+      </div>
+    }
+
+    @if (readOnly()) {
+      <div class="alert alert-info small d-flex gap-2 mb-3">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <div>You can view this calendar. Changing it needs the Calendars Edit permission.</div>
+      </div>
+    }
+
+    <form id="ce-form" class="ce-main-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+      <!-- Details ─────────────────────────────────────────────────────────── -->
+      <section class="ce-section" aria-labelledby="ce-h-details">
+        <h3 id="ce-h-details" class="ce-section-title">Details</h3>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="ce-name" class="form-label">Name <span class="text-danger" aria-hidden="true">*</span></label>
+            <input
+              id="ce-name"
+              type="text"
+              class="form-control"
+              formControlName="name"
+              [maxlength]="limits.nameMax"
+              [class.is-invalid]="showError(form.controls.name)"
+              [attr.aria-invalid]="showError(form.controls.name)"
+              aria-describedby="ce-name-err"
+              autocomplete="off"
+              required
+            />
+            @if (showError(form.controls.name)) {
+              <div id="ce-name-err" class="invalid-feedback d-block">
+                @if (form.controls.name.hasError('maxlength')) {
+                  Name must not exceed {{ limits.nameMax }} characters.
+                } @else {
+                  Name is required.
+                }
+              </div>
+            }
+          </div>
+
+          <div class="col-12">
+            <label for="ce-description" class="form-label">Description</label>
+            <textarea
+              id="ce-description"
+              class="form-control"
+              rows="2"
+              formControlName="description"
+              [maxlength]="limits.descriptionMax"
+              [class.is-invalid]="showError(form.controls.description)"
+            ></textarea>
+          </div>
+
+          <div class="col-sm-7">
+            <label for="ce-tz" class="form-label">Time zone</label>
+            <select id="ce-tz" class="form-select" formControlName="timeZoneId" aria-describedby="ce-tz-help">
+              @for (tz of timeZones(); track tz.id) {
+                <option [value]="tz.id">{{ tz.label }}</option>
+              }
+            </select>
+            <div id="ce-tz-help" class="form-text">Working hours are local times in this zone.</div>
+          </div>
+
+          <div class="col-sm-5 d-flex align-items-end">
+            <div class="form-check form-switch mb-2">
+              <input
+                id="ce-active"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                formControlName="isActive"
+                [attr.aria-describedby]="activeLockReason() ? 'ce-active-lock' : null"
+              />
+              <label class="form-check-label" for="ce-active">Active</label>
+            </div>
+          </div>
+          @if (activeLockReason() && !readOnly()) {
+            <div class="col-12 mt-0">
+              <div id="ce-active-lock" class="form-text"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ activeLockReason() }}</div>
+            </div>
+          }
+
+          @if (usage(); as u) {
+            <div class="col-12">
+              <div class="ce-usage">
+                <i class="bi bi-grid-1x2 me-1" aria-hidden="true"></i>
+                @if (u.workspaces.length === 0 && u.hiddenWorkspaceCount === 0) {
+                  No workspace has chosen this calendar.
+                } @else {
+                  Chosen by
+                  @for (w of u.workspaces; track w.id; let last = $last) {
+                    <strong>{{ w.title }}</strong>@if (!w.isActive) { <span class="text-muted"> (archived)</span> }@if (!last) {, }
+                  }
+                  @if (u.hiddenWorkspaceCount > 0) {
+                    @if (u.workspaces.length > 0) { and }
+                    {{ u.hiddenWorkspaceCount }} private workspace{{ u.hiddenWorkspaceCount === 1 ? '' : 's' }}
+                  }.
+                }
+                @if (u.isDefault && u.inheritingWorkspaceCount > 0) {
+                  {{ u.inheritingWorkspaceCount }} workspace{{ u.inheritingWorkspaceCount === 1 ? '' : 's' }} with no calendar of their own use it as the default.
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Weekly pattern ──────────────────────────────────────────────────── -->
+      <section class="ce-section" aria-labelledby="ce-h-week" formArrayName="days">
+        <h3 id="ce-h-week" class="ce-section-title">Weekly pattern</h3>
+        <p class="ce-hint">Switch each day to working or off and set its hours.</p>
+
+        @if (days.hasError('noWorkingDay') && (submitted() || days.dirty)) {
+          <div class="alert alert-danger py-2 small" role="alert">At least one day of the week must be a working day.</div>
+        }
+
+        <div class="ce-week" role="group" aria-labelledby="ce-h-week">
+          @for (day of days.controls; track dayName(day); let i = $index) {
+            <div class="ce-day" [formGroupName]="i" [class.ce-day-off]="!day.controls.isWorkingDay.value">
+              <div class="ce-day-name">
+                <div class="form-check form-switch mb-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    [id]="'ce-day-' + i"
+                    formControlName="isWorkingDay"
+                  />
+                  <label class="form-check-label" [for]="'ce-day-' + i">{{ dayLabels[dayName(day)].long }}</label>
+                </div>
+              </div>
+
+              @if (day.controls.isWorkingDay.value) {
+                <div class="ce-day-times">
+                  <input
+                    type="time"
+                    class="form-control form-control-sm"
+                    formControlName="startTime"
+                    [attr.aria-label]="dayLabels[dayName(day)].long + ' start time'"
+                    [class.is-invalid]="showDayError(day)"
+                    [attr.aria-invalid]="showDayError(day)"
+                    [attr.aria-describedby]="showDayError(day) ? 'ce-day-err-' + i : null"
+                  />
+                  <span class="ce-day-to" aria-hidden="true">to</span>
+                  <input
+                    type="time"
+                    class="form-control form-control-sm"
+                    formControlName="endTime"
+                    [attr.aria-label]="dayLabels[dayName(day)].long + ' end time'"
+                    [class.is-invalid]="showDayError(day)"
+                    [attr.aria-invalid]="showDayError(day)"
+                    [attr.aria-describedby]="showDayError(day) ? 'ce-day-err-' + i : null"
+                  />
+                </div>
+              } @else {
+                <div class="ce-day-times ce-day-off-text">Off</div>
+              }
+
+              @if (showDayError(day)) {
+                <div [id]="'ce-day-err-' + i" class="ce-day-err">The start time must be earlier than the end time.</div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    </form>
+
+    <!-- Exceptions ──────────────────────────────────────────────────────── -->
+    <section class="ce-section" aria-labelledby="ce-h-ex">
+      <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <h3 id="ce-h-ex" class="ce-section-title mb-0">Exceptions</h3>
+        @if (!readOnly()) {
+          <button
+            id="ce-ex-add"
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            (click)="startAddException()"
+            [disabled]="editingKey() !== null"
+          >
+            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add exception
+          </button>
+        }
+      </div>
+      <p class="ce-hint">Holidays and closures, special working days, and periods with changed hours. Dates are inclusive.</p>
+
+      @if (exceptions().length === 0 && editingKey() === null) {
+        <div class="ce-empty">No exceptions. The weekly pattern applies to every date.</div>
+      } @else if (exceptions().length > 0) {
+        <div class="table-responsive">
+          <table class="table table-sm align-middle ce-ex-table">
+            <caption class="visually-hidden">Exceptions to the weekly pattern</caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Dates</th>
+                <th scope="col">Type</th>
+                <th scope="col">Hours</th>
+                @if (!readOnly()) { <th scope="col" class="text-end"><span class="visually-hidden">Actions</span></th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of exceptions(); track trackException($index, e)) {
+                <tr [class.ce-ex-editing]="editingKey() === e.key">
+                  <td data-label="Name" class="fw-semibold">{{ e.name }}</td>
+                  <td data-label="Dates" class="text-nowrap">
+                    <span>
+                      {{ dateRange(e.startDate, e.endDate) }}
+                      @if (lengthOf(e.startDate, e.endDate) > 1) {
+                        <span class="text-muted small">({{ lengthOf(e.startDate, e.endDate) }} days)</span>
+                      }
+                    </span>
+                  </td>
+                  <td data-label="Type">
+                    <span class="ce-kind" [class.ce-kind-off]="!e.isWorkingDay" [class.ce-kind-work]="e.isWorkingDay">
+                      <i class="bi" aria-hidden="true"
+                         [class.bi-slash-circle]="!e.isWorkingDay"
+                         [class.bi-clock-history]="e.isWorkingDay"></i>
+                      {{ kindLabel(e) }}
+                    </span>
+                  </td>
+                  <td data-label="Hours" class="text-nowrap">
+                    @if (e.isWorkingDay && e.startTime && e.endTime) {
+                      {{ hours(e.startTime, e.endTime) }}
+                    } @else if (e.isWorkingDay) {
+                      <span class="text-muted">Weekly hours</span>
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </td>
+                  @if (!readOnly()) {
+                    <td class="text-end text-nowrap ce-ex-actions">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        (click)="startEditException(e)"
+                        [disabled]="editingKey() !== null"
+                        [attr.aria-label]="'Edit exception ' + e.name"
+                      >
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger ms-1"
+                        (click)="removeException(e)"
+                        [attr.aria-label]="'Remove exception ' + e.name"
+                      >
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- Add / edit exception -->
+      @if (editingKey() !== null) {
+        <form
+          class="ce-ex-form"
+          [formGroup]="exceptionForm"
+          (ngSubmit)="commitException()"
+          novalidate
+          aria-labelledby="ce-ex-form-title"
+        >
+          <h4 id="ce-ex-form-title" class="ce-ex-form-title">
+            {{ editingKey() === 'new' ? 'New exception' : 'Edit exception' }}
+          </h4>
+
+          <div class="row g-2">
+            <div class="col-12">
+              <label for="ce-ex-name" class="form-label">Name <span class="text-danger" aria-hidden="true">*</span></label>
+              <input
+                id="ce-ex-name"
+                type="text"
+                class="form-control form-control-sm"
+                formControlName="name"
+                placeholder="e.g. National Day, Ramadan hours"
+                [maxlength]="limits.exceptionNameMax"
+                [class.is-invalid]="showExceptionError(exceptionForm.controls.name)"
+                [attr.aria-invalid]="showExceptionError(exceptionForm.controls.name)"
+                autocomplete="off"
+                required
+              />
+              @if (showExceptionError(exceptionForm.controls.name)) {
+                <div class="invalid-feedback d-block">Exception name is required.</div>
+              }
+            </div>
+
+            <div class="col-6">
+              <label for="ce-ex-start" class="form-label">From <span class="text-danger" aria-hidden="true">*</span></label>
+              <input
+                id="ce-ex-start"
+                type="date"
+                class="form-control form-control-sm"
+                formControlName="startDate"
+                [class.is-invalid]="showExceptionError(exceptionForm.controls.startDate)"
+                [attr.aria-invalid]="showExceptionError(exceptionForm.controls.startDate)"
+                required
+              />
+            </div>
+            <div class="col-6">
+              <label for="ce-ex-end" class="form-label">To <span class="text-danger" aria-hidden="true">*</span></label>
+              <input
+                id="ce-ex-end"
+                type="date"
+                class="form-control form-control-sm"
+                formControlName="endDate"
+                [min]="exceptionForm.controls.startDate.value"
+                [class.is-invalid]="showExceptionError(exceptionForm.controls.endDate) || ((exceptionTried() || exceptionForm.controls.endDate.touched) && exceptionForm.hasError('range'))"
+                [attr.aria-invalid]="exceptionForm.hasError('range')"
+                aria-describedby="ce-ex-range-err"
+                required
+              />
+            </div>
+            @if ((exceptionTried() || exceptionForm.controls.startDate.touched || exceptionForm.controls.endDate.touched)
+                 && (exceptionForm.controls.startDate.invalid || exceptionForm.controls.endDate.invalid || exceptionForm.hasError('range'))) {
+              <div id="ce-ex-range-err" class="col-12 invalid-feedback d-block mt-0">
+                @if (exceptionForm.hasError('range')) {
+                  The end date must be on or after the start date.
+                } @else {
+                  Both dates are required.
+                }
+              </div>
+            }
+
+            <div class="col-12">
+              <fieldset class="ce-ex-kind">
+                <legend class="form-label mb-1">Type</legend>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" id="ce-ex-off" formControlName="isWorkingDay" [value]="false" />
+                  <label class="form-check-label" for="ce-ex-off">
+                    <strong>Off</strong> — holiday or closure
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" id="ce-ex-work" formControlName="isWorkingDay" [value]="true" />
+                  <label class="form-check-label" for="ce-ex-work">
+                    <strong>Working</strong> — special working day, or changed hours
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+
+            @if (exceptionForm.controls.isWorkingDay.value) {
+              <div class="col-6">
+                <label for="ce-ex-st" class="form-label">Start time</label>
+                <input id="ce-ex-st" type="time" class="form-control form-control-sm" formControlName="startTime"
+                       [class.is-invalid]="(exceptionTried() || exceptionForm.controls.startTime.touched) && exceptionForm.hasError('hours')"
+                       aria-describedby="ce-ex-hours-help" />
+              </div>
+              <div class="col-6">
+                <label for="ce-ex-et" class="form-label">End time</label>
+                <input id="ce-ex-et" type="time" class="form-control form-control-sm" formControlName="endTime"
+                       [class.is-invalid]="(exceptionTried() || exceptionForm.controls.endTime.touched) && exceptionForm.hasError('hours')"
+                       aria-describedby="ce-ex-hours-help" />
+              </div>
+              <div id="ce-ex-hours-help" class="col-12 mt-1"
+                   [class.form-text]="!((exceptionTried() || exceptionForm.controls.endTime.touched) && exceptionForm.hasError('hours'))"
+                   [class.invalid-feedback]="(exceptionTried() || exceptionForm.controls.endTime.touched) && exceptionForm.hasError('hours')"
+                   [class.d-block]="true">
+                @if ((exceptionTried() || exceptionForm.controls.endTime.touched) && exceptionForm.hasError('hours')) {
+                  Give both times with the start earlier than the end, or leave both blank.
+                } @else {
+                  Leave both blank to keep the weekly hours.
+                }
+              </div>
+            }
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelException()">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-primary">
+              <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ editingKey() === 'new' ? 'Add' : 'Update' }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+
+    <!-- Preview ─────────────────────────────────────────────────────────── -->
+    <section class="ce-section" aria-labelledby="ce-h-preview">
+      <h3 id="ce-h-preview" class="ce-section-title">Preview</h3>
+      <p class="ce-hint">How each date reads with the values above, including changes not saved yet.</p>
+      <app-calendar-month-preview
+        [days]="previewDays()"
+        [exceptions]="previewExceptions()"
+        [(month)]="previewMonth"
+      />
+    </section>
+  </div>
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <footer class="ce-footer">
+    @if (confirmDiscard()) {
+      <div class="ce-discard" role="alertdialog" aria-labelledby="ce-discard-text">
+        <span id="ce-discard-text"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>You have unsaved changes.</span>
+        <div class="d-flex gap-2">
+          <button id="ce-keep-editing" type="button" class="btn btn-sm btn-primary" (click)="keepEditing()">Keep editing</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" (click)="discard()">Discard changes</button>
+        </div>
+      </div>
+    } @else if (readOnly()) {
+      <button type="button" class="btn btn-outline-secondary" (click)="requestClose()">Close</button>
+    } @else {
+      <button type="button" class="btn btn-outline-secondary" (click)="requestClose()" [disabled]="saving()">
+        Cancel
+      </button>
+      <button id="ce-save" type="submit" form="ce-form" class="btn btn-primary" [disabled]="saving()">
+        @if (saving()) {
+          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Saving…
+        } @else {
+          <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ isNew() ? 'Create calendar' : 'Save changes' }}
+        }
+      </button>
+    }
+  </footer>
+</aside>

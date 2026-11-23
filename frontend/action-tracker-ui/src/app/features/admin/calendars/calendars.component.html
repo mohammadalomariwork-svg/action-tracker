@@ -1,0 +1,316 @@
+<div class="cal-page">
+
+  <app-admin-breadcrumb
+    [items]="[{ label: 'Admin Panel', route: '/admin' }, { label: 'Calendars' }]"
+    class="mb-3 d-block"
+  />
+
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+    <app-page-header
+      title="Calendars"
+      subtitle="Working days, working hours and holidays. Workspaces use the default calendar unless another is chosen."
+      icon="bi bi-calendar-week"
+    />
+    <div class="d-flex gap-2 mt-1 mb-3">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        (click)="load(true)"
+        [disabled]="refreshing() || loading()"
+      >
+        @if (refreshing()) {
+          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+        } @else {
+          <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>
+        }
+        Refresh
+      </button>
+      <button
+        *appHasPermission="'Calendars'; action: 'Create'"
+        id="cal-new"
+        type="button"
+        class="btn btn-primary btn-sm"
+        (click)="openEditor(null, $event.currentTarget)"
+      >
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New calendar
+      </button>
+    </div>
+  </div>
+
+  @if (actionError(); as message) {
+    <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+      <i class="bi bi-exclamation-octagon-fill mt-1" aria-hidden="true"></i>
+      <div class="flex-grow-1">{{ message }}</div>
+      <button type="button" class="btn-close" aria-label="Dismiss" (click)="actionError.set(null)"></button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading calendars…</span>
+      </div>
+    </div>
+  } @else if (loadFailed() && calendars().length === 0) {
+    <div class="cal-state">
+      <i class="bi bi-cloud-slash" aria-hidden="true"></i>
+      <p class="mb-2">The calendars could not be loaded.</p>
+      <button type="button" class="btn btn-outline-primary btn-sm" (click)="load()">Try again</button>
+    </div>
+  } @else {
+
+    <!-- ── Summary strip ─────────────────────────────────────────────────── -->
+    <div class="cal-summary mb-4">
+      <div class="cal-stat">
+        <span class="cal-stat-value">{{ active().length }}</span>
+        <span class="cal-stat-label">Calendars</span>
+      </div>
+      <div class="cal-stat">
+        <span class="cal-stat-value">{{ activeCount() }}</span>
+        <span class="cal-stat-label">Active</span>
+      </div>
+      <div class="cal-stat cal-stat-wide">
+        <span class="cal-stat-value cal-stat-text">{{ defaultCalendar()?.name || '—' }}</span>
+        <span class="cal-stat-label">Default calendar</span>
+      </div>
+      <div class="cal-stat">
+        <span class="cal-stat-value">{{ inheritingCount() ?? '…' }}</span>
+        <span class="cal-stat-label">Workspaces on the default</span>
+      </div>
+    </div>
+
+    <!-- ── Toolbar ───────────────────────────────────────────────────────── -->
+    <div class="d-flex justify-content-end mb-2">
+      <div class="form-check form-switch mb-0">
+        <input
+          id="cal-show-deleted"
+          class="form-check-input"
+          type="checkbox"
+          role="switch"
+          [ngModel]="showDeleted()"
+          (ngModelChange)="toggleDeleted($event)"
+        />
+        <label class="form-check-label small" for="cal-show-deleted">Show deleted</label>
+      </div>
+    </div>
+
+    <!-- ── Calendars ─────────────────────────────────────────────────────── -->
+    @if (active().length === 0) {
+      <div class="cal-state">
+        <i class="bi bi-calendar-x" aria-hidden="true"></i>
+        <p class="mb-0">No calendars yet. The API seeds "KU Standard" at startup.</p>
+      </div>
+    } @else {
+      <div class="card cal-card">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0 cal-table">
+            <caption class="visually-hidden">Working calendars</caption>
+            <thead>
+              <tr>
+                <th scope="col">Calendar</th>
+                <th scope="col">Working days</th>
+                <th scope="col">Hours</th>
+                <th scope="col">Time zone</th>
+                <th scope="col">Exceptions</th>
+                <th scope="col">Workspaces</th>
+                <th scope="col" class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of active(); track trackCalendar($index, c)) {
+                <tr [class.cal-row-inactive]="!c.isActive">
+                  <td data-label="Calendar" class="cal-name-cell">
+                    <div class="cal-name">
+                      <span class="cal-name-text">{{ c.name }}</span>
+                      @if (c.isDefault) {
+                        <span class="badge bg-primary"><i class="bi bi-star-fill me-1" aria-hidden="true"></i>Default</span>
+                      }
+                      @if (!c.isActive) {
+                        <span class="badge bg-secondary">Inactive</span>
+                      }
+                    </div>
+                    @if (c.description) {
+                      <div class="cal-desc">{{ c.description }}</div>
+                    }
+                  </td>
+                  <td data-label="Working days">{{ workingDays(c.days) }}</td>
+                  <td data-label="Hours" class="text-nowrap">
+                    <span [title]="hoursTitle(c.days)">{{ hours(c.days) }}</span>
+                  </td>
+                  <td data-label="Time zone" class="text-nowrap"><code class="cal-tz">{{ c.timeZoneId }}</code></td>
+                  <td data-label="Exceptions">
+                    @if (c.exceptions.length === 0) {
+                      <span class="text-muted">None</span>
+                    } @else {
+                      <div>
+                        <div>{{ c.exceptions.length }}</div>
+                        @if (nextExceptionOf(c); as n) {
+                          <div class="cal-sub">Next: {{ n.name }}, {{ dateRange(n.startDate, n.endDate) }}</div>
+                        }
+                      </div>
+                    }
+                  </td>
+                  <td data-label="Workspaces">
+                    @switch (usageOf(c)) {
+                      @case (undefined) {
+                        <span class="spinner-border spinner-border-sm text-secondary" role="status">
+                          <span class="visually-hidden">Loading usage…</span>
+                        </span>
+                      }
+                      @case (null) {
+                        <span class="text-muted" title="Usage could not be loaded">—</span>
+                      }
+                      @default {
+                        @if (usageOf(c); as u) {
+                          @if (u.workspaces.length === 0 && u.hiddenWorkspaceCount === 0 && !(u.isDefault && u.inheritingWorkspaceCount > 0)) {
+                            <span class="text-muted">Not used</span>
+                          } @else {
+                            <div>
+                            @if (u.workspaces.length > 0) {
+                              <div class="cal-ws">
+                                @for (w of u.workspaces.slice(0, 2); track w.id; let last = $last) {
+                                  {{ w.title }}@if (!last) {, }
+                                }
+                                @if (u.workspaces.length > 2) {
+                                  <span class="text-muted">+{{ u.workspaces.length - 2 }} more</span>
+                                }
+                              </div>
+                            }
+                            @if (u.hiddenWorkspaceCount > 0) {
+                              <div class="cal-sub"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ u.hiddenWorkspaceCount }} private</div>
+                            }
+                            @if (u.isDefault && u.inheritingWorkspaceCount > 0) {
+                              <div class="cal-sub">{{ u.inheritingWorkspaceCount }} use it by default</div>
+                            }
+                            </div>
+                          }
+                        }
+                      }
+                    }
+                  </td>
+                  <td class="text-end cal-actions">
+                    <ng-container *appHasPermission="'Calendars'; action: 'Edit'; else viewButton">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        (click)="openEditor(c, $event.currentTarget)"
+                        [disabled]="busyId() === c.id"
+                        [attr.aria-label]="'Edit ' + c.name"
+                      >
+                        <i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit
+                      </button>
+                      @if (!c.isDefault) {
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary"
+                          (click)="askSetDefault(c, $event.currentTarget)"
+                          [disabled]="busyId() === c.id || !!defaultBlockedReason(c)"
+                          [title]="defaultBlockedReason(c) || ''"
+                          [attr.aria-label]="'Make ' + c.name + ' the default calendar'"
+                          [attr.aria-describedby]="defaultBlockedReason(c) ? 'cal-def-why-' + c.id : null"
+                        >
+                          <i class="bi bi-star me-1" aria-hidden="true"></i>Set default
+                        </button>
+                        @if (defaultBlockedReason(c); as why) {
+                          <span class="visually-hidden" [id]="'cal-def-why-' + c.id">{{ why }}</span>
+                        }
+                      }
+                    </ng-container>
+                    <ng-template #viewButton>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        (click)="openEditor(c, $event.currentTarget)"
+                        [attr.aria-label]="'View ' + c.name"
+                      >
+                        <i class="bi bi-eye me-1" aria-hidden="true"></i>View
+                      </button>
+                    </ng-template>
+                    <ng-container *appHasPermission="'Calendars'; action: 'Delete'">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        (click)="askDelete(c, $event.currentTarget)"
+                        [disabled]="busyId() === c.id || !!deleteBlockedReason(c)"
+                        [title]="deleteBlockedReason(c) || ''"
+                        [attr.aria-label]="'Delete ' + c.name"
+                        [attr.aria-describedby]="deleteBlockedReason(c) ? 'cal-del-why-' + c.id : null"
+                      >
+                        @if (busyId() === c.id) {
+                          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                        } @else {
+                          <i class="bi bi-trash" aria-hidden="true"></i>
+                        }
+                      </button>
+                      @if (deleteBlockedReason(c); as why) {
+                        <span class="visually-hidden" [id]="'cal-del-why-' + c.id">{{ why }}</span>
+                      }
+                    </ng-container>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- ── Deleted calendars ─────────────────────────────────────────────── -->
+    @if (showDeleted()) {
+      <h2 class="cal-section-title mt-4">Deleted calendars</h2>
+      @if (deleted().length === 0) {
+        <div class="text-muted small">No deleted calendars.</div>
+      } @else {
+        <div class="card cal-card">
+          <ul class="list-unstyled mb-0 cal-deleted">
+            @for (c of deleted(); track trackCalendar($index, c)) {
+              <li>
+                <div>
+                  <span class="fw-semibold">{{ c.name }}</span>
+                  <span class="text-muted small ms-2">{{ workingDays(c.days) }} · {{ hours(c.days) }}</span>
+                  @if (c.updatedAt) {
+                    <div class="cal-sub">Deleted {{ c.updatedAt | date: 'medium' }}</div>
+                  }
+                </div>
+                <button
+                  *appHasPermission="'Calendars'; action: 'Edit'"
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  (click)="restore(c)"
+                  [disabled]="busyId() === c.id"
+                  [attr.aria-label]="'Restore ' + c.name"
+                >
+                  @if (busyId() === c.id) {
+                    <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                  } @else {
+                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                  }
+                  Restore
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    }
+  }
+
+  <!-- ── Editor drawer ─────────────────────────────────────────────────────── -->
+  @if (editor(); as e) {
+    <app-calendar-editor
+      [calendar]="e.calendar"
+      [usage]="e.calendar ? (usageOf(e.calendar) ?? null) : null"
+      [canEdit]="canEditInEditor(e.calendar)"
+      (closed)="onEditorClosed()"
+      (saved)="onEditorSaved($event, !e.calendar)"
+    />
+  }
+
+  <app-confirm-dialog
+    [title]="confirmTitle()"
+    [message]="confirmMessage()"
+    [confirmLabel]="pending()?.kind === 'delete' ? 'Delete' : 'Make default'"
+    [danger]="pending()?.kind === 'delete'"
+    (confirmed)="onConfirmed($event)"
+  />
+</div>

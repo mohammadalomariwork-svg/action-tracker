@@ -92,6 +92,15 @@ export class AdminPanelComponent {
       color:           'info',
       permissionArea:  'DataSync',
     },
+    {
+      id:              'calendars',
+      title:           'Calendars',
+      description:     'Define working days, working hours and holidays. Workspaces use the default calendar unless another is chosen.',
+      icon:            'bi-calendar-week',
+      route:           '/admin/calendars',
+      color:           'primary',
+      permissionArea:  'Calendars',
+    },
     // Permissions Management card hidden per business request
     // {
     //   id:              'permissions',

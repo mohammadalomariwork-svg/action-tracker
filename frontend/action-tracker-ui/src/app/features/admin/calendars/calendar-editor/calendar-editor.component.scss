@@ -1,0 +1,267 @@
+// Calendar editor drawer — same surface, shadow and layering as the workspace
+// drawer (`.wl-offcanvas`), wider because it holds the week and a month preview.
+// Theme tokens only.
+
+:host { display: contents; }
+
+.ce-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1045;
+  background: var(--ov);
+  backdrop-filter: blur(4px);
+  animation: ce-fade 200ms var(--ease);
+}
+
+.ce-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  width: min(780px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--el);
+  border-left: 1px solid var(--bd);
+  box-shadow: var(--sh-panel);
+  color: var(--t1);
+  animation: ce-slide 300ms var(--ease);
+}
+
+@keyframes ce-slide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes ce-fade  { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ce-drawer, .ce-backdrop { animation: none; }
+}
+
+// ── Header / footer ───────────────────────────────────────────────────────────
+.ce-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--bd);
+}
+
+.ce-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--th);
+  outline: none;
+
+  i { color: var(--accent); }
+}
+
+.ce-subtitle {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--t2);
+}
+
+.ce-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px 24px 28px;
+}
+
+.ce-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 14px 24px;
+  border-top: 1px solid var(--bd);
+  background: var(--el);
+}
+
+.ce-discard {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: var(--warn);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+.ce-section + .ce-section,
+.ce-main-form + .ce-section {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--bd);
+}
+
+.ce-section-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+  margin-bottom: 0.85rem;
+}
+
+.ce-hint {
+  font-size: 0.82rem;
+  color: var(--t3);
+  margin: 0.25rem 0 0.85rem;
+}
+
+.ce-usage {
+  font-size: 0.85rem;
+  color: var(--t2);
+  padding: 0.55rem 0.8rem;
+  border: 1px dashed var(--bd);
+  border-radius: var(--r-sm);
+
+  strong { color: var(--t1); }
+}
+
+.ce-empty {
+  font-size: 0.875rem;
+  color: var(--t3);
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--bd);
+  border-radius: var(--r-sm);
+}
+
+// ── Weekly pattern ────────────────────────────────────────────────────────────
+.ce-week {
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.ce-day {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  padding: 0.55rem 0.9rem;
+
+  & + & { border-top: 1px solid var(--bd); }
+
+  .form-check-label { font-weight: 600; color: var(--t1); }
+}
+
+.ce-day-off {
+  background: var(--sfh);
+  .form-check-label { color: var(--t2); }
+}
+
+.ce-day-times {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .form-control { max-width: 9rem; }
+}
+
+.ce-day-to,
+.ce-day-off-text {
+  font-size: 0.82rem;
+  color: var(--t3);
+}
+
+.ce-day-err {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: var(--err);
+}
+
+// ── Exceptions ────────────────────────────────────────────────────────────────
+.ce-ex-table {
+  margin-bottom: 0.5rem;
+
+  thead th {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--t3);
+    font-weight: 700;
+    border-bottom: 1px solid var(--bd);
+    background: transparent;
+  }
+
+  tbody td {
+    font-size: 0.86rem;
+    color: var(--t1);
+    border-color: var(--bd);
+    background: transparent;
+  }
+
+  .ce-ex-editing td { background: rgba(var(--ar), 0.08); }
+}
+
+.ce-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--r-full);
+}
+
+.ce-kind-off  { color: var(--err);  background: rgba(var(--errr), 0.12); }
+.ce-kind-work { color: var(--warn); background: rgba(var(--warnr), 0.14); }
+
+.ce-ex-form {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--bdh);
+  border-radius: var(--r-md);
+  background: var(--sf);
+}
+
+.ce-ex-form-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--th);
+  margin-bottom: 0.6rem;
+}
+
+.ce-ex-kind {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+// ── Narrow screens ────────────────────────────────────────────────────────────
+@media (max-width: 575.98px) {
+  .ce-header, .ce-body, .ce-footer { padding-left: 16px; padding-right: 16px; }
+
+  .ce-day { grid-template-columns: 1fr; }
+  .ce-day-times .form-control { max-width: none; flex: 1 1 0; }
+
+  // Exceptions table → stacked label / value rows.
+  .ce-ex-table {
+    thead { display: none; }
+    tr { display: block; padding: 0.5rem 0; border-bottom: 1px solid var(--bd); }
+    td {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      border: 0 !important;
+      padding: 0.15rem 0 !important;
+      white-space: normal !important;
+    }
+    td[data-label]::before {
+      content: attr(data-label);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--t3);
+      font-weight: 700;
+    }
+    .ce-ex-actions { justify-content: flex-end; padding-top: 0.35rem !important; }
+  }
+}

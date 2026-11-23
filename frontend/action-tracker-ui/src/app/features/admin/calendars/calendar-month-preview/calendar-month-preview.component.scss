@@ -1,0 +1,150 @@
+// Month preview — theme tokens only, so it reads in dark and light mode.
+// Every exception kind also carries an icon, so colour is never the only cue.
+
+:host { display: block; }
+
+.mp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mp-month {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  min-width: 0;
+
+  strong { color: var(--th); font-size: 0.95rem; }
+}
+
+.mp-month-sub {
+  font-size: 0.75rem;
+  color: var(--t3);
+}
+
+.mp-grid {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 4px;
+
+  th {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--t3);
+    text-align: center;
+    padding-bottom: 0.15rem;
+  }
+}
+
+.mp-cell {
+  height: 3.6rem;
+  vertical-align: top;
+  padding: 0.3rem 0.35rem;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+
+.mp-num {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.mp-mark { font-size: 0.7rem; }
+
+.mp-note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+.mp-empty { background: transparent; }
+
+// ── Kinds ─────────────────────────────────────────────────────────────────────
+.mp-working {
+  background: rgba(var(--okr), 0.12);
+  border-color: rgba(var(--okr), 0.32);
+  color: var(--t1);
+}
+
+.mp-off {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--sfh) 0 6px,
+    transparent 6px 12px
+  );
+  border-color: var(--bd);
+  color: var(--t3);
+}
+
+.mp-holiday {
+  background: rgba(var(--errr), 0.13);
+  border-color: rgba(var(--errr), 0.38);
+  color: var(--err);
+}
+
+.mp-special {
+  background: rgba(var(--warnr), 0.16);
+  border-color: rgba(var(--warnr), 0.42);
+  color: var(--warn);
+}
+
+.mp-today-cell {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+.mp-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--t2);
+
+  li { display: inline-flex; align-items: center; gap: 0.4rem; }
+}
+
+.mp-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 0.62rem;
+}
+
+.mp-count {
+  font-weight: 700;
+  color: var(--t1);
+}
+
+// ── Narrow screens: day number + mark only (the full text stays in the label) ─
+@media (max-width: 575.98px) {
+  .mp-grid { border-spacing: 2px; }
+  .mp-cell { height: 2.6rem; padding: 0.25rem; }
+  .mp-note { display: none; }
+  .mp-num  { flex-direction: column; align-items: flex-start; }
+}

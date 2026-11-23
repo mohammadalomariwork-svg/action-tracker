@@ -1,0 +1,75 @@
+<div class="mp">
+  <div class="mp-toolbar">
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="previous()" aria-label="Previous month">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>
+    </button>
+    <div class="mp-month" aria-live="polite">
+      <strong>{{ monthLabel() }}</strong>
+      <span class="mp-month-sub">{{ workingDays() }} working {{ workingDays() === 1 ? 'day' : 'days' }}</span>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="next()" aria-label="Next month">
+      <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-secondary mp-today"
+      (click)="thisMonth()"
+      [disabled]="isCurrentMonth()"
+    >
+      This month
+    </button>
+  </div>
+
+  <table class="mp-grid">
+    <caption class="visually-hidden">{{ monthLabel() }} — working days, off days and exceptions</caption>
+    <thead>
+      <tr>
+        @for (d of weekDays; track d.short) {
+          <th scope="col" [attr.abbr]="d.long">{{ d.short }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (week of weeks(); track $index) {
+        <tr>
+          @for (cell of week; track $index) {
+            @if (cell) {
+              <td
+                class="mp-cell mp-{{ cell.day.kind }}"
+                [class.mp-today-cell]="cell.isToday"
+                [attr.aria-current]="cell.isToday ? 'date' : null"
+                [title]="cell.label"
+              >
+                <span class="visually-hidden">{{ cell.label }}</span>
+                <span class="mp-num" aria-hidden="true">
+                  {{ cell.dayOfMonth }}
+                  @if (cell.day.kind === 'holiday') {
+                    <i class="bi bi-slash-circle mp-mark"></i>
+                  } @else if (cell.day.kind === 'special') {
+                    <i class="bi bi-clock-history mp-mark"></i>
+                  }
+                </span>
+                <span class="mp-note" aria-hidden="true">{{ cell.note }}</span>
+              </td>
+            } @else {
+              <td class="mp-cell mp-empty" aria-hidden="true"></td>
+            }
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <ul class="mp-legend" aria-label="Legend for {{ monthLabel() }}">
+    @for (kind of kinds; track kind) {
+      <li>
+        <span class="mp-swatch mp-{{ kind }}" aria-hidden="true">
+          @if (kind === 'holiday') { <i class="bi bi-slash-circle"></i> }
+          @if (kind === 'special') { <i class="bi bi-clock-history"></i> }
+        </span>
+        {{ kindLabels[kind] }}
+        <span class="mp-count">{{ counts()[kind] }}</span>
+      </li>
+    }
+  </ul>
+</div>

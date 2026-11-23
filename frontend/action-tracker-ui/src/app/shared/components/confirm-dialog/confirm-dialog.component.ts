@@ -23,11 +23,18 @@ export class ConfirmDialogComponent implements AfterViewInit, OnDestroy {
   private bsModal: any;
 
   ngAfterViewInit(): void {
+    // Bootstrap appends the backdrop to <body> (z-index 1050). Left inside the
+    // page, the modal is trapped in app-layout's stacking context (z-index 1)
+    // and sits under its own backdrop, so it cannot be clicked. Move it to
+    // <body> as Bootstrap recommends; Angular keeps its bindings on the node.
+    document.body.appendChild(this.modalEl.nativeElement);
     this.bsModal = new bootstrap.Modal(this.modalEl.nativeElement, { backdrop: 'static' });
   }
 
   ngOnDestroy(): void {
     this.bsModal?.dispose();
+    // No longer inside the host element, so Angular will not remove it.
+    this.modalEl?.nativeElement.remove();
   }
 
   open(): void {

@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-23 (Work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`)
+> Last updated: 2026-11-23 (Work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -304,8 +304,10 @@ defence):
 - Name is unique among non-deleted calendars (case-insensitive; filtered unique index
   `IX_WorkCalendars_Name`).
 
-Not built yet (later work packages): the admin Calendars page (C-2) and the workspace
-calendar setting + date rules that consume the calculation API (C-3).
+The admin UI for this API is the Calendars page (`/admin/calendars`, WO-2026-11 C-2 —
+frontend only, no API change). Its month preview repeats the `ResolvedWorkCalendar` rules in
+`frontend/.../shared/utils/work-calendar.util.ts`; change both together. Not built yet: the
+workspace calendar setting + date rules that consume the calculation API (C-3).
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
