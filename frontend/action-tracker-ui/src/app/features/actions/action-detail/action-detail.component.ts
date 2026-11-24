@@ -33,6 +33,7 @@ import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.v
 import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
 import { HasPermissionDirective } from '../../../shared';
 import { ActualDatesFieldsComponent } from '../../../shared/components/actual-dates-fields/actual-dates-fields.component';
+import { SubItemsSectionComponent } from './sub-items-section/sub-items-section.component';
 import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
   varianceLabel, varianceTone,
@@ -62,6 +63,7 @@ interface EditFormData {
     CommentsSectionComponent, DocumentsSectionComponent,
     BreadcrumbComponent, WorkflowReviewDialogComponent,
     WorkingDayHintComponent, WorkingDaysComponent, HasPermissionDirective, ActualDatesFieldsComponent,
+    SubItemsSectionComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',

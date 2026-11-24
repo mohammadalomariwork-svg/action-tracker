@@ -274,6 +274,11 @@
       }
     </div>
 
+    <!-- ── Sub-items (WO-2026-11 A-2) ──────────────────── -->
+    <!-- Not wrapped in .wd-section: its backdrop-filter would trap the
+         component's fixed drawer; the component draws its own card. -->
+    <app-sub-items-section class="mb-4" [actionItem]="ai" />
+
     <!-- ── Escalation History Section ─────────────────── -->
     <div class="wd-section mb-4">
       <div class="wd-section-header">

@@ -40,11 +40,13 @@ import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
 } from '../../../../shared/utils/actual-dates.util';
 import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload.util';
+import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
 
 @Component({
   selector: 'app-milestone-detail',
   standalone: true,
   imports: [
+    SubItemCountComponent,
     CommonModule, FormsModule, RouterLink, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent,
     WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent, HasPermissionDirective,
   ],

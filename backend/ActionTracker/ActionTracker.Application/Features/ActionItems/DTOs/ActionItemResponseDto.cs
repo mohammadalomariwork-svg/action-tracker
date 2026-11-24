@@ -46,6 +46,20 @@ public class ActionItemResponseDto
     public int Progress { get; set; }
     public bool IsEscalated { get; set; }
 
+    // ── Sub-items (WO-2026-11 A-2) — shown as "x of y done"; never counted as action items ──
+
+    /// <summary>Live sub-items of this item.</summary>
+    public int SubItemCount { get; set; }
+
+    /// <summary>Live sub-items marked done.</summary>
+    public int SubItemDoneCount { get; set; }
+
+    /// <summary>
+    /// How many of the sub-items the caller is assigned to. Filled only by
+    /// <c>GET /api/action-items/assigned-via-sub-items</c>; null elsewhere.
+    /// </summary>
+    public int? MySubItemCount { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }

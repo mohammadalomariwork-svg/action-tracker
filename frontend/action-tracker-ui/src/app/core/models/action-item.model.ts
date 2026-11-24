@@ -70,6 +70,12 @@ export interface ActionItem {
   actualEndVarianceDays: number | null;
   progress: number;
   isEscalated: boolean;
+  /** Live sub-items (WO-2026-11 A-2) — shown as "x of y done"; never counted as action items. */
+  subItemCount: number;
+  /** Live sub-items marked done. */
+  subItemDoneCount: number;
+  /** How many of the sub-items the caller is assigned to; only from `getAssignedViaSubItems`. */
+  mySubItemCount?: number | null;
   escalations: EscalationInfo[];
   comments: CommentInfo[];
   createdAt: string;

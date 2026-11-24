@@ -230,6 +230,7 @@
                               <td><a class="ms-ai-id" [routerLink]="['/actions', a.id, 'view']">{{ a.actionId }}</a></td>
                               <td>
                                 <a class="ms-ai-title" [routerLink]="['/actions', a.id, 'view']">{{ a.title }}</a>
+                                <app-sub-item-count class="ms-1" [done]="a.subItemDoneCount" [total]="a.subItemCount" />
                               </td>
                               <td><span [ngClass]="actionStatusClass(a.status)">{{ a.statusLabel }}</span></td>
                               <td class="text-muted">{{ a.priorityLabel }}</td>
@@ -342,6 +343,7 @@
                         <span [ngClass]="actionStatusClass(a.status)">{{ a.statusLabel }}</span>
                       </div>
                       <a class="ms-ai-title" [routerLink]="['/actions', a.id, 'view']">{{ a.title }}</a>
+                      <app-sub-item-count class="ms-1" [done]="a.subItemDoneCount" [total]="a.subItemCount" />
                       <div class="ms-card-action-item__meta">
                         <span class="text-muted">{{ a.priorityLabel }}</span>
                         <span class="text-muted">Due {{ a.dueDate | date:'MMM d, y' }}</span>

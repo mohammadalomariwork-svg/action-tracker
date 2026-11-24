@@ -29,6 +29,8 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../shared';
+import { SubItemCountComponent } from '../../../shared/components/sub-item-count/sub-item-count.component';
+import { PermissionStateService } from '../../permissions/services/permission-state.service';
 import { ActualDatesFieldsComponent } from '../../../shared/components/actual-dates-fields/actual-dates-fields.component';
 import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
@@ -74,6 +76,7 @@ interface ActionItemFormData {
     FormsModule, ReactiveFormsModule, RouterLink, DatePipe,
     ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
     HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
+    SubItemCountComponent,
   ],
   templateUrl: './action-list.component.html',
   styleUrl:    './action-list.component.scss',
@@ -85,6 +88,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   private readonly authSvc      = inject(AuthService);
   private readonly cdr          = inject(ChangeDetectorRef);
   private readonly route        = inject(ActivatedRoute);
+  private readonly permState    = inject(PermissionStateService);
   private readonly destroy$     = new Subject<void>();
 
   readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
@@ -101,6 +105,19 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly pendingDeleteId = signal<string | null>(null);
   readonly exporting   = signal(false);
   readonly printingPdf = signal(false);
+
+  // ── Assigned through a sub-item (WO-2026-11 A-2) ──────
+  // Items where I am assigned to a sub-item but not to the item itself. Their
+  // own list: not in the stats cards above or any dashboard count, so every
+  // chart still equals its drill-down list.
+  readonly viaItems      = signal<ActionItem[]>([]);
+  readonly viaTotalCount = signal(0);
+  readonly viaLoading    = signal(false);
+  readonly viaPageNumber = signal(1);
+  readonly viaPageSize   = signal(10);
+  readonly viaTotalPages = computed(() => Math.ceil(this.viaTotalCount() / this.viaPageSize()) || 1);
+  readonly viaShowingFrom = computed(() => (this.viaPageNumber() - 1) * this.viaPageSize() + 1);
+  readonly viaShowingTo   = computed(() => Math.min(this.viaPageNumber() * this.viaPageSize(), this.viaTotalCount()));
 
   // ── Created by me state ───────────────────────────────
   readonly createdByItems      = signal<ActionItem[]>([]);
@@ -201,6 +218,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.loadStats();
     this.load();
     this.loadCreatedByMe();
+    this.loadViaSubItems();
     this.loadAllWorkspaces();
   }
 
@@ -284,6 +302,54 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.createdByPageSize.set(+size);
     this.createdByPageNumber.set(1);
     this.loadCreatedByMe();
+  }
+
+  // ── Assigned through a sub-item (WO-2026-11 A-2) ──────
+  loadViaSubItems(): void {
+    // The endpoint needs ActionItems.View; skip it (no "Access denied" toast) without.
+    if (!this.permState.hasPermission('ActionItems', 'View')) {
+      this.viaItems.set([]);
+      this.viaTotalCount.set(0);
+      return;
+    }
+    this.viaLoading.set(true);
+    this.actionSvc.getAssignedViaSubItems({
+      pageNumber:     this.viaPageNumber(),
+      pageSize:       this.viaPageSize(),
+      sortBy:         'dueDate',
+      sortDescending: false,
+    }).subscribe({
+      next: r => {
+        const paged: PagedResult<ActionItem> = r.data;
+        this.viaItems.set(paged.items);
+        this.viaTotalCount.set(paged.totalCount);
+        this.viaLoading.set(false);
+      },
+      error: () => {
+        this.viaLoading.set(false);
+        this.toastSvc.error('Failed to load items assigned through a sub-item.');
+      },
+    });
+  }
+
+  viaPrevPage(): void {
+    if (this.viaPageNumber() > 1) {
+      this.viaPageNumber.update(p => p - 1);
+      this.loadViaSubItems();
+    }
+  }
+
+  viaNextPage(): void {
+    if (this.viaPageNumber() < this.viaTotalPages()) {
+      this.viaPageNumber.update(p => p + 1);
+      this.loadViaSubItems();
+    }
+  }
+
+  onViaPageSizeChange(size: number): void {
+    this.viaPageSize.set(+size);
+    this.viaPageNumber.set(1);
+    this.loadViaSubItems();
   }
 
   onWorkspaceChange(workspaceId: string): void {
@@ -577,6 +643,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.toastSvc.success(wasNew ? 'Action item created.' : 'Action item updated.');
         this.load();
         this.loadStats();
+        this.loadViaSubItems();
         if (wasNew) this.loadCreatedByMe();
         this.cdr.markForCheck();
       },

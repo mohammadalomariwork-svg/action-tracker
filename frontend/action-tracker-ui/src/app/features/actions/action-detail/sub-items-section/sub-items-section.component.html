@@ -1,0 +1,304 @@
+@if (canView()) {
+<section class="si" aria-labelledby="si-heading">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <div class="si-header">
+    <h5 id="si-heading" class="si-heading" tabindex="-1">
+      <i class="bi bi-list-check me-2" aria-hidden="true"></i>Sub-items
+    </h5>
+    @if (list(); as l) {
+      <app-sub-item-count [done]="l.doneCount" [total]="l.totalCount" />
+    }
+    @if (list() && acceptsChanges()) {
+      <button *appHasPermission="'ActionItems'; action: 'Edit'"
+              id="si-add-details" type="button" class="btn btn-sm btn-outline-primary ms-auto"
+              (click)="openCreate($any($event.currentTarget))">
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add with details
+      </button>
+    }
+  </div>
+
+  @if (loading() && !list()) {
+    <p class="si-muted mb-0" role="status">Loading sub-items…</p>
+  }
+  @if (loadFailed()) {
+    <div class="si-callout si-callout--err" role="alert">
+      Sub-items could not be loaded.
+      <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="load()">Try again</button>
+    </div>
+  }
+
+  @if (list(); as l) {
+
+    <!-- ── Sub-items left outside changed planned dates (D3) ──── -->
+    @if (outsideItems().length > 0) {
+      <div class="si-callout si-callout--warn" role="note" aria-labelledby="si-outside-title">
+        <div id="si-outside-title" class="si-callout__title">
+          <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+          {{ outsideItems().length === 1 ? '1 sub-item is' : outsideItems().length + ' sub-items are' }}
+          outside the planned dates ({{ plannedRange(l) }})
+        </div>
+        <p class="mb-1">The action item's planned dates changed after these were saved:</p>
+        <ul class="si-callout__list">
+          @for (s of outsideItems(); track s.id) {
+            <li><strong>{{ s.title }}</strong> — {{ range(s) }}</li>
+          }
+        </ul>
+        <p class="mb-0 si-callout__hint">Move their dates inside the planned dates when you next edit them. Renaming them, changing assignees and ticking them still work.</p>
+      </div>
+    }
+
+    <!-- ── Parent Done / Cancelled ──────────────────────────── -->
+    @if (!acceptsChanges()) {
+      <div class="si-callout si-callout--info" role="note">
+        <i class="bi bi-lock-fill me-1" aria-hidden="true"></i>
+        This action item is {{ actionItem().statusLabel }}, so its sub-items can no longer be added or changed.
+      </div>
+    }
+
+    <!-- ── List ─────────────────────────────────────────────── -->
+    @if (l.items.length === 0) {
+      <p class="si-muted si-empty">No sub-items yet.</p>
+    } @else {
+      <ol class="si-list" aria-label="Sub-items">
+        @for (s of l.items; track s.id; let first = $first; let last = $last) {
+          <li class="si-row" [class.si-row--done]="s.isDone" [class.si-row--outside]="s.isOutsideParentDates"
+              [attr.aria-busy]="busyId() === s.id">
+            <div class="si-row__check">
+              <input type="checkbox" class="form-check-input" [id]="'si-done-' + s.id"
+                     [checked]="s.isDone" [disabled]="!canTick(s) || busyId() === s.id"
+                     [attr.aria-describedby]="'si-meta-' + s.id"
+                     (change)="toggleDone(s, $event)" />
+            </div>
+            <div class="si-row__body">
+              <label class="si-row__title" [for]="'si-done-' + s.id">{{ s.title }}</label>
+              @if (s.description) {
+                <p class="si-row__desc">{{ s.description }}</p>
+              }
+              <div class="si-row__meta" [id]="'si-meta-' + s.id">
+                <span class="si-dates"><i class="bi bi-calendar3" aria-hidden="true"></i> {{ range(s) }}</span>
+                @if (s.isOutsideParentDates) {
+                  <span class="si-badge si-badge--warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Outside planned dates</span>
+                }
+                @for (a of s.assignees; track a.userId) {
+                  <span class="si-chip" [title]="a.email">
+                    <span class="si-chip__avatar" aria-hidden="true">{{ initial(a.fullName) }}</span>{{ a.fullName }}
+                  </span>
+                }
+                @if (s.assignees.length === 0) {
+                  <span class="si-muted">Unassigned</span>
+                }
+                @if (s.isDone && s.doneAt) {
+                  <span class="si-muted">Done{{ s.doneByName ? ' by ' + s.doneByName : '' }} on {{ s.doneAt | date:'d MMM y' }}</span>
+                }
+              </div>
+            </div>
+            @if (acceptsChanges()) {
+              <div *appHasPermission="'ActionItems'; action: 'Edit'" class="si-row__actions">
+                <button type="button" class="btn btn-sm si-icon-btn" [id]="'si-up-' + s.id"
+                        [disabled]="first || busyId() === s.id" (click)="move(s, -1)"
+                        [attr.aria-label]="'Move ' + s.title + ' up'" title="Move up">
+                  <i class="bi bi-arrow-up" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-sm si-icon-btn" [id]="'si-down-' + s.id"
+                        [disabled]="last || busyId() === s.id" (click)="move(s, 1)"
+                        [attr.aria-label]="'Move ' + s.title + ' down'" title="Move down">
+                  <i class="bi bi-arrow-down" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-sm si-icon-btn" [id]="'si-edit-' + s.id"
+                        [disabled]="busyId() === s.id" (click)="openEdit(s, $any($event.currentTarget))"
+                        [attr.aria-label]="'Edit ' + s.title" title="Edit">
+                  <i class="bi bi-pencil" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-sm si-icon-btn si-icon-btn--danger" [id]="'si-delete-' + s.id"
+                        [disabled]="busyId() === s.id" (click)="askDelete(s, $any($event.currentTarget))"
+                        [attr.aria-label]="'Delete ' + s.title" title="Delete">
+                  <i class="bi bi-trash" aria-hidden="true"></i>
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    <!-- ── Inline add ───────────────────────────────────────── -->
+    @if (acceptsChanges()) {
+      <form *appHasPermission="'ActionItems'; action: 'Edit'" class="si-quick" [formGroup]="quickForm"
+            (ngSubmit)="addQuick()" aria-label="Add a sub-item" novalidate>
+        <div class="si-quick__field si-quick__field--title">
+          <label class="form-label" for="si-quick-title">New sub-item</label>
+          <input id="si-quick-title" type="text" class="form-control form-control-sm" formControlName="title"
+                 maxlength="255" placeholder="What needs doing?" autocomplete="off" />
+          @if (fieldError('quick', 'title'); as e) { <div class="si-error" role="alert">{{ e }}</div> }
+        </div>
+        <div class="si-quick__field">
+          <label class="form-label" for="si-quick-start">Start</label>
+          <input id="si-quick-start" type="date" class="form-control form-control-sm" formControlName="startDate"
+                 [min]="minDate()" [max]="maxDate()" />
+          <app-working-day-hint field="Sub-item start" [calendar]="calendar()"
+                                [date]="quickForm.controls.startDate.value"
+                                (useDate)="quickForm.controls.startDate.setValue($event)" />
+        </div>
+        <div class="si-quick__field">
+          <label class="form-label" for="si-quick-end">End <span class="si-req" aria-hidden="true">*</span></label>
+          <input id="si-quick-end" type="date" class="form-control form-control-sm" formControlName="endDate"
+                 aria-required="true" [min]="quickForm.controls.startDate.value || minDate()" [max]="maxDate()" />
+          <app-working-day-hint field="Sub-item end" [calendar]="calendar()"
+                                [date]="quickForm.controls.endDate.value"
+                                (useDate)="quickForm.controls.endDate.setValue($event)" />
+          @if (fieldError('quick', 'endDate'); as e) { <div class="si-error" role="alert">{{ e }}</div> }
+        </div>
+        <div class="si-quick__submit">
+          <button type="submit" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                  [disabled]="adding() || quickForm.invalid">
+            @if (adding()) {
+              <span class="spinner-border spinner-border-sm" role="status"></span>Adding…
+            } @else {
+              <i class="bi bi-plus-lg" aria-hidden="true"></i>Add
+            }
+          </button>
+        </div>
+        @if (rangeProblem('quick'); as problem) {
+          <div class="si-error si-quick__wide" role="alert">{{ problem }}</div>
+        }
+        <div class="si-quick__wide si-muted si-quick__help">
+          Within the planned dates ({{ plannedRange(l) }}). Use “Add with details” for a description or assignees.
+        </div>
+      </form>
+    }
+  }
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     Drawer — new sub-item with details / edit sub-item
+     ════════════════════════════════════════════════════════════ -->
+<div class="offcanvas offcanvas-end si-drawer"
+     [class.show]="drawerOpen()"
+     [style.visibility]="drawerOpen() ? 'visible' : 'hidden'"
+     role="dialog" aria-modal="true" aria-labelledby="si-drawer-title" tabindex="-1">
+  <div class="offcanvas-header border-bottom">
+    <h5 id="si-drawer-title" class="offcanvas-title">
+      <i class="bi bi-list-check me-2" aria-hidden="true"></i>{{ editing() ? 'Edit sub-item' : 'New sub-item' }}
+    </h5>
+    <button type="button" class="btn-close" aria-label="Close" (click)="closeDrawer()"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    @if (drawerOpen()) {
+      <form [formGroup]="editForm" (ngSubmit)="save()" novalidate>
+        @if (serverError(); as err) {
+          <div id="si-edit-error" class="si-callout si-callout--err" role="alert" tabindex="-1">{{ err }}</div>
+        }
+
+        <div class="mb-3">
+          <label class="form-label" for="si-edit-title">Title <span class="si-req" aria-hidden="true">*</span></label>
+          <input id="si-edit-title" type="text" class="form-control" formControlName="title" maxlength="255"
+                 aria-required="true" autocomplete="off" />
+          @if (fieldError('edit', 'title'); as e) { <div class="si-error" role="alert">{{ e }}</div> }
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="si-edit-description">Description</label>
+          <textarea id="si-edit-description" class="form-control" rows="3" formControlName="description"
+                    maxlength="5000"></textarea>
+          @if (fieldError('edit', 'description'); as e) { <div class="si-error" role="alert">{{ e }}</div> }
+        </div>
+
+        <div class="row g-3 mb-1">
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="si-edit-start">Start</label>
+            <input id="si-edit-start" type="date" class="form-control" formControlName="startDate"
+                   [min]="minDate()" [max]="maxDate()" />
+            <app-working-day-hint field="Sub-item start" [calendar]="calendar()"
+                                  [date]="editForm.controls.startDate.value"
+                                  [original]="editing()?.startDate"
+                                  (useDate)="editForm.controls.startDate.setValue($event)" />
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label" for="si-edit-end">End <span class="si-req" aria-hidden="true">*</span></label>
+            <input id="si-edit-end" type="date" class="form-control" formControlName="endDate" aria-required="true"
+                   [min]="editForm.controls.startDate.value || minDate()" [max]="maxDate()" />
+            <app-working-day-hint field="Sub-item end" [calendar]="calendar()"
+                                  [date]="editForm.controls.endDate.value"
+                                  [original]="editing()?.endDate"
+                                  (useDate)="editForm.controls.endDate.setValue($event)" />
+            @if (fieldError('edit', 'endDate'); as e) { <div class="si-error" role="alert">{{ e }}</div> }
+          </div>
+          <div class="col-12">
+            <app-working-days [calendar]="calendar()" [start]="editForm.controls.startDate.value"
+                              [end]="editForm.controls.endDate.value" />
+          </div>
+        </div>
+        @if (rangeProblem('edit'); as problem) {
+          <div class="si-error mb-2" role="alert">{{ problem }}</div>
+        }
+        @if (list(); as l) {
+          <p class="si-muted si-drawer__help">Within the action item's planned dates: {{ plannedRange(l) }}.</p>
+        }
+
+        <fieldset class="si-assignees mb-3">
+          <legend class="form-label">Assignees</legend>
+          @if (selectedAssigneeIds().length > 0) {
+            <div class="si-assignees__selected" aria-label="Selected assignees">
+              @for (id of selectedAssigneeIds(); track id) {
+                <span class="si-chip si-chip--removable">
+                  <span class="si-chip__avatar" aria-hidden="true">{{ initial(assigneeName(id)) }}</span>{{ assigneeName(id) }}
+                  <button type="button" class="si-chip__remove" (click)="toggleAssignee(id)"
+                          [attr.aria-label]="'Remove ' + assigneeName(id)">
+                    <i class="bi bi-x" aria-hidden="true"></i>
+                  </button>
+                </span>
+              }
+            </div>
+          } @else {
+            <p class="si-muted mb-2">No one assigned.</p>
+          }
+          <label class="visually-hidden" for="si-edit-assignee-search">Search people</label>
+          <input id="si-edit-assignee-search" type="search" class="form-control form-control-sm mb-2"
+                 placeholder="Search by name, email or org unit…" autocomplete="off"
+                 [value]="assigneeFilter()" (input)="assigneeFilter.set($any($event.target).value)" />
+          <div class="si-assignees__options">
+            @for (u of assigneeOptions(); track u.userId) {
+              <div class="form-check si-assignees__option">
+                <input class="form-check-input" type="checkbox" [id]="'si-assignee-' + u.userId"
+                       [checked]="isSelected(u.userId)" (change)="toggleAssignee(u.userId)" />
+                <label class="form-check-label" [for]="'si-assignee-' + u.userId">
+                  {{ u.userName }}
+                  @if (u.email || u.orgUnitName) {
+                    <span class="si-muted"> · {{ u.email }}{{ u.orgUnitName ? ' · ' + u.orgUnitName : '' }}</span>
+                  }
+                </label>
+              </div>
+            }
+            @if (assigneeOptions().length === 0) {
+              <p class="si-muted mb-0 px-1">No matching people. Assignees are the workspace's admins, members and project managers.</p>
+            }
+          </div>
+        </fieldset>
+
+        <div class="d-flex gap-2 justify-content-end border-top pt-3">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeDrawer()" [disabled]="saving()">Cancel</button>
+          <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                  [disabled]="saving() || editForm.invalid">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm" role="status"></span>Saving…
+            } @else {
+              <i class="bi bi-check-lg" aria-hidden="true"></i>{{ editing() ? 'Save' : 'Add' }}
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>
+@if (drawerOpen()) {
+  <div class="offcanvas-backdrop fade show" (click)="closeDrawer()"></div>
+}
+
+<app-confirm-dialog #deleteDialog
+                    title="Delete sub-item"
+                    [message]="'Delete the sub-item “' + (pendingDelete()?.title ?? '') + '”? It stays deleted even if the action item is later deleted and restored.'"
+                    confirmLabel="Delete" [danger]="true"
+                    (confirmed)="onDeleteConfirmed($event)" />
+}

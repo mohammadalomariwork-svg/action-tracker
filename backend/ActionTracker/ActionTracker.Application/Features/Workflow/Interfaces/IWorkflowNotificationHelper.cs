@@ -10,4 +10,21 @@ public interface IWorkflowNotificationHelper
     Task NotifyStatusChangeReviewedAsync(ActionItem actionItem, ActionItemWorkflowRequest request);
     Task NotifyEscalationAsync(ActionItem actionItem, string escalatedByUserId, string reason);
     Task NotifyDirectionGivenAsync(ActionItem actionItem, string directorUserId, string directionText);
+
+    // ── Sub-items (WO-2026-11 A-2) ───────────────────────────────────────────
+    // Both load what they need by id, so they can run after the request ended.
+    // The actor is never notified; inactive users are skipped.
+
+    /// <summary>
+    /// In-app (+ SignalR) and e-mail (<c>ActionItem.SubItemAssigned</c>) to each
+    /// user in <paramref name="newAssigneeIds"/> except <paramref name="actorUserId"/>.
+    /// </summary>
+    Task NotifySubItemAssignedAsync(Guid subItemId, IReadOnlyCollection<string> newAssigneeIds, string actorUserId);
+
+    /// <summary>
+    /// In-app (+ SignalR) and e-mail (<c>ActionItem.SubItemCompleted</c>) to the
+    /// parent's creator, the parent's assignees and the sub-item's other
+    /// assignees, except <paramref name="actorUserId"/>.
+    /// </summary>
+    Task NotifySubItemCompletedAsync(Guid subItemId, string actorUserId);
 }

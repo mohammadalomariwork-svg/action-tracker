@@ -102,6 +102,21 @@ export class ActionItemService {
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/created-by-me`, { params });
   }
 
+  /**
+   * My Actions → "Assigned through a sub-item" (WO-2026-11 A-2): items where the
+   * current user is assigned to a sub-item but not to the item itself. Kept out
+   * of `getMyStats`, `getMyActions` and every dashboard count. Needs ActionItems.View.
+   */
+  getAssignedViaSubItems(filter: Pick<ActionItemFilter, 'pageNumber' | 'pageSize' | 'sortBy' | 'sortDescending'>):
+    Observable<ApiResponse<PagedResult<ActionItem>>> {
+    const params = new HttpParams()
+      .set('pageNumber', filter.pageNumber)
+      .set('pageSize', filter.pageSize)
+      .set('sortBy', filter.sortBy)
+      .set('sortDescending', filter.sortDescending);
+    return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/assigned-via-sub-items`, { params });
+  }
+
   /** Fetches every action item assigned to the current user (no pagination). */
   getAllMyActions(): Observable<ApiResponse<PagedResult<ActionItem>>> {
     const params = new HttpParams()

@@ -190,6 +190,34 @@ public static class EmailTemplateSeeder
                 CreatedAt = now,
             },
 
+            // ── Sub-item templates (WO-2026-11 A-2) ──────────────────────────
+            new()
+            {
+                Id          = new Guid("a1b2c3d4-0101-4000-8000-000000000101"),
+                TemplateKey = "ActionItem.SubItemAssigned",
+                Name        = "Sub-item Assigned",
+                Subject     = "You've been assigned a sub-item: {{SubItemTitle}} ({{ActionId}})",
+                Description = "Sent to users added to a sub-item of an action item (not to the person who added them).",
+                HtmlBody    = BuildSubItemBody(
+                    "You've Been Assigned a Sub-item",
+                    "<strong>{{ActorName}}</strong> assigned you to a sub-item of the following action item."),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+            new()
+            {
+                Id          = new Guid("a1b2c3d4-0102-4000-8000-000000000102"),
+                TemplateKey = "ActionItem.SubItemCompleted",
+                Name        = "Sub-item Completed",
+                Subject     = "Sub-item completed: {{SubItemTitle}} ({{ActionId}})",
+                Description = "Sent to the action item's creator and assignees and the sub-item's other assignees when a sub-item is marked done.",
+                HtmlBody    = BuildSubItemBody(
+                    "Sub-item Completed",
+                    "<strong>{{ActorName}}</strong> marked a sub-item of the following action item as done ({{DoneCount}} of {{TotalCount}} sub-items done)."),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+
             // ── Project templates ───────────────────────────────���────────────
             new()
             {
@@ -446,6 +474,23 @@ public static class EmailTemplateSeeder
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Project:</td><td style=\"padding: 8px;\">{{ProjectName}}</td></tr>" +
         "</table>" +
         "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Details</a>" +
+        "</div>";
+
+    private static string BuildSubItemBody(string heading, string intro) =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        $"<h2 style=\"color: #0F52BA;\">{heading}</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        $"<p>{intro}</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Sub-item:</td><td style=\"padding: 8px;\">{{SubItemTitle}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Sub-item start:</td><td style=\"padding: 8px;\">{{SubItemStartDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Sub-item end:</td><td style=\"padding: 8px;\">{{SubItemEndDate}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Action item:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Workspace:</td><td style=\"padding: 8px;\">{{WorkspaceName}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
         "</div>";
 
     private static string BuildEscalationBody() =>

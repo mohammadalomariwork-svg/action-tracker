@@ -75,6 +75,29 @@ public class ActionItemsController : ControllerBase
     }
 
     // -------------------------------------------------------------------------
+    // GET api/action-items/assigned-via-sub-items   (WO-2026-11 A-2)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// My Actions → "Assigned through a sub-item": action items where the
+    /// caller is assigned to a sub-item but not to the item itself. The user is
+    /// taken from the token. These items are not part of /my-stats, /my-actions
+    /// or any dashboard count, so every chart still equals its drill-down list.
+    /// Status / priority / search filters, paging and sorting apply.
+    /// </summary>
+    [HttpGet("assigned-via-sub-items")]
+    [Authorize(Policy = PermissionPolicies.ActionItemsView)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ActionItemResponseDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ApiResponse<PagedResult<ActionItemResponseDto>>>> GetAssignedViaSubItems(
+        [FromQuery] ActionItemFilterDto filter, CancellationToken ct)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        var result = await _service.GetAssignedViaSubItemsAsync(userId, filter, ct);
+        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+    }
+
+    // -------------------------------------------------------------------------
     // GET api/action-items/created-by-me
     // -------------------------------------------------------------------------
 

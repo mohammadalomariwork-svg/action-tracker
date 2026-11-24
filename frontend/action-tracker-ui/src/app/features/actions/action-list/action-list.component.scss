@@ -152,6 +152,18 @@ app-page-header {
   backdrop-filter: blur(16px);
 }
 
+// "Assigned through a sub-item" (WO-2026-11 A-2): heading with a note under it.
+.al-section-header--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.al-section-note {
+  color: var(--t2);
+  font-size: 12px;
+}
+
 // ── Filter bar / Toolbar — card wrapper ──────────────
 .toolbar {
   display: flex;

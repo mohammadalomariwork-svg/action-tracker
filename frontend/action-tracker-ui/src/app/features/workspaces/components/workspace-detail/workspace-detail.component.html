@@ -536,6 +536,7 @@
                       </td>
                       <td>
                         <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
+                        <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
                       </td>
                       <td>
                         @if (item.projectName) {
@@ -652,6 +653,7 @@
 
                   <!-- Title -->
                   <a class="wa-action-card__title text-decoration-none" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
+                  <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
 
                   <!-- Meta rows -->
                   <div class="wa-action-card__meta">

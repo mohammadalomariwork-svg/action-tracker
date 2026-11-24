@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.ActionItemSubItems;
 using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
@@ -502,6 +503,9 @@ public class ProjectService : IProjectService
             .ToListAsync(ct);
         foreach (var a in actionItems) a.IsDeleted = true;
 
+        // Their sub-items go with them (WO-2026-11 A-2, D2).
+        await ActionItemSubItemCascade.DeleteWithParentsAsync(_db, actionItems.Select(a => a.Id).ToList(), ct);
+
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
@@ -533,6 +537,9 @@ public class ProjectService : IProjectService
             .Where(a => a.ProjectId == id && a.IsDeleted)
             .ToListAsync(ct);
         foreach (var a in actionItems) a.IsDeleted = false;
+
+        // Only the sub-items deleted together with these items (WO-2026-11 A-2, D2).
+        await ActionItemSubItemCascade.RestoreWithParentsAsync(_db, actionItems.Select(a => a.Id).ToList(), ct);
 
         await _db.SaveChangesAsync(ct);
 

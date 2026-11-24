@@ -862,6 +862,12 @@
           </span>
         </div>
       }
+      @if (ganttTooltip.subItemCount) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Sub-items</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.subItemDoneCount ?? 0 }} of {{ ganttTooltip.subItemCount }} done</span>
+        </div>
+      }
       @if (ganttTooltip.progress != null) {
         <div class="gantt-tooltip__row">
           <span class="gantt-tooltip__label">Progress</span>

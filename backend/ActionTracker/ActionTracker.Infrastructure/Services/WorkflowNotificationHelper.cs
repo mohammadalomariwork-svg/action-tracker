@@ -259,6 +259,140 @@ public class WorkflowNotificationHelper : IWorkflowNotificationHelper
         }
     }
 
+    // ── Sub-items (WO-2026-11 A-2) ───────────────────────────────────────────
+
+    public const string SubItemAssignedTemplateKey  = "ActionItem.SubItemAssigned";
+    public const string SubItemCompletedTemplateKey = "ActionItem.SubItemCompleted";
+
+    public async Task NotifySubItemAssignedAsync(Guid subItemId, IReadOnlyCollection<string> newAssigneeIds, string actorUserId)
+    {
+        var subItem = await LoadSubItemAsync(subItemId);
+        if (subItem is null) return;
+
+        var recipientIds = newAssigneeIds
+            .Where(id => !string.IsNullOrWhiteSpace(id) && !string.Equals(id, actorUserId, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (recipientIds.Count == 0) return;
+
+        var actorName = await GetDisplayNameAsync(actorUserId);
+        var parent    = subItem.ActionItem;
+        var message   = $"{actorName} assigned you to the sub-item \"{subItem.Title}\" of {parent.ActionId}: {parent.Title}";
+
+        await SendSubItemNotificationsAsync(
+            subItem, recipientIds, actorUserId, actorName,
+            "Sub-item Assigned", message, "SubItemAssigned", SubItemAssignedTemplateKey);
+    }
+
+    public async Task NotifySubItemCompletedAsync(Guid subItemId, string actorUserId)
+    {
+        var subItem = await LoadSubItemAsync(subItemId);
+        if (subItem is null || !subItem.IsDone) return;
+
+        var parent = subItem.ActionItem;
+        var candidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(parent.CreatedByUserId)) candidates.Add(parent.CreatedByUserId);
+        candidates.AddRange(parent.Assignees.Select(a => a.UserId));
+        candidates.AddRange(subItem.Assignees.Select(a => a.UserId));
+
+        var recipientIds = candidates
+            .Where(id => !string.IsNullOrWhiteSpace(id) && !string.Equals(id, actorUserId, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (recipientIds.Count == 0) return;
+
+        var counts = await _db.ActionItemSubItems
+            .IgnoreQueryFilters()
+            .Where(s => s.ActionItemId == parent.Id && !s.IsDeleted)
+            .GroupBy(s => s.ActionItemId)
+            .Select(g => new { Total = g.Count(), Done = g.Count(s => s.IsDone) })
+            .FirstOrDefaultAsync();
+
+        var actorName = await GetDisplayNameAsync(actorUserId);
+        var progress  = counts is null ? string.Empty : $" ({counts.Done} of {counts.Total} done)";
+        var message   = $"{actorName} completed the sub-item \"{subItem.Title}\" of {parent.ActionId}: {parent.Title}{progress}";
+
+        await SendSubItemNotificationsAsync(
+            subItem, recipientIds, actorUserId, actorName,
+            "Sub-item Completed", message, "SubItemCompleted", SubItemCompletedTemplateKey,
+            new Dictionary<string, string>
+            {
+                ["DoneCount"]  = counts?.Done.ToString()  ?? "0",
+                ["TotalCount"] = counts?.Total.ToString() ?? "0",
+            });
+    }
+
+    /// <summary>
+    /// The sub-item with its parent and both assignee lists. Query filters are
+    /// bypassed because this runs after the request (no user context); it reads
+    /// only this sub-item's own parent, and a deleted one sends nothing.
+    /// </summary>
+    private async Task<ActionItemSubItem?> LoadSubItemAsync(Guid subItemId)
+    {
+        var subItem = await _db.ActionItemSubItems
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(s => s.Assignees)
+            .Include(s => s.ActionItem).ThenInclude(a => a.Assignees)
+            .Include(s => s.ActionItem).ThenInclude(a => a.Workspace)
+            .FirstOrDefaultAsync(s => s.Id == subItemId);
+
+        return subItem is null || subItem.IsDeleted || subItem.ActionItem.IsDeleted ? null : subItem;
+    }
+
+    private async Task<string> GetDisplayNameAsync(string userId)
+    {
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return "Someone";
+        return !string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName! : user.FullName;
+    }
+
+    private async Task SendSubItemNotificationsAsync(
+        ActionItemSubItem subItem,
+        IReadOnlyCollection<string> recipientIds,
+        string actorUserId,
+        string actorName,
+        string title,
+        string message,
+        string actionType,
+        string templateKey,
+        Dictionary<string, string>? extraPlaceholders = null)
+    {
+        var parent = subItem.ActionItem;
+        var url    = $"/actions/{parent.Id}/view";
+
+        var recipients = await _db.Users.AsNoTracking()
+            .Where(u => recipientIds.Contains(u.Id) && u.IsActive)
+            .ToListAsync();
+
+        var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var user in recipients)
+        {
+            await CreateInAppNotificationAsync(
+                user.Id, title, message, actionType, parent, actorUserId, actorName, url, type: "ActionItem");
+
+            if (string.IsNullOrEmpty(user.Email) || !notifiedEmails.Add(user.Email)) continue;
+
+            var placeholders = new Dictionary<string, string>
+            {
+                ["ActionId"]         = parent.ActionId,
+                ["Title"]            = parent.Title,
+                ["SubItemTitle"]     = subItem.Title,
+                ["SubItemStartDate"] = subItem.StartDate?.ToString("yyyy-MM-dd") ?? "—",
+                ["SubItemEndDate"]   = subItem.EndDate.ToString("yyyy-MM-dd"),
+                ["ActorName"]        = actorName,
+                ["RecipientName"]    = !string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName! : user.FullName,
+                ["WorkspaceName"]    = parent.Workspace?.Title ?? string.Empty,
+                ["ItemUrl"]          = $"{_appSettings.FrontendBaseUrl}{url}",
+            };
+            if (extraPlaceholders != null)
+                foreach (var (key, value) in extraPlaceholders)
+                    placeholders[key] = value;
+
+            await SendEmailSafeAsync(templateKey, placeholders, user.Email, parent, actorUserId);
+        }
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private async Task<List<(string? UserId, string Email, string DisplayName)>> GetManagersOfAssigneesAsync(ActionItem actionItem)
@@ -392,14 +526,15 @@ public class WorkflowNotificationHelper : IWorkflowNotificationHelper
         ActionItem actionItem,
         string? createdByUserId,
         string? createdByDisplayName,
-        string url)
+        string url,
+        string type = "Workflow")
     {
         var dto = new CreateNotificationDto
         {
             UserId = userId,
             Title = title,
             Message = message,
-            Type = "Workflow",
+            Type = type,
             ActionType = actionType,
             RelatedEntityType = "ActionItem",
             RelatedEntityId = actionItem.Id,

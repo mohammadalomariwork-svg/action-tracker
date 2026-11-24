@@ -36,11 +36,13 @@ import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
 } from '../../../../shared/utils/actual-dates.util';
 import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload.util';
+import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
   imports: [
+    SubItemCountComponent,
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective,
     WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
   ],

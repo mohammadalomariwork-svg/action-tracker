@@ -509,6 +509,97 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ActionItemEscalations", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemSubItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<Guid>("ActionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("DeletedWithParent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DoneAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DoneByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDone")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoneByUserId");
+
+                    b.HasIndex("ActionItemId", "SortOrder");
+
+                    b.ToTable("ActionItemSubItems", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemSubItemAssignee", b =>
+                {
+                    b.Property<Guid>("SubItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("SubItemId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ActionItemSubItemAssignees", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemWorkflowRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3104,6 +3195,43 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("EscalatedByUser");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemSubItem", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
+                        .WithMany("SubItems")
+                        .HasForeignKey("ActionItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "DoneByUser")
+                        .WithMany()
+                        .HasForeignKey("DoneByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ActionItem");
+
+                    b.Navigation("DoneByUser");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemSubItemAssignee", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItemSubItem", "SubItem")
+                        .WithMany("Assignees")
+                        .HasForeignKey("SubItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SubItem");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemWorkflowRequest", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
@@ -3515,7 +3643,14 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
                     b.Navigation("Escalations");
 
+                    b.Navigation("SubItems");
+
                     b.Navigation("WorkflowRequests");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemSubItem", b =>
+                {
+                    b.Navigation("Assignees");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>

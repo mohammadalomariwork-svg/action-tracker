@@ -29,12 +29,14 @@ import {
   AssignableUser, ActionItem, ActionItemCreate, ActionStatus, ActionPriority,
 } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
+import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
 
 @Component({
   selector: 'app-milestone-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent],
+  imports: [CommonModule, FormsModule, RouterLink, HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent,
+            SubItemCountComponent],
   templateUrl: './milestone-section.component.html',
   styleUrl: './milestone-section.component.scss',
 })

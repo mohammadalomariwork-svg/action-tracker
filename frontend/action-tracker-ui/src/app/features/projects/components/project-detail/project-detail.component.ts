@@ -103,6 +103,9 @@ export class ProjectDetailComponent implements OnInit {
     assignees?: string[];
     /** Action items only (WO-2026-11 A-1). */
     actualStartDate?: string | null;
+    /** Action items only (WO-2026-11 A-2): sub-items, shown as "x of y done". */
+    subItemCount?: number;
+    subItemDoneCount?: number;
     actualEndDate?: string | null;
     varianceDays?: number | null;
     x: number;
@@ -751,6 +754,8 @@ export class ProjectDetailComponent implements OnInit {
       actualStartDate: action.actualStartDate,
       actualEndDate: action.actualEndDate,
       varianceDays: action.actualEndVarianceDays,
+      subItemCount: action.subItemCount,
+      subItemDoneCount: action.subItemDoneCount,
     };
   }
 

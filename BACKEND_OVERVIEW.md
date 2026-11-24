@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-24 (Action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-24 (Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (not applied to production yet). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -89,7 +89,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
-## API Controllers & Endpoints (23 Controllers)
+## API Controllers & Endpoints (24 Controllers)
 
 ### AuthController (`/api/auth`)
 | Method | Endpoint | Description |
@@ -104,19 +104,24 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 |--------|----------|-------------|
 | GET | `/` | Paginated action items (filtered, org-unit scoped). Dashboard drill-down filters: `openOnly`, `overdueOnly`, `isEscalated`, `dueBucket`, `ageBucket` (definitions in `ActionItemRules`; an unknown bucket key is ignored) |
 | GET | `/my-actions` | Items assigned to current user |
+| GET | `/assigned-via-sub-items` | WO-2026-11 A-2. Items where the caller is assigned to a live sub-item but **not** to the item itself (My Actions → "Assigned through a sub-item"). User taken from the token; status / priority / search filters, paging and sorting apply; assignee / creator / include-deleted / scope fields of the filter are ignored. Each row adds `mySubItemCount`. Not part of `/my-stats`, `/my-actions` or any dashboard count. Requires `ActionItems.View` |
 | GET | `/created-by-me` | Items created by current user |
 | GET | `/my-stats` | Stats for user's assigned items (total, critical, in-progress, completed, overdue) |
 | GET | `/{id}` | Single action item by GUID |
 | POST | `/` | Create action item (auto-generates ActionId ACT-001). Requires `ActionItems.Create` (WO-2026-11 A-1b). `isStandalone` in the body is ignored — the flag is true exactly when no `projectId` is given (see "Standalone flag" below). Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the reason comes back as `ApiResponse.message` |
 | PUT | `/{id}` | Update action item. Requires `ActionItems.Edit` (WO-2026-11 A-1b). `isStandalone` in the body is ignored — the flag changes only when the save changes `projectId` (see "Standalone flag" below). `startDate` / `dueDate` are the planned start / planned end. Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) — for a standalone item the check runs before the date edit is turned into a date-change request. Actual dates (WO-2026-11 A-1, see "Actual dates" below): `actualStartDate`, `clearActualStartDate`, `actualEndDate` — 400 with the reason as `ApiResponse.message` when one is refused (every `ArgumentException` is now returned that way). A Done item accepts a payload that carries only actual dates; anything else is 422 "Completed action items cannot be edited." |
 | PATCH | `/{id}/status` | Update status (Done sets Progress=100%; records / clears actual dates — WO-2026-11 A-1). Requires `ActionItems.Edit` (A-1b) |
-| DELETE | `/{id}` | Soft delete (requires ActionItems.Delete) |
-| PATCH | `/{id}/restore` | Restore soft-deleted item (requires ActionItems.Edit) |
+| DELETE | `/{id}` | Soft delete (requires ActionItems.Delete). Its live sub-items are soft-deleted with it and marked `DeletedWithParent` (WO-2026-11 A-2) |
+| PATCH | `/{id}/restore` | Restore soft-deleted item (requires ActionItems.Edit). Restores exactly the sub-items deleted with it; a sub-item deleted on its own stays deleted (A-2) |
 | POST | `/process-overdue` | Mark past-due items as Overdue (`Roles = "Admin"` — a role check, not a permission policy) |
 | GET | `/{id}/comments` | Get comments for action item |
 | POST | `/{id}/comments` | Add comment (no permission policy; to be covered by A-3) |
 | PUT | `/{actionItemId}/comments/{commentId}` | Update comment (no permission policy; author only, checked in the service) |
 | DELETE | `/{actionItemId}/comments/{commentId}` | Delete comment (no permission policy; author only, checked in the service) |
+
+Every action-item response (list, single, create, update) carries `subItemCount` and
+`subItemDoneCount` (live sub-items, through the sub-item query filters; one grouped query per
+page). They are display only: no count, stat or dashboard figure includes sub-items (A-2).
 
 Every endpoint needs a signed-in user (controller-level `[Authorize]`). A user without the policy
 named above gets 403. Since A-1b the create / edit / status writes carry a policy; the comment
@@ -169,8 +174,8 @@ endpoints, and `POST` / `DELETE /api/documents` for action items, still do not (
 | PUT | `/{id}` | Update project. Changed planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the actual start date is not checked |
 | GET | `/{id}/stats` | Project statistics (milestones, action items, rates) |
 | GET | `/strategic-objectives-for-workspace/{workspaceId}` | Objectives for workspace |
-| DELETE | `/{id}` | Soft delete (cascades to milestones/items) |
-| PATCH | `/{id}/restore` | Restore project |
+| DELETE | `/{id}` | Soft delete (cascades to milestones/items, and to the items' sub-items — WO-2026-11 A-2) |
+| PATCH | `/{id}/restore` | Restore project (its items' sub-items deleted with them come back too — A-2) |
 
 ### MilestonesController (`/api/projects/{projectId}/milestones`)
 | Method | Endpoint | Description |
@@ -547,6 +552,52 @@ Controller error mapping for KPIs and Strategic Objectives: `UnauthorizedAccessE
 |--------|----------|-------------|
 | GET | `/me` | Current user's employee profile from KU directory |
 
+### ActionItemSubItemsController (`/api/action-items/{actionItemId}/sub-items`) — WO-2026-11 A-2
+| Method | Endpoint | Policy | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | `ActionItems.View` | `{ actionItemId, parentStartDate, parentDueDate, parentAcceptsChanges, totalCount, doneCount, items[] }`, items by `sortOrder`. Each item: title, description, start / end, sortOrder, isDone, doneAt, doneBy*, assignees, `isOutsideParentDates` |
+| POST | `/` | `ActionItems.Edit` | Add at the end. Body `{ title, description?, startDate?, endDate, assigneeIds[] }` (dates `yyyy-MM-dd`). 201 with the sub-item |
+| PUT | `/{subItemId}` | `ActionItems.Edit` | Replace title, description, dates and the whole assignee list |
+| DELETE | `/{subItemId}` | `ActionItems.Edit` | Soft delete; the remaining order is re-densified. It stays deleted when the parent is later deleted and restored |
+| PATCH | `/{subItemId}/done` | signed in, then `ActionItems.Edit` **or** assigned to that sub-item (else 403) | Body `{ isDone }`. Sets / clears `DoneAt` + `DoneByUserId`. The parent's `Progress` is not recalculated (Q10) |
+| PUT | `/reorder` | `ActionItems.Edit` | Body `{ subItemIds[] }` — every live sub-item once, in the new order |
+
+**Status codes:** 404 when the caller cannot open the parent (deleted, or a private workspace the caller
+is not part of) or the sub-item is not the parent's; 409 (`SubItemParentLockedException`) for any
+write while the parent is Done or Cancelled; 400 with the reason in `message` for a rule failure
+(controller-level catch, so the text survives the Production exception middleware); FluentValidation
+400 for field rules (title required ≤ 255, description ≤ 5000, end required, assignee ids non-empty,
+reorder ids unique). Visibility is the same as `GET /api/action-items/{id}` (query filters only; no
+`IWorkspaceAccessResolver` check, because project managers are in the assignee pool but not in that resolver).
+
+**Rules** (`ActionItemSubItemService`, pure parts in `ActionItemSubItemRules`; the client copy is
+`shared/utils/sub-item-dates.util.ts` — change both together):
+- One level only (a sub-item has no sub-items). `StartDate` optional, `EndDate` required, both stored as calendar days.
+- Dates within the parent's planned dates: end ≥ start; neither date after the parent's planned end; neither before the
+  parent's planned start when it has one. Checked on create, and on update only when a date changes (both dates then) —
+  a sub-item left outside by a later change of the parent's dates still accepts other edits and ticking.
+- Working-day rule (C-3): `EnsureWorkingDaysAsync(parent.WorkspaceId, …)` with fields "Sub-item start" / "Sub-item end";
+  only created or changed dates.
+- Assignees: users **being added** must be in `IWorkspaceService.GetAssignableUsersAsync(parent.WorkspaceId)` (active
+  admins, members and PMs — the parent's picker pool); someone already assigned who left that pool may stay. An empty list is allowed.
+- No add / change / tick / reorder / delete while the parent is Done or Cancelled (409). Sub-items are not frozen by the
+  project date freeze and never go through the approval workflows; a parent date change is never blocked by its sub-items.
+- Notifications (fire-and-forget in a new scope, never failing the save) through `IWorkflowNotificationHelper`:
+  `NotifySubItemAssignedAsync` to users newly added, `NotifySubItemCompletedAsync` when ticked done (not when unticked)
+  to the parent's creator, the parent's assignees and the sub-item's other assignees. The actor is never notified;
+  inactive users are skipped. In-app type `ActionItem`, action types `SubItemAssigned` / `SubItemCompleted`, link
+  `/actions/{parentId}/view`; e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`.
+
+**Delete / restore with the parent** (`ActionItemSubItemCascade`, decision D2): `ActionItemService.DeleteAsync` and
+`ProjectService.DeleteAsync` soft-delete the live sub-items of the deleted items with `DeletedWithParent = true`; the two
+restore paths restore exactly those and clear the flag.
+
+**Private workspaces:** `ActionItemSubItem` and `ActionItemSubItemAssignee` have query filters that repeat the
+`ActionItem` rule through the parent (not deleted; parent not deleted; parent's workspace not private, or the user is one
+of its admins / members). The cascade queries use `IgnoreQueryFilters()` and re-apply the rule with
+`WhereWorkspaceVisibleTo` (new `IQueryable<ActionItemSubItem>` overload). The notification helper reads one sub-item by id
+with `IgnoreQueryFilters()` because it runs after the request.
+
 ### ActionItemWorkflowController (`/api/action-items/workflow`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -620,7 +671,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 
 ---
 
-## Database Entities (26 Entities)
+## Database Entities (28 Entities)
 
 ### Core Entities
 
@@ -647,7 +698,37 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | CreatedAt | DateTime | UTC creation timestamp |
 | UpdatedAt | DateTime | UTC last update timestamp |
 | IsDeleted | bool | Soft delete flag |
-| **Nav:** | | Workspace, Project, Milestone, Assignees, Escalations, Comments |
+| **Nav:** | | Workspace, Project, Milestone, Assignees, Escalations, Comments, SubItems (A-2) |
+
+#### ActionItemSubItem (`ActionItemSubItems`) — WO-2026-11 A-2
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | `NEWID()` |
+| ActionItemId | Guid (FK → ActionItems, cascade) | Parent action item |
+| Title | string(255) | Required |
+| Description | string? (≤ 5000, `nvarchar(max)`) | Optional |
+| StartDate | DateTime? | Optional calendar day |
+| EndDate | DateTime | Required calendar day |
+| SortOrder | int | 1-based, dense within the parent |
+| IsDone | bool | Default false |
+| DoneAt | DateTime? | UTC time it was ticked; cleared when unticked |
+| DoneByUserId | string(450)? (FK → AspNetUsers, Restrict) | Who ticked it |
+| CreatedAt / CreatedByUserId / UpdatedAt / UpdatedByUserId | audit | |
+| IsDeleted | bool | Soft delete (query filter, incl. the private-workspace rule through the parent) |
+| DeletedWithParent | bool | True when deleted because the parent (or its project) was deleted; restoring the parent restores exactly these |
+| **Index:** | | `(ActionItemId, SortOrder)`, `DoneByUserId` |
+
+#### ActionItemSubItemAssignee (`ActionItemSubItemAssignees`) — A-2
+| Field | Type | Description |
+|-------|------|-------------|
+| SubItemId | Guid (PK, FK → ActionItemSubItems, cascade) | |
+| UserId | string(450) (PK, FK → AspNetUsers, Restrict) | Indexed (My Actions query) |
+
+Migration `Add_ActionItemSubItems` (2026-11-24): creates the two tables, their FKs and indexes; no existing column
+touched, no backfill; `Down()` drops the two tables. Verified on throwaway LocalDB databases (empty, and one holding
+production-like rows migrated from `Add_ActionItem_ActualDates`: schema, indexes, FKs, row counts and checksums of all 47
+existing tables identical before and after; `Down()` back to the previous migration leaves them identical too).
+**Not applied to production** — and the API runs `MigrateAsync` at startup, so starting it with this code applies it.
 
 #### Project
 | Field | Type | Description |
@@ -1022,6 +1103,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 |--------|---------|
 | ActionItemAssignee | Junction table: ActionItem <-> User (multi-assignee) |
 | ActionItemComment | Action-item-specific comments |
+| ActionItemSubItem / ActionItemSubItemAssignee | Sub-items of an action item and their assignees (WO-2026-11 A-2) — see above |
 | ActionItemEscalation | Escalation tracking for overdue items |
 | ActionItemWorkflowRequest | Date change and status change approval requests (pending/approved/rejected) |
 | ProjectApprovalRequest | Project start-approval requests — `Status` (Pending/Approved/Rejected) plus `AssignedReviewerUserId`/`Level`/`TotalLevels` for the workspace-chain sequential workflow. Strategic projects: one Pending row at level 1, advances on each Approve. Operational projects: one self-approved row stamped "Auto-approved: operational project (PM authority)" with `Level=TotalLevels=1`. |
@@ -1098,13 +1180,16 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | `ActionItemActualDates` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1 rule: `Resolve(previous, requested, resulting, current…, supplied…, today)` returns the actual start / end an item keeps after a save and throws `ArgumentException` for a refused value; `ApplyStatusChange(item, previous, requested, today)`; `Today(timeZoneId, utcNow)` / `TodayForWorkspaceAsync(calendars, workspaceId)` — the calendar day in the workspace calendar's time zone, UTC without a calendar |
 | `ActionItemStandalone` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1b rule: `ForProject(projectId)` (create) and `AfterUpdate(stored, previousProjectId, newProjectId)` (update) — `IsStandalone` follows the project link and changes only when a save changes it; the client's value is ignored |
 | `IActionItemWorkflowService` | Date change requests, status change requests, review/approve/reject, escalation handling, direction giving, pending summary. An approved status change applies the actual-date rule (A-1); the workflow itself is unchanged |
-| `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication |
+| `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication. WO-2026-11 A-2 added `NotifySubItemAssignedAsync(subItemId, newAssigneeIds, actorUserId)` and `NotifySubItemCompletedAsync(subItemId, actorUserId)` — their first callers (the action-item workflow service sends its own notifications); they load by id, skip the actor and inactive users, and use the seeded `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted` templates. (The older helper methods use e-mail keys such as `WorkflowDateChangeRequested` that the seeder never created, so those e-mails are skipped as "template not found" — unchanged.) |
+| `IActionItemSubItemService` | WO-2026-11 A-2. List / create / update / delete / tick / reorder sub-items with the rules above. Implementation `Application/Features/ActionItemSubItems/Services/ActionItemSubItemService.cs` |
+| `ActionItemSubItemRules` (static) | A-2 pure rules: `DateRangeProblem`, `IsOutsideParentDates`, `ParentAcceptsChanges` (not Done / Cancelled), `SameDay`, `ToStoredDay`. Client copy: `sub-item-dates.util.ts` |
+| `ActionItemSubItemCascade` (static) | A-2: `DeleteWithParentsAsync` / `RestoreWithParentsAsync` — used by `ActionItemService` and `ProjectService`; tracked changes only, the caller saves |
 | `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
 | `IMilestoneService` | CRUD per project, stats, baselining |
 | `IProjectRiskService` | CRUD per project, risk stats, scoring |
 | `IWorkspaceService` | CRUD, summary stats, admin assignment, **member CRUD (add/remove/list)**, **strategic-plan link/unlink**, enriched active-users + strategic-plans dropdowns |
 | `IWorkspaceAccessResolver` | Returns the set of workspace IDs visible to a user; `null` means unrestricted (Admin / PMO Head / PMO Analyst). Drives workspace + project + action-item list filtering. Private workspaces are additionally hidden from non-members by the global query filters, even for unrestricted roles. |
-| `ICurrentUserService` | Request user id from `ClaimTypes.NameIdentifier` (`null` outside HTTP requests). Injected into `AppDbContext` and exposed as `IAppDbContext.CurrentUserId`; drives the private-workspace query filters on `Workspace`, `Project`, `Milestone`, `ActionItem` and `ProjectRisk` (combined with their soft-delete filters). `null` = system context, unrestricted. Queries that call `IgnoreQueryFilters()` (include-deleted lists, restores) re-apply the rule via `PrivateWorkspaceQueryExtensions.WhereWorkspaceVisibleTo(userId)` |
+| `ICurrentUserService` | Request user id from `ClaimTypes.NameIdentifier` (`null` outside HTTP requests). Injected into `AppDbContext` and exposed as `IAppDbContext.CurrentUserId`; drives the private-workspace query filters on `Workspace`, `Project`, `Milestone`, `ActionItem`, `ProjectRisk`, `ActionItemSubItem` and `ActionItemSubItemAssignee` (combined with their soft-delete filters). `null` = system context, unrestricted. Queries that call `IgnoreQueryFilters()` (include-deleted lists, restores) re-apply the rule via `PrivateWorkspaceQueryExtensions.WhereWorkspaceVisibleTo(userId)` |
 | `IDashboardService` | KPI metrics, management dashboard, team workload |
 | `IDashboardAnalyticsService` | Scoped aggregations for the Overview, Action Items, Projects and Strategy dashboards (`GetMyActionsAsync`, `GetTeamActivityAsync`, `GetActionItemsAsync`, `GetProjectsAsync`, `GetStrategyAsync`) |
 | `INotificationService` | CRUD notifications, read/unread tracking, summary |
@@ -1175,7 +1260,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 2. **RoleSeeder** — seeds the 10 application roles (Admin, Workspace Admin, PMO Head, PMO Analyst, Project Sponsor, Project Manager, Project Coordinator, Team Member, Strategy Editor, Viewer); idempotent. Also deletes deprecated **Manager** and **User** roles when they are still present
 3. **PermissionCatalogSeeder** — seeds permission areas, actions, area-action mappings
 4. **DefaultRolePermissionsSeeder** — seeds default permissions for each role (idempotent — only inserts keys with no row at all, soft-deleted rows included, so grants removed in the role UI stay removed; covered by `DefaultRolePermissionsSeederTests`). Team Member → ActionItems View / Create / Edit (Create since A-1b). Includes the Strategy Editor permission set (View/Create/Edit/Delete on Strategic Objectives + KPIs, View on Dashboard / OrgChart / Notifications)
-5. **EmailTemplateSeeder** — seeds / refreshes the email templates
+5. **EmailTemplateSeeder** — seeds / refreshes the email templates (31 since A-2: `ActionItem.SubItemAssigned` and `ActionItem.SubItemCompleted` added). Behaviour (unchanged, pinned by `EmailTemplateSeederTests`): when every seeded key already exists (any state, soft-deleted included) it writes nothing. When at least one key is missing it inserts the missing templates **and**, in the same save, overwrites `Subject` and `HtmlBody` of every existing template (soft-deleted included) whose `HtmlBody` differs from the seed — an edit made in the Email Templates screen is lost at that startup; an edit to the subject alone is kept. So the first start after A-2 runs the overwrite pass. Production's 29 templates were byte-identical to the seed on 2026-11-24 (read-only hash comparison), so that start inserts the two new rows and changes nothing else — unless a template is edited before it
 6. **WorkCalendarSeeder** — inserts the default calendar "KU Standard" (Monday–Friday 08:00–17:00, Saturday–Sunday off, `Asia/Dubai`) when no calendar exists, so it runs once on a clean database and once on an existing database after `Add_WorkCalendars`; promotes the oldest active calendar if calendars exist but none is the default. Idempotent
 7. **AdminBootstrapSeeder** — seeds the bootstrap admin user
 
@@ -1208,6 +1293,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Working Calendars | Date maths goes through `IWorkCalendarService` → `ResolvedWorkCalendar` (pure, cached) rather than ad-hoc weekend checks; one default calendar is guaranteed by a filtered unique index plus the startup seeder |
 | Planned vs actual dates | `StartDate` / `DueDate` stay the planned dates (freeze, date requests, working-day rule, filters and `DashboardRules` depend on them); `ActualStartDate` / `ActualEndDate` are recorded facts outside all three date rules, maintained by one shared rule (`ActionItemActualDates`) on every status path |
 | Standalone flag is derived | `ActionItem.IsStandalone` is set by the server from `ProjectId` (`ActionItemStandalone`), never from the client, so a client cannot detach an item from its project by accident (WO-2026-11 A-1b) |
+| Sub-items are not action items | `ActionItemSubItem` lives in its own table with its own assignee table, so `DashboardRules`, `/my-stats`, `/my-actions`, reports and every assignee-based count stay as they were; a user assigned only to a sub-item gets a separate My Actions list (WO-2026-11 A-2) |
 
 ---
 

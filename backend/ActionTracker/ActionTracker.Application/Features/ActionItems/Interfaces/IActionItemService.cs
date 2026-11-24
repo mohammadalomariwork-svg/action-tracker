@@ -7,6 +7,16 @@ namespace ActionTracker.Application.Features.ActionItems.Interfaces;
 public interface IActionItemService
 {
     Task<PagedResult<ActionItemResponseDto>> GetAllAsync(ActionItemFilterDto filter, CancellationToken ct);
+
+    /// <summary>
+    /// My Actions → "Assigned through a sub-item" (WO-2026-11 A-2): live items
+    /// where <paramref name="userId"/> is assigned to a live sub-item but not to
+    /// the item itself. Not part of <see cref="GetMyStatsAsync"/> or any
+    /// dashboard count. Paging, sorting and the status / priority / search
+    /// filters of <paramref name="filter"/> apply; its assignee, creator,
+    /// include-deleted and scope fields are ignored.
+    /// </summary>
+    Task<PagedResult<ActionItemResponseDto>> GetAssignedViaSubItemsAsync(string userId, ActionItemFilterDto filter, CancellationToken ct);
     Task<ActionItemResponseDto?>             GetByIdAsync(Guid id, CancellationToken ct);
     Task<ActionItemResponseDto>              CreateAsync(ActionItemCreateDto dto, string createdByUserId, CancellationToken ct);
     Task<ActionItemResponseDto>              UpdateAsync(Guid id, ActionItemUpdateDto dto, string updatedByUserId, CancellationToken ct);

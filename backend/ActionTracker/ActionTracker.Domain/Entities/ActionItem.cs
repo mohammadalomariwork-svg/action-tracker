@@ -76,6 +76,9 @@ public class ActionItem
     public ICollection<ActionItemComment> Comments { get; set; } = new List<ActionItemComment>();
     public ICollection<ActionItemWorkflowRequest> WorkflowRequests { get; set; } = new List<ActionItemWorkflowRequest>();
 
+    /// <summary>Sub-items (WO-2026-11 A-2). Never counted as action items.</summary>
+    public ICollection<ActionItemSubItem> SubItems { get; set; } = new List<ActionItemSubItem>();
+
     /// <summary>
     /// Planned dates are locked once the action item has been created (Id != Guid.Empty).
     /// Changes require a workflow request. Actual dates are not locked.

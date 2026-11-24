@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItems.DTOs;
+using ActionTracker.Application.Features.ActionItemSubItems;
 using ActionTracker.Application.Features.Dashboard;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.ActionItems.Mappers;
@@ -52,8 +53,33 @@ public class ActionItemService : IActionItemService
     // Query
     // -------------------------------------------------------------------------
 
-    public async Task<PagedResult<ActionItemResponseDto>> GetAllAsync(
+    public Task<PagedResult<ActionItemResponseDto>> GetAllAsync(
         ActionItemFilterDto filter, CancellationToken ct)
+        => QueryAsync(filter, subItemOnlyAssigneeId: null, ct);
+
+    /// <inheritdoc />
+    public Task<PagedResult<ActionItemResponseDto>> GetAssignedViaSubItemsAsync(
+        string userId, ActionItemFilterDto filter, CancellationToken ct)
+    {
+        // Fixed server-side: the caller's own sub-item assignments, live items
+        // only, in every workspace (like /my-actions; the private-workspace
+        // query filters still apply).
+        filter.AssigneeId          = string.Empty;
+        filter.CreatedById         = string.Empty;
+        filter.IncludeDeleted      = false;
+        filter.VisibleOrgUnitIds   = null;
+        filter.VisibleWorkspaceIds = null;
+        return QueryAsync(filter, subItemOnlyAssigneeId: userId, ct);
+    }
+
+    /// <summary>
+    /// The action-item list query. <paramref name="subItemOnlyAssigneeId"/>
+    /// (WO-2026-11 A-2, set only by <see cref="GetAssignedViaSubItemsAsync"/>)
+    /// keeps the items where that user is assigned to a live sub-item and is
+    /// not an assignee of the item itself.
+    /// </summary>
+    private async Task<PagedResult<ActionItemResponseDto>> QueryAsync(
+        ActionItemFilterDto filter, string? subItemOnlyAssigneeId, CancellationToken ct)
     {
         var query = _dbContext.ActionItems
             .Include(a => a.Workspace)
@@ -91,6 +117,14 @@ public class ActionItemService : IActionItemService
 
         if (!string.IsNullOrWhiteSpace(filter.CreatedById))
             query = query.Where(a => a.CreatedByUserId == filter.CreatedById);
+
+        if (!string.IsNullOrWhiteSpace(subItemOnlyAssigneeId))
+        {
+            var uid = subItemOnlyAssigneeId;
+            query = query.Where(a =>
+                a.SubItems.Any(s => !s.IsDeleted && s.Assignees.Any(x => x.UserId == uid))
+                && !a.Assignees.Any(x => x.UserId == uid));
+        }
 
         // Dashboard drill-down filters — same rules the dashboards count by
         var today = DateTime.UtcNow.Date;
@@ -160,9 +194,12 @@ public class ActionItemService : IActionItemService
             "GetAllAsync returned {Count}/{Total} action items (page {Page})",
             paged.Items.Count, paged.TotalCount, paged.PageNumber);
 
+        var items = paged.Items.Select(ActionItemMapper.ToDto).ToList();
+        await FillSubItemCountsAsync(items, subItemOnlyAssigneeId, ct);
+
         return new PagedResult<ActionItemResponseDto>
         {
-            Items      = paged.Items.Select(ActionItemMapper.ToDto).ToList(),
+            Items      = items,
             TotalCount = paged.TotalCount,
             PageNumber = paged.PageNumber,
             PageSize   = paged.PageSize,
@@ -180,7 +217,54 @@ public class ActionItemService : IActionItemService
             .Include(a => a.Comments).ThenInclude(c => c.Author)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
-        return item is null ? null : ActionItemMapper.ToDto(item);
+        if (item is null) return null;
+        var dto = ActionItemMapper.ToDto(item);
+        await FillSubItemCountsAsync(new[] { dto }, null, ct);
+        return dto;
+    }
+
+    /// <summary>
+    /// "x of y done" (WO-2026-11 A-2): one grouped query for the given items,
+    /// through the sub-item query filters (live, visible sub-items only). With
+    /// <paramref name="myUserId"/> also counts that user's sub-items.
+    /// </summary>
+    private async Task FillSubItemCountsAsync(
+        IReadOnlyCollection<ActionItemResponseDto> items, string? myUserId, CancellationToken ct)
+    {
+        if (items.Count == 0) return;
+        var ids = items.Select(i => i.Id).ToList();
+
+        var counts = await _dbContext.ActionItemSubItems
+            .Where(s => ids.Contains(s.ActionItemId))
+            .GroupBy(s => s.ActionItemId)
+            .Select(g => new
+            {
+                ActionItemId = g.Key,
+                Total        = g.Count(),
+                Done         = g.Count(s => s.IsDone),
+            })
+            .ToDictionaryAsync(c => c.ActionItemId, ct);
+
+        Dictionary<Guid, int>? mine = null;
+        if (!string.IsNullOrWhiteSpace(myUserId))
+        {
+            mine = await _dbContext.ActionItemSubItemAssignees
+                .Where(a => a.UserId == myUserId && ids.Contains(a.SubItem.ActionItemId))
+                .GroupBy(a => a.SubItem.ActionItemId)
+                .Select(g => new { ActionItemId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(c => c.ActionItemId, c => c.Count, ct);
+        }
+
+        foreach (var dto in items)
+        {
+            if (counts.TryGetValue(dto.Id, out var c))
+            {
+                dto.SubItemCount     = c.Total;
+                dto.SubItemDoneCount = c.Done;
+            }
+            if (mine != null)
+                dto.MySubItemCount = mine.TryGetValue(dto.Id, out var m) ? m : 0;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -602,7 +686,9 @@ public class ActionItemService : IActionItemService
             });
         }
 
-        return ActionItemMapper.ToDto(updated);
+        var updatedDto = ActionItemMapper.ToDto(updated);
+        await FillSubItemCountsAsync(new[] { updatedDto }, null, ct);
+        return updatedDto;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
@@ -622,9 +708,11 @@ public class ActionItemService : IActionItemService
         }
 
         item.IsDeleted = true;
+        // Sub-items go with their parent and come back with it (WO-2026-11 A-2, D2).
+        var subItemCount = await ActionItemSubItemCascade.DeleteWithParentsAsync(_dbContext, new[] { id }, ct);
         await _dbContext.SaveChangesAsync(ct);
 
-        _logger.LogInformation("ActionItem {Id} soft-deleted", id);
+        _logger.LogInformation("ActionItem {Id} soft-deleted with {SubItemCount} sub-items", id, subItemCount);
     }
 
     public async Task RestoreAsync(Guid id, CancellationToken ct)
@@ -643,9 +731,11 @@ public class ActionItemService : IActionItemService
             throw new InvalidOperationException("Cannot restore this action item because its parent project is deleted. Restore the project first.");
 
         item.IsDeleted = false;
+        // Only the sub-items deleted together with this item (WO-2026-11 A-2, D2).
+        var subItemCount = await ActionItemSubItemCascade.RestoreWithParentsAsync(_dbContext, new[] { id }, ct);
         await _dbContext.SaveChangesAsync(ct);
 
-        _logger.LogInformation("ActionItem {Id} restored", id);
+        _logger.LogInformation("ActionItem {Id} restored with {SubItemCount} sub-items", id, subItemCount);
     }
 
     public async Task UpdateStatusAsync(Guid id, ActionStatus newStatus, CancellationToken ct)

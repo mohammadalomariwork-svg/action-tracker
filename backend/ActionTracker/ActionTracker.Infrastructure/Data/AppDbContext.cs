@@ -38,6 +38,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<ActionItemAssignee>   ActionItemAssignees   => Set<ActionItemAssignee>();
     public DbSet<ActionItemEscalation> ActionItemEscalations => Set<ActionItemEscalation>();
     public DbSet<ActionItemComment>    ActionItemComments    => Set<ActionItemComment>();
+    public DbSet<ActionItemSubItem>         ActionItemSubItems         => Set<ActionItemSubItem>();
+    public DbSet<ActionItemSubItemAssignee> ActionItemSubItemAssignees => Set<ActionItemSubItemAssignee>();
     public DbSet<Comment>              Comments              => Set<Comment>();
     public DbSet<Document>             Documents             => Set<Document>();
     public DbSet<RefreshToken>        RefreshTokens        => Set<RefreshToken>();
@@ -132,6 +134,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             && (CurrentUserId == null || !e.Workspace.IsPrivate
                 || e.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
                 || e.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+
+        // Sub-items and their assignees (WO-2026-11 A-2) follow their parent
+        // action item: hidden when the sub-item or the parent is deleted, and
+        // for non-members of a private workspace — the same rule as ActionItem
+        // above, spelled out rather than left to navigation filter expansion.
+        modelBuilder.Entity<ActionItemSubItem>().HasQueryFilter(s => !s.IsDeleted
+            && !s.ActionItem.IsDeleted
+            && (CurrentUserId == null || !s.ActionItem.Workspace.IsPrivate
+                || s.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || s.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+        modelBuilder.Entity<ActionItemSubItemAssignee>().HasQueryFilter(x => !x.SubItem.IsDeleted
+            && !x.SubItem.ActionItem.IsDeleted
+            && (CurrentUserId == null || !x.SubItem.ActionItem.Workspace.IsPrivate
+                || x.SubItem.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || x.SubItem.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         // Drafts (IsDraft = true) are hidden from every "live" query — the
         // draft service uses IgnoreQueryFilters() to reach them. CR-001-G.

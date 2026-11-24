@@ -17,6 +17,14 @@ public static class PrivateWorkspaceQueryExtensions
                 || a.Workspace.Admins.Any(x => x.AdminUserId == userId)
                 || a.Workspace.Members.Any(m => m.UserId == userId));
 
+    /// <summary>Sub-items (WO-2026-11 A-2): the private-workspace rule of their parent action item.</summary>
+    public static IQueryable<ActionItemSubItem> WhereWorkspaceVisibleTo(this IQueryable<ActionItemSubItem> query, string? userId)
+        => userId == null
+            ? query
+            : query.Where(s => !s.ActionItem.Workspace.IsPrivate
+                || s.ActionItem.Workspace.Admins.Any(x => x.AdminUserId == userId)
+                || s.ActionItem.Workspace.Members.Any(m => m.UserId == userId));
+
     public static IQueryable<Project> WhereWorkspaceVisibleTo(this IQueryable<Project> query, string? userId)
         => userId == null
             ? query
