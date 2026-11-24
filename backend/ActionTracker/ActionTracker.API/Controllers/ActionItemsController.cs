@@ -126,10 +126,16 @@ public class ActionItemsController : ControllerBase
     // POST api/action-items
     // -------------------------------------------------------------------------
 
-    /// <summary>Creates a new action item. ActionId is auto-generated (ACT-001 format).</summary>
+    /// <summary>
+    /// Creates a new action item. ActionId is auto-generated (ACT-001 format).
+    /// The standalone flag is set from the project link; isStandalone in the
+    /// body is ignored (WO-2026-11 A-1b).
+    /// </summary>
     [HttpPost]
+    [Authorize(Policy = PermissionPolicies.ActionItemsCreate)]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> Create(
         [FromBody] ActionItemCreateDto dto, CancellationToken ct)
     {
@@ -168,11 +174,15 @@ public class ActionItemsController : ControllerBase
     /// changed day must be a working day. ActualStartDate / ActualEndDate
     /// (WO-2026-11 A-1) are none of these; they may not be after today, actual
     /// end needs the item to be Done, and a Done item accepts a payload that
-    /// only sets actual dates (anything else = 422).
+    /// only sets actual dates (anything else = 422). isStandalone in the body is
+    /// ignored: the flag follows the project link and changes only when the save
+    /// changes projectId (WO-2026-11 A-1b).
     /// </summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = PermissionPolicies.ActionItemsEdit)]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> Update(
         Guid id, [FromBody] ActionItemUpdateDto dto, CancellationToken ct)
@@ -249,7 +259,9 @@ public class ActionItemsController : ControllerBase
 
     /// <summary>Updates the status of an action item. Completing an item sets Progress to 100.</summary>
     [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = PermissionPolicies.ActionItemsEdit)]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<ActionItemResponseDto>>> UpdateStatus(
         Guid id, [FromBody] UpdateStatusRequest request, CancellationToken ct)

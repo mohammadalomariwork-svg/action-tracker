@@ -106,7 +106,8 @@
             </button>
           }
           @if (ai.statusCode !== ActionStatus.Done) {
-            <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
+            <button *appHasPermission="'ActionItems'; action: 'Edit'"
+                    class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
               <i class="bi bi-pencil me-1"></i>Edit
             </button>
           } @else {

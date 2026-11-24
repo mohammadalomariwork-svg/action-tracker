@@ -105,6 +105,8 @@ export const routes: Routes = [
       },
       {
         path: 'actions/:id/edit',
+        canActivate: [permissionGuard],
+        data: { requiredArea: 'ActionItems', requiredAction: 'Edit' },
         loadComponent: () =>
           import('./features/actions/action-form/action-form.component').then(
             m => m.ActionFormComponent

@@ -167,8 +167,11 @@ public static class DefaultRolePermissionsSeeder
         foreach (var area in new[] { proj, dash, rep })
             yield return P(AppRoles.ProjectCoordinator, area, view);
 
-        // ── Team Member — View+Edit on ActionItems, View-only on 3 ───────────
+        // ── Team Member — View+Create+Edit on ActionItems, View-only on 3 ────
+        // Create (WO-2026-11 A-1b): POST /api/action-items now requires
+        // ActionItems.Create; production already granted it to Team Member.
         yield return P(AppRoles.TeamMember, ai, view);
+        yield return P(AppRoles.TeamMember, ai, create);
         yield return P(AppRoles.TeamMember, ai, edit);
         foreach (var area in new[] { proj, mile, dash })
             yield return P(AppRoles.TeamMember, area, view);

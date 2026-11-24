@@ -22,7 +22,11 @@ public class ActionItemUpdateDto
     /// <summary>Optional link to a milestone. Set to Guid.Empty to clear.</summary>
     public Guid? MilestoneId { get; set; }
 
-    /// <summary>When supplied, updates the standalone flag.</summary>
+    /// <summary>
+    /// Ignored (WO-2026-11 A-1b). The server derives the standalone flag from
+    /// the project link: it changes only when <see cref="ProjectId"/> changes
+    /// the link. Kept so older clients that still send it keep working.
+    /// </summary>
     public bool? IsStandalone { get; set; }
 
     /// <summary>When supplied, replaces the full assignee list.</summary>
@@ -69,11 +73,12 @@ public class ActionItemUpdateDto
 
     /// <summary>
     /// True when the payload changes nothing but the actual dates. A Done item
-    /// accepts only such a payload (WO-2026-11 A-1).
+    /// accepts only such a payload (WO-2026-11 A-1). <see cref="IsStandalone"/>
+    /// is ignored by the server, so it does not count (A-1b).
     /// </summary>
     public bool ChangesOnlyActualDates() =>
         Title is null && Description is null && WorkspaceId is null && ProjectId is null
-        && MilestoneId is null && IsStandalone is null && AssigneeIds is null && Priority is null
+        && MilestoneId is null && AssigneeIds is null && Priority is null
         && Status is null && StartDate is null && DueDate is null && Progress is null
         && IsEscalated is null && EscalationExplanation is null;
 

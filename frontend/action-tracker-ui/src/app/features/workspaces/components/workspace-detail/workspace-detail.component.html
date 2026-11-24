@@ -588,7 +588,7 @@
                               title="View"
                             ><i class="bi bi-eye"></i></a>
                             @if (item.statusCode !== ActionStatus.Done) {
-                              <button
+                              <button *appHasPermission="'ActionItems'; action: 'Edit'"
                                 class="btn btn-outline-primary btn-sm wa-action-btn"
                                 (click)="openEditActionForm(item)"
                                 title="Edit"
@@ -708,7 +708,7 @@
                         [routerLink]="['/actions', item.id, 'view']"
                       ><i class="bi bi-eye me-1"></i>View</a>
                       @if (item.statusCode !== ActionStatus.Done) {
-                        <button
+                        <button *appHasPermission="'ActionItems'; action: 'Edit'"
                           class="btn btn-outline-primary btn-sm"
                           (click)="openEditActionForm(item)"
                           [disabled]="showActionForm"

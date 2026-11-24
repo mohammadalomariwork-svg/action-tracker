@@ -21,7 +21,11 @@ public class ActionItemCreateDto
     /// <summary>Optional link to a milestone.</summary>
     public Guid? MilestoneId { get; set; }
 
-    /// <summary>True for standalone action items (not linked to a project/milestone). Defaults to true.</summary>
+    /// <summary>
+    /// Ignored (WO-2026-11 A-1b). The server sets the standalone flag from the
+    /// project link: true exactly when no <see cref="ProjectId"/> is given.
+    /// Kept so older clients that still send it keep working.
+    /// </summary>
     public bool IsStandalone { get; set; } = true;
 
     /// <summary>At least one assignee is required.</summary>

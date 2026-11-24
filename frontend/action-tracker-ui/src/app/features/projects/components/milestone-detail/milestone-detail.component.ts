@@ -27,6 +27,7 @@ import {
 import { PagedResult } from '../../../../core/models/api-response.model';
 // PageHeaderComponent removed — using inline wd-merged-header instead
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
+import { HasPermissionDirective } from '../../../../shared';
 import { CommentsSectionComponent } from '../../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
@@ -38,13 +39,14 @@ import { ActualDatesFieldsComponent } from '../../../../shared/components/actual
 import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
 } from '../../../../shared/utils/actual-dates.util';
+import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload.util';
 
 @Component({
   selector: 'app-milestone-detail',
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent,
-    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent, HasPermissionDirective,
   ],
   templateUrl: './milestone-detail.component.html',
   styleUrl: './milestone-detail.component.scss',
@@ -436,9 +438,10 @@ export class MilestoneDetailComponent implements OnInit {
       escalationExplanation: this.actionForm.isEscalated ? this.actionForm.escalationExplanation?.trim() : undefined,
     };
 
+    // An edit never sends isStandalone; the flag follows the project link (A-1b).
     const obs$ = this.editingActionId
       ? this.actionService.update(this.editingActionId, {
-          ...payload,
+          ...toActionItemUpdate(payload),
           ...actualDatesPatch(this.originalActionActual,
             { start: this.actionForm.actualStartDate, end: this.actionForm.actualEndDate }, endAllowed),
         })

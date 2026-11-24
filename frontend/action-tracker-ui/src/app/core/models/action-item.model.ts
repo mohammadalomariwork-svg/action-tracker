@@ -85,6 +85,7 @@ export interface ActionItemCreate {
   workspaceId: string;
   projectId?: string;
   milestoneId?: string;
+  /** Ignored by the server, which sets it from the project link (WO-2026-11 A-1b). */
   isStandalone?: boolean;
   assigneeIds: string[];
   priority: ActionPriority;
@@ -102,8 +103,10 @@ export interface ActionItemCreate {
  * PUT payload. Only supplied fields change. Actual dates (WO-2026-11 A-1) are
  * not frozen, not sent for approval and not checked against the calendar; a
  * Done item accepts a payload that carries nothing but actual dates.
+ * There is no isStandalone: it follows the project link and changes only when
+ * projectId does (WO-2026-11 A-1b). Build edit bodies with `toActionItemUpdate`.
  */
-export interface ActionItemUpdate extends Partial<ActionItemCreate> {
+export interface ActionItemUpdate extends Partial<Omit<ActionItemCreate, 'isStandalone'>> {
   /** 'yyyy-MM-dd'; any day up to today. */
   actualStartDate?: string;
   /** True clears the actual start (cannot be combined with actualStartDate). */

@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-24 (Planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-24 (Action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -51,7 +51,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 - Pre-seeded roles (10): **Admin**, **Workspace Admin**, **PMO Head**, **PMO Analyst**, **Project Sponsor**, **Project Manager**, **Project Coordinator**, **Team Member**, **Strategy Editor**, **Viewer**
 - Deprecated roles **Manager** and **User** are auto-deleted by `RoleSeeder` on every startup (idempotent)
 - ASP.NET Identity roles with role claims in JWT
-- `DefaultRolePermissionsSeeder` seeds a per-role permission matrix on startup, idempotent (skips rows that already exist)
+- `DefaultRolePermissionsSeeder` seeds a per-role permission matrix on startup, idempotent (skips rows that already exist). A (role, area, action) key counts as existing in any state — in effect, inactive or soft-deleted — so the seeder never duplicates a grant, never changes an existing row and never restores a grant removed through the role UI (which soft-deletes). Team Member gets View + Create + Edit on ActionItems (Create added in WO-2026-11 A-1b, when POST `/api/action-items` started requiring it; production already had it)
 - **Strategy Editor** is granted View/Create/Edit/Delete on Strategic Objectives and KPIs, plus View on Dashboard / OrgChart / Notifications. Effective scope is enforced at the service layer via `IStrategicScopeService`
 
 **Fine-Grained Permissions (RBAC + ABAC Hybrid)**
@@ -107,16 +107,20 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/created-by-me` | Items created by current user |
 | GET | `/my-stats` | Stats for user's assigned items (total, critical, in-progress, completed, overdue) |
 | GET | `/{id}` | Single action item by GUID |
-| POST | `/` | Create action item (auto-generates ActionId ACT-001). Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the reason comes back as `ApiResponse.message` |
-| PUT | `/{id}` | Update action item. `startDate` / `dueDate` are the planned start / planned end. Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) — for a standalone item the check runs before the date edit is turned into a date-change request. Actual dates (WO-2026-11 A-1, see "Actual dates" below): `actualStartDate`, `clearActualStartDate`, `actualEndDate` — 400 with the reason as `ApiResponse.message` when one is refused (every `ArgumentException` is now returned that way). A Done item accepts a payload that carries only actual dates; anything else is 422 "Completed action items cannot be edited." |
-| PATCH | `/{id}/status` | Update status (Done sets Progress=100%; records / clears actual dates — WO-2026-11 A-1) |
+| POST | `/` | Create action item (auto-generates ActionId ACT-001). Requires `ActionItems.Create` (WO-2026-11 A-1b). `isStandalone` in the body is ignored — the flag is true exactly when no `projectId` is given (see "Standalone flag" below). Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the reason comes back as `ApiResponse.message` |
+| PUT | `/{id}` | Update action item. Requires `ActionItems.Edit` (WO-2026-11 A-1b). `isStandalone` in the body is ignored — the flag changes only when the save changes `projectId` (see "Standalone flag" below). `startDate` / `dueDate` are the planned start / planned end. Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) — for a standalone item the check runs before the date edit is turned into a date-change request. Actual dates (WO-2026-11 A-1, see "Actual dates" below): `actualStartDate`, `clearActualStartDate`, `actualEndDate` — 400 with the reason as `ApiResponse.message` when one is refused (every `ArgumentException` is now returned that way). A Done item accepts a payload that carries only actual dates; anything else is 422 "Completed action items cannot be edited." |
+| PATCH | `/{id}/status` | Update status (Done sets Progress=100%; records / clears actual dates — WO-2026-11 A-1). Requires `ActionItems.Edit` (A-1b) |
 | DELETE | `/{id}` | Soft delete (requires ActionItems.Delete) |
-| PATCH | `/{id}/restore` | Restore soft-deleted item |
-| POST | `/process-overdue` | Mark past-due items as Overdue (Admin only) |
+| PATCH | `/{id}/restore` | Restore soft-deleted item (requires ActionItems.Edit) |
+| POST | `/process-overdue` | Mark past-due items as Overdue (`Roles = "Admin"` — a role check, not a permission policy) |
 | GET | `/{id}/comments` | Get comments for action item |
-| POST | `/{id}/comments` | Add comment |
-| PUT | `/{actionItemId}/comments/{commentId}` | Update comment |
-| DELETE | `/{actionItemId}/comments/{commentId}` | Delete comment |
+| POST | `/{id}/comments` | Add comment (no permission policy; to be covered by A-3) |
+| PUT | `/{actionItemId}/comments/{commentId}` | Update comment (no permission policy; author only, checked in the service) |
+| DELETE | `/{actionItemId}/comments/{commentId}` | Delete comment (no permission policy; author only, checked in the service) |
+
+Every endpoint needs a signed-in user (controller-level `[Authorize]`). A user without the policy
+named above gets 403. Since A-1b the create / edit / status writes carry a policy; the comment
+endpoints, and `POST` / `DELETE /api/documents` for action items, still do not (left for A-3 / A-4).
 
 ### WorkspacesController (`/api/workspaces`)
 | Method | Endpoint | Description |
@@ -369,6 +373,22 @@ Migration `Add_ActionItem_ActualDates`: two nullable `datetime2` columns plus
 — `UpdatedAt` is 0001-01-01 on items created as Done and never modified, so those use `CreatedAt`;
 soft-deleted Done rows are included. `Down()` drops the two columns.
 
+**Standalone flag (WO-2026-11 A-1b).** `ActionItem.IsStandalone` follows the project link, through
+`ActionItemStandalone` (`Application/Features/ActionItems`). The `isStandalone` field of the create and
+update DTOs is ignored (kept so older clients keep working):
+
+| Path | Flag |
+|------|------|
+| `ActionItemService.CreateAsync` | `ForProject(dto.ProjectId)` — true exactly when no project is given (null or `Guid.Empty`) |
+| `ActionItemService.UpdateAsync` | `AfterUpdate(stored, previousProjectId, newProjectId)` — re-derived only when the save changes `ProjectId` (linking → false, `projectId: Guid.Empty` → true); otherwise the stored flag is kept, so an edit never repairs an existing row on the side |
+
+Before A-1b `UpdateAsync` copied `dto.IsStandalone`, and three edit screens sent `true` on every save,
+which turned a project-linked item into a standalone one (proved by `ActionItemStandaloneFlagTests`
+against the earlier code). The approval branch of the same save still reads the stored flag, so the
+workflows, the date freeze and `DashboardRules` are unchanged. `ChangesOnlyActualDates()` no longer
+counts `IsStandalone`, since the server ignores it. No migration; production had 0 items with a
+`ProjectId` and `IsStandalone = 1` when this was written (read-only check, 2026-11-24).
+
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -614,7 +634,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | WorkspaceId | Guid (FK) | Parent workspace (required) |
 | ProjectId | Guid? (FK) | Linked project (nullable) |
 | MilestoneId | Guid? (FK) | Linked milestone (nullable) |
-| IsStandalone | bool | True when not linked to project/milestone |
+| IsStandalone | bool | True when not linked to a project. Set by the server from `ProjectId` (WO-2026-11 A-1b, `ActionItemStandalone`); never taken from the client |
 | Priority | enum | Low, Medium, High, Critical |
 | Status | enum | ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled |
 | StartDate | DateTime? | Planned start (shown as "Planned start") |
@@ -1076,6 +1096,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 |-------------------|------------------|
 | `IActionItemService` | CRUD, filtering, stats, comments, overdue processing, approved date/status change bypass. Applies the actual-date rule (`ActionItemActualDates`) on create, update, status change and the approved-status bypass; `RequiresStatusApproval` decides (for both PUT and PATCH `/status`) when a standalone item's move needs a request |
 | `ActionItemActualDates` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1 rule: `Resolve(previous, requested, resulting, current…, supplied…, today)` returns the actual start / end an item keeps after a save and throws `ArgumentException` for a refused value; `ApplyStatusChange(item, previous, requested, today)`; `Today(timeZoneId, utcNow)` / `TodayForWorkspaceAsync(calendars, workspaceId)` — the calendar day in the workspace calendar's time zone, UTC without a calendar |
+| `ActionItemStandalone` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1b rule: `ForProject(projectId)` (create) and `AfterUpdate(stored, previousProjectId, newProjectId)` (update) — `IsStandalone` follows the project link and changes only when a save changes it; the client's value is ignored |
 | `IActionItemWorkflowService` | Date change requests, status change requests, review/approve/reject, escalation handling, direction giving, pending summary. An approved status change applies the actual-date rule (A-1); the workflow itself is unchanged |
 | `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication |
 | `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
@@ -1153,7 +1174,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 1. **Auto-migrate** database on startup (`MigrateAsync` on SQL Server; `EnsureCreatedAsync` when the integration-test host swaps in the EF InMemory provider)
 2. **RoleSeeder** — seeds the 10 application roles (Admin, Workspace Admin, PMO Head, PMO Analyst, Project Sponsor, Project Manager, Project Coordinator, Team Member, Strategy Editor, Viewer); idempotent. Also deletes deprecated **Manager** and **User** roles when they are still present
 3. **PermissionCatalogSeeder** — seeds permission areas, actions, area-action mappings
-4. **DefaultRolePermissionsSeeder** — seeds default permissions for each role (idempotent — only inserts missing rows). Includes the Strategy Editor permission set (View/Create/Edit/Delete on Strategic Objectives + KPIs, View on Dashboard / OrgChart / Notifications)
+4. **DefaultRolePermissionsSeeder** — seeds default permissions for each role (idempotent — only inserts keys with no row at all, soft-deleted rows included, so grants removed in the role UI stay removed; covered by `DefaultRolePermissionsSeederTests`). Team Member → ActionItems View / Create / Edit (Create since A-1b). Includes the Strategy Editor permission set (View/Create/Edit/Delete on Strategic Objectives + KPIs, View on Dashboard / OrgChart / Notifications)
 5. **EmailTemplateSeeder** — seeds / refreshes the email templates
 6. **WorkCalendarSeeder** — inserts the default calendar "KU Standard" (Monday–Friday 08:00–17:00, Saturday–Sunday off, `Asia/Dubai`) when no calendar exists, so it runs once on a clean database and once on an existing database after `Add_WorkCalendars`; promotes the oldest active calendar if calendars exist but none is the default. Idempotent
 7. **AdminBootstrapSeeder** — seeds the bootstrap admin user
@@ -1186,6 +1207,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Per-Entity Document Caps | Document attachments throttled per entity type (e.g. KpiTarget → 10 files) |
 | Working Calendars | Date maths goes through `IWorkCalendarService` → `ResolvedWorkCalendar` (pure, cached) rather than ad-hoc weekend checks; one default calendar is guaranteed by a filtered unique index plus the startup seeder |
 | Planned vs actual dates | `StartDate` / `DueDate` stay the planned dates (freeze, date requests, working-day rule, filters and `DashboardRules` depend on them); `ActualStartDate` / `ActualEndDate` are recorded facts outside all three date rules, maintained by one shared rule (`ActionItemActualDates`) on every status path |
+| Standalone flag is derived | `ActionItem.IsStandalone` is set by the server from `ProjectId` (`ActionItemStandalone`), never from the client, so a client cannot detach an item from its project by accident (WO-2026-11 A-1b) |
 
 ---
 

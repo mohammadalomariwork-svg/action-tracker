@@ -304,7 +304,7 @@
                             title="View"
                           ><i class="bi bi-eye"></i></a>
                           @if (item.statusCode !== ActionStatus.Done) {
-                            <button
+                            <button *appHasPermission="'ActionItems'; action: 'Edit'"
                               class="btn btn-outline-primary btn-sm wa-action-btn"
                               (click)="openEditActionForm(item)"
                               title="Edit"
@@ -387,7 +387,7 @@
                   <div class="wa-action-card__actions">
                     <a class="btn btn-outline-info btn-sm" [routerLink]="['/actions', item.id, 'view']"><i class="bi bi-eye me-1"></i>View</a>
                     @if (item.statusCode !== ActionStatus.Done) {
-                      <button class="btn btn-outline-primary btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm"><i class="bi bi-pencil me-1"></i>Edit</button>
+                      <button *appHasPermission="'ActionItems'; action: 'Edit'" class="btn btn-outline-primary btn-sm" (click)="openEditActionForm(item)" [disabled]="showActionForm"><i class="bi bi-pencil me-1"></i>Edit</button>
                     }
                     <button class="btn btn-outline-danger btn-sm" (click)="deleteAction(item)" [disabled]="deletingActionId === item.id">
                       @if (deletingActionId === item.id) {

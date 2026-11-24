@@ -33,6 +33,7 @@ import { ActualDatesFieldsComponent } from '../../../shared/components/actual-da
 import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
 } from '../../../shared/utils/actual-dates.util';
+import { toActionItemUpdate } from '../../../shared/utils/action-item-payload.util';
 
 export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -558,9 +559,10 @@ export class ActionListComponent implements OnInit, OnDestroy {
         : undefined,
     };
 
+    // An edit never sends isStandalone: it would detach a project item (A-1b).
     const obs$ = this.editingActionId
       ? this.actionSvc.update(this.editingActionId, {
-          ...payload,
+          ...toActionItemUpdate(payload),
           ...actualDatesPatch(this.originalActual,
             { start: this.actionForm.actualStartDate, end: this.actionForm.actualEndDate }, endAllowed),
         })

@@ -222,7 +222,8 @@ public class ActionItemService : IActionItemService
             WorkspaceId  = dto.WorkspaceId,
             ProjectId    = dto.ProjectId,
             MilestoneId  = dto.MilestoneId,
-            IsStandalone = dto.IsStandalone,
+            // Follows the project link; dto.IsStandalone is ignored (WO-2026-11 A-1b).
+            IsStandalone = ActionItemStandalone.ForProject(dto.ProjectId),
             Priority     = dto.Priority,
             Status      = dto.Status,
             StartDate   = dto.StartDate,
@@ -489,12 +490,15 @@ public class ActionItemService : IActionItemService
         }
 
         // Patch only the fields that were supplied
+        var previousProjectId = item.ProjectId;
         if (dto.Title       is not null) item.Title       = dto.Title;
         if (dto.Description is not null) item.Description = dto.Description;
         if (dto.WorkspaceId is not null) item.WorkspaceId = dto.WorkspaceId.Value;
         if (dto.ProjectId   is not null) item.ProjectId   = dto.ProjectId.Value == Guid.Empty ? null : dto.ProjectId.Value;
         if (dto.MilestoneId is not null) item.MilestoneId = dto.MilestoneId.Value == Guid.Empty ? null : dto.MilestoneId.Value;
-        if (dto.IsStandalone is not null) item.IsStandalone = dto.IsStandalone.Value;
+        // The standalone flag follows the project link and changes only when this
+        // save changes the link; dto.IsStandalone is ignored (WO-2026-11 A-1b).
+        item.IsStandalone = ActionItemStandalone.AfterUpdate(item.IsStandalone, previousProjectId, item.ProjectId);
         if (dto.Priority    is not null) item.Priority    = dto.Priority.Value;
         if (dto.Status      is not null) item.Status      = dto.Status.Value;
         if (dto.StartDate   is not null) item.StartDate   = dto.StartDate.Value;

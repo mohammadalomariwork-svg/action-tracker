@@ -35,6 +35,7 @@ import { ActualDatesFieldsComponent } from '../../../../shared/components/actual
 import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
 } from '../../../../shared/utils/actual-dates.util';
+import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload.util';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -487,9 +488,10 @@ export class WorkspaceDetailComponent implements OnInit {
         : undefined,
     };
 
+    // An edit never sends isStandalone: it would detach a project item (A-1b).
     const obs$ = this.editingActionId
       ? this.actionService.update(this.editingActionId, {
-          ...payload,
+          ...toActionItemUpdate(payload),
           ...actualDatesPatch(this.originalActionActual,
             { start: this.actionForm.actualStartDate, end: this.actionForm.actualEndDate }, endAllowed),
         })

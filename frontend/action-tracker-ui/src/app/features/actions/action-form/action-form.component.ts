@@ -36,6 +36,7 @@ import { WorkingDaysComponent } from '../../../shared/components/working-days/wo
 import { nonWorkingDatesMessage, workingDayValidator } from '../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
 import { actualDatesPatch, actualDatesProblem, todayInTimeZone, toDateInput } from '../../../shared/utils/actual-dates.util';
+import { toActionItemUpdate } from '../../../shared/utils/action-item-payload.util';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 
@@ -488,9 +489,10 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     };
 
     const item = this.editItem();
+    // An edit never sends isStandalone: it would detach a project item (A-1b).
     const obs$ = item
       ? this.actionSvc.update(item.id, {
-          ...payload,
+          ...toActionItemUpdate(payload),
           ...actualDatesPatch(
             { start: item.actualStartDate, end: item.actualEndDate },
             { start: raw.actualStartDate ?? '', end: raw.actualEndDate ?? '' },
