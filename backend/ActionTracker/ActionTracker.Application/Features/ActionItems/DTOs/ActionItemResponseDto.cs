@@ -24,8 +24,25 @@ public class ActionItemResponseDto
     public ActionPriority Priority { get; set; }
     public ActionStatus Status { get; set; }
 
+    /// <summary>Planned start.</summary>
     public DateTime? StartDate { get; set; }
+
+    /// <summary>Planned end.</summary>
     public DateTime DueDate { get; set; }
+
+    /// <summary>Actual start (WO-2026-11 A-1).</summary>
+    public DateTime? ActualStartDate { get; set; }
+
+    /// <summary>Actual end (WO-2026-11 A-1); set only while the item is Done.</summary>
+    public DateTime? ActualEndDate { get; set; }
+
+    /// <summary>
+    /// Actual end minus planned end, in calendar days: positive = late,
+    /// 0 = on time, negative = early. Null when there is no actual end.
+    /// </summary>
+    public int? ActualEndVarianceDays =>
+        ActualEndDate.HasValue ? (int)(ActualEndDate.Value.Date - DueDate.Date).TotalDays : null;
+
     public int Progress { get; set; }
     public bool IsEscalated { get; set; }
 

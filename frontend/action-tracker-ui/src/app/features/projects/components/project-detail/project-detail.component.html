@@ -389,7 +389,7 @@
                     </div>
                     <div class="gantt-track-col">
                       <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)"
-                           (mouseenter)="showGanttTooltip($event, 'action', action.title, action.statusLabel, action.startDate, action.dueDate, { progress: action.progress, priority: action.priorityLabel, assignees: actionAssigneeNames(action) })"
+                           (mouseenter)="showGanttTooltip($event, 'action', action.title, action.statusLabel, action.startDate, action.dueDate, actionTooltipExtra(action))"
                            (mousemove)="moveGanttTooltip($event)"
                            (mouseleave)="hideGanttTooltip()">
                         <span class="gantt-bar__label">{{ action.progress }}%</span>
@@ -416,7 +416,7 @@
                     </div>
                     <div class="gantt-track-col">
                       <div class="gantt-bar" [ngClass]="ganttActionBarClass(action)" [ngStyle]="ganttBarStyle(action.startDate, action.dueDate)"
-                           (mouseenter)="showGanttTooltip($event, 'action', action.title, action.statusLabel, action.startDate, action.dueDate, { progress: action.progress, priority: action.priorityLabel, assignees: actionAssigneeNames(action) })"
+                           (mouseenter)="showGanttTooltip($event, 'action', action.title, action.statusLabel, action.startDate, action.dueDate, actionTooltipExtra(action))"
                            (mousemove)="moveGanttTooltip($event)"
                            (mouseleave)="hideGanttTooltip()">
                         <span class="gantt-bar__label">{{ action.progress }}%</span>
@@ -837,14 +837,29 @@
       </div>
       @if (ganttTooltip.startDate) {
         <div class="gantt-tooltip__row">
-          <span class="gantt-tooltip__label">Start</span>
+          <span class="gantt-tooltip__label">Planned start</span>
           <span class="gantt-tooltip__value">{{ ganttTooltip.startDate | date:'mediumDate' }}</span>
         </div>
       }
       @if (ganttTooltip.endDate) {
         <div class="gantt-tooltip__row">
-          <span class="gantt-tooltip__label">End</span>
+          <span class="gantt-tooltip__label">Planned end</span>
           <span class="gantt-tooltip__value">{{ ganttTooltip.endDate | date:'mediumDate' }}</span>
+        </div>
+      }
+      @if (ganttTooltip.actualStartDate) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Actual start</span>
+          <span class="gantt-tooltip__value">{{ ganttTooltip.actualStartDate | date:'mediumDate' }}</span>
+        </div>
+      }
+      @if (ganttTooltip.actualEndDate) {
+        <div class="gantt-tooltip__row">
+          <span class="gantt-tooltip__label">Actual end</span>
+          <span class="gantt-tooltip__value">
+            {{ ganttTooltip.actualEndDate | date:'mediumDate' }}
+            @if (varianceLabel(ganttTooltip.varianceDays); as variance) { ({{ variance }}) }
+          </span>
         </div>
       }
       @if (ganttTooltip.progress != null) {

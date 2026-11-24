@@ -334,22 +334,22 @@
         </div>
       </div>
 
-      <!-- Start Date & Due Date -->
+      <!-- Planned start & planned end -->
       <div class="row mb-3">
         <div class="col-6">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
-          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="actionForm.startDate"
+          <label class="form-label" for="td-planned-start">Planned start</label>
+          <input id="td-planned-start" type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
+          <app-working-day-hint field="Planned start" [calendar]="calendar()" [date]="actionForm.startDate"
                                 (useDate)="actionForm.startDate = $event" />
         </div>
         <div class="col-6">
-          <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.dueDate"
+          <label class="form-label" for="td-planned-end">Planned end <span class="text-danger">*</span></label>
+          <input id="td-planned-end" type="date" class="form-control" [(ngModel)]="actionForm.dueDate"
                  [min]="actionForm.startDate || ''" />
           @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
-            <small class="text-danger">Due date must be same or after start date.</small>
+            <small class="text-danger">Planned end must be same or after planned start.</small>
           }
-          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="actionForm.dueDate"
+          <app-working-day-hint field="Planned end" [calendar]="calendar()" [date]="actionForm.dueDate"
                                 (useDate)="actionForm.dueDate = $event" />
         </div>
         <div class="col-12">

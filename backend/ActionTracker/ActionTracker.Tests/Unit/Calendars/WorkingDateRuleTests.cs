@@ -479,7 +479,7 @@ public class WorkingDateRuleTests : IDisposable
         await NewActionItemService().Invoking(s => s.CreateAsync(NewActionItem(workspace.Id, Saturday), UserId, default))
             .Should().ThrowAsync<NonWorkingDateException>();
         await NewActionItemService().Invoking(s => s.CreateAsync(NewActionItem(workspace.Id, Monday, startDate: Sunday), UserId, default))
-            .Should().ThrowAsync<NonWorkingDateException>().WithMessage("Start date 2026-11-29 (Sunday)*");
+            .Should().ThrowAsync<NonWorkingDateException>().WithMessage("Planned start 2026-11-29 (Sunday)*");
 
         (await _db.ActionItems.CountAsync()).Should().Be(0);
     }
@@ -567,7 +567,7 @@ public class WorkingDateRuleTests : IDisposable
             Reason       = "Need more time",
         }, UserId);
 
-        await act.Should().ThrowAsync<NonWorkingDateException>().WithMessage("Requested due date 2026-11-28 (Saturday)*");
+        await act.Should().ThrowAsync<NonWorkingDateException>().WithMessage("Requested planned end 2026-11-28 (Saturday)*");
         (await _db.ActionItemWorkflowRequests.CountAsync()).Should().Be(0);
     }
 

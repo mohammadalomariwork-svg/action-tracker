@@ -255,7 +255,7 @@ public class WorkspaceCalendarIntegrationTests
         var body = await ReadAsync<object>(response);
         body.Success.Should().BeFalse();
         body.Message.Should().Be(
-            "Due date 2030-06-01 (Saturday) is not a working day in the workspace calendar \"KU Standard\". " +
+            "Planned end 2030-06-01 (Saturday) is not a working day in the workspace calendar \"KU Standard\". " +
             "Next working day: 2030-06-03 (Monday).");
 
         (await _client.PostAsJsonAsync("/api/action-items", ActionItemBody(workspaceId, Monday, adminId)))
@@ -309,6 +309,6 @@ public class WorkspaceCalendarIntegrationTests
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await ReadAsync<object>(response)).Message.Should().StartWith("Requested due date 2030-06-01 (Saturday) is not a working day");
+        (await ReadAsync<object>(response)).Message.Should().StartWith("Requested planned end 2030-06-01 (Saturday) is not a working day");
     }
 }

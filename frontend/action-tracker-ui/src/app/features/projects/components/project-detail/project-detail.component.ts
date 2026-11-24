@@ -34,6 +34,7 @@ import { WorkingDayHintComponent } from '../../../../shared/components/working-d
 import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
 import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
+import { varianceLabel } from '../../../../shared/utils/actual-dates.util';
 
 interface EditFormData {
   name: string;
@@ -100,6 +101,10 @@ export class ProjectDetailComponent implements OnInit {
     progress?: number;
     priority?: string;
     assignees?: string[];
+    /** Action items only (WO-2026-11 A-1). */
+    actualStartDate?: string | null;
+    actualEndDate?: string | null;
+    varianceDays?: number | null;
     x: number;
     y: number;
   } | null = null;
@@ -719,7 +724,10 @@ export class ProjectDetailComponent implements OnInit {
     status: string,
     startDate: string | null,
     endDate: string | null,
-    extra?: { progress?: number; priority?: string; assignees?: string[] },
+    extra?: {
+      progress?: number; priority?: string; assignees?: string[];
+      actualStartDate?: string | null; actualEndDate?: string | null; varianceDays?: number | null;
+    },
   ): void {
     this.ganttTooltip = { type, title, status, startDate, endDate, ...extra, ...this.tooltipPos(event) };
   }
@@ -733,6 +741,20 @@ export class ProjectDetailComponent implements OnInit {
   hideGanttTooltip(): void {
     this.ganttTooltip = null;
   }
+
+  /** Tooltip details of an action bar: assignees plus its actual dates (WO-2026-11 A-1). */
+  actionTooltipExtra(action: ActionItem) {
+    return {
+      progress: action.progress,
+      priority: action.priorityLabel,
+      assignees: this.actionAssigneeNames(action),
+      actualStartDate: action.actualStartDate,
+      actualEndDate: action.actualEndDate,
+      varianceDays: action.actualEndVarianceDays,
+    };
+  }
+
+  readonly varianceLabel = varianceLabel;
 
   actionAssigneeNames(action: ActionItem): string[] {
     return action.assignees.map(a => a.fullName);

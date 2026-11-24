@@ -109,6 +109,39 @@
   gap: 1.25rem;
 }
 
+// Actual end vs planned end (WO-2026-11 A-1). Text stays --t1 on a tint:
+// the plain red / green fall under 4.5:1 on the dark surface.
+.ad-variance {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.4rem;
+  border-radius: var(--r-sm, 0.25rem);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--t1);
+
+  &--late { background: rgba(var(--errr), 0.2); }
+  &--ok   { background: rgba(var(--okr), 0.2); }
+}
+
+// Inline editor for a Done item's actual dates (WO-2026-11 A-1)
+.ad-actual-form {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--bd);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--bg);
+
+  &__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--t1);
+    margin-bottom: 0.75rem;
+  }
+}
+
 .wd-detail-item {
   display: flex;
   flex-direction: column;

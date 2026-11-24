@@ -22,6 +22,8 @@ public static class ActionItemMapper
         Status         = item.Status,
         StartDate      = item.StartDate,
         DueDate        = item.DueDate,
+        ActualStartDate = item.ActualStartDate,
+        ActualEndDate   = item.ActualEndDate,
         Progress       = item.Progress,
         IsEscalated    = item.IsEscalated,
         CreatedAt      = item.CreatedAt,

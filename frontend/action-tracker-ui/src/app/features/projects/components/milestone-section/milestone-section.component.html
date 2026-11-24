@@ -607,17 +607,17 @@
       <!-- Dates -->
       <div class="row mb-3">
         <div class="col-6">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control"
+          <label class="form-label" for="ms-planned-start">Planned start</label>
+          <input id="ms-planned-start" type="date" class="form-control"
                  [ngModel]="aiStartDate()" (ngModelChange)="aiStartDate.set($event)">
-          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="aiStartDate()"
+          <app-working-day-hint field="Planned start" [calendar]="calendar()" [date]="aiStartDate()"
                                 (useDate)="aiStartDate.set($event)" />
         </div>
         <div class="col-6">
-          <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control"
+          <label class="form-label" for="ms-planned-end">Planned end <span class="text-danger">*</span></label>
+          <input id="ms-planned-end" type="date" class="form-control"
                  [ngModel]="aiDueDate()" (ngModelChange)="aiDueDate.set($event)">
-          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="aiDueDate()"
+          <app-working-day-hint field="Planned end" [calendar]="calendar()" [date]="aiDueDate()"
                                 (useDate)="aiDueDate.set($event)" />
         </div>
         <div class="col-12">

@@ -109,6 +109,13 @@
             <button class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
               <i class="bi bi-pencil me-1"></i>Edit
             </button>
+          } @else {
+            <!-- A Done item accepts only its actual dates (WO-2026-11 A-1). -->
+            <button *appHasPermission="'ActionItems'; action: 'Edit'"
+                    id="ad-edit-actual-dates" type="button" class="btn btn-outline-primary btn-sm"
+                    (click)="openActualDatesForm()" [disabled]="showActualDatesForm()">
+              <i class="bi bi-calendar-check me-1"></i>Edit actual dates
+            </button>
           }
         </div>
       </div>
@@ -176,16 +183,32 @@
         </div>
 
         <div class="wd-detail-item">
-          <span class="wd-detail-label">Start Date</span>
+          <span class="wd-detail-label">Planned start</span>
           <span class="wd-detail-value">{{ ai.startDate ? (ai.startDate | date:'MMM d, y') : '—' }}</span>
         </div>
 
         <div class="wd-detail-item">
-          <span class="wd-detail-label">Due Date</span>
+          <span class="wd-detail-label">Planned end</span>
           <span class="wd-detail-value" [class]="dueDateClass(ai)">
             {{ ai.dueDate | date:'MMM d, y' }}
             @if (ai.isOverdue) {
               <span class="badge bg-danger ms-1">Overdue</span>
+            }
+          </span>
+        </div>
+
+        <!-- Actual dates (WO-2026-11 A-1) -->
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Actual start</span>
+          <span class="wd-detail-value">{{ ai.actualStartDate ? (ai.actualStartDate | date:'MMM d, y') : '—' }}</span>
+        </div>
+
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Actual end</span>
+          <span class="wd-detail-value">
+            {{ ai.actualEndDate ? (ai.actualEndDate | date:'MMM d, y') : '—' }}
+            @if (varianceLabel(ai.actualEndVarianceDays); as variance) {
+              <span class="ad-variance" [class]="'ad-variance ad-variance--' + varianceTone(ai.actualEndVarianceDays)">{{ variance }}</span>
             }
           </span>
         </div>
@@ -222,6 +245,32 @@
           </div>
         }
       </div>
+
+      <!-- Actual dates of a Done item (WO-2026-11 A-1): the only edit a Done item accepts. -->
+      @if (showActualDatesForm()) {
+        <div class="ad-actual-form" role="group" aria-labelledby="ad-actual-form-title">
+          <div id="ad-actual-form-title" class="ad-actual-form__title">
+            <i class="bi bi-calendar-check me-1"></i>Edit actual dates
+          </div>
+          <app-actual-dates-fields idPrefix="ad-done-actual"
+                                   [(start)]="actualDatesForm.start" [(end)]="actualDatesForm.end"
+                                   [endEditable]="true" [today]="today()"
+                                   startHint="Leave empty if the start was not recorded."
+                                   endHint="The day the item was completed. Required while Done." />
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    (click)="cancelActualDatesForm()" [disabled]="savingActualDates()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2"
+                    (click)="saveActualDates()" [disabled]="savingActualDates() || !!doneActualDatesProblem()">
+              @if (savingActualDates()) {
+                <span class="spinner-border spinner-border-sm" role="status"></span>Saving…
+              } @else {
+                <i class="bi bi-check-lg"></i> Save
+              }
+            </button>
+          </div>
+        </div>
+      }
     </div>
 
     <!-- ── Escalation History Section ─────────────────── -->
@@ -449,27 +498,33 @@
         </div>
       </div>
 
-      <!-- Start Date & Due Date row -->
+      <!-- Planned start & planned end row -->
       <div class="row mb-3">
         <div class="col-6">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" [(ngModel)]="editForm.startDate" />
-          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="editForm.startDate"
+          <label class="form-label" for="ad-edit-planned-start">Planned start</label>
+          <input id="ad-edit-planned-start" type="date" class="form-control" [(ngModel)]="editForm.startDate" />
+          <app-working-day-hint field="Planned start" [calendar]="calendar()" [date]="editForm.startDate"
                                 [original]="originalStartDate()" (useDate)="editForm.startDate = $event" />
         </div>
         <div class="col-6">
-          <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="editForm.dueDate" [min]="editForm.startDate || ''" />
+          <label class="form-label" for="ad-edit-planned-end">Planned end <span class="text-danger">*</span></label>
+          <input id="ad-edit-planned-end" type="date" class="form-control" [(ngModel)]="editForm.dueDate" [min]="editForm.startDate || ''" />
           @if (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate) {
-            <small class="text-danger">Due date must be same or after start date.</small>
+            <small class="text-danger">Planned end must be same or after planned start.</small>
           }
-          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="editForm.dueDate"
+          <app-working-day-hint field="Planned end" [calendar]="calendar()" [date]="editForm.dueDate"
                                 [original]="originalDueDate()" (useDate)="editForm.dueDate = $event" />
         </div>
         <div class="col-12">
           <app-working-days [calendar]="calendar()" [start]="editForm.startDate" [end]="editForm.dueDate" />
         </div>
       </div>
+
+      <!-- Actual start & actual end (WO-2026-11 A-1): not frozen, no approval, any day. -->
+      <app-actual-dates-fields idPrefix="ad-edit-actual"
+                               [(start)]="editForm.actualStartDate" [(end)]="editForm.actualEndDate"
+                               [endEditable]="actualEndEditable()" [standalone]="!!item()?.isStandalone"
+                               [today]="today()" />
 
       <!-- Progress -->
       <div class="mb-3">
@@ -494,7 +549,7 @@
           type="button"
           class="btn btn-primary d-inline-flex align-items-center gap-2"
           (click)="saveEdit()"
-          [disabled]="saving || !editForm.title.trim() || editForm.assigneeIds.length === 0 || !editForm.dueDate || (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate)"
+          [disabled]="saving || !editForm.title.trim() || editForm.assigneeIds.length === 0 || !editForm.dueDate || (editForm.startDate && editForm.dueDate && editForm.dueDate < editForm.startDate) || !!editActualDatesProblem()"
         >
           @if (saving) {
             <span class="spinner-border spinner-border-sm" role="status"></span>

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ActionItem, ActionItemCreate, ActionItemFilter, ActionItemMyStats, ActionStatus, CommentInfo } from '../models/action-item.model';
+import { ActionItem, ActionItemCreate, ActionItemFilter, ActionItemMyStats, ActionItemUpdate, ActionStatus, CommentInfo } from '../models/action-item.model';
 import { ApiResponse, PagedResult } from '../models/api-response.model';
 
 @Injectable({ providedIn: 'root' })
@@ -43,7 +43,7 @@ export class ActionItemService {
     return this.http.post<ApiResponse<ActionItem>>(this.apiUrl, item);
   }
 
-  update(id: string, item: Partial<ActionItemCreate>): Observable<ApiResponse<ActionItem>> {
+  update(id: string, item: ActionItemUpdate): Observable<ApiResponse<ActionItem>> {
     return this.http.put<ApiResponse<ActionItem>>(`${this.apiUrl}/${id}`, item);
   }
 

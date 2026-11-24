@@ -28,11 +28,26 @@ public class ActionItem
     public ActionPriority Priority { get; set; }
     public ActionStatus Status { get; set; } = ActionStatus.ToDo;
 
-    /// <summary>Optional start date.</summary>
+    /// <summary>Planned start (optional). Shown as "Planned start" in the UI.</summary>
     public DateTime? StartDate { get; set; }
 
-    /// <summary>Required. Must be a valid date.</summary>
+    /// <summary>Planned end (required). Shown as "Planned end" in the UI.</summary>
     public DateTime DueDate { get; set; }
+
+    /// <summary>
+    /// The day work actually started (WO-2026-11 A-1). Set automatically on the
+    /// first move into In Progress; editable. Not subject to the planned-date
+    /// freeze, the date-change workflow or the working-day rule.
+    /// </summary>
+    public DateTime? ActualStartDate { get; set; }
+
+    /// <summary>
+    /// The day the item was actually completed (WO-2026-11 A-1). Set
+    /// automatically on the move into Done and cleared when the item leaves
+    /// Done; editable while Done. Not subject to the planned-date freeze, the
+    /// date-change workflow or the working-day rule.
+    /// </summary>
+    public DateTime? ActualEndDate { get; set; }
 
     private int _progress;
 
@@ -62,8 +77,8 @@ public class ActionItem
     public ICollection<ActionItemWorkflowRequest> WorkflowRequests { get; set; } = new List<ActionItemWorkflowRequest>();
 
     /// <summary>
-    /// Dates are locked once the action item has been created (Id != Guid.Empty).
-    /// Changes require a workflow request.
+    /// Planned dates are locked once the action item has been created (Id != Guid.Empty).
+    /// Changes require a workflow request. Actual dates are not locked.
     /// </summary>
     [NotMapped]
     public bool AreDatesLocked => Id != Guid.Empty;

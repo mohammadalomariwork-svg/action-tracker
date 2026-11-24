@@ -58,8 +58,16 @@ export interface ActionItem {
   status: ActionStatus;
   statusCode: number;
   statusLabel: string;
+  /** Planned start. */
   startDate: string | null;
+  /** Planned end. */
   dueDate: string;
+  /** Actual start (WO-2026-11 A-1): set on the first move into In Progress; editable. */
+  actualStartDate: string | null;
+  /** Actual end (WO-2026-11 A-1): set on the move into Done, cleared when the item leaves Done. */
+  actualEndDate: string | null;
+  /** Actual end minus planned end in calendar days (positive = late); null without an actual end. */
+  actualEndVarianceDays: number | null;
   progress: number;
   isEscalated: boolean;
   escalations: EscalationInfo[];
@@ -81,11 +89,27 @@ export interface ActionItemCreate {
   assigneeIds: string[];
   priority: ActionPriority;
   status: ActionStatus;
+  /** Planned start ('yyyy-MM-dd'). */
   startDate: string | null;
+  /** Planned end ('yyyy-MM-dd'). */
   dueDate: string;
   progress: number;
   isEscalated?: boolean;
   escalationExplanation?: string;
+}
+
+/**
+ * PUT payload. Only supplied fields change. Actual dates (WO-2026-11 A-1) are
+ * not frozen, not sent for approval and not checked against the calendar; a
+ * Done item accepts a payload that carries nothing but actual dates.
+ */
+export interface ActionItemUpdate extends Partial<ActionItemCreate> {
+  /** 'yyyy-MM-dd'; any day up to today. */
+  actualStartDate?: string;
+  /** True clears the actual start (cannot be combined with actualStartDate). */
+  clearActualStartDate?: boolean;
+  /** 'yyyy-MM-dd'; only when the item is or becomes Done in this save. */
+  actualEndDate?: string;
 }
 
 export interface AssignableUser {

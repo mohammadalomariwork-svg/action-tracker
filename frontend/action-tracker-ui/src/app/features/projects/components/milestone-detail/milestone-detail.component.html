@@ -246,8 +246,8 @@
                   <th>Assignee(s)</th>
                   <th>Priority</th>
                   <th>Status</th>
-                  <th>Start Date</th>
-                  <th>Due Date</th>
+                  <th>Planned Start</th>
+                  <th>Planned End</th>
                   <th>Progress</th>
                   <th class="text-end">Actions</th>
                 </tr>
@@ -356,12 +356,12 @@
                     <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
                   </div>
                   <div class="wa-action-card__meta-row">
-                    <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+                    <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Planned End</span>
                     <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                   </div>
                   @if (item.startDate) {
                     <div class="wa-action-card__meta-row">
-                      <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
+                      <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Planned Start</span>
                       <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
                     </div>
                   }
@@ -644,26 +644,34 @@
         </div>
       </div>
 
-      <!-- Start Date & Due Date -->
+      <!-- Planned start & planned end -->
       <div class="form-row">
         <div class="form-col">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
-          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="actionForm.startDate"
+          <label class="form-label" for="md-planned-start">Planned start</label>
+          <input id="md-planned-start" type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
+          <app-working-day-hint field="Planned start" [calendar]="calendar()" [date]="actionForm.startDate"
                                 [original]="originalActionDates.start" (useDate)="actionForm.startDate = $event" />
         </div>
         <div class="form-col">
-          <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.dueDate" [min]="actionForm.startDate || ''" />
+          <label class="form-label" for="md-planned-end">Planned end <span class="text-danger">*</span></label>
+          <input id="md-planned-end" type="date" class="form-control" [(ngModel)]="actionForm.dueDate" [min]="actionForm.startDate || ''" />
           @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
-            <small class="text-danger">Due date must be same or after start date.</small>
+            <small class="text-danger">Planned end must be same or after planned start.</small>
           }
-          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="actionForm.dueDate"
+          <app-working-day-hint field="Planned end" [calendar]="calendar()" [date]="actionForm.dueDate"
                                 [original]="originalActionDates.due" (useDate)="actionForm.dueDate = $event" />
         </div>
       </div>
       <app-working-days class="d-block mb-3" [calendar]="calendar()"
                         [start]="actionForm.startDate" [end]="actionForm.dueDate" />
+
+      <!-- Actual dates (WO-2026-11 A-1), edit only: not frozen, no approval, any day. -->
+      @if (editingActionId) {
+        <app-actual-dates-fields idPrefix="md-actual"
+                                 [(start)]="actionForm.actualStartDate" [(end)]="actionForm.actualEndDate"
+                                 [endEditable]="actualEndEditable()" [standalone]="editingActionStandalone"
+                                 [today]="today()" />
+      }
 
       <!-- Progress -->
       <div class="mb-3">

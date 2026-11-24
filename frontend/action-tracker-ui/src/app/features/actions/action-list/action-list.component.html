@@ -219,9 +219,9 @@
               Priority <span class="sort-indicator">{{ sortBy() === 'priority' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
             </th>
             <th>Status</th>
-            <th>Start Date</th>
+            <th>Planned Start</th>
             <th class="sortable" (click)="onSortChange('dueDate')">
-              Due Date <span class="sort-indicator">{{ sortBy() === 'dueDate' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
+              Planned End <span class="sort-indicator">{{ sortBy() === 'dueDate' ? (sortDesc() ? '↓' : '↑') : '↕' }}</span>
             </th>
             <th class="th-progress">Progress</th>
             <th class="text-end">Actions</th>
@@ -312,12 +312,12 @@
                 <!-- Status -->
                 <td><span [class]="statusClass(item.status)">{{ item.statusLabel }}</span></td>
 
-                <!-- Start Date -->
+                <!-- Planned start -->
                 <td>
                   <span class="text-muted">{{ item.startDate ? (item.startDate | date:'MMM d, y') : '—' }}</span>
                 </td>
 
-                <!-- Due Date -->
+                <!-- Planned end -->
                 <td>
                   <span [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
                 </td>
@@ -432,12 +432,12 @@
             </div>
             @if (item.startDate) {
               <div class="wa-action-card__meta-row">
-                <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Start Date</span>
+                <span class="wa-action-card__meta-label"><i class="bi bi-calendar me-1"></i>Planned Start</span>
                 <span class="wa-action-card__meta-value">{{ item.startDate | date:'MMM d, y' }}</span>
               </div>
             }
             <div class="wa-action-card__meta-row">
-              <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+              <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Planned End</span>
               <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
             </div>
             <div class="wa-action-card__meta-row">
@@ -524,7 +524,7 @@
             <th>Assignee(s)</th>
             <th>Priority</th>
             <th>Status</th>
-            <th>Due Date</th>
+            <th>Planned End</th>
             <th class="th-progress">Progress</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -672,7 +672,7 @@
               <span class="wa-action-card__meta-value">{{ assigneeNames(item) }}</span>
             </div>
             <div class="wa-action-card__meta-row">
-              <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Due Date</span>
+              <span class="wa-action-card__meta-label"><i class="bi bi-calendar-event me-1"></i>Planned End</span>
               <span class="wa-action-card__meta-value" [class]="dueDateClass(item)">{{ item.dueDate | date:'MMM d, y' }}</span>
             </div>
           </div>
@@ -837,28 +837,36 @@
         </div>
       </div>
 
-      <!-- Start Date & Due Date -->
+      <!-- Planned start & planned end -->
       <div class="row mb-3">
         <div class="col-6">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
-          <app-working-day-hint field="Start date" [calendar]="calendar()" [date]="actionForm.startDate"
+          <label class="form-label" for="al-planned-start">Planned start</label>
+          <input id="al-planned-start" type="date" class="form-control" [(ngModel)]="actionForm.startDate" />
+          <app-working-day-hint field="Planned start" [calendar]="calendar()" [date]="actionForm.startDate"
                                 [original]="originalDates.start" (useDate)="actionForm.startDate = $event" />
         </div>
         <div class="col-6">
-          <label class="form-label">Due Date <span class="text-danger">*</span></label>
-          <input type="date" class="form-control" [(ngModel)]="actionForm.dueDate"
+          <label class="form-label" for="al-planned-end">Planned end <span class="text-danger">*</span></label>
+          <input id="al-planned-end" type="date" class="form-control" [(ngModel)]="actionForm.dueDate"
                  [min]="actionForm.startDate || ''" />
           @if (actionForm.startDate && actionForm.dueDate && actionForm.dueDate < actionForm.startDate) {
-            <small class="text-danger">Due date must be same or after start date.</small>
+            <small class="text-danger">Planned end must be same or after planned start.</small>
           }
-          <app-working-day-hint field="Due date" [calendar]="calendar()" [date]="actionForm.dueDate"
+          <app-working-day-hint field="Planned end" [calendar]="calendar()" [date]="actionForm.dueDate"
                                 [original]="originalDates.due" (useDate)="actionForm.dueDate = $event" />
         </div>
         <div class="col-12">
           <app-working-days [calendar]="calendar()" [start]="actionForm.startDate" [end]="actionForm.dueDate" />
         </div>
       </div>
+
+      <!-- Actual dates (WO-2026-11 A-1), edit only: not frozen, no approval, any day. -->
+      @if (editingActionId) {
+        <app-actual-dates-fields idPrefix="al-actual"
+                                 [(start)]="actionForm.actualStartDate" [(end)]="actionForm.actualEndDate"
+                                 [endEditable]="actualEndEditable()" [standalone]="editingStandalone"
+                                 [today]="today()" />
+      }
 
       <!-- Progress -->
       <div class="mb-3">

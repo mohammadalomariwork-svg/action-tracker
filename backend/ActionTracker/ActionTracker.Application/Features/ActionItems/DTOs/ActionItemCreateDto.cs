@@ -32,10 +32,16 @@ public class ActionItemCreateDto
     [Required]
     public ActionPriority Priority { get; set; }
 
+    /// <summary>
+    /// Initial status. Creating an item as In Progress sets its actual start to
+    /// today; creating it as Done sets its actual end to today (WO-2026-11 A-1).
+    /// </summary>
     public ActionStatus Status { get; set; } = ActionStatus.ToDo;
 
+    /// <summary>Planned start (optional). Must be a working day of the workspace's calendar.</summary>
     public DateTime? StartDate { get; set; }
 
+    /// <summary>Planned end. Must be a working day of the workspace's calendar.</summary>
     [Required]
     public DateTime DueDate { get; set; }
 

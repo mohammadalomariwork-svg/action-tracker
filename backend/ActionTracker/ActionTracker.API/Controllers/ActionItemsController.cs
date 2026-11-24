@@ -161,7 +161,15 @@ public class ActionItemsController : ControllerBase
     // PUT api/action-items/{id}
     // -------------------------------------------------------------------------
 
-    /// <summary>Updates an existing action item. Only supplied fields are changed.</summary>
+    /// <summary>
+    /// Updates an existing action item. Only supplied fields are changed.
+    /// StartDate / DueDate are the planned start / planned end: frozen once the
+    /// parent project leaves Draft, sent for approval on standalone items, and a
+    /// changed day must be a working day. ActualStartDate / ActualEndDate
+    /// (WO-2026-11 A-1) are none of these; they may not be after today, actual
+    /// end needs the item to be Done, and a Done item accepts a payload that
+    /// only sets actual dates (anything else = 422).
+    /// </summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ActionItemResponseDto>), StatusCodes.Status400BadRequest)]
@@ -180,8 +188,11 @@ public class ActionItemsController : ControllerBase
             _logger.LogWarning(ex, "ActionItem {Id} not found for update", id);
             return NotFound(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
         }
-        catch (NonWorkingDateException ex)
+        catch (ArgumentException ex)
         {
+            // Non-working planned dates (NonWorkingDateException) and refused
+            // actual dates. Returned here because the exception middleware hides
+            // the message in Production, and the user needs to see which date.
             return BadRequest(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
         }
     }

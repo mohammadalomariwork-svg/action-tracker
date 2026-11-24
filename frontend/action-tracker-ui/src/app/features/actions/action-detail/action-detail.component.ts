@@ -1,6 +1,6 @@
 import {
   Component, OnInit, ChangeDetectionStrategy,
-  inject, signal, computed, HostListener,
+  inject, signal, computed, HostListener, Injector, afterNextRender,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -13,7 +13,7 @@ import { WorkflowService }       from '../../../services/workflow.service';
 import { WorkspaceService }      from '../../workspaces/services/workspace.service';
 
 import {
-  ActionItem, ActionItemCreate, ActionStatus, ActionPriority,
+  ActionItem, ActionItemUpdate, ActionStatus, ActionPriority,
   AssignableUser, EscalationInfo,
 } from '../../../core/models/action-item.model';
 import {
@@ -31,6 +31,12 @@ import { WorkingDayHintComponent } from '../../../shared/components/working-day-
 import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
 import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
+import { HasPermissionDirective } from '../../../shared';
+import { ActualDatesFieldsComponent } from '../../../shared/components/actual-dates-fields/actual-dates-fields.component';
+import {
+  actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
+  varianceLabel, varianceTone,
+} from '../../../shared/utils/actual-dates.util';
 
 interface EditFormData {
   title: string;
@@ -40,6 +46,8 @@ interface EditFormData {
   status: ActionStatus;
   startDate: string;
   dueDate: string;
+  actualStartDate: string;
+  actualEndDate: string;
   progress: number;
   isEscalated: boolean;
   escalationExplanation: string;
@@ -53,7 +61,7 @@ interface EditFormData {
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
     BreadcrumbComponent, WorkflowReviewDialogComponent,
-    WorkingDayHintComponent, WorkingDaysComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, HasPermissionDirective, ActualDatesFieldsComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',
@@ -65,6 +73,7 @@ export class ActionDetailComponent implements OnInit {
   private readonly authService  = inject(AuthService);
   private readonly workflowSvc  = inject(WorkflowService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly injector     = inject(Injector);
 
   readonly item       = signal<ActionItem | null>(null);
   readonly loading    = signal(true);
@@ -96,6 +105,16 @@ export class ActionDetailComponent implements OnInit {
   /** Dates the item holds now; unchanged dates are never flagged (Q8). */
   readonly originalStartDate = computed(() => this.item()?.startDate?.slice(0, 10) ?? null);
   readonly originalDueDate   = computed(() => this.item()?.dueDate?.slice(0, 10) ?? null);
+
+  // ── Actual dates (WO-2026-11 A-1) ─────────────────────
+  /** Today in the workspace calendar's time zone: the latest day an actual date may be. */
+  readonly today = computed(() => todayInTimeZone(this.calendar()?.calendar.timeZoneId));
+  readonly varianceLabel = varianceLabel;
+  readonly varianceTone  = varianceTone;
+  /** Inline editor for a Done item's actual dates (a Done item accepts nothing else). */
+  readonly showActualDatesForm = signal(false);
+  readonly savingActualDates   = signal(false);
+  actualDatesForm = { start: '', end: '' };
 
   readonly breadcrumbItems = computed(() => {
     const ai = this.item();
@@ -219,7 +238,7 @@ export class ActionDetailComponent implements OnInit {
     return {
       title: '', description: '', assigneeIds: [],
       priority: ActionPriority.Medium, status: ActionStatus.ToDo,
-      startDate: '', dueDate: '', progress: 0,
+      startDate: '', dueDate: '', actualStartDate: '', actualEndDate: '', progress: 0,
       isEscalated: false, escalationExplanation: '',
     };
   }
@@ -244,6 +263,8 @@ export class ActionDetailComponent implements OnInit {
       status:      this.resolveStatus(ai.status),
       startDate:   ai.startDate ? ai.startDate.slice(0, 10) : '',
       dueDate:     ai.dueDate.slice(0, 10),
+      actualStartDate: toDateInput(ai.actualStartDate),
+      actualEndDate:   toDateInput(ai.actualEndDate),
       progress:    ai.progress,
       isEscalated: !!ai.isEscalated,
       escalationExplanation: latestExplanation,
@@ -268,6 +289,25 @@ export class ActionDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * True when this save can set the actual end: the item moves to Done here
+   * and the move applies directly. A standalone item's move to Done goes for
+   * approval, and the actual end is recorded when it is approved.
+   */
+  actualEndEditable(): boolean {
+    return actualEndEditableFor(this.editForm.status, this.item()?.isStandalone);
+  }
+
+  editActualDatesProblem(): string | null {
+    const endAllowed = this.actualEndEditable();
+    return actualDatesProblem({
+      start: this.editForm.actualStartDate,
+      end: endAllowed ? this.editForm.actualEndDate : '',
+      doneAfterSave: endAllowed,
+      today: this.today(),
+    });
+  }
+
   saveEdit(): void {
     const ai = this.item();
     if (!ai) return;
@@ -276,11 +316,16 @@ export class ActionDetailComponent implements OnInit {
 
     // Working-day rule — the server applies the same check and stays the authority.
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Start date', value: this.editForm.startDate, original: this.originalStartDate() },
-      { field: 'Due date',   value: this.editForm.dueDate,   original: this.originalDueDate() },
+      { field: 'Planned start', value: this.editForm.startDate, original: this.originalStartDate() },
+      { field: 'Planned end',   value: this.editForm.dueDate,   original: this.originalDueDate() },
     ]);
     if (dateProblem) {
       this.toastSvc.error(dateProblem);
+      return;
+    }
+    const actualProblem = this.editActualDatesProblem();
+    if (actualProblem) {
+      this.toastSvc.error(actualProblem);
       return;
     }
 
@@ -290,7 +335,7 @@ export class ActionDetailComponent implements OnInit {
     const explanationChanged = this.editForm.escalationExplanation?.trim() !== this.originalEscalationText.trim();
     const shouldSendEscalation = escalatedChanged || explanationChanged;
 
-    const payload: Partial<ActionItemCreate> = {
+    const payload: ActionItemUpdate = {
       title:       this.editForm.title.trim(),
       description: this.editForm.description?.trim() ?? '',
       assigneeIds: this.editForm.assigneeIds,
@@ -303,6 +348,10 @@ export class ActionDetailComponent implements OnInit {
       escalationExplanation: (this.editForm.isEscalated && shouldSendEscalation)
         ? this.editForm.escalationExplanation?.trim()
         : undefined,
+      ...actualDatesPatch(
+        { start: ai.actualStartDate, end: ai.actualEndDate },
+        { start: this.editForm.actualStartDate, end: this.editForm.actualEndDate },
+        this.actualEndEditable()),
     };
 
     this.actionSvc.update(ai.id, payload).subscribe({
@@ -315,6 +364,59 @@ export class ActionDetailComponent implements OnInit {
       error: (err) => {
         this.saving = false;
         this.toastSvc.error(err?.error?.message ?? 'Failed to update action item.');
+      },
+    });
+  }
+
+  // ── Actual dates of a Done item (WO-2026-11 A-1) ───────
+  openActualDatesForm(): void {
+    const ai = this.item();
+    if (!ai) return;
+    this.actualDatesForm = { start: toDateInput(ai.actualStartDate), end: toDateInput(ai.actualEndDate) };
+    this.showActualDatesForm.set(true);
+    afterNextRender(() => document.getElementById('ad-done-actual-start')?.focus(), { injector: this.injector });
+  }
+
+  cancelActualDatesForm(): void {
+    this.showActualDatesForm.set(false);
+    afterNextRender(() => document.getElementById('ad-edit-actual-dates')?.focus(), { injector: this.injector });
+  }
+
+  doneActualDatesProblem(): string | null {
+    return actualDatesProblem({
+      start: this.actualDatesForm.start, end: this.actualDatesForm.end, doneAfterSave: true, today: this.today(),
+    });
+  }
+
+  saveActualDates(): void {
+    const ai = this.item();
+    if (!ai) return;
+    const problem = this.doneActualDatesProblem();
+    if (problem) {
+      this.toastSvc.error(problem);
+      return;
+    }
+    // Only the actual dates: a Done item refuses any other field.
+    const patch = actualDatesPatch({ start: ai.actualStartDate, end: ai.actualEndDate }, this.actualDatesForm, true);
+    if (Object.keys(patch).length === 0) {
+      this.cancelActualDatesForm();
+      return;
+    }
+
+    this.savingActualDates.set(true);
+    this.actionSvc.update(ai.id, patch).subscribe({
+      next: r => {
+        this.savingActualDates.set(false);
+        this.toastSvc.success('Actual dates updated.');
+        // The response is the updated item: no reload, so the page does not
+        // flash its loading state and focus can return to the button.
+        if (r?.data) this.item.set(r.data);
+        else this.loadItem(ai.id);
+        this.cancelActualDatesForm();   // closes the editor and returns focus to its button
+      },
+      error: (err) => {
+        this.savingActualDates.set(false);
+        this.toastSvc.error(err?.error?.message ?? 'Failed to update the actual dates.');
       },
     });
   }

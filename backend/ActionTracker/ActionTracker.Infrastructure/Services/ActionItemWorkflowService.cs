@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.ActionItems;
 using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
@@ -101,8 +102,8 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         // Only requested dates that differ from the item's current ones (Q8).
         await _calendars.EnsureWorkingDaysAsync(actionItem.WorkspaceId, new[]
         {
-            WorkingDateCheck.Changed("Requested start date", dto.NewStartDate, actionItem.StartDate),
-            WorkingDateCheck.Changed("Requested due date",   dto.NewDueDate,   actionItem.DueDate),
+            WorkingDateCheck.Changed("Requested planned start", dto.NewStartDate, actionItem.StartDate),
+            WorkingDateCheck.Changed("Requested planned end",   dto.NewDueDate,   actionItem.DueDate),
         });
 
         var requesterName = await GetUserDisplayNameAsync(requestedByUserId) ?? "Unknown User";
@@ -294,10 +295,19 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
             else if (request.RequestType == WorkflowRequestType.StatusChangeRequest
                      && request.RequestedNewStatus.HasValue)
             {
+                var previousStatus = actionItem.Status;
                 actionItem.Status = request.RequestedNewStatus.Value;
 
                 if (request.RequestedNewStatus.Value == ActionStatus.Done)
                     actionItem.Progress = 100;
+
+                // Actual dates (WO-2026-11 A-1): an approved move into Done
+                // records today as the actual end. The workflow rules are unchanged.
+                if (actionItem.Status != previousStatus)
+                {
+                    var today = await ActionItemActualDates.TodayForWorkspaceAsync(_calendars, actionItem.WorkspaceId);
+                    ActionItemActualDates.ApplyStatusChange(actionItem, previousStatus, actionItem.Status, today);
+                }
 
                 actionItem.UpdatedAt = DateTime.UtcNow;
             }

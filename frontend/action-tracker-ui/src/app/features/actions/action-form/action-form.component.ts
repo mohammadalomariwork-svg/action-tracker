@@ -35,6 +35,7 @@ import { WorkingDayHintComponent } from '../../../shared/components/working-day-
 import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
 import { nonWorkingDatesMessage, workingDayValidator } from '../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
+import { actualDatesPatch, actualDatesProblem, todayInTimeZone, toDateInput } from '../../../shared/utils/actual-dates.util';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 
@@ -141,6 +142,9 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     status:      [ActionStatus.ToDo, Validators.required],
     startDate:   [''],
     dueDate:     ['', Validators.required],
+    // Actual dates (WO-2026-11 A-1), edit mode only: never locked, no approval.
+    actualStartDate: [''],
+    actualEndDate:   [''],
     progress:    [0,  [Validators.min(0), Validators.max(100)]],
   });
 
@@ -151,6 +155,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   /** Dates the item holds now (`yyyy-MM-dd`); unchanged dates are never flagged (Q8). */
   readonly originalStartDate = computed(() => this.editItem()?.startDate?.slice(0, 10) ?? null);
   readonly originalDueDate   = computed(() => this.editItem()?.dueDate?.slice(0, 10) ?? null);
+  /** Today in the workspace calendar's time zone: the latest day an actual date may be (A-1). */
+  readonly today = computed(() => todayInTimeZone(this.calendar()?.calendar.timeZoneId));
   /** Re-runs the date validators when the calendar loads or the edited item arrives. */
   private readonly revalidateDates = effect(() => {
     this.calendar();
@@ -182,9 +188,9 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     this.wireValueChanges();
 
     this.form.get('startDate')!.addValidators(
-      workingDayValidator(() => this.calendar(), () => this.originalStartDate(), 'Start date'));
+      workingDayValidator(() => this.calendar(), () => this.originalStartDate(), 'Planned start'));
     this.form.get('dueDate')!.addValidators(
-      workingDayValidator(() => this.calendar(), () => this.originalDueDate(), 'Due date'));
+      workingDayValidator(() => this.calendar(), () => this.originalDueDate(), 'Planned end'));
   }
 
   private onWorkspaceChange(workspaceId: string): void {
@@ -253,6 +259,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
           status:      item.status,
           startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
           dueDate:     item.dueDate.slice(0, 10),
+          actualStartDate: toDateInput(item.actualStartDate),
+          actualEndDate:   toDateInput(item.actualEndDate),
           progress:    item.progress,
           // isEscalated is managed from the detail view, not the form
         });
@@ -300,8 +308,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     if (!item) return;
 
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Requested start date', value: this.requestedNewStartDate(), original: this.originalStartDate() },
-      { field: 'Requested due date',   value: this.requestedNewDueDate(),   original: this.originalDueDate() },
+      { field: 'Requested planned start', value: this.requestedNewStartDate(), original: this.originalStartDate() },
+      { field: 'Requested planned end',   value: this.requestedNewDueDate(),   original: this.originalDueDate() },
     ]);
     if (dateProblem) {
       this.toastSvc.error(dateProblem);
@@ -401,6 +409,35 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     return this.selectedAssigneeIds.includes(userId);
   }
 
+  // ── Actual dates (WO-2026-11 A-1) ─────────────────────
+  /**
+   * True when this save can set the actual end: editing, the status is Done,
+   * and the move applies directly (a standalone item cannot pick Done here; its
+   * move to Done goes for approval and the actual end is recorded then).
+   */
+  actualEndEditable(): boolean {
+    return this.isEditMode()
+      && +this.form.get('status')!.value === ActionStatus.Done
+      && !this.editItem()?.isStandalone;
+  }
+
+  actualEndHint(): string {
+    return this.editItem()?.isStandalone
+      ? 'Recorded when the move to Done is approved.'
+      : 'Recorded when the item moves to Done.';
+  }
+
+  actualDatesProblem(): string | null {
+    if (!this.isEditMode()) return null;
+    const endAllowed = this.actualEndEditable();
+    return actualDatesProblem({
+      start: this.form.get('actualStartDate')!.value ?? '',
+      end: endAllowed ? this.form.get('actualEndDate')!.value ?? '' : '',
+      doneAfterSave: endAllowed,
+      today: this.today(),
+    });
+  }
+
   // ── Accessors ─────────────────────────────────────────
   ctrl(name: string): AbstractControl { return this.form.get(name)!; }
 
@@ -416,12 +453,17 @@ export class ActionFormComponent implements OnInit, OnDestroy {
     // Working-day rule (the date validators block the save too; this says why).
     // The server applies the same rule and stays the authority.
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Start date', value: raw.startDate, original: this.originalStartDate() },
-      { field: 'Due date',   value: raw.dueDate,   original: this.originalDueDate() },
+      { field: 'Planned start', value: raw.startDate, original: this.originalStartDate() },
+      { field: 'Planned end',   value: raw.dueDate,   original: this.originalDueDate() },
     ]);
     if (dateProblem) {
       this.form.markAllAsTouched();
       this.toastSvc.error(dateProblem);
+      return;
+    }
+    const actualProblem = this.actualDatesProblem();
+    if (actualProblem) {
+      this.toastSvc.error(actualProblem);
       return;
     }
 
@@ -447,7 +489,13 @@ export class ActionFormComponent implements OnInit, OnDestroy {
 
     const item = this.editItem();
     const obs$ = item
-      ? this.actionSvc.update(item.id, payload)
+      ? this.actionSvc.update(item.id, {
+          ...payload,
+          ...actualDatesPatch(
+            { start: item.actualStartDate, end: item.actualEndDate },
+            { start: raw.actualStartDate ?? '', end: raw.actualEndDate ?? '' },
+            this.actualEndEditable()),
+        })
       : this.actionSvc.create(payload);
 
     obs$.subscribe({
@@ -470,7 +518,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
             this.toastSvc.error(err?.error?.message ?? 'Failed to save action item. Please try again.');
           }
         } else {
-          this.toastSvc.error('Failed to save action item. Please try again.');
+          // 400s carry the reason (non-working planned date, refused actual date).
+          this.toastSvc.error(err?.error?.message ?? 'Failed to save action item. Please try again.');
         }
       },
     });

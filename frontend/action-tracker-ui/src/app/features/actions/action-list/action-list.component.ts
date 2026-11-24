@@ -29,6 +29,10 @@ import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialo
 import { PageHeaderComponent }    from '../../../shared/components/page-header/page-header.component';
 import { BreadcrumbComponent }    from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../shared';
+import { ActualDatesFieldsComponent } from '../../../shared/components/actual-dates-fields/actual-dates-fields.component';
+import {
+  actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
+} from '../../../shared/utils/actual-dates.util';
 
 export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -54,6 +58,8 @@ interface ActionItemFormData {
   status: ActionStatus;
   startDate: string;
   dueDate: string;
+  actualStartDate: string;
+  actualEndDate: string;
   progress: number;
   isEscalated: boolean;
   escalationExplanation: string;
@@ -66,7 +72,7 @@ interface ActionItemFormData {
   imports: [
     FormsModule, ReactiveFormsModule, RouterLink, DatePipe,
     ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
-    HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent,
+    HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
   ],
   templateUrl: './action-list.component.html',
   styleUrl:    './action-list.component.scss',
@@ -145,6 +151,12 @@ export class ActionListComponent implements OnInit, OnDestroy {
   /** Dates the edited item holds now; unchanged dates are never flagged (Q8). */
   originalDates: { start: string | null; due: string | null } = { start: null, due: null };
   private originalEscalationText = '';
+
+  // ── Actual dates of the edited item (WO-2026-11 A-1) ──
+  /** Today in the form workspace's calendar time zone: the latest day an actual date may be. */
+  readonly today = computed(() => todayInTimeZone(this.calendar()?.calendar.timeZoneId));
+  editingStandalone = false;
+  private originalActual: { start: string | null; end: string | null } = { start: null, end: null };
 
   allUsers:      AssignableUser[] = [];
   allWorkspaces: WorkspaceList[]  = [];
@@ -361,10 +373,17 @@ export class ActionListComponent implements OnInit, OnDestroy {
       status: ActionStatus.ToDo,
       startDate: '',
       dueDate: '',
+      actualStartDate: '',
+      actualEndDate: '',
       progress: 0,
       isEscalated: false,
       escalationExplanation: '',
     };
+  }
+
+  /** True when this save can set the actual end (editing, moving to Done directly). */
+  actualEndEditable(): boolean {
+    return !!this.editingActionId && actualEndEditableFor(this.actionForm.status, this.editingStandalone);
   }
 
   private resolveStatus(val: unknown): ActionStatus {
@@ -418,12 +437,16 @@ export class ActionListComponent implements OnInit, OnDestroy {
       status:      this.resolveStatus(item.status),
       startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
       dueDate:     item.dueDate.slice(0, 10),
+      actualStartDate: toDateInput(item.actualStartDate),
+      actualEndDate:   toDateInput(item.actualEndDate),
       progress:    item.progress,
       isEscalated: !!item.isEscalated,
       escalationExplanation: latestExplanation,
     };
     this.formWorkspaceId.set(this.actionForm.workspaceId);
     this.originalDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
+    this.originalActual = { start: item.actualStartDate, end: item.actualEndDate };
+    this.editingStandalone = item.isStandalone;
 
     this.originalEscalated = !!item.isEscalated;
     this.originalEscalationText = latestExplanation;
@@ -492,11 +515,22 @@ export class ActionListComponent implements OnInit, OnDestroy {
 
     // Working-day rule — the server applies the same check and stays the authority.
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Start date', value: this.actionForm.startDate, original: this.originalDates.start },
-      { field: 'Due date',   value: this.actionForm.dueDate,   original: this.originalDates.due },
+      { field: 'Planned start', value: this.actionForm.startDate, original: this.originalDates.start },
+      { field: 'Planned end',   value: this.actionForm.dueDate,   original: this.originalDates.due },
     ]);
     if (dateProblem) {
       this.toastSvc.error(dateProblem);
+      return;
+    }
+    const endAllowed = this.actualEndEditable();
+    const actualProblem = this.editingActionId ? actualDatesProblem({
+      start: this.actionForm.actualStartDate,
+      end: endAllowed ? this.actionForm.actualEndDate : '',
+      doneAfterSave: endAllowed,
+      today: this.today(),
+    }) : null;
+    if (actualProblem) {
+      this.toastSvc.error(actualProblem);
       return;
     }
 
@@ -525,7 +559,11 @@ export class ActionListComponent implements OnInit, OnDestroy {
     };
 
     const obs$ = this.editingActionId
-      ? this.actionSvc.update(this.editingActionId, payload)
+      ? this.actionSvc.update(this.editingActionId, {
+          ...payload,
+          ...actualDatesPatch(this.originalActual,
+            { start: this.actionForm.actualStartDate, end: this.actionForm.actualEndDate }, endAllowed),
+        })
       : this.actionSvc.create(payload);
 
     obs$.pipe(takeUntil(this.destroy$)).subscribe({
@@ -641,7 +679,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
         const header = [
           'ID', 'Title', 'Workspace', 'Project', 'Milestone',
           'Priority', 'Status', 'Assignees',
-          'Start Date', 'Due Date', 'Progress (%)',
+          'Planned Start', 'Planned End', 'Actual Start', 'Actual End', 'Progress (%)',
           'Escalated', 'Created', 'Updated',
         ];
         const rows = items.map(i => [
@@ -655,6 +693,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
           (i.assignees ?? []).map(a => a.fullName).join(', '),
           i.startDate ? i.startDate.slice(0, 10) : '',
           i.dueDate.slice(0, 10),
+          toDateInput(i.actualStartDate),
+          toDateInput(i.actualEndDate),
           i.progress,
           i.isEscalated ? 'Yes' : 'No',
           i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '',
@@ -664,7 +704,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
         ws2['!cols'] = [
           { wch: 10 }, { wch: 40 }, { wch: 24 }, { wch: 20 }, { wch: 20 },
           { wch: 12 }, { wch: 14 }, { wch: 30 },
-          { wch: 14 }, { wch: 14 }, { wch: 14 },
+          { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
           { wch: 10 }, { wch: 16 }, { wch: 16 },
         ];
         XLSX.utils.book_append_sheet(wb, ws2, 'My Actions');
@@ -751,7 +791,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
           <table>
             <thead><tr>
               <th>ID</th><th>Title</th><th>Workspace</th><th>Assignees</th>
-              <th>Priority</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Esc.</th>
+              <th>Priority</th><th>Status</th><th>Progress</th><th>Planned End</th><th>Esc.</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>

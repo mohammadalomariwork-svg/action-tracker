@@ -204,8 +204,8 @@ public class ActionItemService : IActionItemService
         // ── Working-day rule (WO-2026-11 C-3) ─────────────────────────────────
         await _calendars.EnsureWorkingDaysAsync(dto.WorkspaceId, new[]
         {
-            WorkingDateCheck.New("Start date", dto.StartDate),
-            WorkingDateCheck.New("Due date",   dto.DueDate),
+            WorkingDateCheck.New("Planned start", dto.StartDate),
+            WorkingDateCheck.New("Planned end",   dto.DueDate),
         }, ct);
 
         // Determine next ActionId sequence across all rows including soft-deleted ones
@@ -236,6 +236,18 @@ public class ActionItemService : IActionItemService
         // Auto-set progress to 100 when status is Done
         if (dto.Status == ActionStatus.Done)
             item.Progress = 100;
+
+        // ── Actual dates (WO-2026-11 A-1) ─────────────────────────────────────
+        // Created as In Progress = started today; created as Done = finished today.
+        if (dto.Status is ActionStatus.InProgress or ActionStatus.Done)
+        {
+            var today = await ActionItemActualDates.TodayForWorkspaceAsync(_calendars, dto.WorkspaceId, ct);
+            (item.ActualStartDate, item.ActualEndDate) = ActionItemActualDates.Resolve(
+                previousStatus: null, dto.Status, dto.Status,
+                currentStart: null, currentEnd: null,
+                suppliedStart: null, clearStart: false, suppliedEnd: null,
+                today);
+        }
 
         // Add assignees
         foreach (var userId in dto.AssigneeIds.Distinct())
@@ -361,7 +373,9 @@ public class ActionItemService : IActionItemService
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
 
         // ── Block edits on completed items ────────────────────────────────────
-        if (item.Status == ActionStatus.Done)
+        // The one exception (WO-2026-11 A-1): a payload that only sets the
+        // actual dates, so the recorded start / completion day can be corrected.
+        if (item.Status == ActionStatus.Done && !(dto.ChangesOnlyActualDates() && dto.HasActualDates()))
             throw new InvalidOperationException("Completed action items cannot be edited.");
 
         // ── Date freeze for project-linked items ──────────────────────────────
@@ -390,9 +404,31 @@ public class ActionItemService : IActionItemService
         var calendarWorkspaceId = item.IsStandalone ? item.WorkspaceId : dto.WorkspaceId ?? item.WorkspaceId;
         await _calendars.EnsureWorkingDaysAsync(calendarWorkspaceId, new[]
         {
-            WorkingDateCheck.Changed("Start date", dto.StartDate, item.StartDate),
-            WorkingDateCheck.Changed("Due date",   dto.DueDate,   item.DueDate),
+            WorkingDateCheck.Changed("Planned start", dto.StartDate, item.StartDate),
+            WorkingDateCheck.Changed("Planned end",   dto.DueDate,   item.DueDate),
         }, ct);
+
+        // ── Actual dates (WO-2026-11 A-1) ─────────────────────────────────────
+        // Worked out (and validated) before the standalone branch, so a refused
+        // value stops the save before any approval request is created. A status
+        // the standalone branch sends for approval does not change in this save.
+        // The planned-date freeze, the date-change workflow and the working-day
+        // rule do not apply to actual dates.
+        var statusSentForApproval = item.IsStandalone
+                                    && dto.Status is not null
+                                    && RequiresStatusApproval(item.Status, dto.Status.Value);
+        var targetStatus = statusSentForApproval ? item.Status : dto.Status ?? item.Status;
+        var actualStart  = item.ActualStartDate;
+        var actualEnd    = item.ActualEndDate;
+        if (dto.HasActualDates() || targetStatus != item.Status)
+        {
+            var today = await ActionItemActualDates.TodayForWorkspaceAsync(_calendars, calendarWorkspaceId, ct);
+            (actualStart, actualEnd) = ActionItemActualDates.Resolve(
+                item.Status, targetStatus, targetStatus,
+                item.ActualStartDate, item.ActualEndDate,
+                dto.ActualStartDate, dto.ClearActualStartDate == true, dto.ActualEndDate,
+                today);
+        }
 
         // ── Workflow auto-request for standalone items ─────────────────────────
         if (item.IsStandalone)
@@ -429,15 +465,7 @@ public class ActionItemService : IActionItemService
             // Status approval: auto-create a status change request for terminal transitions
             if (dto.Status is not null && dto.Status.Value != item.Status)
             {
-                var requiresApproval = dto.Status.Value is ActionStatus.Done
-                                                        or ActionStatus.Deferred
-                                                        or ActionStatus.Cancelled;
-                var isWorkflowSource = item.Status is ActionStatus.ToDo
-                                                   or ActionStatus.InProgress
-                                                   or ActionStatus.InReview
-                                                   or ActionStatus.Overdue;
-
-                if (requiresApproval && isWorkflowSource)
+                if (statusSentForApproval)
                 {
                     try
                     {
@@ -473,6 +501,8 @@ public class ActionItemService : IActionItemService
         if (dto.DueDate     is not null) item.DueDate     = dto.DueDate.Value;
         if (dto.Progress    is not null) item.Progress    = dto.Progress.Value;
         if (dto.IsEscalated is not null) item.IsEscalated = dto.IsEscalated.Value;
+        item.ActualStartDate = actualStart;
+        item.ActualEndDate   = actualEnd;
 
         // Auto-set progress to 100 when status is Done
         if (dto.Status == ActionStatus.Done)
@@ -623,15 +653,7 @@ public class ActionItemService : IActionItemService
         // ── Workflow auto-request for standalone items ─────────────────────────
         if (item.IsStandalone && newStatus != item.Status)
         {
-            var requiresApproval = newStatus is ActionStatus.Done
-                                             or ActionStatus.Deferred
-                                             or ActionStatus.Cancelled;
-            var isWorkflowSource = item.Status is ActionStatus.ToDo
-                                              or ActionStatus.InProgress
-                                              or ActionStatus.InReview
-                                              or ActionStatus.Overdue;
-
-            if (requiresApproval && isWorkflowSource)
+            if (RequiresStatusApproval(item.Status, newStatus))
             {
                 // Auto-create a workflow request instead of blocking
                 var workflowService = _scopeFactory.CreateScope().ServiceProvider
@@ -647,6 +669,7 @@ public class ActionItemService : IActionItemService
             }
         }
 
+        var previousStatus = item.Status;
         item.Status = newStatus;
 
         // Completing an item auto-sets progress to 100
@@ -658,6 +681,15 @@ public class ActionItemService : IActionItemService
         else if (item.DueDate < DateTime.UtcNow)
         {
             item.Status = ActionStatus.Overdue;
+        }
+
+        // ── Actual dates (WO-2026-11 A-1) ─────────────────────────────────────
+        // The asked-for status counts for the actual start: In Progress on a
+        // past-due item is stored as Overdue, but the work did start.
+        if (newStatus != previousStatus || item.Status != previousStatus)
+        {
+            var today = await ActionItemActualDates.TodayForWorkspaceAsync(_calendars, item.WorkspaceId, ct);
+            ActionItemActualDates.ApplyStatusChange(item, previousStatus, newStatus, today);
         }
 
         await _dbContext.SaveChangesAsync(ct);
@@ -806,10 +838,18 @@ public class ActionItemService : IActionItemService
             .FirstOrDefaultAsync(a => a.Id == actionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {actionItemId} not found.");
 
+        var previousStatus = item.Status;
         item.Status = newStatus;
 
         if (newStatus == ActionStatus.Done)
             item.Progress = 100;
+
+        // Actual dates (WO-2026-11 A-1): same rule as every other status path.
+        if (newStatus != previousStatus)
+        {
+            var today = await ActionItemActualDates.TodayForWorkspaceAsync(_calendars, item.WorkspaceId);
+            ActionItemActualDates.ApplyStatusChange(item, previousStatus, newStatus, today);
+        }
 
         item.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(default);
@@ -965,6 +1005,21 @@ public class ActionItemService : IActionItemService
 
         _logger.LogInformation("Comment {CommentId} deleted from ActionItem {ActionItemId}", commentId, actionItemId);
     }
+
+    // -------------------------------------------------------------------------
+    // Status approval
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// True when moving a standalone item from <paramref name="current"/> to
+    /// <paramref name="target"/> needs an approved status-change request:
+    /// a terminal target (Done / Deferred / Cancelled) from an open status.
+    /// Used by both PUT and PATCH /status so the two cannot drift.
+    /// </summary>
+    private static bool RequiresStatusApproval(ActionStatus current, ActionStatus target) =>
+        target != current
+        && target is ActionStatus.Done or ActionStatus.Deferred or ActionStatus.Cancelled
+        && current is ActionStatus.ToDo or ActionStatus.InProgress or ActionStatus.InReview or ActionStatus.Overdue;
 
     // -------------------------------------------------------------------------
     // Email helpers

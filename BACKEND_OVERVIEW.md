@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-23 (Workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-24 (Planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -108,8 +108,8 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | GET | `/my-stats` | Stats for user's assigned items (total, critical, in-progress, completed, overdue) |
 | GET | `/{id}` | Single action item by GUID |
 | POST | `/` | Create action item (auto-generates ActionId ACT-001). Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the reason comes back as `ApiResponse.message` |
-| PUT | `/{id}` | Update action item. Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) — for a standalone item the check runs before the date edit is turned into a date-change request |
-| PATCH | `/{id}/status` | Update status (Done sets Progress=100%) |
+| PUT | `/{id}` | Update action item. `startDate` / `dueDate` are the planned start / planned end. Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) — for a standalone item the check runs before the date edit is turned into a date-change request. Actual dates (WO-2026-11 A-1, see "Actual dates" below): `actualStartDate`, `clearActualStartDate`, `actualEndDate` — 400 with the reason as `ApiResponse.message` when one is refused (every `ArgumentException` is now returned that way). A Done item accepts a payload that carries only actual dates; anything else is 422 "Completed action items cannot be edited." |
+| PATCH | `/{id}/status` | Update status (Done sets Progress=100%; records / clears actual dates — WO-2026-11 A-1) |
 | DELETE | `/{id}` | Soft delete (requires ActionItems.Delete) |
 | PATCH | `/{id}/restore` | Restore soft-deleted item |
 | POST | `/process-overdue` | Mark past-due items as Overdue (Admin only) |
@@ -318,7 +318,8 @@ takes `WorkingDateCheck(field, value, current)` entries and throws `NonWorkingDa
 working day in the workspace's calendar. Dates are compared by calendar day
 (`DateOnly.FromDateTime`), so a date the record already holds is never checked — legacy
 records on weekends keep saving. Message, one sentence per refused date:
-`Due date 2026-11-28 (Saturday) is not a working day in the workspace calendar "KU Standard". Next working day: 2026-11-30 (Monday).`
+`Planned end 2026-11-28 (Saturday) is not a working day in the workspace calendar "KU Standard". Next working day: 2026-11-30 (Monday).`
+(field names for action items since A-1: "Planned start" / "Planned end", and "Requested planned start" / "Requested planned end" on a date-change request)
 Called after the existing guards (Draft / freeze / ordering) and before any change, from:
 
 | Caller | Dates checked | Calendar of |
@@ -336,6 +337,37 @@ is configured at all the rule logs a warning and lets the save through. `ActionI
 (POST / PUT) and `ActionItemWorkflowController` (`date-change-request`) catch the exception and
 return `ApiResponse.Fail(message)`; `MilestonesController` and `ProjectsController` already
 return `ArgumentException` messages that way.
+
+**Actual dates (WO-2026-11 A-1, Q9).** `ActionItem.ActualStartDate` / `ActualEndDate`, maintained by
+`ActionItemActualDates` on every path that changes an action item's status:
+
+| Path | What it does with actual dates |
+|------|-------------------------------|
+| `ActionItemService.CreateAsync` | Created as In Progress → actual start = today; created as Done → actual end = today |
+| `ActionItemService.UpdateAsync` (PUT) | Applies a status that is not sent for approval, plus any `actualStartDate` / `clearActualStartDate` / `actualEndDate` in the payload; worked out and validated before the standalone branch, so a refused value creates no request |
+| `ActionItemService.UpdateStatusAsync` (PATCH `/status`) | The asked-for status counts for the actual start (In Progress stored as Overdue on a past-due item still records it); the only path that can take an item out of Done, which clears the actual end |
+| `ActionItemWorkflowService.ReviewRequestAsync` | An approved status change applies the rule (approved Done → actual end = the approval day) |
+| `ActionItemService.ApplyApprovedStatusChangeAsync` | Same rule (no callers today) |
+| `ActionItemService.ProcessOverdueItemsAsync` | Never moves into In Progress or Done — actual dates untouched |
+
+Rules: actual start is set on a move into In Progress when empty and never cleared automatically;
+actual end is set on the move into Done (a value sent in the same PUT wins) and cleared when the
+item leaves Done; To Do → Done leaves actual start empty. "Today" is the calendar day in the
+workspace calendar's time zone (`TodayForWorkspaceAsync`), stored at midnight like the planned dates.
+Validation (`ArgumentException` → 400): neither date after today; actual end not before actual start;
+actual end only when the item is or becomes Done in that save; actual start cannot be set and cleared
+together. Actual end cannot be cleared while Done (there is no clear flag). Automatic values never
+block a status change (an automatic end before the start is moved up to the start).
+Actual dates are outside the planned-date freeze, the date-change requests and the working-day rule.
+A Done item refuses every PUT (422) except one whose only fields are actual dates
+(`ActionItemUpdateDto.ChangesOnlyActualDates()` and `HasActualDates()`). The response carries
+`actualEndVarianceDays` = `ActualEndDate.Date − DueDate.Date` in calendar days (null without an actual end).
+`DashboardRules`, `GetMyStatsAsync` (on-time still compares `UpdatedAt`) and the approval workflows are unchanged.
+
+Migration `Add_ActionItem_ActualDates`: two nullable `datetime2` columns plus
+`UPDATE ActionItems SET ActualEndDate = CAST(CAST(CASE WHEN UpdatedAt >= CreatedAt THEN UpdatedAt ELSE CreatedAt END AS date) AS datetime2) WHERE Status = 4`
+— `UpdatedAt` is 0001-01-01 on items created as Done and never modified, so those use `CreatedAt`;
+soft-deleted Done rows are included. `Down()` drops the two columns.
 
 ### UsersController (`/api/users`)
 | Method | Endpoint | Description |
@@ -500,7 +532,7 @@ Controller error mapping for KPIs and Strategic Objectives: `UnauthorizedAccessE
 |--------|----------|-------------|
 | POST | `/date-change-request` | Create date change request (dates frozen on standalone items). Requested dates that differ from the item's current ones: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below). Checked here, at request time; approving (`PUT /requests/{requestId}/review`) applies the request as it stands |
 | POST | `/status-change-request` | Create status change request (terminal transitions require approval) |
-| PUT | `/requests/{requestId}/review` | Approve or reject a workflow request |
+| PUT | `/requests/{requestId}/review` | Approve or reject a workflow request. Approving a status change also records the actual dates (approved Done → actual end = the approval day; WO-2026-11 A-1) |
 | GET | `/pending-reviews` | Get pending requests for current user to review |
 | GET | `/my-requests` | Get requests created by current user |
 | GET | `/action-item/{actionItemId}` | Get all workflow requests for an action item |
@@ -585,8 +617,10 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | IsStandalone | bool | True when not linked to project/milestone |
 | Priority | enum | Low, Medium, High, Critical |
 | Status | enum | ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled |
-| StartDate | DateTime? | Start date |
-| DueDate | DateTime | Due date (required) |
+| StartDate | DateTime? | Planned start (shown as "Planned start") |
+| DueDate | DateTime | Planned end (required; shown as "Planned end") |
+| ActualStartDate | DateTime? | Actual start (WO-2026-11 A-1): set on the first move into In Progress, editable. Calendar day at midnight |
+| ActualEndDate | DateTime? | Actual end (A-1): set on the move into Done, cleared when the item leaves Done, editable while Done. Calendar day at midnight. Backfilled for Done items by `Add_ActionItem_ActualDates` |
 | Progress | int | 0-100 (auto-clamped) |
 | IsEscalated | bool | Escalation flag |
 | CreatedByUserId | string? | User who created the item |
@@ -1040,8 +1074,9 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 
 | Service Interface | Responsibilities |
 |-------------------|------------------|
-| `IActionItemService` | CRUD, filtering, stats, comments, overdue processing, approved date/status change bypass |
-| `IActionItemWorkflowService` | Date change requests, status change requests, review/approve/reject, escalation handling, direction giving, pending summary |
+| `IActionItemService` | CRUD, filtering, stats, comments, overdue processing, approved date/status change bypass. Applies the actual-date rule (`ActionItemActualDates`) on create, update, status change and the approved-status bypass; `RequiresStatusApproval` decides (for both PUT and PATCH `/status`) when a standalone item's move needs a request |
+| `ActionItemActualDates` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1 rule: `Resolve(previous, requested, resulting, current…, supplied…, today)` returns the actual start / end an item keeps after a save and throws `ArgumentException` for a refused value; `ApplyStatusChange(item, previous, requested, today)`; `Today(timeZoneId, utcNow)` / `TodayForWorkspaceAsync(calendars, workspaceId)` — the calendar day in the workspace calendar's time zone, UTC without a calendar |
+| `IActionItemWorkflowService` | Date change requests, status change requests, review/approve/reject, escalation handling, direction giving, pending summary. An approved status change applies the actual-date rule (A-1); the workflow itself is unchanged |
 | `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication |
 | `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
 | `IMilestoneService` | CRUD per project, stats, baselining |
@@ -1150,6 +1185,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Two-Layer Org Scoping | `IOrgUnitScopeResolver` (data-tier visibility) + `IStrategicScopeService` (role-driven Strategy/KPI scope) |
 | Per-Entity Document Caps | Document attachments throttled per entity type (e.g. KpiTarget → 10 files) |
 | Working Calendars | Date maths goes through `IWorkCalendarService` → `ResolvedWorkCalendar` (pure, cached) rather than ad-hoc weekend checks; one default calendar is guaranteed by a filtered unique index plus the startup seeder |
+| Planned vs actual dates | `StartDate` / `DueDate` stay the planned dates (freeze, date requests, working-day rule, filters and `DashboardRules` depend on them); `ActualStartDate` / `ActualEndDate` are recorded facts outside all three date rules, maintained by one shared rule (`ActionItemActualDates`) on every status path |
 
 ---
 

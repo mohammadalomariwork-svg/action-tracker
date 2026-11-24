@@ -171,6 +171,12 @@
   color: var(--err);
 }
 
+// Helper text under a field (actual dates, WO-2026-11 A-1)
+.field__hint {
+  font-size: 0.74rem;
+  color: var(--t3);
+}
+
 // ── Textarea char counter ─────────────────────────────
 .textarea-wrap { position: relative; }
 

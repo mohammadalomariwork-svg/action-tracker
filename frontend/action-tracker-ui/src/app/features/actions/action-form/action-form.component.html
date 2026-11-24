@@ -155,10 +155,10 @@
               }
             </div>
 
-            <!-- Start Date -->
+            <!-- Planned start -->
             <div class="field">
               <label class="field__label" for="startDate">
-                Start Date
+                Planned start
                 @if (areDatesLocked()) {
                   <i class="bi bi-lock-fill text-warning ms-1" title="Dates are locked for standalone items"></i>
                 }
@@ -172,17 +172,17 @@
                 [readonly]="areDatesLocked()"
               />
               <app-working-day-hint
-                field="Start date"
+                field="Planned start"
                 [calendar]="calendar()"
                 [date]="form.get('startDate')?.value"
                 [original]="originalStartDate()"
                 (useDate)="form.patchValue({ startDate: $event })" />
             </div>
 
-            <!-- Due Date -->
+            <!-- Planned end -->
             <div class="field">
               <label class="field__label" for="dueDate">
-                Due Date <span class="req">*</span>
+                Planned end <span class="req">*</span>
                 @if (areDatesLocked()) {
                   <i class="bi bi-lock-fill text-warning ms-1" title="Dates are locked for standalone items"></i>
                 }
@@ -198,10 +198,10 @@
                 [readonly]="areDatesLocked()"
               />
               @if (isInvalid('dueDate')) {
-                <span class="field__error">Due date is required.</span>
+                <span class="field__error">Planned end is required.</span>
               }
               <app-working-day-hint
-                field="Due date"
+                field="Planned end"
                 [calendar]="calendar()"
                 [date]="form.get('dueDate')?.value"
                 [original]="originalDueDate()"
@@ -216,6 +216,51 @@
                 </button>
               }
             </div>
+
+            <!-- Actual dates (WO-2026-11 A-1): edit mode only; never locked, no approval, any day. -->
+            @if (isEditMode()) {
+              <div class="field">
+                <label class="field__label" for="actualStartDate">Actual start</label>
+                <input
+                  id="actualStartDate"
+                  type="date"
+                  class="field__input"
+                  formControlName="actualStartDate"
+                  [max]="today()"
+                  aria-describedby="actualStartDate-hint"
+                />
+                <span id="actualStartDate-hint" class="field__hint">Recorded when the item moves to In Progress.</span>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="actualEndDate">Actual end</label>
+                @if (actualEndEditable()) {
+                  <input
+                    id="actualEndDate"
+                    type="date"
+                    class="field__input"
+                    formControlName="actualEndDate"
+                    [min]="form.get('actualStartDate')?.value || ''"
+                    [max]="today()"
+                    aria-describedby="actualEndDate-hint"
+                  />
+                  <span id="actualEndDate-hint" class="field__hint">Leave empty to record today.</span>
+                } @else {
+                  <input
+                    id="actualEndDate"
+                    type="date"
+                    class="field__input field__input--locked"
+                    [value]="form.get('actualEndDate')?.value"
+                    readonly
+                    aria-describedby="actualEndDate-hint"
+                  />
+                  <span id="actualEndDate-hint" class="field__hint">{{ actualEndHint() }}</span>
+                }
+                @if (actualDatesProblem(); as problem) {
+                  <span class="field__error" role="alert">{{ problem }}</span>
+                }
+              </div>
+            }
 
           </div><!-- /form-grid -->
         </section>
@@ -366,24 +411,24 @@
     </div>
     <div class="wf-dialog__body">
       <div class="mb-3">
-        <label class="form-label">New Start Date</label>
+        <label class="form-label">New planned start</label>
         <input type="date" class="form-control"
                [ngModel]="requestedNewStartDate()"
                (ngModelChange)="requestedNewStartDate.set($event)" />
         <app-working-day-hint
-          field="Requested start date"
+          field="Requested planned start"
           [calendar]="calendar()"
           [date]="requestedNewStartDate()"
           [original]="originalStartDate()"
           (useDate)="requestedNewStartDate.set($event)" />
       </div>
       <div class="mb-3">
-        <label class="form-label">New Due Date</label>
+        <label class="form-label">New planned end</label>
         <input type="date" class="form-control"
                [ngModel]="requestedNewDueDate()"
                (ngModelChange)="requestedNewDueDate.set($event)" />
         <app-working-day-hint
-          field="Requested due date"
+          field="Requested planned end"
           [calendar]="calendar()"
           [date]="requestedNewDueDate()"
           [original]="originalDueDate()"

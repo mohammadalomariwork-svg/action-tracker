@@ -609,8 +609,8 @@ export class MilestoneSectionComponent implements OnInit {
 
     // Working-day rule — the server applies the same check and stays the authority.
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Start date', value: this.aiStartDate() },
-      { field: 'Due date',   value: this.aiDueDate() },
+      { field: 'Planned start', value: this.aiStartDate() },
+      { field: 'Planned end',   value: this.aiDueDate() },
     ]);
     if (dateProblem) {
       this.actionFormError = dateProblem;

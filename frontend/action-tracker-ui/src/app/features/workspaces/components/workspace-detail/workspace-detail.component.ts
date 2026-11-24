@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject, signal, HostListener } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -31,13 +31,17 @@ import {
   ProjectType, StrategicObjectiveOption,
 } from '../../../projects/models/project.models';
 import { PagedResult } from '../../../../core/models/api-response.model';
+import { ActualDatesFieldsComponent } from '../../../../shared/components/actual-dates-fields/actual-dates-fields.component';
+import {
+  actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
+} from '../../../../shared/utils/actual-dates.util';
 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
   imports: [
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective,
-    WorkingDayHintComponent, WorkingDaysComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
   ],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
@@ -60,6 +64,11 @@ export class WorkspaceDetailComponent implements OnInit {
   /** Dates the edited record holds now; unchanged dates are never flagged (Q8). */
   originalActionDates: { start: string | null; due: string | null } = { start: null, due: null };
   originalProjectDates: { start: string | null; end: string | null } = { start: null, end: null };
+  // Actual dates of the edited action item (WO-2026-11 A-1)
+  /** Today in this workspace calendar's time zone: the latest day an actual date may be. */
+  readonly today = computed(() => todayInTimeZone(this.calendar()?.calendar.timeZoneId));
+  editingActionStandalone = false;
+  private originalActionActual: { start: string | null; end: string | null } = { start: null, end: null };
   workspace: Workspace | null = null;
   isLoading = false;
   errorMessage: string | null = null;
@@ -317,6 +326,8 @@ export class WorkspaceDetailComponent implements OnInit {
       status: ActionStatus.ToDo,
       startDate: '',
       dueDate: '',
+      actualStartDate: '',
+      actualEndDate: '',
       progress: 0,
       isEscalated: false,
       escalationExplanation: '',
@@ -327,6 +338,11 @@ export class WorkspaceDetailComponent implements OnInit {
     if (+this.actionForm.status === ActionStatus.Done) {
       this.actionForm.progress = 100;
     }
+  }
+
+  /** True when this save can set the actual end (editing, moving to Done directly). */
+  actualEndEditable(): boolean {
+    return !!this.editingActionId && actualEndEditableFor(this.actionForm.status, this.editingActionStandalone);
   }
 
   openNewActionForm(): void {
@@ -360,11 +376,15 @@ export class WorkspaceDetailComponent implements OnInit {
       status:      this.resolveStatus(item.status),
       startDate:   item.startDate ? item.startDate.slice(0, 10) : '',
       dueDate:     item.dueDate.slice(0, 10),
+      actualStartDate: toDateInput(item.actualStartDate),
+      actualEndDate:   toDateInput(item.actualEndDate),
       progress:    item.progress,
       isEscalated: !!item.isEscalated,
       escalationExplanation: latestExplanation,
     };
     this.originalActionDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
+    this.originalActionActual = { start: item.actualStartDate, end: item.actualEndDate };
+    this.editingActionStandalone = item.isStandalone;
 
     this.originalEscalated = !!item.isEscalated;
     this.originalEscalationText = latestExplanation;
@@ -424,11 +444,22 @@ export class WorkspaceDetailComponent implements OnInit {
 
     // Working-day rule — the server applies the same check and stays the authority.
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Start date', value: this.actionForm.startDate, original: this.originalActionDates.start },
-      { field: 'Due date',   value: this.actionForm.dueDate,   original: this.originalActionDates.due },
+      { field: 'Planned start', value: this.actionForm.startDate, original: this.originalActionDates.start },
+      { field: 'Planned end',   value: this.actionForm.dueDate,   original: this.originalActionDates.due },
     ]);
     if (dateProblem) {
       this.toastSvc.error(dateProblem);
+      return;
+    }
+    const endAllowed = this.actualEndEditable();
+    const actualProblem = this.editingActionId ? actualDatesProblem({
+      start: this.actionForm.actualStartDate,
+      end: endAllowed ? this.actionForm.actualEndDate : '',
+      doneAfterSave: endAllowed,
+      today: this.today(),
+    }) : null;
+    if (actualProblem) {
+      this.toastSvc.error(actualProblem);
       return;
     }
 
@@ -457,7 +488,11 @@ export class WorkspaceDetailComponent implements OnInit {
     };
 
     const obs$ = this.editingActionId
-      ? this.actionService.update(this.editingActionId, payload)
+      ? this.actionService.update(this.editingActionId, {
+          ...payload,
+          ...actualDatesPatch(this.originalActionActual,
+            { start: this.actionForm.actualStartDate, end: this.actionForm.actualEndDate }, endAllowed),
+        })
       : this.actionService.create(payload);
 
     obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -977,8 +1012,10 @@ export class WorkspaceDetailComponent implements OnInit {
       'Assignees':  a.assignees.map(x => x.fullName).join(', '),
       'Status':     a.statusLabel,
       'Priority':   a.priorityLabel,
-      'Start Date': a.startDate ? new Date(a.startDate).toLocaleDateString() : '',
-      'Due Date':   new Date(a.dueDate).toLocaleDateString(),
+      'Planned Start': a.startDate ? new Date(a.startDate).toLocaleDateString() : '',
+      'Planned End':   new Date(a.dueDate).toLocaleDateString(),
+      'Actual Start':  a.actualStartDate ? new Date(a.actualStartDate).toLocaleDateString() : '',
+      'Actual End':    a.actualEndDate ? new Date(a.actualEndDate).toLocaleDateString() : '',
       'Progress':   `${a.progress}%`,
       'Escalated':  a.isEscalated ? 'Yes' : 'No',
     }));
@@ -1037,6 +1074,8 @@ interface ActionItemFormData {
   status: ActionStatus;
   startDate: string;
   dueDate: string;
+  actualStartDate: string;
+  actualEndDate: string;
   progress: number;
   isEscalated: boolean;
   escalationExplanation: string;

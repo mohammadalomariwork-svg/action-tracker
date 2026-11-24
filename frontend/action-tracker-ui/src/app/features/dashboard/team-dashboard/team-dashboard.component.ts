@@ -491,8 +491,8 @@ export class TeamDashboardComponent implements OnInit, OnDestroy {
 
     // Working-day rule — the server applies the same check and stays the authority.
     const dateProblem = nonWorkingDatesMessage(this.calendar(), [
-      { field: 'Start date', value: this.actionForm.startDate },
-      { field: 'Due date',   value: this.actionForm.dueDate },
+      { field: 'Planned start', value: this.actionForm.startDate },
+      { field: 'Planned end',   value: this.actionForm.dueDate },
     ]);
     if (dateProblem) {
       this.toastSvc.error(dateProblem);

@@ -4,6 +4,8 @@ using ActionTracker.Application.Features.ActionItems.Services;
 using ActionTracker.Application.Features.Calendars.Services;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Application.Features.Notifications;
+using ActionTracker.Application.Features.Workflow.DTOs;
+using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using ActionTracker.Infrastructure.Data;
@@ -304,9 +306,11 @@ public class ActionItemServiceTests : IDisposable
     [Fact]
     public async Task UpdateStatusAsync_SetToDone_SetsProgressTo100()
     {
-        // Arrange
+        // Arrange — a project-linked (non-standalone) item: the status applies
+        // directly. A standalone item needs approval to reach Done; see the next test.
         await SeedUsersAndWorkspaceAsync();
         var entity = MakeItem("ACT-001", "Almost Done", UserId1);
+        entity.IsStandalone = false;
         _dbContext.ActionItems.Add(entity);
         await _dbContext.SaveChangesAsync();
 
@@ -317,6 +321,44 @@ public class ActionItemServiceTests : IDisposable
         var updated = await _dbContext.ActionItems.FindAsync(entity.Id);
         updated!.Status.Should().Be(ActionStatus.Done);
         updated.Progress.Should().Be(100);
+        updated.ActualEndDate.Should().Be(DateTime.UtcNow.Date);   // WO-2026-11 A-1 (no calendar seeded = UTC day)
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_StandaloneItemToDone_CreatesAStatusChangeRequest_AndChangesNothing()
+    {
+        // Arrange — the standalone approval rule (status.md §15): ToDo → Done
+        // becomes a status-change request instead of being applied.
+        await SeedUsersAndWorkspaceAsync();
+        var entity = MakeItem("ACT-001", "Almost Done", UserId1);   // IsStandalone defaults to true
+        _dbContext.ActionItems.Add(entity);
+        await _dbContext.SaveChangesAsync();
+
+        var workflow = new Mock<IActionItemWorkflowService>();
+        var provider = new Mock<IServiceProvider>();
+        provider.Setup(p => p.GetService(typeof(IActionItemWorkflowService))).Returns(workflow.Object);
+        var scope = new Mock<IServiceScope>();
+        scope.SetupGet(s => s.ServiceProvider).Returns(provider.Object);
+        var scopeFactory = new Mock<IServiceScopeFactory>();
+        scopeFactory.Setup(f => f.CreateScope()).Returns(scope.Object);
+
+        var calendars = new WorkCalendarService(
+            _dbContext, Mock.Of<IWorkspaceAccessResolver>(), new WorkCalendarCache(), NullLogger<WorkCalendarService>.Instance);
+        var service = new ActionItemService(_dbContext, _loggerMock.Object, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
+            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), scopeFactory.Object, calendars);
+
+        // Act
+        await service.UpdateStatusAsync(entity.Id, ActionStatus.Done, CancellationToken.None);
+
+        // Assert
+        workflow.Verify(w => w.CreateStatusChangeRequestAsync(
+            It.Is<CreateStatusChangeRequestDto>(r => r.ActionItemId == entity.Id && r.NewStatus == ActionStatus.Done),
+            It.IsAny<string>()), Times.Once);
+
+        var unchanged = await _dbContext.ActionItems.FindAsync(entity.Id);
+        unchanged!.Status.Should().Be(ActionStatus.ToDo);
+        unchanged.Progress.Should().Be(0);
+        unchanged.ActualEndDate.Should().BeNull();
     }
 
     // -------------------------------------------------------------------------

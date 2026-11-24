@@ -1,6 +1,6 @@
 # KU Action Tracker — Implementation Status
 
-> Last updated: 2026-11-23 (Workspace calendar setting + working-day date rule — WO-2026-11 C-3. Earlier the same day: Admin Panel → Calendars page — C-2; shared confirm dialog clickable again; work calendars backend — C-1)
+> Last updated: 2026-11-24 (Planned and actual dates on action items — WO-2026-11 A-1. Previous: 2026-11-23 workspace calendar setting + working-day date rule — C-3; Admin Panel → Calendars page — C-2; shared confirm dialog clickable again; work calendars backend — C-1)
 
 ---
 
@@ -187,7 +187,15 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - Core tracked entity across the system
 - Auto-generated `ActionId` (ACT-NNN)
 - **Statuses:** ToDo, InProgress, InReview, Done, Overdue, Deferred, Cancelled
-- Priority levels, start/due dates, progress (0-100 auto-clamped)
+- Priority levels, planned start / planned end (`StartDate` / `DueDate`), progress (0-100 auto-clamped)
+- [x] **Planned and actual dates** (WO-2026-11 A-1) — `ActualStartDate` / `ActualEndDate` (nullable) next to the planned dates, which keep their columns and are now labelled "Planned start" / "Planned end" everywhere in the UI and in the DTO docs
+  - Recorded automatically (Q9): the first move into In Progress sets the actual start when it is empty (also when PATCH `/status` stores a past-due In Progress as Overdue); the move into Done sets the actual end (or takes the value sent in the same PUT); leaving Done clears the actual end. An item that goes straight from To Do to Done keeps an empty actual start. "Today" is the calendar day in the workspace calendar's time zone (Asia/Dubai for KU Standard), stored at midnight like the planned dates; UTC when no calendar exists
+  - Same rule on every status path: create, PUT, PATCH `/status`, an approved status-change request, `ApplyApprovedStatusChangeAsync` (shared `ActionItemActualDates`). The overdue job never touches them
+  - Editable by anyone who may edit the item: not after today, actual end not before actual start, actual end only while Done (it cannot be cleared there), actual start can be cleared (`clearActualStartDate`). Refused values come back as 400 with the reason. Not subject to the planned-date freeze, the date-change requests or the working-day rule — a project item whose planned dates are frozen still takes actual dates
+  - A Done item stays locked except for its actual dates: PUT with only `actualStartDate` / `actualEndDate` / `clearActualStartDate` is accepted, anything else still gets 422 "Completed action items cannot be edited." The detail page shows **Edit actual dates** for Done items (behind `ActionItems.Edit`)
+  - Variance: `actualEndVarianceDays` = actual end − planned end in calendar days, shown on the detail page as "N days late" / "On time" / "N days early" and in the Gantt tooltip
+  - Edit forms (action form, action detail, My Actions panel, milestone detail, workspace detail) have Actual start / Actual end fields; Excel exports (My Actions, milestone, workspace) carry all four dates
+  - Migration `Add_ActionItem_ActualDates`: two nullable columns plus a backfill of `ActualEndDate` for existing Done items — the day of `UpdatedAt`, or of `CreatedAt` when `UpdatedAt` was never stamped (still 0001-01-01 on items created as Done). Verified first on throwaway LocalDB databases, then **applied to production on 2026-11-24**: 15 rows backfilled (10 from `UpdatedAt`, 5 from `CreatedAt`), row count and SHA-256 of the existing 18 columns unchanged, `ActualStartDate` NULL everywhere, no year-0001 dates
 - Can be standalone or linked to workspace/project/milestone
 - Multi-user assignee support — the Assignee(s) picker on the action-item create/edit form (and the inline edit panel on the action-item detail page, the workspace-detail page's New Action Item drawer, and the My Actions list panel) is scoped to the chosen workspace's admins, members, and project managers via `GET /api/workspaces/{id}/assignable-users`, instead of every active user in the system. Cascade behavior: empty state shown until a workspace is picked; changing the workspace clears stale assignee selections and surfaces a toast prompting re-selection; already-assigned users who are no longer on the workspace's people lists stay visible in edit mode so they can be deselected. The same workspace-scoped endpoint also powers Sponsor pickers on project create/edit, Assignee pickers on milestone-detail and the milestone-section action create form, the Risk Owner dropdown on the risk form, and the legacy unscoped `/api/action-items/assignable-users` endpoint has been removed.
 - Escalation tracking
@@ -394,10 +402,11 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 ## 15. Action Item Workflow
 
 ### Date Freeze
-- After creation, start/due dates on standalone action items are locked
+- After creation, planned start / planned end on standalone action items are locked
 - Editing dates requires submitting a date change request with justification
 - Lock icon (🔒) displayed on frozen date fields in the UI
 - Non-standalone (project/milestone-linked) items are unaffected
+- Actual start / actual end (WO-2026-11 A-1) are never frozen and never go through a request
 
 ### Status Change Approval
 - Moving standalone items to terminal statuses (Done, Deferred, Cancelled) requires approval
@@ -609,7 +618,7 @@ Actions, Projects, Milestones, KPIs, Strategic Objectives, Org Chart, Workspaces
 - **Auto-launch Swagger UI on startup (Development only):** `Program.cs` registers a lifetime callback that opens the browser to `{baseUrl}/swagger` once the host is ready, regardless of how the app is launched (`dotnet run`, Visual Studio, VS Code). `launchSettings.json` `launchBrowser` set to `false` to avoid duplicate browser tabs
 - **Angular CLI analytics disabled** in `angular.json`
 - **ng-select default theme CSS** bundled in `angular.json` build/test asset lists
-- **Integration test host repaired (2026-11-23):** `ActionTrackerWebApplicationFactory` now also removes EF Core 9's `IDbContextOptionsConfiguration<AppDbContext>` (the SQL Server provider used to stay registered next to InMemory and the host never started), starts hosts one at a time (Serilog bootstrap logger), and offers `EnsureUserAsync` to create test users; `Program.cs` calls `MigrateAsync` only on a relational provider and `EnsureCreatedAsync` otherwise. The older Auth / ActionItems integration tests were updated to the current login contract (`AuthResponseDto`, `/api/auth/refresh-token`). Known remaining failure, unrelated to calendars: unit test `ActionItemServiceTests.UpdateStatusAsync_SetToDone_SetsProgressTo100`
+- **Integration test host repaired (2026-11-23):** `ActionTrackerWebApplicationFactory` now also removes EF Core 9's `IDbContextOptionsConfiguration<AppDbContext>` (the SQL Server provider used to stay registered next to InMemory and the host never started), starts hosts one at a time (Serilog bootstrap logger), and offers `EnsureUserAsync` to create test users; `Program.cs` calls `MigrateAsync` only on a relational provider and `EnsureCreatedAsync` otherwise. The older Auth / ActionItems integration tests were updated to the current login contract (`AuthResponseDto`, `/api/auth/refresh-token`). The last known failure, `ActionItemServiceTests.UpdateStatusAsync_SetToDone_SetsProgressTo100`, was a stale test (written before standalone items needed approval to reach Done) and was fixed in WO-2026-11 A-1: it now uses a project-linked item, and a new test covers the standalone path creating a status-change request. Suite: 232 passed, 0 failed (2026-11-24)
 
 ---
 
