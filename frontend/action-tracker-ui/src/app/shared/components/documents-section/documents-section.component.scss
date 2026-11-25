@@ -16,6 +16,40 @@
   border-bottom: 1px solid var(--bd);
 }
 
+// Compact form inside a sub-item row or an action update (WO-2026-11 A-4)
+.card--compact {
+  padding: 0.75rem;
+  background: var(--bg);
+  border-style: dashed;
+  backdrop-filter: none;
+
+  .card__title { font-size: 0.875rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem; }
+}
+
+.card__title {
+  &:focus { outline: none; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+// "n of 10 files" next to the title
+.doc-cap {
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--t2);
+}
+
+// Locked / at-cap note — --t1 on a tint (plain amber text is too faint in dark mode)
+.doc-locked {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--warn);
+  border-radius: var(--r-sm);
+  background: rgba(var(--warnr), 0.12);
+  color: var(--t1);
+  font-size: 0.8rem;
+}
+
 // ── Shared button tokens ────────────────────────────
 .btn {
   display: inline-flex;
@@ -95,12 +129,14 @@
 
 .doc-upload-row {
   display: flex;
+  flex-wrap: wrap;          // narrow containers (sub-item / update panels, phones) — WO-2026-11 A-4
   gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
 .doc-name-input {
-  flex: 1;
+  flex: 1 1 12rem;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   border: 1.5px solid var(--bd);
   border-radius: var(--r-sm);
@@ -123,10 +159,10 @@
   border: 2px dashed var(--bd);
   border-radius: var(--r-lg);
   font-size: 0.82rem;
-  color: var(--t3);
+  color: var(--t2);   // --t3 is under 4.5:1 in dark mode (WO-2026-11 A-4)
   cursor: pointer;
   white-space: nowrap;
-  max-width: 200px;
+  max-width: min(200px, 100%);
   overflow: hidden;
   text-overflow: ellipsis;
   transition: border-color 0.15s, color 0.15s;
@@ -140,13 +176,15 @@
 
 .doc-upload-footer {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   align-items: center;
   justify-content: space-between;
 }
 
 .doc-hint {
   font-size: 0.72rem;
-  color: var(--t3);
+  color: var(--t2);   // --t3 is under 4.5:1 in dark mode (WO-2026-11 A-4)
 }
 
 // File rows
@@ -194,7 +232,7 @@
 
 .doc-meta {
   font-size: 0.72rem;
-  color: var(--t3);
+  color: var(--t2);   // --t3 is under 4.5:1 in dark mode (WO-2026-11 A-4)
 }
 
 .doc-actions {
@@ -220,7 +258,7 @@
 // ── Empty state ─────────────────────────────────────
 .empty-text {
   font-size: 0.85rem;
-  color: var(--t3);
+  color: var(--t2);   // --t3 is under 4.5:1 in dark mode (WO-2026-11 A-4)
   text-align: center;
   padding: 1rem 0;
   margin: 0;

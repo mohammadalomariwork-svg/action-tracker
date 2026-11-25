@@ -286,6 +286,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddAdminPanelServices(this IServiceCollection services)
     {
         services.AddScoped<IUserLookupService,         UserLookupService>();
+        services.AddScoped<IUserRoleService,           UserRoleService>();     // WO-2026-11 A-4
         services.AddScoped<IOrgUnitService,            OrgUnitService>();
         services.AddScoped<IStrategicObjectiveService, StrategicObjectiveService>();
         services.AddScoped<IStrategicPlanService,      StrategicPlanService>();

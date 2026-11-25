@@ -26,6 +26,8 @@ export interface ActionItemSubItem {
   assignees: SubItemAssignee[];
   /** The parent's planned dates changed and no longer contain this sub-item's dates. */
   isOutsideParentDates: boolean;
+  /** Files attached (WO-2026-11 A-4) — the paperclip count. */
+  documentCount: number;
   createdByUserId: string | null;
   createdAt: string;
   updatedAt: string | null;

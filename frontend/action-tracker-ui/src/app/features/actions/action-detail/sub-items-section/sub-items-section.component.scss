@@ -172,6 +172,8 @@
 
 .si-row__updates { grid-column: 1 / -1; min-width: 0; }
 
+.si-row__links { display: flex; flex-wrap: wrap; gap: 0 0.75rem; }
+
 .si-badge {
   display: inline-flex;
   align-items: center;

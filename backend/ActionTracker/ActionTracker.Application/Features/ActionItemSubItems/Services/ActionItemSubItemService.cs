@@ -3,6 +3,7 @@ using ActionTracker.Application.Features.ActionItemSubItems.DTOs;
 using ActionTracker.Application.Features.ActionItemSubItems.Interfaces;
 using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Calendars.Interfaces;
+using ActionTracker.Application.Features.Documents;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
 using ActionTracker.Domain.Entities;
@@ -315,7 +316,8 @@ public class ActionItemSubItemService : IActionItemSubItemService
             .OrderBy(s => s.SortOrder).ThenBy(s => s.CreatedAt)
             .ToListAsync(ct);
 
-        var items = subItems.Select(s => ToDto(s, parent)).ToList();
+        var docCounts = await DocumentCountsAsync(subItems.Select(s => s.Id).ToList(), ct);
+        var items = subItems.Select(s => ToDto(s, parent, docCounts.GetValueOrDefault(s.Id))).ToList();
         return new ActionItemSubItemListDto
         {
             ActionItemId         = parent.Id,
@@ -335,11 +337,24 @@ public class ActionItemSubItemService : IActionItemSubItemService
             .Include(s => s.Assignees).ThenInclude(a => a.User)
             .Include(s => s.DoneByUser)
             .FirstAsync(s => s.Id == subItemId, ct);
-        return ToDto(subItem, parent);
+        var docCounts = await DocumentCountsAsync(new[] { subItemId }, ct);
+        return ToDto(subItem, parent, docCounts.GetValueOrDefault(subItemId));
     }
 
-    private static ActionItemSubItemDto ToDto(ActionItemSubItem s, ParentInfo parent) => new()
+    /// <summary>Files per sub-item (WO-2026-11 A-4), one grouped query.</summary>
+    private async Task<Dictionary<Guid, int>> DocumentCountsAsync(IReadOnlyCollection<Guid> subItemIds, CancellationToken ct)
     {
+        if (subItemIds.Count == 0) return new Dictionary<Guid, int>();
+        return await _db.Documents
+            .Where(d => d.RelatedEntityType == DocumentEntityTypes.ActionItemSubItem && subItemIds.Contains(d.RelatedEntityId))
+            .GroupBy(d => d.RelatedEntityId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+    }
+
+    private static ActionItemSubItemDto ToDto(ActionItemSubItem s, ParentInfo parent, int documentCount) => new()
+    {
+        DocumentCount = documentCount,
         Id           = s.Id,
         ActionItemId = s.ActionItemId,
         Title        = s.Title,

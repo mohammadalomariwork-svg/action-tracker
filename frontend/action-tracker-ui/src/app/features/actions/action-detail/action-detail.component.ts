@@ -3,6 +3,7 @@ import {
   inject, signal, computed, HostListener, Injector, afterNextRender,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -31,6 +32,7 @@ import { WorkingDaysComponent } from '../../../shared/components/working-days/wo
 import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
 import { HasPermissionDirective } from '../../../shared';
+import { PermissionStateService } from '../../permissions/services/permission-state.service';
 import { ActualDatesFieldsComponent } from '../../../shared/components/actual-dates-fields/actual-dates-fields.component';
 import { SubItemsSectionComponent } from './sub-items-section/sub-items-section.component';
 import { ActionUpdatesSectionComponent } from './action-updates-section/action-updates-section.component';
@@ -76,6 +78,7 @@ export class ActionDetailComponent implements OnInit {
   private readonly workflowSvc  = inject(WorkflowService);
   private readonly workspaceSvc = inject(WorkspaceService);
   private readonly injector     = inject(Injector);
+  private readonly permState    = inject(PermissionStateService);
 
   readonly item       = signal<ActionItem | null>(null);
   readonly loading    = signal(true);
@@ -101,6 +104,21 @@ export class ActionDetailComponent implements OnInit {
   readonly ActionPriority = ActionPriority;
 
   readonly workspaceId = computed(() => this.item()?.workspaceId ?? '');
+
+  // ── Files on the action item (WO-2026-11 A-4) ─────────
+  private readonly permissions = toSignal(this.permState.permissions$, { initialValue: [] });
+  /** Done / Cancelled lock the item's files (D1); updates still take files. */
+  readonly itemFilesLockedNote = computed(() => {
+    const ai = this.item();
+    if (!ai || (ai.statusCode !== ActionStatus.Done && ai.statusCode !== ActionStatus.Cancelled)) return null;
+    const label = ai.statusCode === ActionStatus.Done ? 'Done' : 'Cancelled';
+    return `This action item is ${label}, so files can no longer be added or removed here. You can still add files through an action update.`;
+  });
+  /** The upload form: ActionItems.Edit and an item that is not locked. */
+  readonly canUploadItemFiles = computed(() => {
+    this.permissions();
+    return !this.itemFilesLockedNote() && this.permState.hasPermission('ActionItems', 'Edit');
+  });
 
   // ── Working calendar (WO-2026-11 C-3) ─────────────────
   readonly calendar = injectWorkspaceCalendar(() => this.workspaceId());

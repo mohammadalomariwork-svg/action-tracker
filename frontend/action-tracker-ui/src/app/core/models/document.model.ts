@@ -9,4 +9,6 @@ export interface DocumentInfo {
   uploadedByUserId: string;
   uploadedByName: string;
   createdAt: string;
+  /** WO-2026-11 A-4: the caller may delete this file (the delete button shows only then). */
+  canDelete?: boolean;
 }

@@ -65,6 +65,33 @@
         </button>
       </div>
     </div>
+    <!-- Attach files (WO-2026-11 A-4): staged here, uploaded on Save draft / Submit -->
+    <div class="au-attach">
+      <label class="btn btn-sm au-btn au-attach__btn" [class.disabled]="saving() !== null || staged().length >= maxFiles"
+             [attr.for]="idPrefix() + '-attach'">
+        <i class="bi bi-paperclip" aria-hidden="true"></i>Attach files
+      </label>
+      <input type="file" class="au-attach__input" multiple [accept]="accept" [id]="idPrefix() + '-attach'"
+             [disabled]="saving() !== null || staged().length >= maxFiles"
+             [attr.aria-describedby]="idPrefix() + '-attach-hint'" (change)="addFiles($event)" />
+      <span [id]="idPrefix() + '-attach-hint'" class="au-muted">{{ staged().length }} / {{ maxFiles }} · PDF, Word, Excel, PowerPoint · max 10 MB each</span>
+      @if (staged().length > 0) {
+        <ul class="au-staged" aria-label="Files to attach">
+          @for (f of staged(); track $index) {
+            <li class="au-staged__item">
+              <i class="bi bi-file-earmark" aria-hidden="true"></i>
+              <span class="au-staged__name">{{ f.name }}</span>
+              <span class="au-muted">{{ formatSize(f.size) }}</span>
+              <button type="button" class="au-staged__remove" (click)="removeStaged($index)" [disabled]="saving() !== null"
+                      [attr.aria-label]="'Remove ' + f.name"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+            </li>
+          }
+        </ul>
+      }
+      @if (stagedError(); as err) {
+        <div class="au-callout au-callout--inline" role="alert">{{ err }}</div>
+      }
+    </div>
     <p [id]="idPrefix() + '-new-help'" class="au-muted au-help">
       A draft is visible only to you. A submitted update is shared with everyone who can see this action item and cannot be changed or deleted.
     </p>
@@ -134,6 +161,21 @@
               </div>
             } @else {
               <p class="au-text">{{ u.content }}</p>
+              @if (fileCount(u) > 0 || (u.canEdit && canEditPerm())) {
+                <button type="button" class="btn btn-link btn-sm au-files-toggle" [id]="idPrefix() + '-filesbtn-' + u.id"
+                        [attr.aria-expanded]="filesOpen(u.id)" [attr.aria-controls]="idPrefix() + '-files-' + u.id"
+                        (click)="toggleFiles(u.id)">
+                  <i class="bi bi-paperclip" aria-hidden="true"></i>
+                  Files<span class="visually-hidden"> of this update</span> ({{ fileCount(u) }})
+                </button>
+              }
+              @if (filesOpen(u.id)) {
+                <div class="au-files" [id]="idPrefix() + '-files-' + u.id">
+                  <app-documents-section entityType="ActionItemUpdate" [entityId]="u.id" [compact]="true"
+                                         [canUpload]="u.canEdit && canEditPerm()" [maxFiles]="maxFiles"
+                                         (countChange)="setFileCount(u.id, $event)" />
+                </div>
+              }
               @if (u.canEdit) {
                 <div *appHasPermission="'ActionItems'; action: 'Edit'" class="au-entry__actions">
                   <button type="button" class="btn btn-sm au-btn" [id]="idPrefix() + '-editbtn-' + u.id"

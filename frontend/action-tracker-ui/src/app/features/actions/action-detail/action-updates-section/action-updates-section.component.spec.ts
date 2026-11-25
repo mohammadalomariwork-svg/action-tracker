@@ -9,6 +9,7 @@ import { PermissionStateService } from '../../../permissions/services/permission
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ActionUpdate, ActionUpdateList } from '../../../../models/action-update.model';
+import { DocumentService } from '../../../../core/services/document.service';
 
 /** Stand-in for the Bootstrap modal (the real one needs Bootstrap's global JS). */
 @Component({ selector: 'app-confirm-dialog', standalone: true, template: '' })
@@ -26,12 +27,12 @@ class StubConfirmDialogComponent {
 const draft: ActionUpdate = {
   id: 'd1', actionItemId: 'item-1', subItemId: null, content: 'My draft text', authorUserId: 'me',
   authorName: 'Mona Me', isHighImportance: false, status: 'draft', isDraft: true, submittedAt: null,
-  createdAt: '2026-11-25T08:00:00Z', updatedAt: null, canEdit: true,
+  createdAt: '2026-11-25T08:00:00Z', updatedAt: null, canEdit: true, documentCount: 0,
 };
 const submitted: ActionUpdate = {
   id: 's1', actionItemId: 'item-1', subItemId: null, content: 'Shared text', authorUserId: 'other',
   authorName: 'Omar Other', isHighImportance: true, status: 'submitted', isDraft: false,
-  submittedAt: '2026-11-24T08:00:00Z', createdAt: '2026-11-24T08:00:00Z', updatedAt: null, canEdit: false,
+  submittedAt: '2026-11-24T08:00:00Z', createdAt: '2026-11-24T08:00:00Z', updatedAt: null, canEdit: false, documentCount: 2,
 };
 
 function listOf(items: ActionUpdate[], subItemId: string | null = null): ActionUpdateList {
@@ -47,6 +48,7 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
   let fixture: ComponentFixture<ActionUpdatesSectionComponent>;
   let svc: jasmine.SpyObj<ActionUpdateService>;
   let toast: jasmine.SpyObj<ToastService>;
+  let docs: jasmine.SpyObj<DocumentService>;
   let granted: Set<string>;
 
   async function render(items: ActionUpdate[], opts: { subItemId?: string; perms?: string[] } = {}): Promise<HTMLElement> {
@@ -58,6 +60,7 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
       providers: [
         { provide: ActionUpdateService, useValue: svc },
         { provide: ToastService, useValue: toast },
+        { provide: DocumentService, useValue: docs },
         {
           provide: PermissionStateService,
           useValue: {
@@ -107,6 +110,8 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
     svc = jasmine.createSpyObj<ActionUpdateService>('ActionUpdateService',
       ['list', 'counts', 'create', 'update', 'submit', 'delete']);
     toast = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error', 'info', 'warning']);
+    docs = jasmine.createSpyObj<DocumentService>('DocumentService', ['getByEntity', 'upload', 'download', 'delete']);
+    docs.getByEntity.and.returnValue(of({ success: true, data: [] } as any));
   });
 
   it('shows the count, the Draft badge, and draft buttons only on the own draft', async () => {
@@ -120,7 +125,8 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
     expect(button(draftEntry, 'Delete')).toBeDefined();
 
     expect(submittedEntry.textContent).toContain('High importance');
-    expect(submittedEntry.querySelectorAll('button').length).toBe(0);
+    expect(submittedEntry.querySelectorAll('.au-entry__actions button').length).toBe(0);
+    expect(submittedEntry.querySelector('.au-files-toggle')!.textContent).toContain('(2)');
     expect(submittedEntry.textContent).not.toContain('Draft');
   });
 
@@ -216,7 +222,7 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
     const el = await render([draft, submitted], { perms: ['ActionItems.View'] });
 
     expect(el.querySelector('textarea')).toBeNull();
-    expect(el.querySelectorAll('.au-entry button').length).toBe(0);
+    expect(el.querySelectorAll('.au-entry__actions button').length).toBe(0);
     expect(el.querySelectorAll('.au-entry').length).toBe(2);
   });
 
@@ -238,4 +244,91 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
     expect(el.querySelector('#au-sub-1-new')).not.toBeNull();
     expect(counts).toEqual([1]);
   });
+
+  // ── WO-2026-11 A-4: files on updates ─────────────────────────────────────
+
+  /** The create → upload → submit chain is a series of awaits: let it run to the end. */
+  async function settle(): Promise<void> {
+    for (let i = 0; i < 5; i++) await new Promise(r => setTimeout(r, 0));
+    fixture.detectChanges();
+  }
+
+  const pdf = (name: string, bytes = 100) => new File([new Uint8Array(bytes)], name, { type: 'application/pdf' });
+  function pick(files: File[]): void {
+    fixture.componentInstance.addFiles({ target: { files, value: '' } } as unknown as Event);
+    fixture.detectChanges();
+  }
+
+  it('Submit with attached files creates a draft, uploads each file, then submits', async () => {
+    const el = await render([]);
+    svc.create.and.returnValue(of({ success: true, data: { ...draft, id: 'n1', content: 'With files' } } as any));
+    docs.upload.and.returnValue(of({ success: true, data: {} } as any));
+    svc.submit.and.returnValue(of({ success: true, data: { ...draft, id: 'n1', status: 'submitted', isDraft: false, canEdit: false } } as any));
+
+    type(el, 'With files');
+    pick([pdf('minutes.pdf'), pdf('plan.docx')]);
+    expect(el.querySelectorAll('.au-staged__item').length).toBe(2);
+
+    button(el, 'Submit')!.click();
+    fixture.detectChanges();
+    expect(dialogs()[0].message()).toContain('with its 2 files');
+    fixture.componentInstance.onSubmitConfirmed(true);
+    await settle();
+
+    expect(svc.create).toHaveBeenCalledWith('item-1', null, { content: 'With files', isHighImportance: false, submit: false });
+    expect(docs.upload).toHaveBeenCalledTimes(2);
+    expect(docs.upload.calls.argsFor(0).slice(0, 3)).toEqual(['ActionItemUpdate', 'n1', 'minutes']);
+    expect(svc.submit).toHaveBeenCalledWith('item-1', null, 'n1');
+    expect(svc.create.calls.mostRecent().args[2].submit).toBeFalse();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.au-staged__item').length).toBe(0);
+  });
+
+  it('an upload failure keeps the draft and does not submit', async () => {
+    const el = await render([]);
+    svc.create.and.returnValue(of({ success: true, data: { ...draft, id: 'n1' } } as any));
+    docs.upload.and.returnValue(throwError(() => new HttpErrorResponse({ status: 400, error: { message: 'File size exceeds the 10 MB limit.' } })));
+
+    type(el, 'With a bad file');
+    pick([pdf('big.pdf')]);
+    button(el, 'Submit')!.click();
+    fixture.componentInstance.onSubmitConfirmed(true);
+    await settle();
+
+    expect(svc.submit).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(jasmine.stringMatching(/saved as a draft, but “big\.pdf” could not be attached: File size exceeds the 10 MB limit\. It was not submitted\./));
+    expect(svc.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('Save draft without files keeps the single create call', async () => {
+    const el = await render([]);
+    svc.create.and.returnValue(of({ success: true, data: { ...draft, id: 'n1' } } as any));
+    type(el, 'No files');
+    button(el, 'Save draft')!.click();
+    expect(docs.upload).not.toHaveBeenCalled();
+    expect(svc.create).toHaveBeenCalledWith('item-1', null, { content: 'No files', isHighImportance: false, submit: false });
+  });
+
+  it('refuses wrong types, files over 10 MB and more than 10 files in the form', async () => {
+    const el = await render([]);
+    pick([pdf('run.exe'), pdf('huge.pdf', 10 * 1024 * 1024 + 1), ...Array.from({ length: 11 }, (_, i) => pdf(`f${i}.pdf`))]);
+
+    expect(fixture.componentInstance.staged().length).toBe(10);
+    const err = el.querySelector('.au-callout')!.textContent!;
+    expect(err).toContain('run.exe: only PDF, Word, Excel and PowerPoint files');
+    expect(err).toContain('huge.pdf: larger than 10 MB');
+    expect(err).toContain('f10.pdf: at most 10 files per update');
+  });
+
+  it('shows a Files (n) toggle on updates that have files and on my drafts, and opens their files', async () => {
+    const el = await render([draft, submitted]);
+    const toggles = Array.from(el.querySelectorAll<HTMLButtonElement>('.au-files-toggle')).map(b => b.textContent!.replace(/\s+/g, ' ').trim());
+    expect(toggles).toEqual(['Files of this update (0)', 'Files of this update (2)']);
+
+    el.querySelector<HTMLButtonElement>('#au-item-filesbtn-s1')!.click();
+    fixture.detectChanges();
+    expect(docs.getByEntity).toHaveBeenCalledWith('ActionItemUpdate', 's1');
+    expect(el.querySelector('#au-item-files-s1 app-documents-section')).not.toBeNull();
+  });
 });
+

@@ -25,6 +25,9 @@ public class ActionItemSubItemDto
     /// </summary>
     public bool IsOutsideParentDates { get; set; }
 
+    /// <summary>Files attached to this sub-item (WO-2026-11 A-4) — the paperclip count.</summary>
+    public int DocumentCount { get; set; }
+
     public string? CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

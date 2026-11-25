@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ActionTracker.API.Models;
+using ActionTracker.Application.Features.Documents;
 using ActionTracker.Application.Features.Documents.DTOs;
 using ActionTracker.Application.Features.Documents.Interfaces;
 using ActionTracker.Application.Features.KpiActuals.DTOs;
@@ -137,8 +138,12 @@ public class KpiActualsController : ControllerBase
     [Authorize(Policy = PermissionPolicies.KpiActualsView)]
     public async Task<IActionResult> ListDocuments(Guid id, CancellationToken ct = default)
     {
-        var docs = await _documents.GetByEntityAsync("KpiActual", id, ct);
-        return Ok(ApiResponse<List<DocumentResponseDto>>.Ok(docs));
+        try
+        {
+            var docs = await _documents.GetByEntityAsync("KpiActual", id, DocumentCaller.WithoutActionItemRights(CurrentUserId), ct);
+            return Ok(ApiResponse<List<DocumentResponseDto>>.Ok(docs));
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ApiResponse<string>.Fail(ex.Message)); }
     }
 
     [HttpPost("{id:guid}/documents")]
@@ -152,7 +157,7 @@ public class KpiActualsController : ControllerBase
     {
         try
         {
-            var doc = await _documents.UploadAsync("KpiActual", id, name, file, CurrentUserId, ct);
+            var doc = await _documents.UploadAsync("KpiActual", id, name, file, DocumentCaller.WithoutActionItemRights(CurrentUserId), ct);
             return Ok(ApiResponse<DocumentResponseDto>.Ok(doc));
         }
         catch (ArgumentException ex)
@@ -173,7 +178,7 @@ public class KpiActualsController : ControllerBase
     {
         try
         {
-            await _documents.DeleteAsync(documentId, CurrentUserId, ct);
+            await _documents.DeleteAsync(documentId, DocumentCaller.WithoutActionItemRights(CurrentUserId), ct);
             return NoContent();
         }
         catch (KeyNotFoundException ex) { return NotFound(ApiResponse<string>.Fail(ex.Message)); }

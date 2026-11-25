@@ -361,9 +361,14 @@
 
     <!-- ── Documents Section ──────────────────────────── -->
     <div class="mb-4">
+      <!-- WO-2026-11 A-4: upload needs ActionItems.Edit and an item that is not
+           Done / Cancelled; delete buttons follow the server's canDelete. -->
       <app-documents-section
         entityType="ActionItem"
         [entityId]="ai.id"
+        [canUpload]="canUploadItemFiles()"
+        [lockedNote]="itemFilesLockedNote()"
+        [maxFiles]="10"
       />
     </div>
 

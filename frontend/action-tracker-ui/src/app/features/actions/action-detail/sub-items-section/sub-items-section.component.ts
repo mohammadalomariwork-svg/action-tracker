@@ -29,6 +29,7 @@ import { SubItemCountComponent } from '../../../../shared/components/sub-item-co
 import { nonWorkingDatesMessage, workingDayValidator } from '../../../../shared/validators/working-day.validator';
 import { subItemDateProblem, toDay } from '../../../../shared/utils/sub-item-dates.util';
 import { ActionUpdatesSectionComponent } from '../action-updates-section/action-updates-section.component';
+import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
 
 /** Title that is not just blanks. */
 const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
@@ -48,6 +49,10 @@ const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
  * sub-item's action updates under it; updates stay possible while the parent
  * is Done or Cancelled.
  *
+ * A "Files (n)" toggle (WO-2026-11 A-4) opens the sub-item's files; adding and
+ * removing them needs `ActionItems.Edit` and stops while the parent is Done /
+ * Cancelled (the server answers 409); delete buttons follow the server's `canDelete`.
+ *
  * Date rules — the server stays the authority:
  *  - within the parent's planned dates: `sub-item-dates.util.ts` (copy of
  *    `ActionItemSubItemRules`);
@@ -61,6 +66,7 @@ const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
   imports: [
     DatePipe, ReactiveFormsModule, HasPermissionDirective, ConfirmDialogComponent,
     WorkingDayHintComponent, WorkingDaysComponent, SubItemCountComponent, ActionUpdatesSectionComponent,
+    DocumentsSectionComponent,
   ],
   templateUrl: './sub-items-section.component.html',
   styleUrl: './sub-items-section.component.scss',
@@ -157,6 +163,15 @@ export class SubItemsSectionComponent {
   /** Sub-items whose updates panel is open. */
   readonly openUpdates  = signal<ReadonlySet<string>>(new Set());
 
+  // ── Files per sub-item (WO-2026-11 A-4) ─────────────────────────────────
+  /** Counts reported by open file panels; otherwise the sub-item's `documentCount`. */
+  readonly fileCounts = signal<ReadonlyMap<string, number>>(new Map());
+  readonly openFiles  = signal<ReadonlySet<string>>(new Set());
+  readonly canUploadFiles = computed(() => this.canEdit() && this.acceptsChanges());
+  readonly filesLockedNote = computed(() => this.list() && !this.acceptsChanges()
+    ? `This action item is ${this.actionItem().statusLabel}, so files on its sub-items can no longer be added or removed.`
+    : null);
+
   constructor() {
     effect(() => {
       this.reloadKey();
@@ -214,6 +229,27 @@ export class SubItemsSectionComponent {
     const next = new Set(this.openUpdates());
     if (next.has(subItemId)) next.delete(subItemId); else next.add(subItemId);
     this.openUpdates.set(next);
+  }
+
+  fileCount(s: ActionItemSubItem): number {
+    return this.fileCounts().get(s.id) ?? s.documentCount ?? 0;
+  }
+
+  filesOpen(subItemId: string): boolean {
+    return this.openFiles().has(subItemId);
+  }
+
+  toggleFiles(subItemId: string): void {
+    const next = new Set(this.openFiles());
+    if (next.has(subItemId)) next.delete(subItemId); else next.add(subItemId);
+    this.openFiles.set(next);
+  }
+
+  setFileCount(subItemId: string, count: number): void {
+    if (this.fileCounts().get(subItemId) === count) return;
+    const next = new Map(this.fileCounts());
+    next.set(subItemId, count);
+    this.fileCounts.set(next);
   }
 
   /** The open panel reports its count whenever its list changes. */

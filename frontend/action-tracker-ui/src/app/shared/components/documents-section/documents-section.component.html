@@ -1,38 +1,56 @@
-<div class="card">
-  <h3 class="card__title">📎 Documents ({{ documents().length }})</h3>
+<div class="card" [class.card--compact]="compact()">
+  <h3 class="card__title" [id]="idPrefix() + '-heading'" tabindex="-1">
+    📎 {{ compact() ? 'Files' : 'Documents' }} ({{ documents().length }})
+    @if (maxFiles(); as max) {
+      <span class="doc-cap">{{ documents().length }} of {{ max }} files</span>
+    }
+  </h3>
+
+  @if (lockedNote(); as note) {
+    <p class="doc-locked" role="note">
+      <i class="bi bi-lock-fill" aria-hidden="true"></i> {{ note }}
+    </p>
+  }
 
   <!-- Upload Form -->
-  <div class="doc-upload-form">
-    <div class="doc-upload-row">
-      <input
-        type="text"
-        class="doc-name-input"
-        placeholder="Document name"
-        [ngModel]="docName()"
-        (ngModelChange)="docName.set($event)"
-        maxlength="255"
-      />
-      <label class="doc-file-label">
-        <input
-          type="file"
-          class="doc-file-input"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-          (change)="onFileSelected($event)"
-        />
-        {{ docFile()?.name || 'Choose file...' }}
-      </label>
-    </div>
-    <div class="doc-upload-footer">
-      <span class="doc-hint">PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX — max 10 MB</span>
-      <button
-        class="btn btn-primary btn-sm"
-        [disabled]="!docName().trim() || !docFile() || uploading()"
-        (click)="uploadDocument()">
-        @if (uploading()) { <span class="spin-sm"></span> }
-        Upload
-      </button>
-    </div>
-  </div>
+  @if (showForm()) {
+    @if (atCap()) {
+      <p class="doc-locked" role="note">This record has the maximum of {{ maxFiles() }} files. Delete one to add another.</p>
+    } @else {
+      <div class="doc-upload-form">
+        <div class="doc-upload-row">
+          <input
+            type="text"
+            class="doc-name-input"
+            placeholder="Document name"
+            aria-label="Document name"
+            [ngModel]="docName()"
+            (ngModelChange)="docName.set($event)"
+            maxlength="255"
+          />
+          <label class="doc-file-label">
+            <input
+              type="file"
+              class="doc-file-input"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              (change)="onFileSelected($event)"
+            />
+            {{ docFile()?.name || 'Choose file...' }}
+          </label>
+        </div>
+        <div class="doc-upload-footer">
+          <span class="doc-hint">PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX — max 10 MB</span>
+          <button
+            class="btn btn-primary btn-sm"
+            [disabled]="!docName().trim() || !docFile() || uploading()"
+            (click)="uploadDocument()">
+            @if (uploading()) { <span class="spin-sm"></span> }
+            Upload
+          </button>
+        </div>
+      </div>
+    }
+  }
 
   <!-- Documents List -->
   @if (loading()) {
@@ -43,14 +61,18 @@
 
   @for (doc of documents(); track doc.id) {
     <div class="doc-entry">
-      <div class="doc-icon">📄</div>
+      <div class="doc-icon" aria-hidden="true">📄</div>
       <div class="doc-info">
         <span class="doc-name">{{ doc.name }}</span>
-        <span class="doc-meta">{{ doc.fileName }} · {{ formatFileSize(doc.fileSize) }} · {{ doc.createdAt | date:'MMM d, y' }}</span>
+        <span class="doc-meta">{{ doc.fileName }} · {{ formatFileSize(doc.fileSize) }} · {{ doc.createdAt | date:'MMM d, y' }}@if (doc.uploadedByName) { · {{ doc.uploadedByName }} }</span>
       </div>
       <div class="doc-actions">
-        <button class="btn btn-outline btn-sm" (click)="downloadDocument(doc)" title="Download">Download</button>
-        <button class="doc-action-btn doc-action-btn--delete" (click)="deleteDocument(doc.id)" title="Delete">🗑️</button>
+        <button class="btn btn-outline btn-sm" (click)="downloadDocument(doc)" title="Download"
+                [attr.aria-label]="'Download ' + doc.name">Download</button>
+        @if (doc.canDelete !== false) {
+          <button class="doc-action-btn doc-action-btn--delete" (click)="askDelete(doc, $any($event.currentTarget))"
+                  title="Delete" [attr.aria-label]="'Delete ' + doc.name">🗑️</button>
+        }
       </div>
     </div>
   }
@@ -59,3 +81,9 @@
     <p class="empty-text">No documents attached yet.</p>
   }
 </div>
+
+<app-confirm-dialog #deleteDialog
+                    title="Delete file"
+                    [message]="'Delete “' + (pendingDelete()?.name ?? '') + '”? This cannot be undone.'"
+                    confirmLabel="Delete" [danger]="true"
+                    (confirmed)="onDeleteConfirmed($event)" />

@@ -28,6 +28,9 @@ public class ActionUpdateDto
     /// author's own draft. Always false for a submitted update.
     /// </summary>
     public bool CanEdit { get; set; }
+
+    /// <summary>Files attached to this update (WO-2026-11 A-4) — the paperclip count.</summary>
+    public int DocumentCount { get; set; }
 }
 
 /// <summary>The updates the caller can see at one level: every submitted update plus the caller's own drafts.</summary>

@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItemUpdates.DTOs;
 using ActionTracker.Application.Features.ActionItemUpdates.Interfaces;
+using ActionTracker.Application.Features.Documents;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
@@ -46,11 +47,12 @@ public class ActionItemUpdateService : IActionItemUpdateService
             .ToListAsync(ct);
 
         var me = _db.CurrentUserId;
+        var docCounts = await DocumentCountsAsync(rows.Select(u => u.Id).ToList(), ct);
         var items = rows
             .OrderBy(u => u.Status == ActionItemUpdateStatus.Draft ? 0 : 1)
             .ThenByDescending(u => u.Status == ActionItemUpdateStatus.Draft ? u.UpdatedAt ?? u.CreatedAt : u.SubmittedAt ?? u.CreatedAt)
             .ThenByDescending(u => u.CreatedAt)
-            .Select(u => ToDto(u, me))
+            .Select(u => ToDto(u, me, docCounts.GetValueOrDefault(u.Id)))
             .ToList();
 
         return new ActionUpdateListDto
@@ -227,11 +229,24 @@ public class ActionItemUpdateService : IActionItemUpdateService
             .AsNoTracking()
             .Include(u => u.Author)
             .FirstAsync(u => u.Id == updateId, ct);
-        return ToDto(update, userId);
+        var docCounts = await DocumentCountsAsync(new[] { updateId }, ct);
+        return ToDto(update, userId, docCounts.GetValueOrDefault(updateId));
     }
 
-    private static ActionUpdateDto ToDto(ActionItemUpdate u, string? currentUserId) => new()
+    /// <summary>Files per update (WO-2026-11 A-4), one grouped query. Only visible updates are asked for.</summary>
+    private async Task<Dictionary<Guid, int>> DocumentCountsAsync(IReadOnlyCollection<Guid> updateIds, CancellationToken ct)
     {
+        if (updateIds.Count == 0) return new Dictionary<Guid, int>();
+        return await _db.Documents
+            .Where(d => d.RelatedEntityType == DocumentEntityTypes.ActionItemUpdate && updateIds.Contains(d.RelatedEntityId))
+            .GroupBy(d => d.RelatedEntityId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+    }
+
+    private static ActionUpdateDto ToDto(ActionItemUpdate u, string? currentUserId, int documentCount) => new()
+    {
+        DocumentCount    = documentCount,
         Id               = u.Id,
         ActionItemId     = u.ActionItemId,
         SubItemId        = u.SubItemId,

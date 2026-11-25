@@ -26,6 +26,8 @@ export interface ActionUpdate {
   updatedAt: string | null;
   /** True only for the caller's own draft. */
   canEdit: boolean;
+  /** Files attached (WO-2026-11 A-4) — the paperclip count. */
+  documentCount: number;
 }
 
 /** Every submitted update plus the caller's own drafts (drafts first). */
@@ -62,6 +64,9 @@ export interface ActionUpdateInput {
 export interface ActionUpdateCreate extends ActionUpdateInput {
   submit: boolean;
 }
+
+/** Files per update (WO-2026-11 A-4, Q13). */
+export const ACTION_UPDATE_MAX_FILES = 10;
 
 /** Same limit as the API (after trimming). */
 export const ACTION_UPDATE_MAX_LENGTH = 2000;
