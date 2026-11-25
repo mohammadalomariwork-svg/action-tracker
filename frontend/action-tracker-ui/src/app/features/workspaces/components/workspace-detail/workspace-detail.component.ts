@@ -37,12 +37,18 @@ import {
 } from '../../../../shared/utils/actual-dates.util';
 import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload.util';
 import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
+import { TagChipsComponent } from '../../../../shared/components/tag-chips/tag-chips.component';
+import { TagFilterComponent } from '../../../../shared/components/tag-filter/tag-filter.component';
+import { tagsCell } from '../../../../shared/utils/tag-rules.util';
+import { ActionItemTagService } from '../../../../services/action-item-tag.service';
+import { TagFilterOption } from '../../../../models/action-item-tag.model';
+import { PermissionStateService } from '../../../permissions/services/permission-state.service';
 
 @Component({
   selector: 'app-workspace-detail',
   standalone: true,
   imports: [
-    SubItemCountComponent,
+    SubItemCountComponent, TagChipsComponent, TagFilterComponent,
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective,
     WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
   ],
@@ -92,6 +98,13 @@ export class WorkspaceDetailComponent implements OnInit {
   actionItems: ActionItem[] = [];
   actionTotalCount = 0;
   actionPageNumber = 1;
+
+  // ── Tag filter (WO-2026-11 A-5): this workspace's tags, by id, any of ──
+  private readonly tagSvc    = inject(ActionItemTagService);
+  private readonly permState = inject(PermissionStateService);
+  readonly filterTagIds      = signal<string[]>([]);
+  readonly tagOptions        = signal<TagFilterOption[]>([]);
+  readonly tagOptionsLoading = signal(false);
   actionPageSize = 10;
   actionLoading = false;
   allUsers: AssignableUser[] = [];
@@ -219,6 +232,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.resolvePermissions();
           this.isLoading = false;
           this.loadActionItems();
+          this.loadTagOptions();
           this.loadProjects();
           this.loadAllUsers();
           this.loadStats();
@@ -282,6 +296,7 @@ export class WorkspaceDetailComponent implements OnInit {
       sortBy:         'dueDate',
       sortDescending: false,
       includeDeleted: this.showDeleted || undefined,
+      tagIds:         this.filterTagIds().length ? this.filterTagIds() : undefined,
     };
 
     this.actionService.getAll(filter)
@@ -293,10 +308,33 @@ export class WorkspaceDetailComponent implements OnInit {
           this.actionTotalCount = paged.totalCount;
           this.actionLoading = false;
         },
-        error: () => {
+        error: (err) => {
           this.actionLoading = false;
+          // 503 = the tag filter while the server's tag tables are missing (WO-2026-11 A-5): say why.
+          if (err?.status === 503 && err?.error?.message) this.toastSvc.error(err.error.message);
         },
       });
+  }
+
+  /** The workspace's tags for the filter (needs ActionItems.View). */
+  private loadTagOptions(): void {
+    if (!this.workspaceId || !this.permState.hasPermission('ActionItems', 'View')) return;
+    this.tagOptionsLoading.set(true);
+    this.tagSvc.workspaceTags(this.workspaceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.tagOptions.set((res.data ?? []).map(t => ({ id: t.id, name: t.name, count: t.itemCount })));
+          this.tagOptionsLoading.set(false);
+        },
+        error: () => { this.tagOptions.set([]); this.tagOptionsLoading.set(false); },
+      });
+  }
+
+  onTagFilterChange(ids: string[]): void {
+    this.filterTagIds.set(ids);
+    this.actionPageNumber = 1;
+    this.loadActionItems();
   }
 
   actionPrevPage(): void {
@@ -1022,6 +1060,7 @@ export class WorkspaceDetailComponent implements OnInit {
       'Actual End':    a.actualEndDate ? new Date(a.actualEndDate).toLocaleDateString() : '',
       'Progress':   `${a.progress}%`,
       'Escalated':  a.isEscalated ? 'Yes' : 'No',
+      'Tags':       tagsCell(a.tags),
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(actionRows.length ? actionRows : [{}]), 'Action Items');
 

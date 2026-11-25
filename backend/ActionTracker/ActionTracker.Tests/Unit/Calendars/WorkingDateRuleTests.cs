@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using ActionTracker.Tests.Unit.Tags;
 
 namespace ActionTracker.Tests.Unit.Calendars;
 
@@ -194,7 +195,7 @@ public class WorkingDateRuleTests : IDisposable
 
     private ActionItemService NewActionItemService(IActionItemWorkflowService? workflow = null) =>
         new(_db, NullLogger<ActionItemService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-            Settings(), ScopeFactory(workflow), _calendars);
+            Settings(), ScopeFactory(workflow), _calendars, TagTestHelpers.NewTagService(_db));
 
     private MilestoneService NewMilestoneService() =>
         new(_db, NullLogger<MilestoneService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),

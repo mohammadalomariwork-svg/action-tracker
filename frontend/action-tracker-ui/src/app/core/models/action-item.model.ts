@@ -29,6 +29,12 @@ export interface EscalationInfo {
   createdAt: string;
 }
 
+/** A tag on an action item (WO-2026-11 A-5) — always of the item's own workspace. */
+export interface TagInfo {
+  id: string;
+  name: string;
+}
+
 export interface ActionItem {
   id: string;
   actionId: string;
@@ -67,6 +73,8 @@ export interface ActionItem {
   /** How many of the sub-items the caller is assigned to; only from `getAssignedViaSubItems`. */
   mySubItemCount?: number | null;
   escalations: EscalationInfo[];
+  /** Tags (WO-2026-11 A-5), sorted by name; empty while the tag tables are missing on the server. */
+  tags: TagInfo[];
   createdAt: string;
   updatedAt: string;
   daysUntilDue: number;
@@ -92,6 +100,13 @@ export interface ActionItemCreate {
   progress: number;
   isEscalated?: boolean;
   escalationExplanation?: string;
+  /**
+   * Tag names (WO-2026-11 A-5), looked up in or added to the item's workspace.
+   * On create: optional. On edit: replaces the tags (`[]` removes them all);
+   * leave it out to keep them — build it with `tagsPatch`. Rules in
+   * `tag-rules.util.ts` (10 tags, 30 characters, no commas).
+   */
+  tags?: string[];
 }
 
 /**
@@ -154,4 +169,6 @@ export interface ActionItemFilter {
   dueBucket?: string;
   /** 0-7 | 8-30 | 31-90 | 90+ (days since creation) */
   ageBucket?: string;
+  /** Tag filter (WO-2026-11 A-5): items with any of these tag ids. Needs ActionItems.View. */
+  tagIds?: string[];
 }

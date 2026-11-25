@@ -17,6 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using ActionTracker.Tests.Unit.Tags;
 
 namespace ActionTracker.Tests.Unit;
 
@@ -62,7 +63,7 @@ public class ActionItemStandaloneFlagTests : IDisposable
 
     private ActionItemService NewService() =>
         new(_db, NullLogger<ActionItemService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), ScopeFactory(), _calendars);
+            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), ScopeFactory(), _calendars, TagTestHelpers.NewTagService(_db));
 
     private async Task<Workspace> WorkspaceAsync()
     {

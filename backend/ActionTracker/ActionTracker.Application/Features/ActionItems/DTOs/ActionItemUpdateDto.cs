@@ -72,6 +72,15 @@ public class ActionItemUpdateDto
     public string? EscalationExplanation { get; set; }
 
     /// <summary>
+    /// Tag names (WO-2026-11 A-5): when supplied, replaces the item's tags
+    /// (an empty list removes them all); null = leave them. Same rules as on
+    /// create. Refused on a Done item like any other field. When the save
+    /// moves the item to another workspace and this is null, the item's tags
+    /// are carried over by name (D2).
+    /// </summary>
+    public List<string>? Tags { get; set; }
+
+    /// <summary>
     /// True when the payload changes nothing but the actual dates. A Done item
     /// accepts only such a payload (WO-2026-11 A-1). <see cref="IsStandalone"/>
     /// is ignored by the server, so it does not count (A-1b).
@@ -80,7 +89,7 @@ public class ActionItemUpdateDto
         Title is null && Description is null && WorkspaceId is null && ProjectId is null
         && MilestoneId is null && AssigneeIds is null && Priority is null
         && Status is null && StartDate is null && DueDate is null && Progress is null
-        && IsEscalated is null && EscalationExplanation is null;
+        && IsEscalated is null && EscalationExplanation is null && Tags is null;
 
     /// <summary>True when the payload sets or clears an actual date.</summary>
     public bool HasActualDates() =>

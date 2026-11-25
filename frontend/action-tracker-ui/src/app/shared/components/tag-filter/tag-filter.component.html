@@ -1,0 +1,46 @@
+<div class="tgf">
+  <button #trigger type="button" class="tgf__btn" [class.tgf__btn--on]="selected().length"
+          [attr.aria-expanded]="open()" [attr.aria-controls]="panelId()"
+          [attr.title]="selectedNames() || null" (click)="toggle()">
+    <i class="bi bi-tags" aria-hidden="true"></i>
+    <span>Tags</span>
+    @if (selected().length) {
+      <span class="tgf__badge"><span class="visually-hidden">, </span>{{ selected().length }}<span class="visually-hidden"> chosen</span></span>
+    }
+    <i class="bi bi-chevron-down tgf__caret" aria-hidden="true"></i>
+  </button>
+
+  @if (open()) {
+    <div class="tgf__panel" [id]="panelId()" role="group" aria-label="Filter by tag" (keydown)="onPanelKeydown($event)">
+      <input #searchBox type="search" class="tgf__search" placeholder="Search tags" aria-label="Search tags"
+             [value]="search()" (input)="search.set($any($event.target).value)" />
+
+      <div class="tgf__options">
+        @if (loading()) {
+          <p class="tgf__empty">Loading tags…</p>
+        } @else if (!options().length) {
+          <p class="tgf__empty">No tags on these action items yet.</p>
+        } @else if (!groups().length) {
+          <p class="tgf__empty">No tag matches “{{ search() }}”.</p>
+        }
+        @for (g of groups(); track g.label) {
+          <fieldset class="tgf__group">
+            @if (g.label) { <legend class="tgf__legend">{{ g.label }}</legend> }
+            @for (o of g.options; track o.id) {
+              <label class="tgf__option">
+                <input type="checkbox" [checked]="isSelected(o.id)" (change)="check(o.id, $any($event.target).checked)" />
+                <span class="tgf__name">{{ o.name }}</span>
+                @if (o.count != null) { <span class="tgf__count">{{ o.count }}</span> }
+              </label>
+            }
+          </fieldset>
+        }
+      </div>
+
+      <div class="tgf__foot">
+        <span class="tgf__rule">Shows items with any of the chosen tags.</span>
+        <button type="button" class="tgf__clear" [disabled]="!selected().length" (click)="clear()">Clear</button>
+      </div>
+    </div>
+  }
+</div>

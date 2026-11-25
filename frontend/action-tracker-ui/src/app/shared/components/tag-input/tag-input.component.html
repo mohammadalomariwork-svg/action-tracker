@@ -1,0 +1,66 @@
+<div class="tgi" [class.tgi--disabled]="disabled()">
+  <div class="tgi__head">
+    <label class="tgi__label" [for]="inputId()" [attr.id]="inputId() + '-label'">{{ label() }}</label>
+    <span class="tgi__count" [class.tgi__count--full]="atCap()">{{ tags().length }} of {{ max }}</span>
+  </div>
+
+  @if (disabled()) {
+    @if (tags().length) {
+      <ul class="tgi__chips tgi__chips--static" [attr.aria-labelledby]="inputId() + '-label'">
+        @for (t of tags(); track t) {
+          <li class="tgi__chip"><i class="bi bi-tag" aria-hidden="true"></i>{{ t }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="tgi__empty">No tags.</p>
+    }
+    @if (lockedNote()) {
+      <p class="tgi__note"><i class="bi bi-lock" aria-hidden="true"></i> {{ lockedNote() }}</p>
+    }
+  } @else {
+    <div class="tgi__box" (click)="focusBox()">
+      @if (tags().length) {
+        <ul class="tgi__chips" [attr.aria-label]="label() + ' added'">
+          @for (t of tags(); track t; let i = $index) {
+            <li class="tgi__chip">
+              <i class="bi bi-tag" aria-hidden="true"></i><span class="tgi__chip-name">{{ t }}</span>
+              <button type="button" class="tgi__remove" (click)="remove(i); $event.stopPropagation()"
+                      [attr.aria-label]="'Remove tag ' + t">
+                <i class="bi bi-x" aria-hidden="true"></i>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      <input #box class="tgi__text" type="text" role="combobox" autocomplete="off"
+             [id]="inputId()" [value]="text()" [attr.maxlength]="maxLength + 40"
+             [attr.aria-expanded]="listOpen()" [attr.aria-controls]="listId()"
+             [attr.aria-activedescendant]="activeId()" aria-autocomplete="list"
+             [attr.aria-describedby]="hintId()" [attr.aria-invalid]="error() ? true : null"
+             [placeholder]="atCap() ? 'Maximum of ' + max + ' tags' : 'Type a tag, press Enter'"
+             (input)="onInput($any($event.target).value)" (keydown)="onKeydown($event)"
+             (focus)="onFocus()" (blur)="onBlur()" />
+    </div>
+
+    @if (listOpen()) {
+      <ul class="tgi__list" role="listbox" [id]="listId()" aria-label="Tags used in this workspace">
+        @for (s of suggestions(); track s.id; let i = $index) {
+          <li role="option" class="tgi__option" [id]="optionId(i)"
+              [class.tgi__option--active]="i === active()" [attr.aria-selected]="i === active()"
+              (mousedown)="$event.preventDefault()" (click)="choose(s)">
+            <span class="tgi__option-name">{{ s.name }}</span>
+            <span class="tgi__uses">{{ s.itemCount }} {{ s.itemCount === 1 ? 'item' : 'items' }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (error()) {
+      <p class="tgi__error" role="alert">{{ error() }}</p>
+    }
+    <p class="tgi__hint" [id]="hintId()">
+      Enter or comma adds a tag. Up to {{ max }} tags of {{ maxLength }} characters; suggestions come from this workspace only.
+    </p>
+  }
+  <span class="visually-hidden" aria-live="polite">{{ status() }}</span>
+</div>

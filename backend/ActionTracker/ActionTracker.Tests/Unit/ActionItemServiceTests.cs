@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using ActionTracker.Tests.Unit.Tags;
 
 namespace ActionTracker.Tests.Unit;
 
@@ -47,7 +48,7 @@ public class ActionItemServiceTests : IDisposable
         // tests keep using dates relative to today; WorkingDateRuleTests covers it.
         var calendars = new WorkCalendarService(
             _dbContext, Mock.Of<IWorkspaceAccessResolver>(), new WorkCalendarCache(), NullLogger<WorkCalendarService>.Instance);
-        _service    = new ActionItemService(_dbContext, _loggerMock.Object, emailSenderMock.Object, notificationServiceMock.Object, appSettings, scopeFactoryMock.Object, calendars);
+        _service    = new ActionItemService(_dbContext, _loggerMock.Object, emailSenderMock.Object, notificationServiceMock.Object, appSettings, scopeFactoryMock.Object, calendars, TagTestHelpers.NewTagService(_dbContext));
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -345,7 +346,7 @@ public class ActionItemServiceTests : IDisposable
         var calendars = new WorkCalendarService(
             _dbContext, Mock.Of<IWorkspaceAccessResolver>(), new WorkCalendarCache(), NullLogger<WorkCalendarService>.Instance);
         var service = new ActionItemService(_dbContext, _loggerMock.Object, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), scopeFactory.Object, calendars);
+            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), scopeFactory.Object, calendars, TagTestHelpers.NewTagService(_dbContext));
 
         // Act
         await service.UpdateStatusAsync(entity.Id, ActionStatus.Done, CancellationToken.None);

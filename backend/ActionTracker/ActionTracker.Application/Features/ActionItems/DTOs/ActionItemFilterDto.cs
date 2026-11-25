@@ -14,6 +14,13 @@ public class ActionItemFilterDto
     public bool?           IsStandalone { get; set; }
     public string          SearchTerm  { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Tag filter (WO-2026-11 A-5): items carrying any of these tags. Tag ids,
+    /// not names, so a tag of one workspace never matches another workspace's
+    /// items. Needs ActionItems.View. Not used by any dashboard count.
+    /// </summary>
+    public List<Guid>? TagIds { get; set; }
+
     // ── Dashboard drill-down filters ─────────────────────────────────────────
     // These use the same definitions the dashboards count by
     // (ActionItemRules), so a list opened from a chart segment matches it.

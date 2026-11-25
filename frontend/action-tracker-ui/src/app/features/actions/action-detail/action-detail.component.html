@@ -245,6 +245,21 @@
             <span class="wd-detail-value text-pre-wrap">{{ ai.description }}</span>
           </div>
         }
+
+        <!-- Tags (WO-2026-11 A-5): changed in the edit drawer; a Done item keeps them as they are (D1) -->
+        <div class="wd-detail-item wd-detail-item--full wd-detail-item--stacked">
+          <span class="wd-detail-label">Tags</span>
+          <span class="wd-detail-value">
+            @if (hasTags(ai)) {
+              <app-tag-chips [tags]="ai.tags" />
+            } @else {
+              <span class="text-muted">No tags</span>
+            }
+            @if (ai.statusCode === ActionStatus.Done) {
+              <span class="ad-tags-note">Tags cannot be changed on a completed action item.</span>
+            }
+          </span>
+        </div>
       </div>
 
       <!-- Actual dates of a Done item (WO-2026-11 A-1): the only edit a Done item accepts. -->
@@ -430,6 +445,11 @@
           placeholder="Optional description…"
           rows="3"
         ></textarea>
+      </div>
+
+      <!-- Tags (WO-2026-11 A-5) — suggestions from this item's workspace -->
+      <div class="mb-3">
+        <app-tag-input inputId="ad-edit-tags" [(tags)]="editTags" [workspaceId]="item()?.workspaceId" />
       </div>
 
       <!-- Assignees multi-select dropdown -->

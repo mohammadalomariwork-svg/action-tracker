@@ -467,6 +467,11 @@
             </h5>
 
             <div class="d-flex align-items-center gap-3 flex-wrap">
+              <!-- Tags (WO-2026-11 A-5): this workspace's tags; any of the chosen -->
+              <app-tag-filter *appHasPermission="'ActionItems'; action: 'View'"
+                              idPrefix="ws-action-tags" [options]="tagOptions()" [loading]="tagOptionsLoading()"
+                              [selected]="filterTagIds()" (selectedChange)="onTagFilterChange($event)" />
+
               <!-- Show deleted toggle -->
               <div class="form-check form-switch mb-0">
                 <input
@@ -498,7 +503,9 @@
           @if (!actionLoading && actionItems.length === 0) {
             <div class="wd-empty text-center py-4">
               <i class="bi bi-clipboard-check wd-empty-icon text-muted"></i>
-              <p class="text-muted mt-2 mb-0">No action items in this workspace yet.</p>
+              <p class="text-muted mt-2 mb-0">
+                {{ filterTagIds().length ? 'No action items with the chosen tags.' : 'No action items in this workspace yet.' }}
+              </p>
             </div>
           }
 
@@ -537,6 +544,7 @@
                       <td>
                         <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                         <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+                        <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="3" />
                       </td>
                       <td>
                         @if (item.projectName) {
@@ -654,6 +662,7 @@
                   <!-- Title -->
                   <a class="wa-action-card__title text-decoration-none" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
                   <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+                  <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="4" />
 
                   <!-- Meta rows -->
                   <div class="wa-action-card__meta">

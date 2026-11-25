@@ -580,3 +580,11 @@
     border-top: 1px solid var(--bd);
   }
 }
+
+// Tags row (WO-2026-11 A-5)
+.ad-tags-note {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--t2);
+  font-size: 0.8125rem;
+}

@@ -36,6 +36,12 @@ import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
 } from '../../../shared/utils/actual-dates.util';
 import { toActionItemUpdate } from '../../../shared/utils/action-item-payload.util';
+import { TagChipsComponent } from '../../../shared/components/tag-chips/tag-chips.component';
+import { TagInputComponent } from '../../../shared/components/tag-input/tag-input.component';
+import { TagFilterComponent } from '../../../shared/components/tag-filter/tag-filter.component';
+import { cleanTags, tagsCell, tagsPatch, tagsProblem } from '../../../shared/utils/tag-rules.util';
+import { ActionItemTagService } from '../../../services/action-item-tag.service';
+import { TagFilterOption } from '../../../models/action-item-tag.model';
 
 export const STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
   { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -76,7 +82,7 @@ interface ActionItemFormData {
     FormsModule, ReactiveFormsModule, RouterLink, DatePipe,
     ConfirmDialogComponent, PageHeaderComponent, BreadcrumbComponent,
     HasPermissionDirective, WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
-    SubItemCountComponent,
+    SubItemCountComponent, TagChipsComponent, TagInputComponent, TagFilterComponent,
   ],
   templateUrl: './action-list.component.html',
   styleUrl:    './action-list.component.scss',
@@ -89,6 +95,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   private readonly cdr          = inject(ChangeDetectorRef);
   private readonly route        = inject(ActivatedRoute);
   private readonly permState    = inject(PermissionStateService);
+  private readonly tagSvc       = inject(ActionItemTagService);
   private readonly destroy$     = new Subject<void>();
 
   readonly currentUser = toSignal(this.authSvc.currentUser$, { initialValue: null });
@@ -136,6 +143,10 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly searchCtrl     = new FormControl<string>('');
   readonly filterStatus   = signal<ActionStatus   | null>(null);
   readonly filterPriority = signal<ActionPriority | null>(null);
+  /** Tag filter (WO-2026-11 A-5): ids, any of; options = the tags on my items, by workspace (D3). */
+  readonly filterTagIds   = signal<string[]>([]);
+  readonly tagOptions     = signal<TagFilterOption[]>([]);
+  readonly tagOptionsLoading = signal(false);
   readonly pageNumber     = signal(1);
   readonly pageSize       = signal(10);
   readonly sortBy         = signal('dueDate');
@@ -144,7 +155,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
   readonly hasActiveFilter = computed(() =>
     !!(this.searchCtrl.value?.trim() ||
        this.filterStatus()   !== null ||
-       this.filterPriority() !== null)
+       this.filterPriority() !== null ||
+       this.filterTagIds().length)
   );
 
   // ── Pagination ────────────────────────────────────────
@@ -164,7 +176,10 @@ export class ActionListComponent implements OnInit, OnDestroy {
   private originalEscalated     = false;
 
   // ── Working calendar of the form's workspace (WO-2026-11 C-3) ──
-  private readonly formWorkspaceId = signal('');
+  readonly formWorkspaceId = signal('');
+  /** Tags in the create / edit panel (WO-2026-11 A-5); on edit sent only when they changed. */
+  readonly formTags = signal<string[]>([]);
+  private originalTags: string[] = [];
   readonly calendar = injectWorkspaceCalendar(() => this.formWorkspaceId());
   /** Dates the edited item holds now; unchanged dates are never flagged (Q8). */
   originalDates: { start: string | null; due: string | null } = { start: null, due: null };
@@ -220,6 +235,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.loadCreatedByMe();
     this.loadViaSubItems();
     this.loadAllWorkspaces();
+    this.loadTagOptions();
   }
 
   ngOnDestroy(): void {
@@ -247,6 +263,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
       status:         this.filterStatus()   ?? undefined,
       priority:       this.filterPriority() ?? undefined,
       includeDeleted: this.showDeleted() || undefined,
+      tagIds:         this.filterTagIds().length ? this.filterTagIds() : undefined,
     };
 
     this.actionSvc.getMyActions(filter).subscribe({
@@ -256,9 +273,10 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.totalCount.set(paged.totalCount);
         this.loading.set(false);
       },
-      error: () => {
+      error: err => {
         this.loading.set(false);
-        this.toastSvc.error('Failed to load action items.');
+        // 503 = the tag filter while the server's tag tables are missing (WO-2026-11 A-5): say why.
+        this.toastSvc.error(err?.status === 503 && err?.error?.message ? err.error.message : 'Failed to load action items.');
       },
     });
   }
@@ -383,6 +401,19 @@ export class ActionListComponent implements OnInit, OnDestroy {
       .subscribe({ next: r => { this.allWorkspaces = r.data ?? []; this.cdr.markForCheck(); } });
   }
 
+  /** My Actions tag filter options (WO-2026-11 A-5) — needs ActionItems.View. */
+  loadTagOptions(): void {
+    if (!this.permState.hasPermission('ActionItems', 'View')) return;
+    this.tagOptionsLoading.set(true);
+    this.tagSvc.myActionTags().pipe(takeUntil(this.destroy$)).subscribe({
+      next: r => {
+        this.tagOptions.set((r.data ?? []).map(o => ({ id: o.id, name: o.name, group: o.workspaceTitle, count: o.itemCount })));
+        this.tagOptionsLoading.set(false);
+      },
+      error: () => { this.tagOptions.set([]); this.tagOptionsLoading.set(false); },
+    });
+  }
+
   // ── Filter helpers ────────────────────────────────────
   applyFilter(): void {
     this.pageNumber.set(1);
@@ -393,6 +424,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.searchCtrl.setValue('', { emitEvent: false });
     this.filterStatus.set(null);
     this.filterPriority.set(null);
+    this.filterTagIds.set([]);
     this.pageNumber.set(1);
     this.load();
   }
@@ -473,6 +505,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
     this.formWorkspaceId.set('');
+    this.formTags.set([]);
+    this.originalTags = [];
     this.originalDates = { start: null, due: null };
     // Assignees can't be pre-selected — list is workspace-scoped and workspace starts empty.
     this.allUsers = [];
@@ -511,6 +545,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
       escalationExplanation: latestExplanation,
     };
     this.formWorkspaceId.set(this.actionForm.workspaceId);
+    this.originalTags = (item.tags ?? []).map(t => t.name);
+    this.formTags.set([...this.originalTags]);
     this.originalDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
     this.originalActual = { start: item.actualStartDate, end: item.actualEndDate };
     this.editingStandalone = item.isStandalone;
@@ -600,6 +636,11 @@ export class ActionListComponent implements OnInit, OnDestroy {
       this.toastSvc.error(actualProblem);
       return;
     }
+    const tagProblem = tagsProblem(this.formTags());
+    if (tagProblem) {
+      this.toastSvc.error(tagProblem);
+      return;
+    }
 
     this.actionSaving = true;
     this.cdr.markForCheck();
@@ -631,8 +672,9 @@ export class ActionListComponent implements OnInit, OnDestroy {
           ...toActionItemUpdate(payload),
           ...actualDatesPatch(this.originalActual,
             { start: this.actionForm.actualStartDate, end: this.actionForm.actualEndDate }, endAllowed),
+          tags: tagsPatch(this.originalTags, this.formTags()),
         })
-      : this.actionSvc.create(payload);
+      : this.actionSvc.create({ ...payload, tags: this.formTags().length ? cleanTags(this.formTags()) : undefined });
 
     obs$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
@@ -644,6 +686,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.load();
         this.loadStats();
         this.loadViaSubItems();
+        this.loadTagOptions();
         if (wasNew) this.loadCreatedByMe();
         this.cdr.markForCheck();
       },
@@ -749,7 +792,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
           'ID', 'Title', 'Workspace', 'Project', 'Milestone',
           'Priority', 'Status', 'Assignees',
           'Planned Start', 'Planned End', 'Actual Start', 'Actual End', 'Progress (%)',
-          'Escalated', 'Created', 'Updated',
+          'Escalated', 'Tags', 'Created', 'Updated',
         ];
         const rows = items.map(i => [
           i.actionId,
@@ -766,6 +809,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
           toDateInput(i.actualEndDate),
           i.progress,
           i.isEscalated ? 'Yes' : 'No',
+          tagsCell(i.tags),
           i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '',
           i.updatedAt ? new Date(i.updatedAt).toLocaleDateString() : '',
         ]);
@@ -774,7 +818,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
           { wch: 10 }, { wch: 40 }, { wch: 24 }, { wch: 20 }, { wch: 20 },
           { wch: 12 }, { wch: 14 }, { wch: 30 },
           { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
-          { wch: 10 }, { wch: 16 }, { wch: 16 },
+          { wch: 10 }, { wch: 30 }, { wch: 16 }, { wch: 16 },
         ];
         XLSX.utils.book_append_sheet(wb, ws2, 'My Actions');
 

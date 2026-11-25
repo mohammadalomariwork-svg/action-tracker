@@ -31,6 +31,7 @@ export class ActionItemService {
     if (filter.isEscalated != null) params = params.set('isEscalated', filter.isEscalated);
     if (filter.dueBucket)           params = params.set('dueBucket', filter.dueBucket);
     if (filter.ageBucket)           params = params.set('ageBucket', filter.ageBucket);
+    for (const id of filter.tagIds ?? []) params = params.append('tagIds', id);   // WO-2026-11 A-5
 
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(this.apiUrl, { params });
   }
@@ -83,6 +84,7 @@ export class ActionItemService {
     if (filter.isEscalated != null) params = params.set('isEscalated', filter.isEscalated);
     if (filter.dueBucket)           params = params.set('dueBucket', filter.dueBucket);
     if (filter.ageBucket)           params = params.set('ageBucket', filter.ageBucket);
+    for (const id of filter.tagIds ?? []) params = params.append('tagIds', id);   // WO-2026-11 A-5
 
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
   }

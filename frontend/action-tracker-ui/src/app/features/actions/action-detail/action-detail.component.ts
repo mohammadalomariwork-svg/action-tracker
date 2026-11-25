@@ -40,6 +40,9 @@ import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
   varianceLabel, varianceTone,
 } from '../../../shared/utils/actual-dates.util';
+import { TagChipsComponent } from '../../../shared/components/tag-chips/tag-chips.component';
+import { TagInputComponent } from '../../../shared/components/tag-input/tag-input.component';
+import { tagsPatch, tagsProblem } from '../../../shared/utils/tag-rules.util';
 
 interface EditFormData {
   title: string;
@@ -65,7 +68,7 @@ interface EditFormData {
     DocumentsSectionComponent,
     BreadcrumbComponent, WorkflowReviewDialogComponent,
     WorkingDayHintComponent, WorkingDaysComponent, HasPermissionDirective, ActualDatesFieldsComponent,
-    SubItemsSectionComponent, ActionUpdatesSectionComponent,
+    SubItemsSectionComponent, ActionUpdatesSectionComponent, TagChipsComponent, TagInputComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',
@@ -181,6 +184,10 @@ export class ActionDetailComponent implements OnInit {
   private originalEscalationText = '';
 
   editForm: EditFormData = this.emptyEditForm();
+  /** Tags in the edit drawer (WO-2026-11 A-5); sent only when they changed. */
+  readonly editTags = signal<string[]>([]);
+
+  hasTags(ai: ActionItem): boolean { return (ai.tags ?? []).length > 0; }
 
   readonly STATUS_OPTIONS = [
     { value: ActionStatus.ToDo,       label: 'To Do'       },
@@ -292,6 +299,7 @@ export class ActionDetailComponent implements OnInit {
 
     this.originalEscalated = !!ai.isEscalated;
     this.originalEscalationText = latestExplanation;
+    this.editTags.set((ai.tags ?? []).map(t => t.name));
     this.assigneeDropdownOpen = false;
     this.assigneeSearchTerm = '';
     this.showEditForm = true;
@@ -348,6 +356,11 @@ export class ActionDetailComponent implements OnInit {
       this.toastSvc.error(actualProblem);
       return;
     }
+    const tagProblem = tagsProblem(this.editTags());
+    if (tagProblem) {
+      this.toastSvc.error(tagProblem);
+      return;
+    }
 
     this.saving = true;
 
@@ -372,6 +385,7 @@ export class ActionDetailComponent implements OnInit {
         { start: ai.actualStartDate, end: ai.actualEndDate },
         { start: this.editForm.actualStartDate, end: this.editForm.actualEndDate },
         this.actualEndEditable()),
+      tags: tagsPatch((ai.tags ?? []).map(t => t.name), this.editTags()),
     };
 
     this.actionSvc.update(ai.id, payload).subscribe({

@@ -41,12 +41,14 @@ import {
 } from '../../../../shared/utils/actual-dates.util';
 import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload.util';
 import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
+import { TagChipsComponent } from '../../../../shared/components/tag-chips/tag-chips.component';
+import { tagsCell } from '../../../../shared/utils/tag-rules.util';
 
 @Component({
   selector: 'app-milestone-detail',
   standalone: true,
   imports: [
-    SubItemCountComponent,
+    SubItemCountComponent, TagChipsComponent,
     CommonModule, FormsModule, RouterLink, BreadcrumbComponent, CommentsSectionComponent, DocumentsSectionComponent,
     WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent, HasPermissionDirective,
   ],
@@ -633,6 +635,7 @@ export class MilestoneDetailComponent implements OnInit {
       'Actual End':    a.actualEndDate ? new Date(a.actualEndDate).toLocaleDateString() : '',
       'Progress':   `${a.progress}%`,
       'Escalated':  a.isEscalated ? 'Yes' : 'No',
+      'Tags':       tagsCell(a.tags),
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(actionRows.length ? actionRows : [{}]), 'Action Items');
 

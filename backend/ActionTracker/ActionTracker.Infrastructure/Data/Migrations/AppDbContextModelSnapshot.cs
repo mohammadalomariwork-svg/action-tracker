@@ -558,6 +558,21 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ActionItemSubItemAssignees", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemTag", b =>
+                {
+                    b.Property<Guid>("ActionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ActionItemId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("ActionItemTags", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemUpdate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2660,6 +2675,45 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("StrategicPlanApprovers", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Tag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("WorkspaceId", "NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("Tags", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendar", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3231,6 +3285,25 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemTag", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
+                        .WithMany("Tags")
+                        .HasForeignKey("ActionItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.Tag", "Tag")
+                        .WithMany("ActionItems")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActionItem");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemUpdate", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
@@ -3533,6 +3606,22 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("StrategicPlan");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Tag", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendarDay", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.WorkCalendar", "WorkCalendar")
@@ -3668,6 +3757,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
                     b.Navigation("SubItems");
 
+                    b.Navigation("Tags");
+
                     b.Navigation("Updates");
 
                     b.Navigation("WorkflowRequests");
@@ -3723,6 +3814,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Approvers");
 
                     b.Navigation("Objectives");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.Tag", b =>
+                {
+                    b.Navigation("ActionItems");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.WorkCalendar", b =>

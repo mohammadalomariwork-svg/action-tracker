@@ -1,4 +1,5 @@
 using ActionTracker.Application.Common.Extensions;
+using ActionTracker.Application.Features.Tags.DTOs;
 using ActionTracker.Domain.Enums;
 
 namespace ActionTracker.Application.Features.ActionItems.DTOs;
@@ -63,6 +64,9 @@ public class ActionItemResponseDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
+
+    /// <summary>Tags (WO-2026-11 A-5), by name; all of the item's own workspace. Empty while the tag tables are missing.</summary>
+    public List<TagDto> Tags { get; set; } = new();
 
     // Multi-assignee info
     public List<AssigneeDto> Assignees { get; set; } = new();

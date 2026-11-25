@@ -37,6 +37,8 @@ import { nonWorkingDatesMessage, workingDayValidator } from '../../../shared/val
 import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.service';
 import { actualDatesPatch, actualDatesProblem, todayInTimeZone, toDateInput } from '../../../shared/utils/actual-dates.util';
 import { toActionItemUpdate } from '../../../shared/utils/action-item-payload.util';
+import { TagInputComponent } from '../../../shared/components/tag-input/tag-input.component';
+import { cleanTags, tagsPatch, tagsProblem } from '../../../shared/utils/tag-rules.util';
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 
@@ -64,7 +66,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule, CommonModule, FormsModule, RouterLink, PageHeaderComponent, BreadcrumbComponent,
-    WorkingDayHintComponent, WorkingDaysComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, TagInputComponent,
   ],
   templateUrl: './action-form.component.html',
   styleUrl:    './action-form.component.scss',
@@ -81,6 +83,9 @@ export class ActionFormComponent implements OnInit, OnDestroy {
 
   // ── State ─────────────────────────────────────────────
   readonly isEditMode   = signal(false);
+  /** Tag names (WO-2026-11 A-5); sent on edit only when they changed. */
+  readonly tags         = signal<string[]>([]);
+  private originalTags: string[] = [];
   readonly editItem     = signal<ActionItem | null>(null);
   readonly teamMembers  = signal<AssignableUser[]>([]);
   readonly workspaces   = signal<WorkspaceList[]>([]);
@@ -150,7 +155,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   });
 
   // ── Working calendar (WO-2026-11 C-3) ─────────────────
-  private readonly selectedWorkspaceId = toSignal(this.form.get('workspaceId')!.valueChanges, { initialValue: '' });
+  readonly selectedWorkspaceId = toSignal(this.form.get('workspaceId')!.valueChanges, { initialValue: '' });
   /** Calendar of the chosen workspace: drives the date hints and the save guard. */
   readonly calendar = injectWorkspaceCalendar(() => this.selectedWorkspaceId());
   /** Dates the item holds now (`yyyy-MM-dd`); unchanged dates are never flagged (Q8). */
@@ -251,6 +256,8 @@ export class ActionFormComponent implements OnInit, OnDestroy {
         }
 
         this.editItem.set(item);
+        this.originalTags = (item.tags ?? []).map(t => t.name);
+        this.tags.set([...this.originalTags]);
         this.form.patchValue({
           title:       item.title,
           description: item.description,
@@ -472,6 +479,11 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       this.form.markAllAsTouched();
       return;
     }
+    const tagProblem = tagsProblem(this.tags());
+    if (tagProblem) {
+      this.toastSvc.error(tagProblem);
+      return;
+    }
 
     this.saving.set(true);
 
@@ -497,8 +509,9 @@ export class ActionFormComponent implements OnInit, OnDestroy {
             { start: item.actualStartDate, end: item.actualEndDate },
             { start: raw.actualStartDate ?? '', end: raw.actualEndDate ?? '' },
             this.actualEndEditable()),
+          tags: tagsPatch(this.originalTags, this.tags()),
         })
-      : this.actionSvc.create(payload);
+      : this.actionSvc.create({ ...payload, tags: this.tags().length ? cleanTags(this.tags()) : undefined });
 
     obs$.subscribe({
       next: () => {

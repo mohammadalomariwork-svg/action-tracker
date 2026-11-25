@@ -1,4 +1,5 @@
 using ActionTracker.Application.Features.ActionItems.DTOs;
+using ActionTracker.Application.Features.Tags;
 using FluentValidation;
 
 namespace ActionTracker.Application.Features.ActionItems.Validators;
@@ -24,5 +25,10 @@ public class ActionItemCreateValidator : AbstractValidator<ActionItemCreateDto>
 
         RuleFor(x => x.Progress)
             .InclusiveBetween(0, 100).WithMessage("Progress must be between 0 and 100.");
+
+        // WO-2026-11 A-5 — the same rules the service applies (TagRules).
+        RuleFor(x => x.Tags)
+            .Must(tags => TagRules.Problem(tags) is null)
+            .WithMessage(x => TagRules.Problem(x.Tags) ?? string.Empty);
     }
 }

@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using ActionTracker.Tests.Unit.Tags;
 
 namespace ActionTracker.Tests.Unit;
 
@@ -119,7 +120,7 @@ public class ActionItemSubItemServiceTests : IDisposable
 
     private ActionItemService ActionItems() =>
         new(_db, NullLogger<ActionItemService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-            Settings(), Mock.Of<IServiceScopeFactory>(), _calendars);
+            Settings(), Mock.Of<IServiceScopeFactory>(), _calendars, TagTestHelpers.NewTagService(_db));
 
     private async Task<ActionItem> AddParentAsync(
         ActionStatus status = ActionStatus.ToDo, DateTime? start = null, bool noStart = false,

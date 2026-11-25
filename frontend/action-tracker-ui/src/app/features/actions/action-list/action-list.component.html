@@ -194,6 +194,11 @@
           }
         </select>
 
+        <!-- Tags (WO-2026-11 A-5): tags on my items, by workspace; any of the chosen -->
+        <app-tag-filter *appHasPermission="'ActionItems'; action: 'View'"
+                        idPrefix="my-actions-tags" [options]="tagOptions()" [loading]="tagOptionsLoading()"
+                        [selected]="filterTagIds()" (selectedChange)="filterTagIds.set($event); applyFilter()" />
+
         <!-- Clear filters -->
         @if (hasActiveFilter()) {
           <button class="btn btn-ghost" (click)="clearFilters()">✕ Clear</button>
@@ -279,6 +284,7 @@
                 <td>
                   <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                   <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+                  <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="3" />
                 </td>
 
                 <!-- Project -->
@@ -413,6 +419,7 @@
           <a class="wa-action-card__title text-decoration-none"
              [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
           <app-sub-item-count [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+          <app-tag-chips [tags]="item.tags" [max]="4" />
 
           <!-- Meta -->
           <div class="wa-action-card__meta">
@@ -548,6 +555,7 @@
                   </td>
                   <td>
                     <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
+                    <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="3" />
                   </td>
                   <td>
                     @if (item.projectName) {
@@ -595,6 +603,7 @@
             <a class="wa-action-card__title text-decoration-none"
                [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
             <app-sub-item-count [done]="item.subItemDoneCount" [total]="item.subItemCount" [mine]="item.mySubItemCount" />
+            <app-tag-chips [tags]="item.tags" [max]="4" />
             <div class="wa-action-card__meta">
               <div class="wa-action-card__meta-row">
                 <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>
@@ -697,6 +706,7 @@
                 <td>
                   <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                   <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+                  <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="3" />
                 </td>
                 <td>
                   @if (item.projectName) {
@@ -796,6 +806,7 @@
           <a class="wa-action-card__title text-decoration-none"
              [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
           <app-sub-item-count [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+          <app-tag-chips [tags]="item.tags" [max]="4" />
           <div class="wa-action-card__meta">
             @if (item.projectName) {
               <div class="wa-action-card__meta-row">
@@ -901,6 +912,11 @@
         <label class="form-label">Description</label>
         <textarea class="form-control" [(ngModel)]="actionForm.description"
                   placeholder="Optional description…" rows="3"></textarea>
+      </div>
+
+      <!-- Tags (WO-2026-11 A-5) — suggestions from the chosen workspace -->
+      <div class="mb-3">
+        <app-tag-input inputId="my-actions-form-tags" [(tags)]="formTags" [workspaceId]="formWorkspaceId()" />
       </div>
 
       <!-- Assignees multi-select -->

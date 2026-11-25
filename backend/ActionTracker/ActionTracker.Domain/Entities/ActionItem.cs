@@ -80,6 +80,9 @@ public class ActionItem
     /// <summary>Sub-items (WO-2026-11 A-2). Never counted as action items.</summary>
     public ICollection<ActionItemSubItem> SubItems { get; set; } = new List<ActionItemSubItem>();
 
+    /// <summary>Tags (WO-2026-11 A-5), all of this item's workspace. Loaded on their own, never included.</summary>
+    public ICollection<ActionItemTag> Tags { get; set; } = new List<ActionItemTag>();
+
     /// <summary>
     /// Planned dates are locked once the action item has been created (Id != Guid.Empty).
     /// Changes require a workflow request. Actual dates are not locked.

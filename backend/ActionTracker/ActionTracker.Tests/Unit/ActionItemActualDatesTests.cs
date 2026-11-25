@@ -19,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using ActionTracker.Tests.Unit.Tags;
 
 namespace ActionTracker.Tests.Unit;
 
@@ -75,7 +76,7 @@ public class ActionItemActualDatesTests : IDisposable
 
     private ActionItemService NewService() =>
         new(_db, NullLogger<ActionItemService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-            Settings(), ScopeFactory(), _calendars);
+            Settings(), ScopeFactory(), _calendars, TagTestHelpers.NewTagService(_db));
 
     private ActionItemWorkflowService NewWorkflowService() =>
         new(_db, Mock.Of<INotificationService>(), Mock.Of<IEmailSender>(), Settings(),

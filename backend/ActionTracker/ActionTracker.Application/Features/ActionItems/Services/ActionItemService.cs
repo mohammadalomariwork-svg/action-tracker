@@ -9,6 +9,8 @@ using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.Tags;
+using ActionTracker.Application.Features.Tags.Interfaces;
 using ActionTracker.Application.Features.Workflow.DTOs;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -30,6 +32,7 @@ public class ActionItemService : IActionItemService
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWorkCalendarService _calendars;
+    private readonly IActionItemTagService _tags;
 
     public ActionItemService(
         IAppDbContext dbContext,
@@ -38,7 +41,8 @@ public class ActionItemService : IActionItemService
         INotificationService notificationService,
         IOptions<AppSettings> appSettings,
         IServiceScopeFactory scopeFactory,
-        IWorkCalendarService calendars)
+        IWorkCalendarService calendars,
+        IActionItemTagService tags)
     {
         _dbContext            = dbContext;
         _logger               = logger;
@@ -47,6 +51,7 @@ public class ActionItemService : IActionItemService
         _appSettings          = appSettings.Value;
         _scopeFactory         = scopeFactory;
         _calendars            = calendars;
+        _tags                 = tags;
     }
 
     // -------------------------------------------------------------------------
@@ -126,6 +131,16 @@ public class ActionItemService : IActionItemService
                 && !a.Assignees.Any(x => x.UserId == uid));
         }
 
+        // Tag filter (WO-2026-11 A-5): any of the chosen tags, by id. Only
+        // narrows the list the caller can already see; refused with 503 while
+        // the tag tables are missing.
+        if (filter.TagIds is { Count: > 0 })
+        {
+            await _tags.EnsureAvailableAsync(ct);
+            var tagIds = filter.TagIds.Distinct().ToList();
+            query = query.Where(a => a.Tags.Any(t => tagIds.Contains(t.TagId)));
+        }
+
         // Dashboard drill-down filters — same rules the dashboards count by
         var today = DateTime.UtcNow.Date;
 
@@ -196,6 +211,7 @@ public class ActionItemService : IActionItemService
 
         var items = paged.Items.Select(ActionItemMapper.ToDto).ToList();
         await FillSubItemCountsAsync(items, subItemOnlyAssigneeId, ct);
+        await _tags.FillTagsAsync(items, ct);
 
         return new PagedResult<ActionItemResponseDto>
         {
@@ -219,6 +235,7 @@ public class ActionItemService : IActionItemService
         if (item is null) return null;
         var dto = ActionItemMapper.ToDto(item);
         await FillSubItemCountsAsync(new[] { dto }, null, ct);
+        await _tags.FillTagsAsync(new[] { dto }, ct);
         return dto;
     }
 
@@ -291,6 +308,14 @@ public class ActionItemService : IActionItemService
             WorkingDateCheck.New("Planned end",   dto.DueDate),
         }, ct);
 
+        // ── Tags (WO-2026-11 A-5) ─────────────────────────────────────────────
+        // Looked up in (or added to) the item's workspace before the item is
+        // tracked: new tags are saved on their own. A save without tags never
+        // touches the tag tables, so it works while their migration is pending.
+        var tags = dto.Tags is { Count: > 0 }
+            ? await _tags.ResolveAsync(dto.WorkspaceId, TagRules.CleanAll(dto.Tags), createdByUserId, ct)
+            : Array.Empty<Tag>();
+
         // Determine next ActionId sequence across all rows including soft-deleted ones
         var maxSeq = await _dbContext.ActionItems
             .IgnoreQueryFilters()
@@ -342,6 +367,9 @@ public class ActionItemService : IActionItemService
                 UserId       = userId,
             });
         }
+
+        foreach (var tag in tags)
+            item.Tags.Add(new ActionItemTag { ActionItemId = item.Id, TagId = tag.Id });
 
         // Add escalation entry when escalated
         if (dto.IsEscalated && !string.IsNullOrWhiteSpace(dto.EscalationExplanation))
@@ -439,7 +467,9 @@ public class ActionItemService : IActionItemService
             }
         });
 
-        return ActionItemMapper.ToDto(created);
+        var createdDto = ActionItemMapper.ToDto(created);
+        await _tags.FillTagsAsync(new[] { createdDto }, ct);
+        return createdDto;
     }
 
     public async Task<ActionItemResponseDto> UpdateAsync(
@@ -511,6 +541,32 @@ public class ActionItemService : IActionItemService
                 item.ActualStartDate, item.ActualEndDate,
                 dto.ActualStartDate, dto.ClearActualStartDate == true, dto.ActualEndDate,
                 today);
+        }
+
+        // ── Tags (WO-2026-11 A-5) ─────────────────────────────────────────────
+        // Resolved before the standalone branch (which creates approval
+        // requests) so a refused tag stops the save first. Tags always belong
+        // to the item's workspace: when the save moves the item, the names it
+        // carries (or the ones sent) are looked up in — or added to — the new
+        // workspace (D2). New tags are saved here, before any other change is
+        // tracked. While the tag tables are missing there are no tags to keep:
+        // a save without tags (or with an empty list) goes through, one with
+        // tags gets 503.
+        var tagWorkspaceId   = dto.WorkspaceId ?? item.WorkspaceId;
+        var workspaceChanges = tagWorkspaceId != item.WorkspaceId;
+        IReadOnlyList<Tag>? newTags = null;
+        if (dto.Tags is not null || workspaceChanges)
+        {
+            var sentNames = dto.Tags is null ? null : TagRules.CleanAll(dto.Tags);
+            if (await _tags.IsAvailableAsync(ct))
+            {
+                var names = sentNames ?? await _tags.GetItemTagNamesAsync(item.Id, ct);
+                newTags = await _tags.ResolveAsync(tagWorkspaceId, names, updatedByUserId, ct);
+            }
+            else if (sentNames is { Count: > 0 })
+            {
+                throw new TagsUnavailableException();
+            }
         }
 
         // ── Workflow auto-request for standalone items ─────────────────────────
@@ -607,6 +663,10 @@ public class ActionItemService : IActionItemService
             });
         }
 
+        // Tags (WO-2026-11 A-5) — replaced, or carried over to the new workspace
+        if (newTags is not null)
+            await _tags.ReplaceItemTagsAsync(item, newTags, ct);
+
         // Replace assignees when a new list is supplied
         if (dto.AssigneeIds is not null)
         {
@@ -685,6 +745,7 @@ public class ActionItemService : IActionItemService
 
         var updatedDto = ActionItemMapper.ToDto(updated);
         await FillSubItemCountsAsync(new[] { updatedDto }, null, ct);
+        await _tags.FillTagsAsync(new[] { updatedDto }, ct);
         return updatedDto;
     }
 

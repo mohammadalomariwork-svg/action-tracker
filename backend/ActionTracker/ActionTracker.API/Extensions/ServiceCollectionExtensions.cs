@@ -10,6 +10,8 @@ using ActionTracker.Application.Features.ActionItemSubItems.Interfaces;
 using ActionTracker.Application.Features.ActionItemSubItems.Services;
 using ActionTracker.Application.Features.ActionItemUpdates.Interfaces;
 using ActionTracker.Application.Features.ActionItemUpdates.Services;
+using ActionTracker.Application.Features.Tags.Interfaces;
+using ActionTracker.Application.Features.Tags.Services;
 using ActionTracker.Application.Features.EmailTemplates;
 using ActionTracker.Application.Features.MailServerConfig;
 using ActionTracker.Application.Features.Notifications;
@@ -122,6 +124,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IActionItemService, ActionItemService>();
         services.AddScoped<IActionItemSubItemService, ActionItemSubItemService>();   // WO-2026-11 A-2
         services.AddScoped<IActionItemUpdateService,  ActionItemUpdateService>();    // WO-2026-11 A-3
+        // Tags (WO-2026-11 A-5) — the schema check is process-wide, the service per request
+        services.AddSingleton<ITagSchemaState,        TagSchemaState>();
+        services.AddScoped<IActionItemTagService,     ActionItemTagService>();
         services.AddScoped<IDashboardService,  DashboardService>();
         services.AddScoped<IDashboardAnalyticsService, DashboardAnalyticsService>();
         services.AddScoped<IReportService,     ReportService>();

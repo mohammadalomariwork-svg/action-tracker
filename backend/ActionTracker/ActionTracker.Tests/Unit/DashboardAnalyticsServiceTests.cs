@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using ActionTracker.Tests.Unit.Tags;
 
 namespace ActionTracker.Tests.Unit;
 
@@ -121,7 +122,8 @@ public class DashboardAnalyticsServiceTests : IDisposable
     private ActionItemService MakeActionItemService() => new(
         _db, Mock.Of<ILogger<ActionItemService>>(), Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
         Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost" }), Mock.Of<IServiceScopeFactory>(),
-        Mock.Of<IWorkCalendarService>()); // list queries only — the working-day rule is never reached
+        Mock.Of<IWorkCalendarService>(), // list queries only — the working-day rule is never reached
+        TagTestHelpers.NewTagService(_db));
 
     private async Task<int> ListCountAsync(Action<ActionItemFilterDto> configure)
     {

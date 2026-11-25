@@ -3,6 +3,7 @@ using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.ActionItems.Interfaces;
 using ActionTracker.Application.Features.Calendars;
+using ActionTracker.Application.Features.Tags;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -17,13 +18,52 @@ public class ActionItemsController : ControllerBase
 {
     private readonly IActionItemService _service;
     private readonly IWorkspaceAccessResolver _accessResolver;
+    private readonly IAuthorizationService _authorization;
     private readonly ILogger<ActionItemsController> _logger;
 
-    public ActionItemsController(IActionItemService service, IWorkspaceAccessResolver accessResolver, ILogger<ActionItemsController> logger)
+    public ActionItemsController(
+        IActionItemService service,
+        IWorkspaceAccessResolver accessResolver,
+        IAuthorizationService authorization,
+        ILogger<ActionItemsController> logger)
     {
         _service        = service;
         _accessResolver = accessResolver;
+        _authorization  = authorization;
         _logger         = logger;
+    }
+
+    // ── Tags (WO-2026-11 A-5) ────────────────────────────────────────────────
+
+    private const string TagFilterNeedsView = "You need the ActionItems.View permission to filter by tag.";
+
+    /// <summary>
+    /// The tag filter needs ActionItems.View; a list call without <c>tagIds</c>
+    /// is unchanged (these list endpoints carry no policy of their own).
+    /// </summary>
+    private async Task<bool> MayFilterByTagsAsync(ActionItemFilterDto filter) =>
+        filter.TagIds is not { Count: > 0 }
+        || (await _authorization.AuthorizeAsync(User, PermissionPolicies.ActionItemsView)).Succeeded;
+
+    /// <summary>The tag tables are missing (migration pending): 503 with the reason.</summary>
+    private ObjectResult TagsUnavailable<T>(TagsUnavailableException ex) =>
+        StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<T>.Fail(ex.Message));
+
+    /// <summary>A list query with the 403 / 503 tag cases (A-5) around it.</summary>
+    private async Task<ActionResult<ApiResponse<PagedResult<ActionItemResponseDto>>>> ListAsync(
+        ActionItemFilterDto filter, Func<Task<PagedResult<ActionItemResponseDto>>> query)
+    {
+        if (!await MayFilterByTagsAsync(filter))
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<PagedResult<ActionItemResponseDto>>.Fail(TagFilterNeedsView));
+        try
+        {
+            return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(await query()));
+        }
+        catch (TagsUnavailableException ex)
+        {
+            return TagsUnavailable<PagedResult<ActionItemResponseDto>>(ex);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -41,8 +81,7 @@ public class ActionItemsController : ControllerBase
             ? new List<Guid>()
             : await _accessResolver.GetVisibleWorkspaceIdsAsync(userId);
 
-        var result = await _service.GetAllAsync(filter, ct);
-        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+        return await ListAsync(filter, () => _service.GetAllAsync(filter, ct));
     }
 
     // -------------------------------------------------------------------------
@@ -70,8 +109,7 @@ public class ActionItemsController : ControllerBase
 
         _logger.LogInformation("GET /api/action-items/my-actions userId={UserId}", userId);
 
-        var result = await _service.GetAllAsync(filter, ct);
-        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+        return await ListAsync(filter, () => _service.GetAllAsync(filter, ct));
     }
 
     // -------------------------------------------------------------------------
@@ -93,8 +131,7 @@ public class ActionItemsController : ControllerBase
         [FromQuery] ActionItemFilterDto filter, CancellationToken ct)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        var result = await _service.GetAssignedViaSubItemsAsync(userId, filter, ct);
-        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+        return await ListAsync(filter, () => _service.GetAssignedViaSubItemsAsync(userId, filter, ct));
     }
 
     // -------------------------------------------------------------------------
@@ -119,8 +156,7 @@ public class ActionItemsController : ControllerBase
 
         _logger.LogInformation("GET /api/action-items/created-by-me userId={UserId}", userId);
 
-        var result = await _service.GetAllAsync(filter, ct);
-        return Ok(ApiResponse<PagedResult<ActionItemResponseDto>>.Ok(result));
+        return await ListAsync(filter, () => _service.GetAllAsync(filter, ct));
     }
 
     // -------------------------------------------------------------------------
@@ -177,6 +213,14 @@ public class ActionItemsController : ControllerBase
             // message in Production, and the user needs to see which date.
             return BadRequest(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
         }
+        catch (TagRuleException ex)
+        {
+            return BadRequest(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
+        }
+        catch (TagsUnavailableException ex)
+        {
+            return TagsUnavailable<ActionItemResponseDto>(ex);
+        }
 
         _logger.LogInformation("ActionItem {ActionId} created", created.ActionId);
 
@@ -223,10 +267,15 @@ public class ActionItemsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            // Non-working planned dates (NonWorkingDateException) and refused
-            // actual dates. Returned here because the exception middleware hides
-            // the message in Production, and the user needs to see which date.
+            // Non-working planned dates (NonWorkingDateException), refused
+            // actual dates and refused tags (TagRuleException). Returned here
+            // because the exception middleware hides the message in
+            // Production, and the user needs to see which value.
             return BadRequest(ApiResponse<ActionItemResponseDto>.Fail(ex.Message));
+        }
+        catch (TagsUnavailableException ex)
+        {
+            return TagsUnavailable<ActionItemResponseDto>(ex);
         }
     }
 

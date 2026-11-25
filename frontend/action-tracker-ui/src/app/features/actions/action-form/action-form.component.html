@@ -84,6 +84,11 @@
               <span class="field__error">Description cannot exceed {{ DESC_MAX }} characters.</span>
             }
           </div>
+
+          <!-- Tags (WO-2026-11 A-5) — suggestions from the chosen workspace -->
+          <div class="field field--full">
+            <app-tag-input inputId="action-tags" [(tags)]="tags" [workspaceId]="selectedWorkspaceId()" />
+          </div>
         </section>
 
         <!-- ── Section: Assignment & Classification ───── -->

@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-25 (Attachments — WO-2026-11 A-4: `DocumentService` checks the owning record on every call (types `ActionItem`, `ActionItemSubItem`, `ActionItemUpdate`, `Project`, `Milestone`, `ProjectRisk`, `KpiTarget`, `KpiActual`; hidden → 404), View / Edit for the action-item types, `DocumentLockedException` (409), delete rights and `canDelete`, `documentCount` on sub-items and updates, `IUserRoleService`; no migration. Earlier the same day: Action Updates — WO-2026-11 A-3: entity `ActionItemUpdate` on the existing `ActionItemComments` table (+ `SubItemId`, `Status`, `SubmittedAt`, `IsDeleted`), enum `ActionItemUpdateStatus`, `ActionItemUpdatesController` at `/api/action-items/{id}/updates` and `/api/action-items/{id}/sub-items/{subId}/updates`, `IActionItemUpdateService`, draft-privacy query filter, `IWorkflowNotificationHelper.NotifyActionUpdateSubmittedAsync` + template `ActionItem.UpdateSubmitted`, migration `Add_ActionItemUpdates` with backfill and copy from `Comments` (applied to production 2026-11-25) + re-runnable script `Data/Scripts/A3-copy-action-item-comments.sql`; old `/api/action-items/{id}/comments` routes and the `comments` array removed; `/api/comments` parent-visibility check and read-only for action items; `Database:MigrateOnStartup` switch with `DatabaseStartup`; `EmailTemplateSeeder` insert-only; direction e-mail uses `ActionItem.DirectionGiven`; integration host uses `RecordingEmailSender`. Previous: 2026-11-24 Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (applied to production 2026-11-24 at API startup). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-25 (Tags — WO-2026-11 A-5: entities `Tag` / `ActionItemTag`, `TagsController` (`GET /api/workspaces/{id}/tags`, `GET /api/action-items/my-actions/tags`), `tags` on action-item POST / PUT and responses, `tagIds` list filter (needs `ActionItems.View`), `IActionItemTagService`, `TagRules`, `ITagSchemaState` / `TagSchemaState` (503 for tag saves and filters while migration `Add_ActionItemTags` is pending — not applied to production). Earlier the same day: Attachments — WO-2026-11 A-4: `DocumentService` checks the owning record on every call (types `ActionItem`, `ActionItemSubItem`, `ActionItemUpdate`, `Project`, `Milestone`, `ProjectRisk`, `KpiTarget`, `KpiActual`; hidden → 404), View / Edit for the action-item types, `DocumentLockedException` (409), delete rights and `canDelete`, `documentCount` on sub-items and updates, `IUserRoleService`; no migration. Earlier the same day: Action Updates — WO-2026-11 A-3: entity `ActionItemUpdate` on the existing `ActionItemComments` table (+ `SubItemId`, `Status`, `SubmittedAt`, `IsDeleted`), enum `ActionItemUpdateStatus`, `ActionItemUpdatesController` at `/api/action-items/{id}/updates` and `/api/action-items/{id}/sub-items/{subId}/updates`, `IActionItemUpdateService`, draft-privacy query filter, `IWorkflowNotificationHelper.NotifyActionUpdateSubmittedAsync` + template `ActionItem.UpdateSubmitted`, migration `Add_ActionItemUpdates` with backfill and copy from `Comments` (applied to production 2026-11-25) + re-runnable script `Data/Scripts/A3-copy-action-item-comments.sql`; old `/api/action-items/{id}/comments` routes and the `comments` array removed; `/api/comments` parent-visibility check and read-only for action items; `Database:MigrateOnStartup` switch with `DatabaseStartup`; `EmailTemplateSeeder` insert-only; direction e-mail uses `ActionItem.DirectionGiven`; integration host uses `RecordingEmailSender`. Previous: 2026-11-24 Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (applied to production 2026-11-24 at API startup). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -89,7 +89,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
-## API Controllers & Endpoints (24 Controllers)
+## API Controllers & Endpoints (25 Controllers)
 
 ### AuthController (`/api/auth`)
 | Method | Endpoint | Description |
@@ -102,7 +102,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 ### ActionItemsController (`/api/action-items`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Paginated action items (filtered, org-unit scoped). Dashboard drill-down filters: `openOnly`, `overdueOnly`, `isEscalated`, `dueBucket`, `ageBucket` (definitions in `ActionItemRules`; an unknown bucket key is ignored) |
+| GET | `/` | Paginated action items (filtered, org-unit scoped). Dashboard drill-down filters: `openOnly`, `overdueOnly`, `isEscalated`, `dueBucket`, `ageBucket` (definitions in `ActionItemRules`; an unknown bucket key is ignored). Tag filter `tagIds` (repeated; WO-2026-11 A-5): items with any of the tags, by id — needs `ActionItems.View` (403), 503 while the tag tables are missing; the same parameter works on `/my-actions`, `/created-by-me` and `/assigned-via-sub-items` |
 | GET | `/my-actions` | Items assigned to current user |
 | GET | `/assigned-via-sub-items` | WO-2026-11 A-2. Items where the caller is assigned to a live sub-item but **not** to the item itself (My Actions → "Assigned through a sub-item"). User taken from the token; status / priority / search filters, paging and sorting apply; assignee / creator / include-deleted / scope fields of the filter are ignored. Each row adds `mySubItemCount`. Not part of `/my-stats`, `/my-actions` or any dashboard count. Requires `ActionItems.View` |
 | GET | `/created-by-me` | Items created by current user |
@@ -114,6 +114,13 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | DELETE | `/{id}` | Soft delete (requires ActionItems.Delete). Its live sub-items are soft-deleted with it and marked `DeletedWithParent` (WO-2026-11 A-2) |
 | PATCH | `/{id}/restore` | Restore soft-deleted item (requires ActionItems.Edit). Restores exactly the sub-items deleted with it; a sub-item deleted on its own stays deleted (A-2) |
 | POST | `/process-overdue` | Mark past-due items as Overdue (`Roles = "Admin"` — a role check, not a permission policy) |
+
+**Tags (WO-2026-11 A-5).** POST and PUT take `tags` (names; see "Tags" under `TagsController`): on PUT it replaces
+the tags (`[]` clears them), and leaving it out keeps them — when the PUT moves the item to another workspace the
+tags are carried over by name. A Done item refuses `tags` like every other field (422). 400 for a broken tag rule,
+503 when tags are sent while the tag tables are missing (`[]` is then accepted as "nothing to change"). Every
+action-item response carries `tags` (`[{ id, name }]`, sorted by name, only the item's own workspace; empty while
+the tables are missing).
 
 Every action-item response (list, single, create, update) carries `subItemCount` and
 `subItemDoneCount` (live sub-items, through the sub-item query filters; one grouped query per
@@ -572,6 +579,19 @@ Edit included); Admin comes from the database (`IUserRoleService`), not from tok
 A soft-deleted parent (an item, a sub-item, a deleted draft update) keeps its document rows; they are simply unreachable (404) —
 restoring the item brings them back. The sub-item and update responses carry `documentCount` (paperclip counts).
 
+### TagsController — WO-2026-11 A-5
+Look-ups only; tags are saved with the action item (POST / PUT `/api/action-items`, `tags`).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/workspaces/{workspaceId}/tags?search=&limit=` | The workspace's tags `[{ id, name, itemCount }]` (item count = live items the caller can see), sorted by name; `search` = part of the name, any case; `limit` 1–500 (default 100). Suggestions for the tag input and the options of the workspace list's tag filter. 404 when the caller cannot see the workspace (private-workspace filter, then `IWorkspaceAccessResolver`). Empty while the tag tables are missing. Requires `ActionItems.View` |
+| GET | `/api/action-items/my-actions/tags` | My Actions filter options (D3): the tags on live items assigned to the caller, `[{ id, name, workspaceId, workspaceTitle, itemCount }]`, by workspace then name — the same name in two workspaces is two options. Empty while the tag tables are missing. Requires `ActionItems.View` |
+
+**Rules** (`Application/Features/Tags/TagRules.cs`; client copy `tag-rules.util.ts`): trimmed, runs of white space
+→ one space, duplicates dropped without regard to case (first spelling wins), at most 10 per item, 30 characters
+each, no empty tags, commas or control characters. Validated by `ActionItemCreateValidator` /
+`ActionItemUpdateValidator` (400) and again in the service (`TagRuleException`, 400).
+
 ### ProfileController (`/api/profile`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -723,7 +743,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 
 ---
 
-## Database Entities (28 Entities)
+## Database Entities (30 Entities)
 
 ### Core Entities
 
@@ -750,7 +770,36 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | CreatedAt | DateTime | UTC creation timestamp |
 | UpdatedAt | DateTime | UTC last update timestamp |
 | IsDeleted | bool | Soft delete flag |
-| **Nav:** | | Workspace, Project, Milestone, Assignees, Escalations, Updates (A-3, was Comments), SubItems (A-2) |
+| **Nav:** | | Workspace, Project, Milestone, Assignees, Escalations, Updates (A-3, was Comments), SubItems (A-2), Tags (A-5; loaded on their own, never included, so action-item queries work while the tag tables are missing) |
+
+#### Tag (`Tags`) — WO-2026-11 A-5
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | `NEWID()` |
+| WorkspaceId | Guid (FK → Workspaces, Restrict) | The workspace the tag belongs to — a tag never belongs to two |
+| Name | string(30) | As first typed (trimmed, inner spaces collapsed) |
+| NormalizedName | string(30) | Upper-case name; **unique with `WorkspaceId`**, so matching ignores case |
+| CreatedAt / CreatedByUserId | audit | `CreatedByUserId` FK → AspNetUsers, Restrict |
+
+Never deleted; a tag no item uses stays as a suggestion. **Query filter:** a private workspace's tags are visible to
+its admins and members only (the `Workspace` rule); `CurrentUserId == null` is unrestricted.
+
+#### ActionItemTag (`ActionItemTags`) — A-5
+| Field | Type | Description |
+|-------|------|-------------|
+| ActionItemId | Guid (PK, FK → ActionItems, cascade) | |
+| TagId | Guid (PK, FK → Tags, Restrict) | Indexed (tag filter, item counts) |
+
+The tag is always of the item's workspace (kept by `ActionItemTagService`, including on a workspace move). Removing
+a tag from an item deletes its link row, like `ActionItemAssignees`. **Query filter:** follows the item (deleted
+item, private workspace). Code that reads links with `IgnoreQueryFilters()` re-applies
+`WhereWorkspaceVisibleTo` (overload for `ActionItemTag`).
+
+Migration `Add_ActionItemTags` (2026-11-25): creates the two tables, keys, FKs and indexes
+(`IX_Tags_WorkspaceId_NormalizedName` unique, `IX_Tags_CreatedByUserId`, `IX_ActionItemTags_TagId`); no existing column
+touched, no backfill; `Down()` drops the two tables. Verified on throwaway LocalDB databases (empty; and production-like
+data one migration behind: action-item reads and saves on SQL Server while pending, all 49 existing tables, columns,
+indexes and FKs identical after Up, Down drops only the two tables). **Not applied to production.**
 
 #### ActionItemSubItem (`ActionItemSubItems`) — WO-2026-11 A-2
 | Field | Type | Description |
@@ -1295,6 +1344,9 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | `EmailSender` (`IEmailSender`) | Resolves a template by key and sends it (MailKit; DB mail settings, `Smtp` fallback; logs to `EmailLogs`). Placeholder values go into the HTML **body as they are** — callers HTML-encode user text. For the **subject** (plain text) `ResolveSubject` HTML-decodes the values first (2026-11-25), so one encoded value reads correctly in both; a raw value is unchanged. Unknown `{{…}}` placeholders are removed |
 | `ICommentService` | CRUD polymorphic comments on `ActionItem` (read only since A-3), `Project`, `Milestone`, `ProjectRisk`; every call checks the parent through the query filters (A-3, fix 3) |
 | `IDocumentService` | List / upload / download / delete documents for the eight supported types, each call taking a `DocumentCaller` (user + `ActionItems.View` / `Edit`); parent visibility (404), locks (`DocumentLockedException`, 409), delete rights, caps (10 per KPI target / actual, action item, sub-item, update); strategic-scope-aware for KPI evidence (WO-2026-11 A-4) |
+| `IActionItemTagService` | WO-2026-11 A-5 (`Application/Features/Tags/Services/ActionItemTagService.cs`). `ResolveAsync(workspaceId, names)` — the workspace's tags for those names, created there when missing (saved on their own; a unique-index clash with a request creating the same tag at once is retried and links the other tag); `ReplaceItemTagsAsync` (tracked; refuses a tag of another workspace); `GetItemTagNamesAsync` (workspace move); `FillTagsAsync` (responses; never a tag of another workspace); `GetWorkspaceTagsAsync` (404 when the workspace is hidden); `GetMyActionTagsAsync`; `IsAvailableAsync` / `EnsureAvailableAsync` (`TagsUnavailableException` → 503). Used by `ActionItemService` (create, update incl. the carry-over, list filter, responses) and `TagsController` |
+| `TagRules` (static) | A-5 rules: `Clean`, `Normalize`, `Problem` (server wording), `CleanAll` (throws `TagRuleException`, an `ArgumentException` → 400). Client copy: `tag-rules.util.ts` |
+| `ITagSchemaState` / `TagSchemaState` | A-5. Whether the tag tables exist (`INFORMATION_SCHEMA.COLUMNS` for `Tags` / `ActionItemTags`, compared with the model by `EfDatabaseSchemaOperations.FindMissing`). Singleton: once found the answer is kept; while missing the database is asked again at most once a minute (`RecheckInterval`), so applying `Add_ActionItemTags` takes effect without a restart; the InMemory provider always has them. Logs one warning while they are missing |
 | `IUserRoleService` | WO-2026-11 A-4. `IsInRoleAsync(userId, role)` from ASP.NET Identity (`UserRoleService` in Infrastructure) — used for the Admin delete right on action-item files |
 | `IStrategicObjectiveService` | CRUD by org unit, soft delete/restore — all reads/writes go through `IStrategicScopeService` |
 | `IStrategicPlanService` | CRUD strategic plans, active-plan lookup, soft delete with delete-while-children block, uniqueness enforcement, in-app + email fan-out to in-scope Strategy Editors on creation. Update/Delete now lock-guarded (CR-001-E). |
@@ -1378,6 +1430,8 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Centralized Role Constants | All role names live in `AppRoles` — no magic strings |
 | Two-Layer Org Scoping | `IOrgUnitScopeResolver` (data-tier visibility) + `IStrategicScopeService` (role-driven Strategy/KPI scope) |
 | Per-Entity Document Caps | Document attachments throttled per entity type (KPI target / actual, action item, sub-item, update → 10 files) |
+| Tags belong to one workspace | A tag is a row of one workspace (unique name per workspace); names are only looked up in the item's own workspace and lists filter by tag id, so a tag name never crosses workspaces; moving an item re-resolves its tag names in the new workspace (WO-2026-11 A-5) |
+| Features that survive a pending migration | The action-item queries never join the tag tables and `TagSchemaState` switches tags off until they exist, so the API can run with `Add_ActionItemTags` pending: items read and save as before, tag calls get 503 (WO-2026-11 A-5) |
 | Documents follow their parent | Every document request resolves the owning record through that record's own visibility rule, so private-workspace files, other users' drafts and deleted records never leak through a document id (WO-2026-11 A-4) |
 | Working Calendars | Date maths goes through `IWorkCalendarService` → `ResolvedWorkCalendar` (pure, cached) rather than ad-hoc weekend checks; one default calendar is guaranteed by a filtered unique index plus the startup seeder |
 | Planned vs actual dates | `StartDate` / `DueDate` stay the planned dates (freeze, date requests, working-day rule, filters and `DashboardRules` depend on them); `ActualStartDate` / `ActualEndDate` are recorded facts outside all three date rules, maintained by one shared rule (`ActionItemActualDates`) on every status path |

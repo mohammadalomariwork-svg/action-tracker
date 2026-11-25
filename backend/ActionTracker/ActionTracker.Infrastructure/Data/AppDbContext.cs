@@ -42,6 +42,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<ActionItemUpdate>     ActionItemUpdates     => Set<ActionItemUpdate>();
     public DbSet<ActionItemSubItem>         ActionItemSubItems         => Set<ActionItemSubItem>();
     public DbSet<ActionItemSubItemAssignee> ActionItemSubItemAssignees => Set<ActionItemSubItemAssignee>();
+    public DbSet<Tag>                       Tags                       => Set<Tag>();             // WO-2026-11 A-5
+    public DbSet<ActionItemTag>             ActionItemTags             => Set<ActionItemTag>();   // WO-2026-11 A-5
     public DbSet<Comment>              Comments              => Set<Comment>();
     public DbSet<Document>             Documents             => Set<Document>();
     public DbSet<RefreshToken>        RefreshTokens        => Set<RefreshToken>();
@@ -164,6 +166,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             && (CurrentUserId == null || !u.ActionItem.Workspace.IsPrivate
                 || u.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
                 || u.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+
+        // Tags (WO-2026-11 A-5): a private workspace's tags are visible to its
+        // admins and members only — the Workspace rule above. An item's tag
+        // links follow the item (deleted item, private workspace), like the
+        // sub-item assignees.
+        modelBuilder.Entity<Tag>().HasQueryFilter(t =>
+            CurrentUserId == null || !t.Workspace.IsPrivate
+            || t.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+            || t.Workspace.Members.Any(m => m.UserId == CurrentUserId));
+        modelBuilder.Entity<ActionItemTag>().HasQueryFilter(x => !x.ActionItem.IsDeleted
+            && (CurrentUserId == null || !x.ActionItem.Workspace.IsPrivate
+                || x.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || x.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
 
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         // Drafts (IsDraft = true) are hidden from every "live" query — the

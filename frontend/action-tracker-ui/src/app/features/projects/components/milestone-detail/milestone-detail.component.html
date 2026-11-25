@@ -267,6 +267,7 @@
                     <td>
                       <a class="wa-title text-decoration-none" [routerLink]="['/actions', item.id, 'view']" [title]="item.title">{{ item.title }}</a>
                       <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+                      <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="3" />
                     </td>
                     <td>
                       <div class="wa-assignees">
@@ -352,6 +353,7 @@
                 </div>
                 <a class="wa-action-card__title text-decoration-none" [routerLink]="['/actions', item.id, 'view']">{{ item.title }}</a>
                 <app-sub-item-count class="ms-1" [done]="item.subItemDoneCount" [total]="item.subItemCount" />
+                <app-tag-chips class="d-flex mt-1" [tags]="item.tags" [max]="4" />
                 <div class="wa-action-card__meta">
                   <div class="wa-action-card__meta-row">
                     <span class="wa-action-card__meta-label"><i class="bi bi-people me-1"></i>Assignees</span>

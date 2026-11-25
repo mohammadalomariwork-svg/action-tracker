@@ -57,4 +57,12 @@ public class ActionItemCreateDto
     /// <summary>Required when IsEscalated is true.</summary>
     [MaxLength(2000)]
     public string? EscalationExplanation { get; set; }
+
+    /// <summary>
+    /// Tag names (WO-2026-11 A-5), looked up in — or added to — the item's
+    /// workspace. Trimmed, inner spaces collapsed, duplicates dropped without
+    /// regard to case; at most 10, each at most 30 characters, no commas or
+    /// control characters. Null or empty = no tags.
+    /// </summary>
+    public List<string>? Tags { get; set; }
 }
