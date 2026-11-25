@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ActionItem, ActionItemCreate, ActionItemFilter, ActionItemMyStats, ActionItemUpdate, ActionStatus, CommentInfo } from '../models/action-item.model';
+import { ActionItem, ActionItemCreate, ActionItemFilter, ActionItemMyStats, ActionItemUpdate, ActionStatus } from '../models/action-item.model';
 import { ApiResponse, PagedResult } from '../models/api-response.model';
 
 @Injectable({ providedIn: 'root' })
@@ -125,22 +125,5 @@ export class ActionItemService {
       .set('sortBy', 'dueDate')
       .set('sortDescending', false);
     return this.http.get<ApiResponse<PagedResult<ActionItem>>>(`${this.apiUrl}/my-actions`, { params });
-  }
-
-  // Comments
-  getComments(actionItemId: string): Observable<ApiResponse<CommentInfo[]>> {
-    return this.http.get<ApiResponse<CommentInfo[]>>(`${this.apiUrl}/${actionItemId}/comments`);
-  }
-
-  addComment(actionItemId: string, body: { content: string; isHighImportance: boolean }): Observable<ApiResponse<CommentInfo>> {
-    return this.http.post<ApiResponse<CommentInfo>>(`${this.apiUrl}/${actionItemId}/comments`, body);
-  }
-
-  updateComment(actionItemId: string, commentId: string, body: { content: string; isHighImportance: boolean }): Observable<ApiResponse<CommentInfo>> {
-    return this.http.put<ApiResponse<CommentInfo>>(`${this.apiUrl}/${actionItemId}/comments/${commentId}`, body);
-  }
-
-  deleteComment(actionItemId: string, commentId: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${actionItemId}/comments/${commentId}`);
   }
 }

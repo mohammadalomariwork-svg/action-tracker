@@ -70,9 +70,6 @@ public class ActionItemResponseDto
     // Escalation history
     public List<EscalationDto> Escalations { get; set; } = new();
 
-    // Comments
-    public List<CommentDto> Comments { get; set; } = new();
-
     // Numeric enum codes for frontend comparisons
     public int StatusCode   => (int)Status;
     public int PriorityCode => (int)Priority;
@@ -100,15 +97,4 @@ public class AssigneeDto
     public string UserId { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-}
-
-public class CommentDto
-{
-    public Guid Id { get; set; }
-    public string Content { get; set; } = string.Empty;
-    public string AuthorUserId { get; set; } = string.Empty;
-    public string AuthorName { get; set; } = string.Empty;
-    public bool IsHighImportance { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
 }

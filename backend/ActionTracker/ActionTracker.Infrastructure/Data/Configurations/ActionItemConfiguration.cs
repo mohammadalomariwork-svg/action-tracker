@@ -1,4 +1,5 @@
 using ActionTracker.Domain.Entities;
+using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -136,9 +137,14 @@ public class ActionItemAssigneeConfiguration : IEntityTypeConfiguration<ActionIt
     }
 }
 
-public class ActionItemCommentConfiguration : IEntityTypeConfiguration<ActionItemComment>
+/// <summary>
+/// Action updates (WO-2026-11 A-3), stored in the existing
+/// <c>ActionItemComments</c> table — the table keeps its name and columns;
+/// A-3 only added SubItemId, Status, SubmittedAt and IsDeleted.
+/// </summary>
+public class ActionItemUpdateConfiguration : IEntityTypeConfiguration<ActionItemUpdate>
 {
-    public void Configure(EntityTypeBuilder<ActionItemComment> builder)
+    public void Configure(EntityTypeBuilder<ActionItemUpdate> builder)
     {
         builder.ToTable("ActionItemComments");
 
@@ -162,10 +168,31 @@ public class ActionItemCommentConfiguration : IEntityTypeConfiguration<ActionIte
         builder.Property(c => c.CreatedAt)
             .HasDefaultValueSql("GETUTCDATE()");
 
+        // The database default is Submitted, so a row written by code that does
+        // not know the column (an API older than A-3) lands as a submitted,
+        // read-only update. The sentinel makes EF always send the value, so a
+        // Draft (0, the CLR default) is never replaced by that default.
+        builder.Property(c => c.Status)
+            .IsRequired()
+            .HasDefaultValue(ActionItemUpdateStatus.Submitted)
+            .HasSentinel((ActionItemUpdateStatus)(-1));
+
+        builder.Property(c => c.IsDeleted)
+            .HasDefaultValue(false);
+
         builder.HasOne(c => c.ActionItem)
-            .WithMany(a => a.Comments)
+            .WithMany(a => a.Updates)
             .HasForeignKey(c => c.ActionItemId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // No cascade: ActionItems → ActionItemSubItems already cascades, and
+        // SQL Server refuses a second cascade path to this table. Rows are
+        // only ever soft-deleted anyway.
+        builder.HasOne(c => c.SubItem)
+            .WithMany(s => s.Updates)
+            .HasForeignKey(c => c.SubItemId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.Author)
             .WithMany()
@@ -174,5 +201,6 @@ public class ActionItemCommentConfiguration : IEntityTypeConfiguration<ActionIte
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(c => c.ActionItemId);
+        builder.HasIndex(c => c.SubItemId);
     }
 }

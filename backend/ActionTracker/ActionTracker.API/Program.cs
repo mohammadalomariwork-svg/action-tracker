@@ -10,7 +10,11 @@ using ActionTracker.Application.Features.ActionItems.Validators;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using ActionTracker.Infrastructure.Data.Seeders;
+using ActionTracker.Infrastructure.Data.Startup;
 using ActionTracker.Infrastructure.Helpers;
+using ActionTracker.Application.Permissions;
+using ActionTracker.Application.Permissions.Domain;
+using Microsoft.AspNetCore.Identity;
 using ActionTracker.Application.Features.DataSync;
 using Hangfire;
 using Hangfire.Dashboard;
@@ -377,78 +381,68 @@ try
     app.MapHub<ActionTracker.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
     // -----------------------------------------------------------------------
-    // Auto-migrate: create / update the database schema on startup
+    // Database schema + startup seeders.
+    // Database:MigrateOnStartup (default true) decides whether pending
+    // migrations are applied here. When false, the pending ones are named in a
+    // warning, the API still starts, and a seeder whose tables / columns are
+    // missing is skipped with a warning (DatabaseStartup.RunSeederAsync).
     // -----------------------------------------------------------------------
-    using (var scope = app.Services.CreateScope())
+    using (var schemaScope = app.Services.CreateScope())
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var loggerFactory = schemaScope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var dbStartup = await DatabaseStartup.InitializeAsync(
+            new EfDatabaseSchemaOperations(schemaScope.ServiceProvider.GetRequiredService<AppDbContext>()),
+            DatabaseStartup.ReadMigrateOnStartup(builder.Configuration),
+            loggerFactory.CreateLogger(nameof(DatabaseStartup)));
 
-        // The integration-test host swaps SQL Server for the EF InMemory
-        // provider, which has no migrations — create its schema from the model.
-        if (db.Database.IsRelational())
-            await db.Database.MigrateAsync();
-        else
-            await db.Database.EnsureCreatedAsync();
-    }
+        // Runs a seeder that takes the context + a logger in its own scope.
+        Task<bool> SeedWithContext(
+            string name, Type[] requires, Func<AppDbContext, Microsoft.Extensions.Logging.ILogger, Task> seed) =>
+            dbStartup.RunSeederAsync(name, requires, async () =>
+            {
+                using var scope = app.Services.CreateScope();
+                await seed(scope.ServiceProvider.GetRequiredService<AppDbContext>(),
+                           loggerFactory.CreateLogger(name));
+            });
 
-    // -----------------------------------------------------------------------
-    // Seed required roles (Admin, Manager, User, Viewer, …)
-    await RoleSeeder.SeedAsync(app.Services);
+        // Seed required roles (Admin, Workspace Admin, …)
+        await dbStartup.RunSeederAsync(nameof(RoleSeeder),
+            [typeof(IdentityRole)],
+            () => RoleSeeder.SeedAsync(app.Services));
 
-    // -----------------------------------------------------------------------
-    // Seed permission catalog (areas, actions, mappings) — must run first
-    using (var scope = app.Services.CreateScope())
-    {
-        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var logger = scope.ServiceProvider
-                         .GetRequiredService<ILoggerFactory>()
-                         .CreateLogger(nameof(PermissionCatalogSeeder));
-        await PermissionCatalogSeeder.SeedAsync(db, logger);
-    }
+        // Seed permission catalog (areas, actions, mappings) — must run first
+        await SeedWithContext(nameof(PermissionCatalogSeeder),
+            [typeof(AppPermissionArea), typeof(AppPermissionAction), typeof(AreaPermissionMapping)],
+            PermissionCatalogSeeder.SeedAsync);
 
-    // -----------------------------------------------------------------------
-    // Seed default role permissions
-    using (var scope = app.Services.CreateScope())
-    {
-        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var logger = scope.ServiceProvider
-                         .GetRequiredService<ILoggerFactory>()
-                         .CreateLogger(nameof(DefaultRolePermissionsSeeder));
-        await DefaultRolePermissionsSeeder.SeedAsync(db, logger);
-    }
+        // Seed default role permissions
+        await SeedWithContext(nameof(DefaultRolePermissionsSeeder),
+            [typeof(RolePermission)],
+            DefaultRolePermissionsSeeder.SeedAsync);
 
-    // -----------------------------------------------------------------------
-    // Seed email templates
-    using (var scope = app.Services.CreateScope())
-    {
-        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var logger = scope.ServiceProvider
-                         .GetRequiredService<ILoggerFactory>()
-                         .CreateLogger(nameof(EmailTemplateSeeder));
-        await EmailTemplateSeeder.SeedAsync(db, logger);
-    }
+        // Seed email templates
+        await SeedWithContext(nameof(EmailTemplateSeeder),
+            [typeof(EmailTemplate)],
+            EmailTemplateSeeder.SeedAsync);
 
-    // -----------------------------------------------------------------------
-    // Seed the default work calendar ("KU Standard") when none exists
-    using (var scope = app.Services.CreateScope())
-    {
-        var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var logger = scope.ServiceProvider
-                         .GetRequiredService<ILoggerFactory>()
-                         .CreateLogger(nameof(WorkCalendarSeeder));
-        await WorkCalendarSeeder.SeedAsync(db, logger);
-    }
+        // Seed the default work calendar ("KU Standard") when none exists
+        await SeedWithContext(nameof(WorkCalendarSeeder),
+            [typeof(WorkCalendar), typeof(WorkCalendarDay)],
+            WorkCalendarSeeder.SeedAsync);
 
-    // -----------------------------------------------------------------------
-    // Seed bootstrap admin user (idempotent)
-    await AdminBootstrapSeeder.SeedAsync(app.Services);
+        // Seed bootstrap admin user (idempotent)
+        await dbStartup.RunSeederAsync(nameof(AdminBootstrapSeeder),
+            [typeof(ApplicationUser), typeof(IdentityRole), typeof(IdentityUserRole<string>)],
+            () => AdminBootstrapSeeder.SeedAsync(app.Services));
 
-    // -----------------------------------------------------------------------
-    // Data sync: seed job definitions + push schedules to Hangfire
-    using (var scope = app.Services.CreateScope())
-    {
-        var dataSync = scope.ServiceProvider.GetRequiredService<IDataSyncService>();
-        await dataSync.EnsureJobsRegisteredAsync();
+        // Data sync: seed job definitions + push schedules to Hangfire
+        await dbStartup.RunSeederAsync("DataSync job registration",
+            [typeof(DataSyncJob)],
+            async () =>
+            {
+                using var scope = app.Services.CreateScope();
+                await scope.ServiceProvider.GetRequiredService<IDataSyncService>().EnsureJobsRegisteredAsync();
+            });
     }
 
     // -----------------------------------------------------------------------

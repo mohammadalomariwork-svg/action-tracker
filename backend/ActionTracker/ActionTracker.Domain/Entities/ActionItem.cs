@@ -73,7 +73,8 @@ public class ActionItem
     public Milestone? Milestone { get; set; }
     public ICollection<ActionItemAssignee> Assignees { get; set; } = new List<ActionItemAssignee>();
     public ICollection<ActionItemEscalation> Escalations { get; set; } = new List<ActionItemEscalation>();
-    public ICollection<ActionItemComment> Comments { get; set; } = new List<ActionItemComment>();
+    /// <summary>Action updates (WO-2026-11 A-3), including the ones on sub-items.</summary>
+    public ICollection<ActionItemUpdate> Updates { get; set; } = new List<ActionItemUpdate>();
     public ICollection<ActionItemWorkflowRequest> WorkflowRequests { get; set; } = new List<ActionItemWorkflowRequest>();
 
     /// <summary>Sub-items (WO-2026-11 A-2). Never counted as action items.</summary>

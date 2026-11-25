@@ -16,6 +16,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionStateService } from '../../../permissions/services/permission-state.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import { ActionItemSubItemService } from '../../../../services/action-item-sub-item.service';
+import { ActionUpdateService } from '../../../../services/action-update.service';
 import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
 import {
   ActionItemSubItem, ActionItemSubItemInput, ActionItemSubItemList,
@@ -27,6 +28,7 @@ import { WorkingDaysComponent } from '../../../../shared/components/working-days
 import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
 import { nonWorkingDatesMessage, workingDayValidator } from '../../../../shared/validators/working-day.validator';
 import { subItemDateProblem, toDay } from '../../../../shared/utils/sub-item-dates.util';
+import { ActionUpdatesSectionComponent } from '../action-updates-section/action-updates-section.component';
 
 /** Title that is not just blanks. */
 const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
@@ -42,6 +44,10 @@ const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
  * answers 409). Sub-items left outside the parent's planned dates after those
  * dates changed are named in a warning at the top (decision D3).
  *
+ * Each row has an "Updates (n)" toggle (WO-2026-11 A-3) that opens the
+ * sub-item's action updates under it; updates stay possible while the parent
+ * is Done or Cancelled.
+ *
  * Date rules — the server stays the authority:
  *  - within the parent's planned dates: `sub-item-dates.util.ts` (copy of
  *    `ActionItemSubItemRules`);
@@ -54,7 +60,7 @@ const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe, ReactiveFormsModule, HasPermissionDirective, ConfirmDialogComponent,
-    WorkingDayHintComponent, WorkingDaysComponent, SubItemCountComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, SubItemCountComponent, ActionUpdatesSectionComponent,
   ],
   templateUrl: './sub-items-section.component.html',
   styleUrl: './sub-items-section.component.scss',
@@ -64,6 +70,7 @@ export class SubItemsSectionComponent {
   readonly actionItem = input.required<ActionItem>();
 
   private readonly service      = inject(ActionItemSubItemService);
+  private readonly updateSvc    = inject(ActionUpdateService);
   private readonly toast        = inject(ToastService);
   private readonly workspaceSvc = inject(WorkspaceService);
   private readonly permState    = inject(PermissionStateService);
@@ -144,6 +151,12 @@ export class SubItemsSectionComponent {
   // ── Delete ──────────────────────────────────────────────────────────────
   readonly pendingDelete = signal<ActionItemSubItem | null>(null);
 
+  // ── Action updates per sub-item (WO-2026-11 A-3) ────────────────────────
+  /** Updates the caller can see per sub-item (submitted + own drafts); absent = 0. */
+  readonly updateCounts = signal<ReadonlyMap<string, number>>(new Map());
+  /** Sub-items whose updates panel is open. */
+  readonly openUpdates  = signal<ReadonlySet<string>>(new Set());
+
   constructor() {
     effect(() => {
       this.reloadKey();
@@ -178,6 +191,37 @@ export class SubItemsSectionComponent {
         this.loadFailed.set(true);
       },
     });
+    this.loadUpdateCounts(id);
+  }
+
+  private loadUpdateCounts(actionItemId: string): void {
+    this.updateSvc.counts(actionItemId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: r => this.updateCounts.set(new Map(
+        (r.data?.subItems ?? []).map(c => [c.subItemId, c.submittedCount + c.draftCount] as const))),
+      error: () => this.updateCounts.set(new Map()),
+    });
+  }
+
+  updateCount(subItemId: string): number {
+    return this.updateCounts().get(subItemId) ?? 0;
+  }
+
+  updatesOpen(subItemId: string): boolean {
+    return this.openUpdates().has(subItemId);
+  }
+
+  toggleUpdates(subItemId: string): void {
+    const next = new Set(this.openUpdates());
+    if (next.has(subItemId)) next.delete(subItemId); else next.add(subItemId);
+    this.openUpdates.set(next);
+  }
+
+  /** The open panel reports its count whenever its list changes. */
+  setUpdateCount(subItemId: string, count: number): void {
+    if (this.updateCount(subItemId) === count) return;
+    const next = new Map(this.updateCounts());
+    next.set(subItemId, count);
+    this.updateCounts.set(next);
   }
 
   private revalidate(): void {

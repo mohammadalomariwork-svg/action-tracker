@@ -34,9 +34,4 @@ public interface IActionItemService
     Task ApplyApprovedDateChangeAsync(Guid actionItemId, DateTime? newStartDate, DateTime? newDueDate);
     Task ApplyApprovedStatusChangeAsync(Guid actionItemId, ActionStatus newStatus);
 
-    // Comments
-    Task<List<ActionItemCommentResponseDto>> GetCommentsAsync(Guid actionItemId, CancellationToken ct);
-    Task<ActionItemCommentResponseDto>       AddCommentAsync(Guid actionItemId, CreateCommentDto dto, string userId, CancellationToken ct);
-    Task<ActionItemCommentResponseDto>       UpdateCommentAsync(Guid actionItemId, Guid commentId, UpdateCommentDto dto, string userId, CancellationToken ct);
-    Task                                     DeleteCommentAsync(Guid actionItemId, Guid commentId, string userId, CancellationToken ct);
 }

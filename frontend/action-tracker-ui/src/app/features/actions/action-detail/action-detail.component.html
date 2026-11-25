@@ -355,13 +355,9 @@
       }
     </div>
 
-    <!-- ── Comments Section ───────────────────────────── -->
-    <div class="mb-4">
-      <app-comments-section
-        entityType="ActionItem"
-        [entityId]="ai.id"
-      />
-    </div>
+    <!-- ── Action Updates (WO-2026-11 A-3, replaces comments) ── -->
+    <!-- [reloadToken]: a reloaded item (e.g. after a direction) reloads the list. -->
+    <app-action-updates-section class="mb-4" [actionItemId]="ai.id" [reloadToken]="ai" />
 
     <!-- ── Documents Section ──────────────────────────── -->
     <div class="mb-4">

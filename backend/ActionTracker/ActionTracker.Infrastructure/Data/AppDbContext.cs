@@ -3,6 +3,7 @@ using ActionTracker.Application.Permissions;
 using ActionTracker.Application.Permissions.Domain;
 using ActionTracker.Domain.Common;
 using ActionTracker.Domain.Entities;
+using ActionTracker.Domain.Enums;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -37,7 +38,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<ActionItem>           ActionItems           => Set<ActionItem>();
     public DbSet<ActionItemAssignee>   ActionItemAssignees   => Set<ActionItemAssignee>();
     public DbSet<ActionItemEscalation> ActionItemEscalations => Set<ActionItemEscalation>();
-    public DbSet<ActionItemComment>    ActionItemComments    => Set<ActionItemComment>();
+    /// <summary>Action updates (WO-2026-11 A-3); the table is still called ActionItemComments.</summary>
+    public DbSet<ActionItemUpdate>     ActionItemUpdates     => Set<ActionItemUpdate>();
     public DbSet<ActionItemSubItem>         ActionItemSubItems         => Set<ActionItemSubItem>();
     public DbSet<ActionItemSubItemAssignee> ActionItemSubItemAssignees => Set<ActionItemSubItemAssignee>();
     public DbSet<Comment>              Comments              => Set<Comment>();
@@ -149,6 +151,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             && (CurrentUserId == null || !x.SubItem.ActionItem.Workspace.IsPrivate
                 || x.SubItem.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
                 || x.SubItem.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+
+        // Action updates (WO-2026-11 A-3) follow their action item and sub-item
+        // like the sub-item filter above (deleted parent / sub-item, private
+        // workspace), and a draft is visible to its author only — no query,
+        // Admin's included, returns someone else's draft. CurrentUserId == null
+        // (system context) is unrestricted, as for every filter here.
+        modelBuilder.Entity<ActionItemUpdate>().HasQueryFilter(u => !u.IsDeleted
+            && !u.ActionItem.IsDeleted
+            && (u.SubItemId == null || !u.SubItem!.IsDeleted)
+            && (CurrentUserId == null || u.Status == ActionItemUpdateStatus.Submitted || u.AuthorUserId == CurrentUserId)
+            && (CurrentUserId == null || !u.ActionItem.Workspace.IsPrivate
+                || u.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || u.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
 
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         // Drafts (IsDraft = true) are hidden from every "live" query — the

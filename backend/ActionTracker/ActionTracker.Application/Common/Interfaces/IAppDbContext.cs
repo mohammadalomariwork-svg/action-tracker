@@ -16,7 +16,7 @@ public interface IAppDbContext
     DbSet<ActionItem>           ActionItems          { get; }
     DbSet<ActionItemAssignee>   ActionItemAssignees  { get; }
     DbSet<ActionItemEscalation> ActionItemEscalations { get; }
-    DbSet<ActionItemComment>    ActionItemComments    { get; }
+    DbSet<ActionItemUpdate>     ActionItemUpdates     { get; }   // table ActionItemComments (WO-2026-11 A-3)
     DbSet<ActionItemSubItem>         ActionItemSubItems         { get; }
     DbSet<ActionItemSubItemAssignee> ActionItemSubItemAssignees { get; }
     DbSet<Comment>              Comments              { get; }

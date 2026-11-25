@@ -29,16 +29,6 @@ export interface EscalationInfo {
   createdAt: string;
 }
 
-export interface CommentInfo {
-  id: string;
-  content: string;
-  authorUserId: string;
-  authorName: string;
-  isHighImportance: boolean;
-  createdAt: string;
-  updatedAt: string | null;
-}
-
 export interface ActionItem {
   id: string;
   actionId: string;
@@ -77,7 +67,6 @@ export interface ActionItem {
   /** How many of the sub-items the caller is assigned to; only from `getAssignedViaSubItems`. */
   mySubItemCount?: number | null;
   escalations: EscalationInfo[];
-  comments: CommentInfo[];
   createdAt: string;
   updatedAt: string;
   daysUntilDue: number;

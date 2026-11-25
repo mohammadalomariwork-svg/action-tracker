@@ -433,48 +433,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ActionItemAssignees", (string)null);
                 });
 
-            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemComment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<Guid>("ActionItemId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AuthorUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<bool>("IsHighImportance")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActionItemId");
-
-                    b.HasIndex("AuthorUserId");
-
-                    b.ToTable("ActionItemComments", (string)null);
-                });
-
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemEscalation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -598,6 +556,66 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ActionItemSubItemAssignees", (string)null);
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemUpdate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<Guid>("ActionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHighImportance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid?>("SubItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionItemId");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("SubItemId");
+
+                    b.ToTable("ActionItemComments", (string)null);
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemWorkflowRequest", b =>
@@ -3157,25 +3175,6 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemComment", b =>
-                {
-                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
-                        .WithMany("Comments")
-                        .HasForeignKey("ActionItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ActionItem");
-
-                    b.Navigation("Author");
-                });
-
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemEscalation", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
@@ -3230,6 +3229,32 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("SubItem");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemUpdate", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItem", "ActionItem")
+                        .WithMany("Updates")
+                        .HasForeignKey("ActionItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ActionItemSubItem", "SubItem")
+                        .WithMany("Updates")
+                        .HasForeignKey("SubItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ActionItem");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("SubItem");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemWorkflowRequest", b =>
@@ -3639,11 +3664,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                 {
                     b.Navigation("Assignees");
 
-                    b.Navigation("Comments");
-
                     b.Navigation("Escalations");
 
                     b.Navigation("SubItems");
+
+                    b.Navigation("Updates");
 
                     b.Navigation("WorkflowRequests");
                 });
@@ -3651,6 +3676,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.ActionItemSubItem", b =>
                 {
                     b.Navigation("Assignees");
+
+                    b.Navigation("Updates");
                 });
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.ApplicationUser", b =>

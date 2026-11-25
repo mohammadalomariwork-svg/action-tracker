@@ -154,6 +154,24 @@
 
 .si-dates { color: var(--t2); font-size: 12px; white-space: nowrap; }
 
+// Action updates on a sub-item (WO-2026-11 A-3): toggle under the meta line,
+// panel across the whole row.
+.si-updates-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+}
+
+.si-row__updates { grid-column: 1 / -1; min-width: 0; }
+
 .si-badge {
   display: inline-flex;
   align-items: center;

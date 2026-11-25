@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using ActionTracker.Application.Common;
 using ActionTracker.Application.Common.Interfaces;
@@ -53,7 +54,7 @@ public partial class EmailSender : IEmailSender
             return;
         }
 
-        var resolvedSubject = ResolvePlaceholders(template.Subject, placeholders);
+        var resolvedSubject = ResolveSubject(template.Subject, placeholders);
         var resolvedBody    = ResolvePlaceholders(template.HtmlBody, placeholders);
         var wrappedBody     = WrapInLayout(resolvedBody);
         var toEmail         = string.Join(", ", recipientEmails);
@@ -131,7 +132,18 @@ public partial class EmailSender : IEmailSender
         }
     }
 
-    private static string ResolvePlaceholders(string text, Dictionary<string, string> placeholders)
+    /// <summary>
+    /// Fills the subject. A subject is plain text, not HTML: callers HTML-encode
+    /// user text for the body (WO-2026-11 A-2 / A-3 e-mails), and the same
+    /// placeholder often appears in the subject too (e.g. <c>{{SubItemTitle}}</c>),
+    /// so the values are HTML-decoded here. A value that was not encoded comes
+    /// out unchanged.
+    /// </summary>
+    public static string ResolveSubject(string subject, IReadOnlyDictionary<string, string> placeholders) =>
+        ResolvePlaceholders(subject, placeholders.ToDictionary(p => p.Key, p => WebUtility.HtmlDecode(p.Value)));
+
+    /// <summary>Fills <c>{{Key}}</c> placeholders as given (no encoding) and removes unknown ones.</summary>
+    public static string ResolvePlaceholders(string text, IReadOnlyDictionary<string, string> placeholders)
     {
         foreach (var (key, value) in placeholders)
             text = text.Replace($"{{{{{key}}}}}", value);

@@ -23,7 +23,6 @@ import {
   WORKFLOW_TYPE_LABELS,
 } from '../../../models/workflow.model';
 
-import { CommentsSectionComponent }  from '../../../shared/components/comments-section/comments-section.component';
 import { DocumentsSectionComponent } from '../../../shared/components/documents-section/documents-section.component';
 import { BreadcrumbComponent }       from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { WorkflowReviewDialogComponent } from '../../../shared/components/workflow-review-dialog/workflow-review-dialog.component';
@@ -34,6 +33,7 @@ import { injectWorkspaceCalendar } from '../../../services/workspace-calendar.se
 import { HasPermissionDirective } from '../../../shared';
 import { ActualDatesFieldsComponent } from '../../../shared/components/actual-dates-fields/actual-dates-fields.component';
 import { SubItemsSectionComponent } from './sub-items-section/sub-items-section.component';
+import { ActionUpdatesSectionComponent } from './action-updates-section/action-updates-section.component';
 import {
   actualDatesPatch, actualDatesProblem, actualEndEditableFor, todayInTimeZone, toDateInput,
   varianceLabel, varianceTone,
@@ -60,10 +60,10 @@ interface EditFormData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, RouterLink, FormsModule,
-    CommentsSectionComponent, DocumentsSectionComponent,
+    DocumentsSectionComponent,
     BreadcrumbComponent, WorkflowReviewDialogComponent,
     WorkingDayHintComponent, WorkingDaysComponent, HasPermissionDirective, ActualDatesFieldsComponent,
-    SubItemsSectionComponent,
+    SubItemsSectionComponent, ActionUpdatesSectionComponent,
   ],
   templateUrl: './action-detail.component.html',
   styleUrl:    './action-detail.component.scss',

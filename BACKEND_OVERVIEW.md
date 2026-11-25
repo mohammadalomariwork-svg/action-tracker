@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-24 (Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (applied to production 2026-11-24 at API startup). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-25 (Action Updates — WO-2026-11 A-3: entity `ActionItemUpdate` on the existing `ActionItemComments` table (+ `SubItemId`, `Status`, `SubmittedAt`, `IsDeleted`), enum `ActionItemUpdateStatus`, `ActionItemUpdatesController` at `/api/action-items/{id}/updates` and `/api/action-items/{id}/sub-items/{subId}/updates`, `IActionItemUpdateService`, draft-privacy query filter, `IWorkflowNotificationHelper.NotifyActionUpdateSubmittedAsync` + template `ActionItem.UpdateSubmitted`, migration `Add_ActionItemUpdates` with backfill and copy from `Comments` (not applied to production) + re-runnable script `Data/Scripts/A3-copy-action-item-comments.sql`; old `/api/action-items/{id}/comments` routes and the `comments` array removed; `/api/comments` parent-visibility check and read-only for action items; `Database:MigrateOnStartup` switch with `DatabaseStartup`; `EmailTemplateSeeder` insert-only; direction e-mail uses `ActionItem.DirectionGiven`; integration host uses `RecordingEmailSender`. Previous: 2026-11-24 Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (applied to production 2026-11-24 at API startup). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -114,18 +114,16 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 | DELETE | `/{id}` | Soft delete (requires ActionItems.Delete). Its live sub-items are soft-deleted with it and marked `DeletedWithParent` (WO-2026-11 A-2) |
 | PATCH | `/{id}/restore` | Restore soft-deleted item (requires ActionItems.Edit). Restores exactly the sub-items deleted with it; a sub-item deleted on its own stays deleted (A-2) |
 | POST | `/process-overdue` | Mark past-due items as Overdue (`Roles = "Admin"` — a role check, not a permission policy) |
-| GET | `/{id}/comments` | Get comments for action item |
-| POST | `/{id}/comments` | Add comment (no permission policy; to be covered by A-3) |
-| PUT | `/{actionItemId}/comments/{commentId}` | Update comment (no permission policy; author only, checked in the service) |
-| DELETE | `/{actionItemId}/comments/{commentId}` | Delete comment (no permission policy; author only, checked in the service) |
 
 Every action-item response (list, single, create, update) carries `subItemCount` and
 `subItemDoneCount` (live sub-items, through the sub-item query filters; one grouped query per
 page). They are display only: no count, stat or dashboard figure includes sub-items (A-2).
 
 Every endpoint needs a signed-in user (controller-level `[Authorize]`). A user without the policy
-named above gets 403. Since A-1b the create / edit / status writes carry a policy; the comment
-endpoints, and `POST` / `DELETE /api/documents` for action items, still do not (left for A-3 / A-4).
+named above gets 403. Since A-1b the create / edit / status writes carry a policy; `POST` / `DELETE
+/api/documents` for action items still do not (left for A-4). The four `/{id}/comments` routes and
+the `comments` array of the response were removed in WO-2026-11 A-3 — action items use Action Updates
+(`ActionItemUpdatesController`, below).
 
 ### WorkspacesController (`/api/workspaces`)
 | Method | Endpoint | Description |
@@ -532,9 +530,17 @@ Controller error mapping for KPIs and Strategic Objectives: `UnauthorizedAccessE
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Comments by entity (entityType + entityId query params) |
-| POST | `/` | Add comment to entity |
-| PUT | `/{id}` | Update comment (authorization check) |
-| DELETE | `/{id}` | Delete comment (authorization check) |
+| POST | `/` | Add comment to entity. Refused (400) for `ActionItem` since WO-2026-11 A-3 |
+| PUT | `/{id}` | Update own comment (403 for someone else's). Refused (400) for an `ActionItem` comment |
+| DELETE | `/{id}` | Delete own comment (hard delete; 403 for someone else's). Refused (400) for an `ActionItem` comment |
+
+No permission policy (a signed-in user). **Parent visibility (WO-2026-11 A-3, fix 3):** entity types
+`ActionItem`, `Project`, `Milestone`, `ProjectRisk` only (case-insensitive; anything else 400). Every
+route first loads the parent through the EF query filters — the same rule as the parent's own GET by id
+(soft delete + private workspace) — and answers 404 when the caller cannot see it; PUT / DELETE resolve
+the comment's parent first, so a comment under a hidden parent is "not found". Action-item comments
+written before A-3 stay readable here; the migration `Add_ActionItemUpdates` copies them into Action
+Updates.
 
 ### DocumentsController (`/api/documents`)
 | Method | Endpoint | Description |
@@ -551,6 +557,33 @@ Controller error mapping for KPIs and Strategic Objectives: `UnauthorizedAccessE
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/me` | Current user's employee profile from KU directory |
+
+### ActionItemUpdatesController (`/api/action-items/{actionItemId}`) — WO-2026-11 A-3
+Action Updates replace comments on action items. The same routes exist at item level (`/updates…`) and
+at sub-item level (`/sub-items/{subItemId}/updates…`).
+
+| Method | Endpoint | Policy | Description |
+|--------|----------|--------|-------------|
+| GET | `/updates`, `/sub-items/{subItemId}/updates` | `ActionItems.View` | `{ actionItemId, subItemId, submittedCount, draftCount, items[] }` — every submitted update plus the caller's own drafts; drafts first (newest first), then submitted (newest submitted first). Item: id, actionItemId, subItemId, content, author*, isHighImportance, status (`draft` / `submitted`), isDraft, submittedAt, createdAt, updatedAt, `canEdit` (own draft only) |
+| GET | `/updates/counts` | `ActionItems.View` | `{ actionItemId, item: { submittedCount, draftCount }, subItems: [{ subItemId, submittedCount, draftCount }] }` (sub-items with no visible update are left out) |
+| POST | `/updates`, `/sub-items/{subItemId}/updates` | `ActionItems.Edit` | Body `{ content, isHighImportance, submit }`: a draft, or submitted straight away when `submit` is true. 201 |
+| PUT | `…/updates/{updateId}` | `ActionItems.Edit` | Edit my draft `{ content, isHighImportance }` |
+| POST | `…/updates/{updateId}/submit` | `ActionItems.Edit` | Submit my draft (one-way) |
+| DELETE | `…/updates/{updateId}` | `ActionItems.Edit` | Soft-delete my draft. 204 |
+
+**Status codes:** 404 when the action item or sub-item cannot be seen (deleted, private workspace the caller
+is not part of, or a sub-item of another item) and when the update is not visible to the caller — someone
+else's draft is never revealed; 409 (`ActionItemUpdateLockedException`) for an edit, submit or delete of a
+submitted update, for every role including Admin; 400 from FluentValidation (`CreateActionUpdateValidator` /
+`EditActionUpdateValidator`: text required, ≤ 2,000 characters after trimming). Allowed whatever the action
+item's status (Done / Cancelled included) and while sub-item edits are locked.
+
+**Rules** (`ActionItemUpdateService`, `Application/Features/ActionItemUpdates`): text trimmed; a submitted update
+is checked before the author, so the answer is the same for everyone; nothing uses `IgnoreQueryFilters()` —
+visibility comes from the query filters on `ActionItem`, `ActionItemSubItem` and `ActionItemUpdate`. Notifications
+are sent only when an update is submitted (create with `submit`, or `/submit`), in the background, through
+`IWorkflowNotificationHelper.NotifyActionUpdateSubmittedAsync`. Updates are never counted by `DashboardRules`,
+stats, dashboards or reports.
 
 ### ActionItemSubItemsController (`/api/action-items/{actionItemId}/sub-items`) — WO-2026-11 A-2
 | Method | Endpoint | Policy | Description |
@@ -609,7 +642,7 @@ with `IgnoreQueryFilters()` because it runs after the request.
 | GET | `/action-item/{actionItemId}` | Get all workflow requests for an action item |
 | GET | `/pending-summary` | Get pending request counts for badge |
 | POST | `/escalate` | Trigger escalation workflow with notifications |
-| POST | `/give-direction` | Give direction on escalated item (high-importance comment) |
+| POST | `/give-direction` | Give direction on escalated item. Stored as a **submitted**, high-importance action update `[Direction] …` (WO-2026-11 A-3); notifies the creator and assignees in-app and by e-mail with the seeded `ActionItem.DirectionGiven` template (before A-3 the code used the unseeded key `Workflow.DirectionGiven`, so the e-mail was skipped) |
 | GET | `/can-review/{actionItemId}` | Check if current user can review requests |
 
 ### ProjectWorkflowController (`/api/projects/workflow`)
@@ -698,7 +731,7 @@ CR-001-F. The actual itself is the workflow record — no separate request entit
 | CreatedAt | DateTime | UTC creation timestamp |
 | UpdatedAt | DateTime | UTC last update timestamp |
 | IsDeleted | bool | Soft delete flag |
-| **Nav:** | | Workspace, Project, Milestone, Assignees, Escalations, Comments, SubItems (A-2) |
+| **Nav:** | | Workspace, Project, Milestone, Assignees, Escalations, Updates (A-3, was Comments), SubItems (A-2) |
 
 #### ActionItemSubItem (`ActionItemSubItems`) — WO-2026-11 A-2
 | Field | Type | Description |
@@ -729,6 +762,40 @@ touched, no backfill; `Down()` drops the two tables. Verified on throwaway Local
 production-like rows migrated from `Add_ActionItem_ActualDates`: schema, indexes, FKs, row counts and checksums of all 47
 existing tables identical before and after; `Down()` back to the previous migration leaves them identical too).
 **Production:** applied to production on 2026-11-24 at 14:22 (UTC+4) by the API's startup `MigrateAsync` when the API was restarted from Visual Studio; verified read-only afterwards — 26 migrations applied, 0 pending, both tables with their 5 indexes and 4 foreign keys, `ActionItems` row count and status mix unchanged, the 29 existing e-mail templates byte-identical (the seeder added the 2 new ones and overwrote nothing).
+
+#### ActionItemUpdate (`ActionItemComments`) — WO-2026-11 A-3
+Replaces `ActionItemComment`; same table, which keeps its name.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | `NEWID()` |
+| ActionItemId | Guid (FK → ActionItems, cascade) | The action item |
+| SubItemId | Guid? (FK → ActionItemSubItems, **no cascade** — a second cascade path from ActionItems is refused by SQL Server; rows are only soft-deleted) | Set for an update on a sub-item; indexed |
+| Content | string(2000) | Required |
+| AuthorUserId | string(450) (FK → AspNetUsers, Restrict) | Author |
+| IsHighImportance | bool | Default false |
+| Status | int (`ActionItemUpdateStatus`) | Draft = 0, Submitted = 1. **Database default 1** (a row written by code older than A-3 is a submitted update); EF always sends the value (sentinel), so a draft is never turned into Submitted |
+| SubmittedAt | DateTime? | UTC; null while a draft |
+| CreatedAt / UpdatedAt | DateTime / DateTime? | `UpdatedAt` set when a draft is edited, submitted or deleted |
+| IsDeleted | bool | Soft delete (drafts only) |
+
+**Query filter:** hidden when deleted, when its action item or sub-item is deleted, in a private workspace the
+user is not part of (same rule as `ActionItem`), and when it is **a draft of another user** — no query, Admin's
+included, returns someone else's draft. `CurrentUserId == null` (system context) is unrestricted.
+
+Migration `Add_ActionItemUpdates` (2026-11-25): adds the four columns, the index and the FK (additive; nothing dropped
+or renamed). Backfill in `Up()`: (1) `UPDATE … SET Status = 1, SubmittedAt = CreatedAt WHERE SubmittedAt IS NULL` —
+every existing row becomes a submitted update; (2) copy the action-item comments of the shared `Comments` table
+(`RelatedEntityType = 'ActionItem'`, joined to `ActionItems`, soft-deleted items included) as submitted updates with
+the same Id, `NOT EXISTS` by Id; `Comments` is neither changed nor deleted, and a comment whose action item no longer
+exists stays only there. `Down()` drops the FK, the index and the four columns; copied rows stay. The same INSERT
+with a read-only preview is in `ActionTracker.Infrastructure/Data/Scripts/A3-copy-action-item-comments.sql`
+(re-runnable; a unit test keeps it identical to the migration). Verified on throwaway LocalDB databases (empty; and
+production-shaped: 3 existing rows, 15 `Comments` rows incl. an Id clash, an orphan, a soft-deleted item, milestone
+and project rows → 9 copied, the clash and the orphan skipped, every other table's rows and checksums identical,
+the old columns of existing rows unchanged, a re-run copies 0, `Down()` + up keep all rows). **Not applied to
+production.** Expected there (counts read 2026-11-24): UPDATE 0 rows, INSERT 8 → 8 rows, all Submitted, 1 high
+importance; `Comments` stays at 12.
 
 #### Project
 | Field | Type | Description |
@@ -1102,7 +1169,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Entity | Purpose |
 |--------|---------|
 | ActionItemAssignee | Junction table: ActionItem <-> User (multi-assignee) |
-| ActionItemComment | Action-item-specific comments |
+| ActionItemUpdate | Action Updates on action items and sub-items (WO-2026-11 A-3; table `ActionItemComments`, was the `ActionItemComment` entity) — see above |
 | ActionItemSubItem / ActionItemSubItemAssignee | Sub-items of an action item and their assignees (WO-2026-11 A-2) — see above |
 | ActionItemEscalation | Escalation tracking for overdue items |
 | ActionItemWorkflowRequest | Date change and status change approval requests (pending/approved/rejected) |
@@ -1169,6 +1236,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | KpiDirection | HigherIsBetter, LowerIsBetter, OnTarget |
 | KpiActualStatus | Draft, PendingApproval, Approved, Rejected |
 | KpiActualPeriodType | Quarter, SemiAnnual, Annual |
+| ActionItemUpdateStatus | Draft (0), Submitted (1) — WO-2026-11 A-3 |
 
 ---
 
@@ -1176,11 +1244,12 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 
 | Service Interface | Responsibilities |
 |-------------------|------------------|
-| `IActionItemService` | CRUD, filtering, stats, comments, overdue processing, approved date/status change bypass. Applies the actual-date rule (`ActionItemActualDates`) on create, update, status change and the approved-status bypass; `RequiresStatusApproval` decides (for both PUT and PATCH `/status`) when a standalone item's move needs a request |
+| `IActionItemService` | CRUD, filtering, stats, overdue processing (comment methods removed in A-3), approved date/status change bypass. Applies the actual-date rule (`ActionItemActualDates`) on create, update, status change and the approved-status bypass; `RequiresStatusApproval` decides (for both PUT and PATCH `/status`) when a standalone item's move needs a request |
 | `ActionItemActualDates` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1 rule: `Resolve(previous, requested, resulting, current…, supplied…, today)` returns the actual start / end an item keeps after a save and throws `ArgumentException` for a refused value; `ApplyStatusChange(item, previous, requested, today)`; `Today(timeZoneId, utcNow)` / `TodayForWorkspaceAsync(calendars, workspaceId)` — the calendar day in the workspace calendar's time zone, UTC without a calendar |
 | `ActionItemStandalone` (static, `Application/Features/ActionItems`) | WO-2026-11 A-1b rule: `ForProject(projectId)` (create) and `AfterUpdate(stored, previousProjectId, newProjectId)` (update) — `IsStandalone` follows the project link and changes only when a save changes it; the client's value is ignored |
 | `IActionItemWorkflowService` | Date change requests, status change requests, review/approve/reject, escalation handling, direction giving, pending summary. An approved status change applies the actual-date rule (A-1); the workflow itself is unchanged |
-| `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication. WO-2026-11 A-2 added `NotifySubItemAssignedAsync(subItemId, newAssigneeIds, actorUserId)` and `NotifySubItemCompletedAsync(subItemId, actorUserId)` — their first callers (the action-item workflow service sends its own notifications); they load by id, skip the actor and inactive users, and use the seeded `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted` templates. (The older helper methods use e-mail keys such as `WorkflowDateChangeRequested` that the seeder never created, so those e-mails are skipped as "template not found" — unchanged.) |
+| `IWorkflowNotificationHelper` | Workflow-specific notification creation (in-app + SignalR + email) with manager resolution and deduplication. WO-2026-11 A-2 added `NotifySubItemAssignedAsync(subItemId, newAssigneeIds, actorUserId)` and `NotifySubItemCompletedAsync(subItemId, actorUserId)` — their first callers (the action-item workflow service sends its own notifications); they load by id, skip the actor and inactive users, and use the seeded `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted` templates. WO-2026-11 A-3 added `NotifyActionUpdateSubmittedAsync(updateId, actorUserId)`: only for a submitted update (a draft, deleted update or deleted parent sends nothing); in-app type `ActionItem`, action type `UpdateSubmitted`, title "High-importance action update" when flagged; e-mail `ActionItem.UpdateSubmitted` with every body value HTML-encoded (`BuildActionUpdatePlaceholders`); recipients: the item's creator and assignees, plus the sub-item's assignees for a sub-item update — never the submitter, never inactive users. The two sub-item e-mails also HTML-encode every value since 2026-11-25 (`BuildSubItemPlaceholders`), as does the direction e-mail (`ActionItemWorkflowService.BuildDirectionGivenPlaceholders`, title included). (The older helper methods use e-mail keys such as `WorkflowDateChangeRequested` that the seeder never created, so those e-mails are skipped as "template not found" — unchanged.) |
+| `IActionItemUpdateService` | WO-2026-11 A-3. `GetAsync(actionItemId, subItemId?)`, `GetCountsAsync`, `CreateAsync` (draft or submit), `EditAsync`, `SubmitAsync`, `DeleteAsync` (soft). Implementation `Application/Features/ActionItemUpdates/Services/ActionItemUpdateService.cs`; `ActionItemUpdateLockedException` = 409 |
 | `IActionItemSubItemService` | WO-2026-11 A-2. List / create / update / delete / tick / reorder sub-items with the rules above. Implementation `Application/Features/ActionItemSubItems/Services/ActionItemSubItemService.cs` |
 | `ActionItemSubItemRules` (static) | A-2 pure rules: `DateRangeProblem`, `IsOutsideParentDates`, `ParentAcceptsChanges` (not Done / Cancelled), `SameDay`, `ToStoredDay`. Client copy: `sub-item-dates.util.ts` |
 | `ActionItemSubItemCascade` (static) | A-2: `DeleteWithParentsAsync` / `RestoreWithParentsAsync` — used by `ActionItemService` and `ProjectService`; tracked changes only, the caller saves |
@@ -1206,7 +1275,8 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | `WorkCalendarCache` | Singleton cache of resolved calendars. Cleared after every calendar write; a version stamp stops a calendar read before a concurrent write from being cached after it; entries also expire after 10 minutes so a second app instance cannot serve a stale calendar for long. |
 | `IAuthService` | Login, Azure AD validation, token refresh, logout |
 | `IUserManagementService` | CRUD users, role assignment (with Strategy Editor org-unit-level guard), KU employee search, activation |
-| `ICommentService` | CRUD polymorphic comments (any entity type) |
+| `EmailSender` (`IEmailSender`) | Resolves a template by key and sends it (MailKit; DB mail settings, `Smtp` fallback; logs to `EmailLogs`). Placeholder values go into the HTML **body as they are** — callers HTML-encode user text. For the **subject** (plain text) `ResolveSubject` HTML-decodes the values first (2026-11-25), so one encoded value reads correctly in both; a raw value is unchanged. Unknown `{{…}}` placeholders are removed |
+| `ICommentService` | CRUD polymorphic comments on `ActionItem` (read only since A-3), `Project`, `Milestone`, `ProjectRisk`; every call checks the parent through the query filters (A-3, fix 3) |
 | `IDocumentService` | Upload/download/delete documents (polymorphic); per-entity caps (`KpiTarget` and `KpiActual` each capped at 10); strategic-scope-aware writes for both target and actual evidence |
 | `IStrategicObjectiveService` | CRUD by org unit, soft delete/restore — all reads/writes go through `IStrategicScopeService` |
 | `IStrategicPlanService` | CRUD strategic plans, active-plan lookup, soft delete with delete-while-children block, uniqueness enforcement, in-app + email fan-out to in-scope Strategy Editors on creation. Update/Delete now lock-guarded (CR-001-E). |
@@ -1256,11 +1326,11 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 
 ## Database Seeding (Startup)
 
-1. **Auto-migrate** database on startup (`MigrateAsync` on SQL Server; `EnsureCreatedAsync` when the integration-test host swaps in the EF InMemory provider)
+1. **Migrate on startup — switchable** (WO-2026-11 A-3, fix 0; `Infrastructure/Data/Startup/DatabaseStartup.cs` + `EfDatabaseSchemaOperations`). `Database:MigrateOnStartup` (default **true** when missing): true → `MigrateAsync`, logging the migrations it applies; false → nothing applied, a warning names each pending migration and the API still starts (the git-ignored local `appsettings.json` sets false). `EnsureCreatedAsync` when the integration-test host swaps in the EF InMemory provider. While migrations are pending, every seeder below runs through `DatabaseStartup.RunSeederAsync`: it compares the tables / columns the seeder needs with `INFORMATION_SCHEMA.COLUMNS` and skips it with a warning when one is missing, and also skips (warning) when the seeder fails with SQL error 207 / 208; any other error still stops the start. Covered by `DatabaseStartupTests`
 2. **RoleSeeder** — seeds the 10 application roles (Admin, Workspace Admin, PMO Head, PMO Analyst, Project Sponsor, Project Manager, Project Coordinator, Team Member, Strategy Editor, Viewer); idempotent. Also deletes deprecated **Manager** and **User** roles when they are still present
 3. **PermissionCatalogSeeder** — seeds permission areas, actions, area-action mappings
 4. **DefaultRolePermissionsSeeder** — seeds default permissions for each role (idempotent — only inserts keys with no row at all, soft-deleted rows included, so grants removed in the role UI stay removed; covered by `DefaultRolePermissionsSeederTests`). Team Member → ActionItems View / Create / Edit (Create since A-1b). Includes the Strategy Editor permission set (View/Create/Edit/Delete on Strategic Objectives + KPIs, View on Dashboard / OrgChart / Notifications)
-5. **EmailTemplateSeeder** — seeds / refreshes the email templates (31 since A-2: `ActionItem.SubItemAssigned` and `ActionItem.SubItemCompleted` added). Behaviour (unchanged, pinned by `EmailTemplateSeederTests`): when every seeded key already exists (any state, soft-deleted included) it writes nothing. When at least one key is missing it inserts the missing templates **and**, in the same save, overwrites `Subject` and `HtmlBody` of every existing template (soft-deleted included) whose `HtmlBody` differs from the seed — an edit made in the Email Templates screen is lost at that startup; an edit to the subject alone is kept. So the first start after A-2 runs the overwrite pass. Production's 29 templates were byte-identical to the seed on 2026-11-24 (read-only hash comparison), so that start inserts the two new rows and changes nothing else — unless a template is edited before it
+5. **EmailTemplateSeeder** — **insert-only** since WO-2026-11 A-3 (fix 1): inserts the templates whose key is missing (a soft-deleted template counts as existing) and never changes an existing template's subject or body, edited or not. 32 templates since A-3 (`ActionItem.UpdateSubmitted` added; A-2 added `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`). Before A-3 a missing key also made it overwrite every existing body that differed from the seed — that pass is gone, so a wording change to an existing template needs its own explicit update (touching a template only while its body still equals the old seed). `SeedTemplates()` exposes the seed list to tests. Pinned by `EmailTemplateSeederTests`
 6. **WorkCalendarSeeder** — inserts the default calendar "KU Standard" (Monday–Friday 08:00–17:00, Saturday–Sunday off, `Asia/Dubai`) when no calendar exists, so it runs once on a clean database and once on an existing database after `Add_WorkCalendars`; promotes the oldest active calendar if calendars exist but none is the default. Idempotent
 7. **AdminBootstrapSeeder** — seeds the bootstrap admin user
 
@@ -1293,6 +1363,8 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Working Calendars | Date maths goes through `IWorkCalendarService` → `ResolvedWorkCalendar` (pure, cached) rather than ad-hoc weekend checks; one default calendar is guaranteed by a filtered unique index plus the startup seeder |
 | Planned vs actual dates | `StartDate` / `DueDate` stay the planned dates (freeze, date requests, working-day rule, filters and `DashboardRules` depend on them); `ActualStartDate` / `ActualEndDate` are recorded facts outside all three date rules, maintained by one shared rule (`ActionItemActualDates`) on every status path |
 | Standalone flag is derived | `ActionItem.IsStandalone` is set by the server from `ProjectId` (`ActionItemStandalone`), never from the client, so a client cannot detach an item from its project by accident (WO-2026-11 A-1b) |
+| Action Updates keep the comments table | `ActionItemUpdate` maps to the existing `ActionItemComments` table (no rename, no data move inside it); draft privacy lives in the query filter, so no endpoint can leak a draft; a submitted update is immutable for every role (WO-2026-11 A-3) |
+| Switchable startup migration | `Database:MigrateOnStartup` lets a developer run the API against a shared database with a migration in the working tree without applying it; seeders that need a missing table are skipped, not fatal (WO-2026-11 A-3) |
 | Sub-items are not action items | `ActionItemSubItem` lives in its own table with its own assignee table, so `DashboardRules`, `/my-stats`, `/my-actions`, reports and every assignee-based count stay as they were; a user assigned only to a sub-item gets a separate My Actions list (WO-2026-11 A-2) |
 
 ---
@@ -1319,4 +1391,5 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | `DataSync:EmployeeInfo:SourceTable` / `TargetTable` | Schema-qualified table names (default `dbo.ku_employee_info` on both sides) |
 | `DataSync:EmployeeInfo:MinRowRatio` | Safety guard: abort when source rows < ratio × target rows (default 0.9; 0 disables) |
 | `DataSync:EmployeeInfo:CommandTimeoutSeconds` | Per-command timeout for the sync (default 120) |
+| `Database:MigrateOnStartup` | WO-2026-11 A-3. `true` (default when missing) applies pending EF migrations at startup; `false` applies nothing and logs a warning naming the pending migrations. The local (git-ignored) `appsettings.json` sets `false` |
 | `Serilog` | Structured logging configuration (Console + File with daily rolling) |

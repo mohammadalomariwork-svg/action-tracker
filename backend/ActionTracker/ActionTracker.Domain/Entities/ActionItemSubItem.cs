@@ -51,4 +51,7 @@ public class ActionItemSubItem
     public ActionItem ActionItem { get; set; } = null!;
     public ApplicationUser? DoneByUser { get; set; }
     public ICollection<ActionItemSubItemAssignee> Assignees { get; set; } = new List<ActionItemSubItemAssignee>();
+
+    /// <summary>Action updates about this sub-item (WO-2026-11 A-3).</summary>
+    public ICollection<ActionItemUpdate> Updates { get; set; } = new List<ActionItemUpdate>();
 }

@@ -1,3 +1,4 @@
+using ActionTracker.Application.Common;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
@@ -57,8 +58,17 @@ public class ActionTrackerWebApplicationFactory : WebApplicationFactory<Program>
             // Register a fresh InMemory database scoped to this factory instance
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase(_dbName));
+
+            // Never send real e-mail from a test (WO-2026-11 A-3, fix 2):
+            // replace every IEmailSender registration with the recording fake.
+            foreach (var descriptor in services.Where(d => d.ServiceType == typeof(IEmailSender)).ToList())
+                services.Remove(descriptor);
+            services.AddSingleton<IEmailSender>(Emails);
         });
     }
+
+    /// <summary>Every e-mail the host was asked to send (nothing is actually sent).</summary>
+    public RecordingEmailSender Emails { get; } = new();
 
     /// <summary>
     /// Creates a local-login user holding <paramref name="role"/> (idempotent).

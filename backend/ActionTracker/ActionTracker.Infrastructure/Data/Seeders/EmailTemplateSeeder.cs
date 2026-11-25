@@ -4,17 +4,26 @@ using Microsoft.Extensions.Logging;
 
 namespace ActionTracker.Infrastructure.Data.Seeders;
 
+/// <summary>
+/// Inserts the e-mail templates whose key is missing. Insert-only (WO-2026-11
+/// A-3, fix 1): an existing template — edited in the Email Templates screen or
+/// not, soft-deleted or not — is never changed, so its subject and body stay
+/// as they are. A wording change to an existing template needs its own,
+/// explicit update that touches a template only while its body still equals
+/// the old seed.
+/// </summary>
 public static class EmailTemplateSeeder
 {
     public static async Task SeedAsync(AppDbContext db, ILogger logger)
     {
-        var existingKeys = await db.EmailTemplates
-            .IgnoreQueryFilters()
-            .Select(t => t.TemplateKey)
-            .ToListAsync();
+        var existingKeys = (await db.EmailTemplates
+                .IgnoreQueryFilters()
+                .Select(t => t.TemplateKey)
+                .ToListAsync())
+            .ToHashSet(StringComparer.Ordinal);
 
-        var templates = BuildTemplates();
-        var toInsert = templates.Where(t => !existingKeys.Contains(t.TemplateKey)).ToList();
+        var templates = SeedTemplates();
+        var toInsert  = templates.Where(t => !existingKeys.Contains(t.TemplateKey)).ToList();
 
         if (toInsert.Count == 0)
         {
@@ -23,33 +32,14 @@ public static class EmailTemplateSeeder
         }
 
         db.EmailTemplates.AddRange(toInsert);
-
-        // Update existing templates whose body has changed (e.g. escalation template)
-        var templateLookup = templates.ToDictionary(t => t.TemplateKey);
-        var existingTemplates = await db.EmailTemplates
-            .IgnoreQueryFilters()
-            .Where(t => existingKeys.Contains(t.TemplateKey))
-            .ToListAsync();
-
-        var updatedCount = 0;
-        foreach (var existing in existingTemplates)
-        {
-            if (templateLookup.TryGetValue(existing.TemplateKey, out var seed)
-                && existing.HtmlBody != seed.HtmlBody)
-            {
-                existing.HtmlBody = seed.HtmlBody;
-                existing.Subject = seed.Subject;
-                updatedCount++;
-            }
-        }
-
         await db.SaveChangesAsync();
 
-        if (toInsert.Count > 0)
-            logger.LogInformation("EmailTemplateSeeder: inserted {Count} new email templates.", toInsert.Count);
-        if (updatedCount > 0)
-            logger.LogInformation("EmailTemplateSeeder: updated {Count} existing email templates.", updatedCount);
+        logger.LogInformation("EmailTemplateSeeder: inserted {Count} missing email template(s): {Keys}.",
+            toInsert.Count, string.Join(", ", toInsert.Select(t => t.TemplateKey)));
     }
+
+    /// <summary>The seeded templates (fresh instances on every call).</summary>
+    public static IReadOnlyList<EmailTemplate> SeedTemplates() => BuildTemplates();
 
     private static List<EmailTemplate> BuildTemplates()
     {
@@ -214,6 +204,21 @@ public static class EmailTemplateSeeder
                 HtmlBody    = BuildSubItemBody(
                     "Sub-item Completed",
                     "<strong>{{ActorName}}</strong> marked a sub-item of the following action item as done ({{DoneCount}} of {{TotalCount}} sub-items done)."),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+
+            // ── Action Updates (WO-2026-11 A-3) ──────────────────────────────
+            // Body placeholders carry HTML-encoded text (EmailSender does not
+            // encode); {{SubjectTitle}} is the raw title for the plain-text subject.
+            new()
+            {
+                Id          = new Guid("a1b2c3d4-0103-4000-8000-000000000103"),
+                TemplateKey = "ActionItem.UpdateSubmitted",
+                Name        = "Action Update Submitted",
+                Subject     = "{{ImportancePrefix}}Action update on {{ActionId}}: {{SubjectTitle}}",
+                Description = "Sent when an action update is submitted (never for a draft) to the action item's creator and assignees, and for a sub-item update also the sub-item's assignees — not to the person who submitted it.",
+                HtmlBody    = BuildActionUpdateBody(),
                 IsActive  = true,
                 CreatedAt = now,
             },
@@ -487,6 +492,23 @@ public static class EmailTemplateSeeder
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Sub-item end:</td><td style=\"padding: 8px;\">{{SubItemEndDate}}</td></tr>" +
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Action item:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Workspace:</td><td style=\"padding: 8px;\">{{WorkspaceName}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildActionUpdateBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">{{Heading}}</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p><strong>{{AuthorName}}</strong> submitted an action update on {{UpdateLevel}}.</p>" +
+        "<div style=\"background-color: #f4f6fb; border-left: 4px solid #0F52BA; border-radius: 4px; padding: 12px 16px; margin: 16px 0; white-space: pre-wrap;\">{{UpdateContent}}</div>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Action ID:</td><td style=\"padding: 8px;\">{{ActionId}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Action item:</td><td style=\"padding: 8px;\">{{Title}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Importance:</td><td style=\"padding: 8px;\">{{Importance}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Submitted:</td><td style=\"padding: 8px;\">{{SubmittedAt}}</td></tr>" +
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Workspace:</td><td style=\"padding: 8px;\">{{WorkspaceName}}</td></tr>" +
         "</table>" +
         "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +

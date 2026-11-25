@@ -92,6 +92,14 @@
                   <span class="si-muted">Done{{ s.doneByName ? ' by ' + s.doneByName : '' }} on {{ s.doneAt | date:'d MMM y' }}</span>
                 }
               </div>
+              <!-- Action updates on this sub-item (WO-2026-11 A-3) -->
+              <button type="button" class="btn btn-link btn-sm si-updates-toggle" [id]="'si-updates-btn-' + s.id"
+                      [attr.aria-expanded]="updatesOpen(s.id)" [attr.aria-controls]="'si-updates-' + s.id"
+                      (click)="toggleUpdates(s.id)">
+                <i class="bi" [class.bi-chevron-right]="!updatesOpen(s.id)" [class.bi-chevron-down]="updatesOpen(s.id)"
+                   aria-hidden="true"></i>
+                Updates<span class="visually-hidden"> on {{ s.title }}</span> ({{ updateCount(s.id) }})
+              </button>
             </div>
             @if (acceptsChanges()) {
               <div *appHasPermission="'ActionItems'; action: 'Edit'" class="si-row__actions">
@@ -115,6 +123,13 @@
                         [attr.aria-label]="'Delete ' + s.title" title="Delete">
                   <i class="bi bi-trash" aria-hidden="true"></i>
                 </button>
+              </div>
+            }
+            @if (updatesOpen(s.id)) {
+              <div class="si-row__updates" [id]="'si-updates-' + s.id">
+                <app-action-updates-section [actionItemId]="actionItem().id" [subItemId]="s.id"
+                                            [subItemTitle]="s.title" [compact]="true"
+                                            (countChange)="setUpdateCount(s.id, $event)" />
               </div>
             }
           </li>

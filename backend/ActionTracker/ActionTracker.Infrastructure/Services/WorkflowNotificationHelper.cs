@@ -373,25 +373,146 @@ public class WorkflowNotificationHelper : IWorkflowNotificationHelper
 
             if (string.IsNullOrEmpty(user.Email) || !notifiedEmails.Add(user.Email)) continue;
 
-            var placeholders = new Dictionary<string, string>
-            {
-                ["ActionId"]         = parent.ActionId,
-                ["Title"]            = parent.Title,
-                ["SubItemTitle"]     = subItem.Title,
-                ["SubItemStartDate"] = subItem.StartDate?.ToString("yyyy-MM-dd") ?? "—",
-                ["SubItemEndDate"]   = subItem.EndDate.ToString("yyyy-MM-dd"),
-                ["ActorName"]        = actorName,
-                ["RecipientName"]    = !string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName! : user.FullName,
-                ["WorkspaceName"]    = parent.Workspace?.Title ?? string.Empty,
-                ["ItemUrl"]          = $"{_appSettings.FrontendBaseUrl}{url}",
-            };
-            if (extraPlaceholders != null)
-                foreach (var (key, value) in extraPlaceholders)
-                    placeholders[key] = value;
+            var placeholders = BuildSubItemPlaceholders(
+                subItem, actorName,
+                !string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName! : user.FullName,
+                $"{_appSettings.FrontendBaseUrl}{url}",
+                extraPlaceholders);
 
             await SendEmailSafeAsync(templateKey, placeholders, user.Email, parent, actorUserId);
         }
     }
+
+    /// <summary>
+    /// Placeholders of <c>ActionItem.SubItemAssigned</c> / <c>ActionItem.SubItemCompleted</c>.
+    /// Every value is HTML-encoded — <see cref="EmailSender"/> puts them into the
+    /// body as they are — like the A-3 e-mails. The templates also use
+    /// <c>{{SubItemTitle}}</c> / <c>{{ActionId}}</c> in their plain-text subject;
+    /// <see cref="EmailSender.ResolveSubject"/> decodes the values there.
+    /// </summary>
+    public static Dictionary<string, string> BuildSubItemPlaceholders(
+        ActionItemSubItem subItem, string actorName, string recipientName, string itemUrl,
+        IReadOnlyDictionary<string, string>? extraPlaceholders = null)
+    {
+        var parent = subItem.ActionItem;
+        var placeholders = new Dictionary<string, string>
+        {
+            ["ActionId"]         = Html(parent.ActionId),
+            ["Title"]            = Html(parent.Title),
+            ["SubItemTitle"]     = Html(subItem.Title),
+            ["SubItemStartDate"] = subItem.StartDate?.ToString("yyyy-MM-dd") ?? "—",
+            ["SubItemEndDate"]   = subItem.EndDate.ToString("yyyy-MM-dd"),
+            ["ActorName"]        = Html(actorName),
+            ["RecipientName"]    = Html(recipientName),
+            ["WorkspaceName"]    = Html(parent.Workspace?.Title ?? string.Empty),
+            ["ItemUrl"]          = Html(itemUrl),
+        };
+        if (extraPlaceholders != null)
+            foreach (var (key, value) in extraPlaceholders)
+                placeholders[key] = Html(value);
+        return placeholders;
+    }
+
+    // ── Action updates (WO-2026-11 A-3) ─────────────────────────────────────
+
+    public const string ActionUpdateSubmittedTemplateKey = "ActionItem.UpdateSubmitted";
+    private const int NotificationSnippetLength = 140;
+
+    public async Task NotifyActionUpdateSubmittedAsync(Guid updateId, string actorUserId)
+    {
+        // Query filters bypassed: this runs after the request (no user
+        // context). It reads only this update's own parent and sub-item.
+        var update = await _db.ActionItemUpdates
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(u => u.ActionItem).ThenInclude(a => a.Assignees)
+            .Include(u => u.ActionItem).ThenInclude(a => a.Workspace)
+            .Include(u => u.SubItem).ThenInclude(s => s!.Assignees)
+            .FirstOrDefaultAsync(u => u.Id == updateId);
+
+        if (update is null || update.IsDeleted || update.Status != ActionItemUpdateStatus.Submitted
+            || update.ActionItem.IsDeleted || (update.SubItem?.IsDeleted ?? false))
+            return;
+
+        var parent  = update.ActionItem;
+        var subItem = update.SubItem;
+
+        var candidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(parent.CreatedByUserId)) candidates.Add(parent.CreatedByUserId);
+        candidates.AddRange(parent.Assignees.Select(a => a.UserId));
+        if (subItem is not null) candidates.AddRange(subItem.Assignees.Select(a => a.UserId));
+
+        var recipientIds = candidates
+            .Where(id => !string.IsNullOrWhiteSpace(id) && !string.Equals(id, actorUserId, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (recipientIds.Count == 0) return;
+
+        var recipients = await _db.Users.AsNoTracking()
+            .Where(u => recipientIds.Contains(u.Id) && u.IsActive)
+            .ToListAsync();
+        if (recipients.Count == 0) return;
+
+        var actorName = await GetDisplayNameAsync(actorUserId);
+        var url       = $"/actions/{parent.Id}/view";
+        var title     = update.IsHighImportance ? "High-importance action update" : "Action update";
+        var where     = subItem is null
+            ? $"{parent.ActionId}: {parent.Title}"
+            : $"the sub-item \"{subItem.Title}\" of {parent.ActionId}: {parent.Title}";
+        var snippet   = update.Content.Length <= NotificationSnippetLength
+            ? update.Content
+            : update.Content[..NotificationSnippetLength].TrimEnd() + "…";
+        var message   = $"{actorName} submitted an action update on {where} — \"{snippet}\"";
+
+        var placeholders = BuildActionUpdatePlaceholders(update, actorName, $"{_appSettings.FrontendBaseUrl}{url}");
+
+        var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var user in recipients)
+        {
+            await CreateInAppNotificationAsync(
+                user.Id, title, message, "UpdateSubmitted", parent, actorUserId, actorName, url, type: "ActionItem");
+
+            if (string.IsNullOrEmpty(user.Email) || !notifiedEmails.Add(user.Email)) continue;
+
+            var perRecipient = new Dictionary<string, string>(placeholders)
+            {
+                ["RecipientName"] = Html(!string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName! : user.FullName),
+            };
+            await SendEmailSafeAsync(ActionUpdateSubmittedTemplateKey, perRecipient, user.Email, parent, actorUserId);
+        }
+    }
+
+    /// <summary>
+    /// Placeholders of <c>ActionItem.UpdateSubmitted</c> (all but RecipientName).
+    /// <see cref="EmailSender"/> does not encode values, so every value that
+    /// lands in the HTML body is HTML-encoded here; <c>SubjectTitle</c> is the
+    /// raw title for the plain-text subject.
+    /// </summary>
+    public static Dictionary<string, string> BuildActionUpdatePlaceholders(
+        ActionItemUpdate update, string actorName, string itemUrl)
+    {
+        var parent  = update.ActionItem;
+        var subItem = update.SubItem;
+        return new Dictionary<string, string>
+        {
+            ["Heading"]          = update.IsHighImportance ? "High-importance Action Update" : "New Action Update",
+            ["ImportancePrefix"] = update.IsHighImportance ? "High importance: " : string.Empty,
+            ["AuthorName"]       = Html(actorName),
+            ["UpdateLevel"]      = subItem is null
+                ? "an action item"
+                : $"the sub-item <strong>{Html(subItem.Title)}</strong> of an action item",
+            ["UpdateContent"]    = Html(update.Content),
+            ["Importance"]       = update.IsHighImportance ? "High" : "Normal",
+            ["SubmittedAt"]      = (update.SubmittedAt ?? update.CreatedAt).ToString("yyyy-MM-dd HH:mm") + " UTC",
+            ["ActionId"]         = Html(parent.ActionId),
+            ["Title"]            = Html(parent.Title),
+            ["SubjectTitle"]     = parent.Title,
+            ["WorkspaceName"]    = Html(parent.Workspace?.Title ?? string.Empty),
+            ["ItemUrl"]          = Html(itemUrl),
+        };
+    }
+
+    private static string Html(string? value) => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
 
     // ── Private helpers ──────────────────────────────────────────────────────
 

@@ -1,0 +1,172 @@
+@if (canView()) {
+<section class="au" [class.au--compact]="compact()" [attr.aria-labelledby]="idPrefix() + '-heading'">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <div class="au-header">
+    @if (compact()) {
+      <h6 [id]="idPrefix() + '-heading'" class="au-heading" tabindex="-1">
+        <i class="bi bi-journal-text me-1" aria-hidden="true"></i>{{ heading() }}
+        @if (subItemTitle()) { <span class="visually-hidden"> on {{ subItemTitle() }}</span> }
+      </h6>
+    } @else {
+      <h5 [id]="idPrefix() + '-heading'" class="au-heading" tabindex="-1">
+        <i class="bi bi-journal-text me-2" aria-hidden="true"></i>{{ heading() }}
+      </h5>
+    }
+    @if (list(); as l) {
+      @if (l.draftCount > 0) {
+        <span class="au-badge au-badge--draft">
+          {{ l.draftCount === 1 ? '1 draft' : l.draftCount + ' drafts' }} · only you can see
+        </span>
+      }
+    }
+  </div>
+
+  <!-- ── New update ───────────────────────────────────────── -->
+  <form *appHasPermission="'ActionItems'; action: 'Edit'" class="au-form" novalidate
+        [attr.aria-label]="subItemTitle() ? 'New action update on ' + subItemTitle() : 'New action update'"
+        (submit)="$event.preventDefault()">
+    <label class="form-label au-form__label" [for]="idPrefix() + '-new'">
+      New update{{ subItemTitle() ? ' on “' + subItemTitle() + '”' : '' }}
+    </label>
+    <textarea [id]="idPrefix() + '-new'" class="form-control au-input" [rows]="compact() ? 2 : 3"
+              [attr.maxlength]="maxLength" [value]="newText()" (input)="setNewText($event)"
+              [disabled]="saving() !== null"
+              [attr.aria-describedby]="idPrefix() + '-new-count ' + idPrefix() + '-new-help'"
+              placeholder="What happened, what is next?"></textarea>
+    <div class="au-form__row">
+      <div class="form-check au-important">
+        <input class="form-check-input" type="checkbox" [id]="idPrefix() + '-new-important'"
+               [checked]="newImportant()" [disabled]="saving() !== null"
+               (change)="newImportant.set($any($event.target).checked)" />
+        <label class="form-check-label" [for]="idPrefix() + '-new-important'">
+          <i class="bi bi-lightning-charge-fill au-important__icon" aria-hidden="true"></i>High importance
+        </label>
+      </div>
+      <span [id]="idPrefix() + '-new-count'" class="au-count" [class.au-count--full]="newLength() >= maxLength">
+        {{ newLength() }} / {{ maxLength }}<span class="visually-hidden"> characters</span>
+      </span>
+      <div class="au-form__buttons">
+        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                [disabled]="!newValid() || saving() !== null" (click)="saveNewDraft()">
+          @if (saving() === 'draft') {
+            <span class="spinner-border spinner-border-sm" role="status"></span>Saving…
+          } @else {
+            <i class="bi bi-floppy" aria-hidden="true"></i>Save draft
+          }
+        </button>
+        <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                [disabled]="!newValid() || saving() !== null" (click)="askSubmitNew($any($event.currentTarget))">
+          @if (saving() === 'submit') {
+            <span class="spinner-border spinner-border-sm" role="status"></span>Submitting…
+          } @else {
+            <i class="bi bi-send" aria-hidden="true"></i>Submit
+          }
+        </button>
+      </div>
+    </div>
+    <p [id]="idPrefix() + '-new-help'" class="au-muted au-help">
+      A draft is visible only to you. A submitted update is shared with everyone who can see this action item and cannot be changed or deleted.
+    </p>
+  </form>
+
+  <!-- ── List ─────────────────────────────────────────────── -->
+  @if (loading() && !list()) {
+    <p class="au-muted mb-0" role="status">Loading updates…</p>
+  }
+  @if (loadFailed()) {
+    <div class="au-callout" role="alert">
+      Action updates could not be loaded.
+      <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="load()">Try again</button>
+    </div>
+  }
+
+  @if (list()) {
+    @if (items().length === 0) {
+      <p class="au-muted au-empty">No action updates yet.</p>
+    } @else {
+      <ol class="au-list" [attr.aria-label]="subItemTitle() ? 'Action updates on ' + subItemTitle() : 'Action updates'">
+        @for (u of items(); track u.id) {
+          <li class="au-entry" [id]="idPrefix() + '-entry-' + u.id" tabindex="-1"
+              [class.au-entry--draft]="u.isDraft" [class.au-entry--important]="u.isHighImportance"
+              [attr.aria-busy]="busyId() === u.id">
+            <div class="au-entry__header">
+              <span class="au-avatar" aria-hidden="true">{{ initial(u.authorName) }}</span>
+              <span class="au-author">{{ u.authorName }}</span>
+              @if (u.isDraft) {
+                <span class="au-badge au-badge--draft">Draft</span>
+                <span class="au-date">Saved {{ (u.updatedAt ?? u.createdAt) | date:'d MMM y, HH:mm' }}</span>
+              } @else {
+                <time class="au-date" [attr.datetime]="u.submittedAt ?? u.createdAt">
+                  {{ (u.submittedAt ?? u.createdAt) | date:'d MMM y, HH:mm' }}
+                </time>
+              }
+              @if (u.isHighImportance) {
+                <span class="au-badge au-badge--important">
+                  <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>High importance
+                </span>
+              }
+            </div>
+
+            @if (editingId() === u.id) {
+              <div class="au-edit">
+                <label class="visually-hidden" [for]="idPrefix() + '-edit-' + u.id">Edit draft</label>
+                <textarea [id]="idPrefix() + '-edit-' + u.id" class="form-control au-input" rows="3"
+                          [attr.maxlength]="maxLength" [value]="editText()" (input)="setEditText($event)"
+                          [disabled]="busyId() === u.id"
+                          (keydown.escape)="cancelEdit(u)"></textarea>
+                <div class="au-form__row">
+                  <div class="form-check au-important">
+                    <input class="form-check-input" type="checkbox" [id]="idPrefix() + '-edit-important-' + u.id"
+                           [checked]="editImportant()" (change)="editImportant.set($any($event.target).checked)" />
+                    <label class="form-check-label" [for]="idPrefix() + '-edit-important-' + u.id">
+                      <i class="bi bi-lightning-charge-fill au-important__icon" aria-hidden="true"></i>High importance
+                    </label>
+                  </div>
+                  <span class="au-count">{{ editText().trim().length }} / {{ maxLength }}</span>
+                  <div class="au-form__buttons">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelEdit(u)"
+                            [disabled]="busyId() === u.id">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-primary" (click)="saveEdit(u)"
+                            [disabled]="!editValid() || busyId() === u.id">Save draft</button>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <p class="au-text">{{ u.content }}</p>
+              @if (u.canEdit) {
+                <div *appHasPermission="'ActionItems'; action: 'Edit'" class="au-entry__actions">
+                  <button type="button" class="btn btn-sm au-btn" [id]="idPrefix() + '-editbtn-' + u.id"
+                          [disabled]="busyId() === u.id" (click)="startEdit(u)">
+                    <i class="bi bi-pencil" aria-hidden="true"></i>Edit<span class="visually-hidden"> draft</span>
+                  </button>
+                  <button type="button" class="btn btn-sm au-btn au-btn--primary" [id]="idPrefix() + '-submitbtn-' + u.id"
+                          [disabled]="busyId() === u.id" (click)="askSubmitDraft(u, $any($event.currentTarget))">
+                    <i class="bi bi-send" aria-hidden="true"></i>Submit<span class="visually-hidden"> draft</span>
+                  </button>
+                  <button type="button" class="btn btn-sm au-btn au-btn--danger" [id]="idPrefix() + '-deletebtn-' + u.id"
+                          [disabled]="busyId() === u.id" (click)="askDelete(u, $any($event.currentTarget))">
+                    <i class="bi bi-trash" aria-hidden="true"></i>Delete<span class="visually-hidden"> draft</span>
+                  </button>
+                </div>
+              }
+            }
+          </li>
+        }
+      </ol>
+    }
+  }
+</section>
+
+<app-confirm-dialog #submitDialog
+                    title="Submit action update"
+                    [message]="submitMessage()"
+                    confirmLabel="Submit"
+                    (confirmed)="onSubmitConfirmed($event)" />
+
+<app-confirm-dialog #deleteDialog
+                    title="Delete draft"
+                    message="Delete this draft? Nobody else has seen it."
+                    confirmLabel="Delete" [danger]="true"
+                    (confirmed)="onDeleteConfirmed($event)" />
+}

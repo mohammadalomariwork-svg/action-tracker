@@ -600,6 +600,35 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         });
     }
 
+    /// <summary>Prefix of the action update that records a direction.</summary>
+    public const string DirectionPrefix = "[Direction] ";
+
+    /// <summary>
+    /// The seeded "Direction Given" template. Until WO-2026-11 A-3 the code
+    /// used the key <c>Workflow.DirectionGiven</c>, which was never seeded, so
+    /// the e-mail was always skipped.
+    /// </summary>
+    public const string DirectionGivenTemplateKey = "ActionItem.DirectionGiven";
+
+    /// <summary>
+    /// Placeholders of <see cref="DirectionGivenTemplateKey"/> (RecipientName,
+    /// DirectorName, ActionId, Title, Reason, ActionUrl). Every value is
+    /// HTML-encoded — EmailSender puts them into the body as they are. The
+    /// template also uses ActionId and Title in its plain-text subject;
+    /// <c>EmailSender.ResolveSubject</c> decodes the values there.
+    /// </summary>
+    public static Dictionary<string, string> BuildDirectionGivenPlaceholders(
+        string actionId, string title, string directorName, string directionText, string itemUrl, string recipientName) =>
+        new()
+        {
+            ["RecipientName"] = System.Net.WebUtility.HtmlEncode(recipientName),
+            ["DirectorName"]  = System.Net.WebUtility.HtmlEncode(directorName),
+            ["ActionId"]      = System.Net.WebUtility.HtmlEncode(actionId),
+            ["Title"]         = System.Net.WebUtility.HtmlEncode(title),
+            ["Reason"]        = System.Net.WebUtility.HtmlEncode(directionText.Trim()),
+            ["ActionUrl"]     = System.Net.WebUtility.HtmlEncode(itemUrl),
+        };
+
     public async Task GiveDirectionAsync(WorkflowDirectionDto dto, string directorUserId)
     {
         var actionItem = await _db.ActionItems
@@ -611,15 +640,21 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
             "Direction given for ActionItem {ActionItemId} by {UserId}: {Direction}",
             dto.ActionItemId, directorUserId, dto.DirectionText);
 
-        // Add direction as a comment
-        _db.ActionItemComments.Add(new ActionItemComment
+        // The direction is recorded as a submitted, high-importance action
+        // update (WO-2026-11 A-3: system updates are never drafts). It keeps
+        // its own "Direction Given" notification below, so the update-submitted
+        // notification is not sent for it.
+        var now = DateTime.UtcNow;
+        _db.ActionItemUpdates.Add(new ActionItemUpdate
         {
             Id               = Guid.NewGuid(),
             ActionItemId     = actionItem.Id,
-            Content          = $"[Direction] {dto.DirectionText.Trim()}",
+            Content          = $"{DirectionPrefix}{dto.DirectionText.Trim()}",
             AuthorUserId     = directorUserId,
             IsHighImportance = true,
-            CreatedAt        = DateTime.UtcNow,
+            Status           = ActionItemUpdateStatus.Submitted,
+            SubmittedAt      = now,
+            CreatedAt        = now,
         });
 
         await _db.SaveChangesAsync();
@@ -645,21 +680,23 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
                     recipientUserIds.Add(a.UserId);
                 recipientUserIds.Remove(directorUserId);
 
-                var recipientEmails = await GetActiveUserEmailsFromDbAsync(db, recipientUserIds);
-                if (recipientEmails.Count > 0)
+                // One e-mail per active recipient, so the greeting carries their name.
+                var recipients = await db.Users
+                    .Where(u => recipientUserIds.Contains(u.Id) && u.IsActive && u.Email != null)
+                    .Select(u => new { Email = u.Email!, u.DisplayName, u.FirstName, u.LastName })
+                    .ToListAsync();
+                var itemUrl = $"{_appSettings.FrontendBaseUrl}/actions/{capturedItem.Id}/view";
+                foreach (var recipient in recipients.DistinctBy(r => r.Email, StringComparer.OrdinalIgnoreCase))
                 {
-                    var placeholders = new Dictionary<string, string>
-                    {
-                        ["ActionId"]      = capturedItem.ActionId,
-                        ["Title"]         = capturedItem.Title,
-                        ["DirectionText"] = dto.DirectionText,
-                        ["DirectedBy"]    = directorName,
-                        ["ItemUrl"]       = $"{_appSettings.FrontendBaseUrl}/actions/{capturedItem.Id}/view",
-                    };
+                    var recipientName = !string.IsNullOrWhiteSpace(recipient.DisplayName)
+                        ? recipient.DisplayName!
+                        : (recipient.FirstName + " " + recipient.LastName).Trim();
 
                     await emailSender.SendEmailAsync(
-                        "Workflow.DirectionGiven", placeholders,
-                        recipientEmails, "ActionItem", capturedItem.Id, directorUserId);
+                        DirectionGivenTemplateKey,
+                        BuildDirectionGivenPlaceholders(
+                            capturedItem.ActionId, capturedItem.Title, directorName, dto.DirectionText, itemUrl, recipientName),
+                        new List<string> { recipient.Email }, "ActionItem", capturedItem.Id, directorUserId);
                 }
 
                 // In-app notifications
@@ -1039,17 +1076,5 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
             .Where(u => u.Id == userId)
             .Select(u => u.FirstName + " " + u.LastName)
             .FirstOrDefaultAsync();
-    }
-
-    private static async Task<List<string>> GetActiveUserEmailsFromDbAsync(
-        IAppDbContext db, IEnumerable<string> userIds)
-    {
-        var ids = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
-        if (ids.Count == 0) return new List<string>();
-        return await db.Users
-            .Where(u => ids.Contains(u.Id) && u.IsActive && u.Email != null)
-            .Select(u => u.Email!)
-            .Distinct()
-            .ToListAsync();
     }
 }

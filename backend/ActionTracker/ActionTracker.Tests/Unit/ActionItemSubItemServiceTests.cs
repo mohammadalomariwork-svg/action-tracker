@@ -665,6 +665,90 @@ public class ActionItemSubItemServiceTests : IDisposable
             It.IsAny<List<string>>(), "ActionItem", parent.Id, Alice), Times.Exactly(3));
     }
 
+    // ── Sub-item e-mails: user text is HTML-encoded (follow-up to A-3) ───────
+
+    private const string HostileSubTitle    = "Don't <b>panic</b> & \"go\"";
+    private const string HostileSubTitleEnc = "Don&#39;t &lt;b&gt;panic&lt;/b&gt; &amp; &quot;go&quot;";
+
+    /// <summary>A parent + sub-item whose titles and workspace name carry HTML, and an actor whose name does.</summary>
+    private async Task<(ActionItem Parent, ActionItemSubItem Sub)> AddHostileSubItemAsync(bool isDone)
+    {
+        _db.Users.Add(User("user-mallory", "<img src=x onerror=alert(1)>", "O'Brien"));
+        (await _db.Workspaces.FirstAsync(w => w.Id == _workspaceId)).Title = "R&D <Lab>";
+        var parent = await AddParentAsync(assignees: new[] { Alice });
+        var tracked = await _db.ActionItems.FirstAsync(a => a.Id == parent.Id);
+        tracked.Title = "Plan <script>x()</script>";
+        await _db.SaveChangesAsync();
+        var sub = await AddSubItemAsync(parent.Id, Friday, null, 1, isDone, Bob);
+        var subTracked = await _db.ActionItemSubItems.FirstAsync(s => s.Id == sub.Id);
+        subTracked.Title = HostileSubTitle;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+        return (parent, sub);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Helper_sub_item_emails_html_encode_titles_and_names(bool completed)
+    {
+        var (parent, sub) = await AddHostileSubItemAsync(isDone: completed);
+        var notifications = new Mock<INotificationService>();
+        var email = new Mock<IEmailSender>();
+        var helper = new WorkflowNotificationHelper(_db, notifications.Object, email.Object, Settings(),
+            NullLogger<WorkflowNotificationHelper>.Instance);
+
+        if (completed) await helper.NotifySubItemCompletedAsync(sub.Id, "user-mallory");
+        else           await helper.NotifySubItemAssignedAsync(sub.Id, new[] { Bob }, "user-mallory");
+
+        var sent = email.Invocations.Where(i => i.Method.Name == nameof(IEmailSender.SendEmailAsync)).ToList();
+        sent.Should().NotBeEmpty();
+        foreach (var call in sent)
+        {
+            call.Arguments[0].Should().Be(completed ? "ActionItem.SubItemCompleted" : "ActionItem.SubItemAssigned");
+            var p = (Dictionary<string, string>)call.Arguments[1];
+            p["SubItemTitle"].Should().Be(HostileSubTitleEnc);
+            p["Title"].Should().Be("Plan &lt;script&gt;x()&lt;/script&gt;");
+            p["ActorName"].Should().Be("&lt;img src=x onerror=alert(1)&gt; O&#39;Brien");
+            p["WorkspaceName"].Should().Be("R&amp;D &lt;Lab&gt;");
+            p.Values.Should().NotContain(v => v.Contains('<') || v.Contains('>') || v.Contains('"'),
+                "every value goes into the HTML body as it is");
+        }
+        // In-app messages are text rendered by Angular (escaped there) — left as they are.
+        notifications.Invocations.Select(i => ((CreateNotificationDto)i.Arguments[0]).Message)
+            .Should().OnlyContain(m => m.Contains(HostileSubTitle));
+    }
+
+    [Fact]
+    public async Task Sub_item_email_subject_reads_as_plain_text_and_the_body_stays_encoded()
+    {
+        var (parent, sub) = await AddHostileSubItemAsync(isDone: true);
+        var loaded = await _db.ActionItemSubItems.AsNoTracking()
+            .Include(s => s.ActionItem).ThenInclude(a => a.Workspace)
+            .FirstAsync(s => s.Id == sub.Id);
+        var placeholders = WorkflowNotificationHelper.BuildSubItemPlaceholders(
+            loaded, "Erin <Editor>", "Bob O'Neil", "http://localhost:4200/actions/1/view?a=1&b=2",
+            new Dictionary<string, string> { ["DoneCount"] = "1", ["TotalCount"] = "2" });
+
+        foreach (var key in new[] { "ActionItem.SubItemAssigned", "ActionItem.SubItemCompleted" })
+        {
+            var template = EmailTemplateSeeder.SeedTemplates().Single(t => t.TemplateKey == key);
+
+            // Every placeholder the template uses is supplied.
+            var used = System.Text.RegularExpressions.Regex.Matches(template.Subject + template.HtmlBody, @"\{\{([^}]+)\}\}")
+                .Select(m => m.Groups[1].Value).ToHashSet();
+            used.Should().BeSubsetOf(placeholders.Keys.ToHashSet(), key);
+
+            var subject = EmailSender.ResolveSubject(template.Subject, placeholders);
+            subject.Should().Contain(HostileSubTitle, "a subject is plain text: the title reads as typed")
+                .And.Contain($"({parent.ActionId})").And.NotContain("&amp;").And.NotContain("&#39;");
+
+            var body = EmailSender.ResolvePlaceholders(template.HtmlBody, placeholders);
+            body.Should().Contain(HostileSubTitleEnc).And.NotContain("<b>panic</b>").And.NotContain("<script>")
+                .And.Contain("Hi Bob O&#39;Neil").And.Contain("href=\"http://localhost:4200/actions/1/view?a=1&amp;b=2\"");
+        }
+    }
+
     // ── My Actions and counts: sub-items are never action items ──────────────
 
     [Fact]

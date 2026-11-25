@@ -1,0 +1,224 @@
+// Action Updates (WO-2026-11 A-3). Theme tokens only — works in dark and light.
+// Badge and warning text stays --t1 on a tint: plain amber / accent text falls
+// under 4.5:1 on the dark surface (same rule as the sub-items section).
+
+:host { display: block; }
+
+// The card — same look as the sub-items card. The compact form (inside a
+// sub-item row) has no card of its own.
+.au {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: var(--neon);
+  }
+
+  &--compact {
+    background: var(--bg);
+    border-style: dashed;
+    padding: 0.75rem;
+    backdrop-filter: none;
+
+    &:hover { border-color: var(--bd); box-shadow: none; }
+  }
+}
+
+.au-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--bd);
+
+  .au--compact & { padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+}
+
+.au-heading {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--th);
+  &:focus { outline: none; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm, 0.25rem); }
+  i { color: var(--accent); }
+
+  .au--compact & { font-size: 0.9rem; }
+}
+
+.au-muted { color: var(--t2); font-size: 12px; }
+.au-empty { margin: 0; }
+
+.au-callout {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--bd);
+  border-left: 3px solid var(--err);
+  border-radius: var(--r-md);
+  background: rgba(var(--errr), 0.12);
+  color: var(--t1);
+  font-size: 13px;
+}
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+.au-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.7;
+  color: var(--t1);
+  white-space: nowrap;
+
+  &--draft     { background: rgba(var(--ar), 0.18); border: 1px dashed var(--accent); }
+  &--important { background: rgba(var(--warnr), 0.24); i { color: var(--warn); } }
+}
+
+// ── New update / edit ────────────────────────────────────────────────────────
+.au-form {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--bd);
+  border-radius: var(--r-md);
+  background: var(--bg);
+
+  .au--compact & { padding: 0.5rem; margin-bottom: 0.75rem; background: var(--sf); }
+
+  &__label { font-size: 12px; margin-bottom: 0.25rem; color: var(--t2); }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  &__buttons {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: auto;
+  }
+}
+
+.au-input {
+  font-size: 13px;
+  resize: vertical;
+}
+
+.au-important {
+  margin: 0;
+  font-size: 13px;
+  color: var(--t1);
+  &__icon { color: var(--warn); margin-right: 0.25rem; }
+}
+
+.au-count {
+  color: var(--t2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  &--full { color: var(--t1); font-weight: 700; }
+}
+
+.au-help { margin: 0.5rem 0 0; }
+
+// ── List ─────────────────────────────────────────────────────────────────────
+.au-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.au-entry {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  background: var(--el);
+
+  &--important { border-left: 3px solid var(--warn); }
+  &--draft     { border-style: dashed; border-color: var(--accent); background: var(--bg); }
+  &--draft.au-entry--important { border-left-style: solid; border-left-color: var(--warn); }
+  &[aria-busy='true'] { opacity: 0.7; }
+  &:focus { outline: none; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin-bottom: 0.35rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+}
+
+.au-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--accent-fill);
+  color: var(--on-fill);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.au-author { font-weight: 600; font-size: 13px; color: var(--t1); }
+.au-date   { font-size: 12px; color: var(--t2); }
+
+.au-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--t1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.au-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--bd);
+  background: var(--sf);
+  color: var(--t1);
+  font-size: 12px;
+
+  &:hover:not(:disabled), &:focus-visible { border-color: var(--accent); color: var(--accent); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  &:disabled { opacity: 0.5; }
+
+  &--primary { border-color: var(--accent); }
+  &--danger:hover:not(:disabled), &--danger:focus-visible {
+    border-color: var(--err); color: var(--t1); background: rgba(var(--errr), 0.16);
+  }
+}
+
+// ── Mobile ───────────────────────────────────────────────────────────────────
+@media (max-width: 575.98px) {
+  .au { padding: 1rem; }
+  .au-form__buttons { margin-left: 0; width: 100%; }
+  .au-form__buttons .btn { flex: 1 1 0; justify-content: center; }
+}

@@ -27,4 +27,16 @@ public interface IWorkflowNotificationHelper
     /// assignees, except <paramref name="actorUserId"/>.
     /// </summary>
     Task NotifySubItemCompletedAsync(Guid subItemId, string actorUserId);
+
+    // ── Action updates (WO-2026-11 A-3) ─────────────────────────────────────
+
+    /// <summary>
+    /// Sent when an action update is submitted — never for a draft. In-app
+    /// (+ SignalR) and e-mail (<c>ActionItem.UpdateSubmitted</c>) to the action
+    /// item's creator and assignees, and for a sub-item update also the
+    /// sub-item's assignees, except <paramref name="actorUserId"/>; inactive
+    /// users are skipped. Loads the update by id, so it can run after the
+    /// request ended; a draft, deleted update or deleted parent sends nothing.
+    /// </summary>
+    Task NotifyActionUpdateSubmittedAsync(Guid updateId, string actorUserId);
 }
