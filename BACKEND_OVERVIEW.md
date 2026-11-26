@@ -1,6 +1,6 @@
 # KU Action Tracker - Backend Overview
 
-> Last updated: 2026-11-25 (Tags — WO-2026-11 A-5: entities `Tag` / `ActionItemTag`, `TagsController` (`GET /api/workspaces/{id}/tags`, `GET /api/action-items/my-actions/tags`), `tags` on action-item POST / PUT and responses, `tagIds` list filter (needs `ActionItems.View`), `IActionItemTagService`, `TagRules`, `ITagSchemaState` / `TagSchemaState` (503 for tag saves and filters while migration `Add_ActionItemTags` is pending — not applied to production). Earlier the same day: Attachments — WO-2026-11 A-4: `DocumentService` checks the owning record on every call (types `ActionItem`, `ActionItemSubItem`, `ActionItemUpdate`, `Project`, `Milestone`, `ProjectRisk`, `KpiTarget`, `KpiActual`; hidden → 404), View / Edit for the action-item types, `DocumentLockedException` (409), delete rights and `canDelete`, `documentCount` on sub-items and updates, `IUserRoleService`; no migration. Earlier the same day: Action Updates — WO-2026-11 A-3: entity `ActionItemUpdate` on the existing `ActionItemComments` table (+ `SubItemId`, `Status`, `SubmittedAt`, `IsDeleted`), enum `ActionItemUpdateStatus`, `ActionItemUpdatesController` at `/api/action-items/{id}/updates` and `/api/action-items/{id}/sub-items/{subId}/updates`, `IActionItemUpdateService`, draft-privacy query filter, `IWorkflowNotificationHelper.NotifyActionUpdateSubmittedAsync` + template `ActionItem.UpdateSubmitted`, migration `Add_ActionItemUpdates` with backfill and copy from `Comments` (applied to production 2026-11-25) + re-runnable script `Data/Scripts/A3-copy-action-item-comments.sql`; old `/api/action-items/{id}/comments` routes and the `comments` array removed; `/api/comments` parent-visibility check and read-only for action items; `Database:MigrateOnStartup` switch with `DatabaseStartup`; `EmailTemplateSeeder` insert-only; direction e-mail uses `ActionItem.DirectionGiven`; integration host uses `RecordingEmailSender`. Previous: 2026-11-24 Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (applied to production 2026-11-24 at API startup). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
+> Last updated: 2026-11-26 (migration `Add_WorkspaceProjectClassifications` applied to production, ~08:30 UTC+4. 2026-11-25: Internal project classification — WO-2026-11 P-1: entity `WorkspaceProjectClassification`, `Project.InternalClassificationId`, `WorkspaceProjectClassificationsController` at `/api/workspaces/{id}/project-classifications`, `IProjectClassificationService`, `ProjectClassificationRules`, `internalClassificationId` / `clearInternalClassification` on project POST / PUT, classification fields on project responses, `internalClassificationId` / `unclassified` project list filters, migration `Add_WorkspaceProjectClassifications`. Earlier the same day: Tags — WO-2026-11 A-5: entities `Tag` / `ActionItemTag`, `TagsController` (`GET /api/workspaces/{id}/tags`, `GET /api/action-items/my-actions/tags`), `tags` on action-item POST / PUT and responses, `tagIds` list filter (needs `ActionItems.View`), `IActionItemTagService`, `TagRules`, `ITagSchemaState` / `TagSchemaState` (503 for tag saves and filters while migration `Add_ActionItemTags` is pending); the migration was applied to production on 2026-11-25 at about 14:40 (UTC+4). Earlier the same day: Attachments — WO-2026-11 A-4: `DocumentService` checks the owning record on every call (types `ActionItem`, `ActionItemSubItem`, `ActionItemUpdate`, `Project`, `Milestone`, `ProjectRisk`, `KpiTarget`, `KpiActual`; hidden → 404), View / Edit for the action-item types, `DocumentLockedException` (409), delete rights and `canDelete`, `documentCount` on sub-items and updates, `IUserRoleService`; no migration. Earlier the same day: Action Updates — WO-2026-11 A-3: entity `ActionItemUpdate` on the existing `ActionItemComments` table (+ `SubItemId`, `Status`, `SubmittedAt`, `IsDeleted`), enum `ActionItemUpdateStatus`, `ActionItemUpdatesController` at `/api/action-items/{id}/updates` and `/api/action-items/{id}/sub-items/{subId}/updates`, `IActionItemUpdateService`, draft-privacy query filter, `IWorkflowNotificationHelper.NotifyActionUpdateSubmittedAsync` + template `ActionItem.UpdateSubmitted`, migration `Add_ActionItemUpdates` with backfill and copy from `Comments` (applied to production 2026-11-25) + re-runnable script `Data/Scripts/A3-copy-action-item-comments.sql`; old `/api/action-items/{id}/comments` routes and the `comments` array removed; `/api/comments` parent-visibility check and read-only for action items; `Database:MigrateOnStartup` switch with `DatabaseStartup`; `EmailTemplateSeeder` insert-only; direction e-mail uses `ActionItem.DirectionGiven`; integration host uses `RecordingEmailSender`. Previous: 2026-11-24 Sub-items on action items — WO-2026-11 A-2: `ActionItemSubItem` / `ActionItemSubItemAssignee`, `ActionItemSubItemsController` at `/api/action-items/{actionItemId}/sub-items` (reads `ActionItems.View`, writes `ActionItems.Edit`, ticking also allowed for the sub-item's assignee), `GET /api/action-items/assigned-via-sub-items`, `subItemCount` / `subItemDoneCount` on action-item responses, private-workspace query filters on both new tables, delete / restore together with the parent (and its project), two `IWorkflowNotificationHelper` methods + e-mail templates `ActionItem.SubItemAssigned` / `ActionItem.SubItemCompleted`, migration `Add_ActionItemSubItems` (applied to production 2026-11-24 at API startup). Earlier the same day: action-item fix package WO-2026-11 A-1b: `IsStandalone` follows the project link (`ActionItemStandalone`; the client's `isStandalone` is ignored on POST and PUT), `ActionItems.Create` on POST `/api/action-items`, `ActionItems.Edit` on PUT `/{id}` and PATCH `/{id}/status`, `DefaultRolePermissionsSeeder` grants Team Member `ActionItems.Create` (as production already does). Earlier the same day: planned and actual dates on action items — WO-2026-11 A-1: `ActionItem.ActualStartDate` / `ActualEndDate`, `ActionItemActualDates` rule shared by every status path, actual-date fields on PUT `/api/action-items/{id}`, `actualEndVarianceDays` on the response, PUT on a Done item accepted when it carries only actual dates, migration `Add_ActionItem_ActualDates` with the Done backfill. Previous: 2026-11-23 workspace calendar setting + working-day date rule — WO-2026-11 C-3: `GET/PUT /api/workspaces/{id}/calendar`, `GET /api/workspaces/calendars`, `IWorkCalendarService.EnsureWorkingDaysAsync` called by the action-item, milestone, project and date-change-request services, `NonWorkingDateException`, deterministic tie-break between overlapping exceptions. Earlier the same day: work calendars — WO-2026-11 C-1: `WorkCalendar` entities, `IWorkCalendarService` + calculation API, `/api/calendars` admin API, `Calendars` permission area, migration `Add_WorkCalendars`; C-2 note: the admin Calendars page now consumes this API, no backend change)
 
 ## Tech Stack
 
@@ -89,7 +89,7 @@ ActionTracker.Domain/         -> Entities, Enums, Constants
 
 ---
 
-## API Controllers & Endpoints (25 Controllers)
+## API Controllers & Endpoints (34 Controllers)
 
 ### AuthController (`/api/auth`)
 | Method | Endpoint | Description |
@@ -167,7 +167,7 @@ the `comments` array of the response were removed in WO-2026-11 A-3 — action i
 ### ProjectsController (`/api/projects`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Paginated, filtered projects (org-unit scoped). Optional `strategicObjectiveIds` query param (repeated) returns only projects linked to one of those objectives — used by the strategy page's in-page Strategic Projects section. |
+| GET | `/` | Paginated, filtered projects (org-unit scoped). Optional `strategicObjectiveIds` query param (repeated) returns only projects linked to one of those objectives — used by the strategy page's in-page Strategic Projects section. WO-2026-11 P-1: `internalClassificationId` (by id) and `unclassified=true` (projects without one) |
 
 ### StrategicObjectivesController (`/api/strategicobjectives`) — by-plan addition
 | Method | Endpoint | Description |
@@ -175,12 +175,42 @@ the `comments` array of the response were removed in WO-2026-11 A-3 — action i
 | GET | `/by-plan/{planId}` | Returns all non-deleted strategic objectives that belong to the specified `StrategicPlan`. Used by the strategy page to scope objectives strictly to the currently-viewed plan; refuses to return data when the plan's owning org unit is outside the caller's role-based scope. |
 | POST | `/` | Create objective. The DTO now accepts an optional `StrategicPlanId`: when supplied, the service validates the plan exists, isn't archived, isn't locked, and the request's `OrgUnitId` is inside the plan's subtree (via `IOrgUnitScopeResolver.GetDescendantOrgUnitIdsAsync`) — then attaches the objective to that plan directly. Lets the Strategy page create objectives in sub-units that don't have their own plan while keeping them linked to the parent plan. When `StrategicPlanId` is omitted (admin / legacy flow) the service falls back to auto-linking the new row to the org unit's newest non-archived plan, or `null` if none exists. |
 | GET | `/{id}` | Single project |
-| POST | `/` | Create project (status=Draft). Planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below) |
-| PUT | `/{id}` | Update project. Changed planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the actual start date is not checked |
+| POST | `/` | Create project (status=Draft). Planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below). Optional `internalClassificationId` (WO-2026-11 P-1): an active, live classification of the project's workspace, else 400 |
+| PUT | `/{id}` | Update project. Changed planned start / end: Refused with 400 when a created or changed date is not a working day in the workspace calendar (WO-2026-11 C-3, see "Working-day rule" below); the actual start date is not checked. WO-2026-11 P-1: `internalClassificationId` sets the internal classification (the one the project already has is accepted even when inactive), `clearInternalClassification: true` removes it, leaving both out keeps it; both at once 400. Accepted in every status this update accepts — a label outside the date freeze and the approval workflows |
 | GET | `/{id}/stats` | Project statistics (milestones, action items, rates) |
 | GET | `/strategic-objectives-for-workspace/{workspaceId}` | Objectives for workspace |
 | DELETE | `/{id}` | Soft delete (cascades to milestones/items, and to the items' sub-items — WO-2026-11 A-2) |
 | PATCH | `/{id}/restore` | Restore project (its items' sub-items deleted with them come back too — A-2) |
+
+Every project response (list, single, create, update) carries `internalClassificationId`, `internalClassificationName`
+and `internalClassificationIsActive` (WO-2026-11 P-1) — only for a live classification of the project's own workspace,
+read through the classification's query filter, so a private workspace's names never reach a non-member. `ProjectType`
+(Operational / Strategic) is unchanged; the UI labels it "Classification (global)".
+
+### WorkspaceProjectClassificationsController (`/api/workspaces/{workspaceId}/project-classifications`) — WO-2026-11 P-1
+Internal project classifications of a workspace. A project's classification is saved with the project (above).
+
+| Method | Endpoint | Policy | Description |
+|--------|----------|--------|-------------|
+| GET | `/` | signed in, then `Projects.View` **or** `Workspaces.View` (evaluated in the controller; 403 with a message otherwise) | Live classifications by sort order, active and inactive: `{ id, workspaceId, name, sortOrder, isActive, projectCount, deletedProjectCount, canDelete }` |
+| POST | `/` | `Workspaces.Edit` | `{ name }` — added at the end, active. 201 |
+| PUT | `/reorder` | `Workspaces.Edit` | `{ classificationIds }` — every live classification exactly once (400 otherwise) |
+| PUT | `/{classificationId}` | `Workspaces.Edit` | `{ name, isActive }` — rename and / or (de)activate |
+| DELETE | `/{classificationId}` | `Workspaces.Edit` | Soft delete. 204 |
+
+**Status codes:** 404 when the workspace is hidden — reads: private-workspace filter, then `IWorkspaceAccessResolver` **or**
+the caller is on the workspace's Project Managers list (decision 2: project managers who are not members classify
+their own projects); writes: private-workspace filter, then `IWorkspaceAccessResolver` — and for a classification that is
+not a live one of that workspace; 400 for a broken name rule (FluentValidation and the service) or a bad reorder list;
+409 for a name the workspace already has (any case) and for a delete while any project — soft-deleted ones included
+(decision 3) — uses the classification (the message gives the number). No new permission area.
+
+**Rules** (`ProjectClassificationService`, names in `ProjectClassificationRules`; client copy
+`project-classification-rules.util.ts` — change both together): trimmed, runs of white space → one space, 1–100
+characters, no control characters, unique per workspace among live rows without regard to case (`NormalizedName`,
+filtered unique index — a clash between two requests at once also becomes the 409). A deactivated classification stays on
+its projects and is accepted again when a save repeats it, but cannot be newly chosen. Usage counts read projects without
+query filters on purpose (only numbers leave the service).
 
 ### MilestonesController (`/api/projects/{projectId}/milestones`)
 | Method | Endpoint | Description |
@@ -799,7 +829,7 @@ Migration `Add_ActionItemTags` (2026-11-25): creates the two tables, keys, FKs a
 (`IX_Tags_WorkspaceId_NormalizedName` unique, `IX_Tags_CreatedByUserId`, `IX_ActionItemTags_TagId`); no existing column
 touched, no backfill; `Down()` drops the two tables. Verified on throwaway LocalDB databases (empty; and production-like
 data one migration behind: action-item reads and saves on SQL Server while pending, all 49 existing tables, columns,
-indexes and FKs identical after Up, Down drops only the two tables). **Not applied to production.**
+indexes and FKs identical after Up, Down drops only the two tables). **Production:** applied to production on 2026-11-25 at about 14:40 (UTC+4) with `dotnet ef database update` on request; verified read-only: 28 history rows, 0 pending, `Tags` and `ActionItemTags` present and empty with their 5 indexes and 4 foreign keys, the 130 other existing tables (incl. the CT_ / AA_ apps) identical in rows and checksums, columns, indexes and foreign keys unchanged, `ActionItems` 57 rows with the same checksum and SHA-256.
 
 #### ActionItemSubItem (`ActionItemSubItems`) — WO-2026-11 A-2
 | Field | Type | Description |
@@ -871,7 +901,8 @@ the old columns of existing rows unchanged, a re-run copies 0, `Down()` + up kee
 | Name | string | Project name |
 | Description | string | Description |
 | WorkspaceId | Guid (FK) | Parent workspace |
-| ProjectType | enum | Operational, Strategic |
+| ProjectType | enum | Operational, Strategic — the global classification, labelled "Classification (global)" in the UI |
+| InternalClassificationId | Guid? (FK → WorkspaceProjectClassifications, Restrict) | Optional internal classification of the project's own workspace (WO-2026-11 P-1) |
 | ProjectStatus | enum | Draft, Active, OnHold, Completed, Cancelled, PendingApproval |
 | StrategicObjectiveId | Guid? (FK) | Required when Strategic type |
 | Priority | enum | Low, Medium, High, Critical |
@@ -884,7 +915,35 @@ the old columns of existing rows unchanged, a re-run copies 0, `Down()` + up kee
 | Currency | string | Always "AED" |
 | IsBaselined | bool | Locks dates when true |
 | IsDeleted | bool | Soft delete (cascades to milestones/items) |
-| **Nav:** | | Workspace, StrategicObjective, ProjectManager, OwnerOrgUnit, Sponsors, Risks |
+| **Nav:** | | Workspace, StrategicObjective, InternalClassification (P-1), ProjectManager, OwnerOrgUnit, Sponsors, Risks |
+
+#### WorkspaceProjectClassification (`WorkspaceProjectClassifications`) — WO-2026-11 P-1
+| Field | Type | Description |
+|-------|------|-------------|
+| Id | Guid (PK) | `NEWID()` |
+| WorkspaceId | Guid (FK → Workspaces, Restrict) | The workspace that defines it; never moves |
+| Name | string(100) | Trimmed, inner white space collapsed |
+| NormalizedName | string(100) | Upper-case name; **unique with `WorkspaceId` among rows with `IsDeleted = 0`** |
+| SortOrder | int | 1-based, dense among live rows (re-densified on delete) |
+| IsActive | bool (default 1) | False = kept on projects that have it, not offered for new choices |
+| IsDeleted | bool (default 0) | Soft delete; refused while any project (also a soft-deleted one) uses it |
+| CreatedAt / CreatedByUserId / UpdatedAt / UpdatedByUserId | audit | |
+| **Indexes:** | | `(WorkspaceId, NormalizedName)` unique filtered `[IsDeleted] = 0`; `(WorkspaceId, SortOrder)` |
+
+**Query filter:** deleted rows hidden; a private workspace's classifications visible to its admins and members only (the
+`Workspace` rule — the workspace's own filter also hides them through the required `Workspace` link). `CurrentUserId ==
+null` is unrestricted.
+
+Migration `Add_WorkspaceProjectClassifications` (2026-11-25): creates the table (PK, 2 indexes, FK to `Workspaces`) and adds
+the nullable column `Projects.InternalClassificationId` with `IX_Projects_InternalClassificationId` and
+`FK_Projects_WorkspaceProjectClassifications_InternalClassificationId` (NO ACTION); no backfill, no existing column changed;
+`Down()` removes exactly these. Verified on throwaway LocalDB databases (empty; production-like data one migration behind:
+all 51 existing tables identical in rows and checksums, columns / indexes / foreign keys only gain the new ones, `Down()`
+restores the previous schema exactly; the new queries run on SQL Server). **Applied to production 2026-11-26 (~08:30 UTC+4)**; a read-only before / after check
+found only `__EFMigrationsHistory` and the new objects changed. With this code the
+API cannot run on a database without the migration: every query that loads a `Project` entity — project, milestone, risk
+and approval pages and every action-item list / page / save (they include the item's project) — fails with SQL error 207.
+Apply the migration first, then restart: older code ignores the new nullable column and table (verified).
 
 #### Milestone
 | Field | Type | Description |
@@ -1319,7 +1378,9 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | `IActionItemSubItemService` | WO-2026-11 A-2. List / create / update / delete / tick / reorder sub-items with the rules above. Implementation `Application/Features/ActionItemSubItems/Services/ActionItemSubItemService.cs` |
 | `ActionItemSubItemRules` (static) | A-2 pure rules: `DateRangeProblem`, `IsOutsideParentDates`, `ParentAcceptsChanges` (not Done / Cancelled), `SameDay`, `ToStoredDay`. Client copy: `sub-item-dates.util.ts` |
 | `ActionItemSubItemCascade` (static) | A-2: `DeleteWithParentsAsync` / `RestoreWithParentsAsync` — used by `ActionItemService` and `ProjectService`; tracked changes only, the caller saves |
-| `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete |
+| `IProjectService` | CRUD, strategic objectives lookup, stats, cascade delete. WO-2026-11 P-1: the internal classification on create / update (through `IProjectClassificationService.EnsureAssignableAsync`), on every response (guarded to the project's own workspace) and as list filters |
+| `IProjectClassificationService` | WO-2026-11 P-1 (`Application/Features/ProjectClassifications/Services/ProjectClassificationService.cs`). `GetForWorkspaceAsync`, `CreateAsync`, `UpdateAsync` (rename / (de)activate), `ReorderAsync`, `DeleteAsync` (soft, 409 while used), and `EnsureAssignableAsync(workspaceId, requestedId, currentId)` for `ProjectService`. `ProjectClassificationConflictException` = 409 |
+| `ProjectClassificationRules` (static) | P-1 name rules: `Clean`, `Normalize`, `NameProblem`, `CleanOrThrow`, `DuplicateName`. Client copy: `project-classification-rules.util.ts` |
 | `IMilestoneService` | CRUD per project, stats, baselining |
 | `IProjectRiskService` | CRUD per project, risk stats, scoring |
 | `IWorkspaceService` | CRUD, summary stats, admin assignment, **member CRUD (add/remove/list)**, **strategic-plan link/unlink**, enriched active-users + strategic-plans dropdowns |
@@ -1438,6 +1499,7 @@ Exception rows have no `IsDeleted` — removing one from a calendar deletes the 
 | Standalone flag is derived | `ActionItem.IsStandalone` is set by the server from `ProjectId` (`ActionItemStandalone`), never from the client, so a client cannot detach an item from its project by accident (WO-2026-11 A-1b) |
 | Action Updates keep the comments table | `ActionItemUpdate` maps to the existing `ActionItemComments` table (no rename, no data move inside it); draft privacy lives in the query filter, so no endpoint can leak a draft; a submitted update is immutable for every role (WO-2026-11 A-3) |
 | Switchable startup migration | `Database:MigrateOnStartup` lets a developer run the API against a shared database with a migration in the working tree without applying it; seeders that need a missing table are skipped, not fatal (WO-2026-11 A-3) |
+| Migrate before restarting (P-1) | `Project.InternalClassificationId` is a column on an existing, heavily used table. Keeping the API alive while it is pending would need a second EF model switched at runtime; instead the order is "migrate, then restart" — older code ignores the new nullable column, so there is no outage (WO-2026-11 P-1, decision 1) |
 | Sub-items are not action items | `ActionItemSubItem` lives in its own table with its own assignee table, so `DashboardRules`, `/my-stats`, `/my-actions`, reports and every assignee-based count stay as they were; a user assigned only to a sub-item gets a separate My Actions list (WO-2026-11 A-2) |
 
 ---

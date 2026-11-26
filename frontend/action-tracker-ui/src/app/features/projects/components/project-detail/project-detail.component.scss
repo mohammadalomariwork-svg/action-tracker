@@ -793,3 +793,17 @@ $gantt-bar-h:   1.35rem;
     break-inside: avoid;
   }
 }
+
+// Internal classification (WO-2026-11 P-1)
+.pd-classification {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  color: var(--t1);
+}
+
+.pd-classification__inactive {
+  color: var(--t2);
+  font-size: .8125rem;
+}

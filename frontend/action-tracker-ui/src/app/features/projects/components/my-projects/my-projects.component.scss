@@ -543,3 +543,25 @@
     input { accent-color: var(--accent); }
   }
 }
+
+// Internal classification (WO-2026-11 P-1)
+.mp-classification {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  max-width: 14rem;
+  padding: .125rem .5rem;
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  color: var(--t1);
+  font-size: .8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-classification--none {
+  border-color: transparent;
+  padding-left: 0;
+  color: var(--t2);
+}

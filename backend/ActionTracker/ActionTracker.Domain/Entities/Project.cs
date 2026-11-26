@@ -14,7 +14,16 @@ public class Project
 
     public Guid WorkspaceId { get; set; }
 
+    /// <summary>Global classification (shown as "Classification (global)"); drives the approval chain.</summary>
     public ProjectType ProjectType { get; set; }
+
+    /// <summary>
+    /// Optional internal classification of the project's own workspace
+    /// (WO-2026-11 P-1). A label only — outside the approval workflows and the
+    /// date freeze.
+    /// </summary>
+    public Guid? InternalClassificationId { get; set; }
+
     public ProjectStatus Status { get; set; } = ProjectStatus.Draft;
 
     /// <summary>Required when ProjectType is Strategic.</summary>
@@ -52,6 +61,7 @@ public class Project
     // Navigation
     public Workspace Workspace { get; set; } = null!;
     public StrategicObjective? StrategicObjective { get; set; }
+    public WorkspaceProjectClassification? InternalClassification { get; set; }
     public ApplicationUser ProjectManager { get; set; } = null!;
     public OrgUnit? OwnerOrgUnit { get; set; }
     public ICollection<ProjectSponsor> Sponsors { get; set; } = new List<ProjectSponsor>();

@@ -94,8 +94,18 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasForeignKey(p => p.OwnerOrgUnitId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // FK to the workspace's internal classification (optional, WO-2026-11 P-1).
+        // Restrict: classifications are only soft-deleted, and never while a
+        // project uses them. That it belongs to the project's own workspace is
+        // enforced by ProjectClassificationService.
+        builder.HasOne(p => p.InternalClassification)
+            .WithMany()
+            .HasForeignKey(p => p.InternalClassificationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(p => p.WorkspaceId);
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => p.InternalClassificationId);
     }
 }
 

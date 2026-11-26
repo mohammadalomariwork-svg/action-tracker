@@ -43,6 +43,12 @@ import { tagsCell } from '../../../../shared/utils/tag-rules.util';
 import { ActionItemTagService } from '../../../../services/action-item-tag.service';
 import { TagFilterOption } from '../../../../models/action-item-tag.model';
 import { PermissionStateService } from '../../../permissions/services/permission-state.service';
+import { ProjectClassificationService } from '../../../../services/project-classification.service';
+import { ProjectClassification } from '../../../../models/project-classification.model';
+import {
+  CurrentProjectClassification, ProjectClassificationSelectComponent,
+} from '../../../../shared/components/project-classification-select/project-classification-select.component';
+import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -50,7 +56,7 @@ import { PermissionStateService } from '../../../permissions/services/permission
   imports: [
     SubItemCountComponent, TagChipsComponent, TagFilterComponent,
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective,
-    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent, ProjectClassificationSelectComponent,
   ],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
@@ -102,6 +108,16 @@ export class WorkspaceDetailComponent implements OnInit {
   // ── Tag filter (WO-2026-11 A-5): this workspace's tags, by id, any of ──
   private readonly tagSvc    = inject(ActionItemTagService);
   private readonly permState = inject(PermissionStateService);
+  private readonly classificationSvc = inject(ProjectClassificationService);
+
+  // ── Internal classification (WO-2026-11 P-1) ──
+  /** The workspace's classifications (active and inactive) — the project list filter's options. */
+  classificationOptions: ProjectClassification[] = [];
+  /** '' = all, 'none' = not classified, else a classification id. */
+  projectClassificationFilter = '';
+  /** The edited project's classification, for the drawer's dropdown. */
+  editingProjectClassification: CurrentProjectClassification | null = null;
+  private editingProjectOriginalClassificationId: string | null = null;
   readonly filterTagIds      = signal<string[]>([]);
   readonly tagOptions        = signal<TagFilterOption[]>([]);
   readonly tagOptionsLoading = signal(false);
@@ -233,6 +249,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.isLoading = false;
           this.loadActionItems();
           this.loadTagOptions();
+          this.loadClassificationOptions();
           this.loadProjects();
           this.loadAllUsers();
           this.loadStats();
@@ -604,6 +621,10 @@ export class WorkspaceDetailComponent implements OnInit {
       sortBy:         'createdAt',
       sortDescending: true,
       includeDeleted: this.showDeletedProjects || undefined,
+      internalClassificationId:
+        this.projectClassificationFilter && this.projectClassificationFilter !== 'none'
+          ? this.projectClassificationFilter : undefined,
+      unclassified: this.projectClassificationFilter === 'none' || undefined,
     };
 
     this.projectService.getAll(filter)
@@ -631,6 +652,19 @@ export class WorkspaceDetailComponent implements OnInit {
       this.projectPageNumber++;
       this.loadProjects();
     }
+  }
+
+  /** Options of the project list's classification filter (empty: the filter is not shown). */
+  private loadClassificationOptions(): void {
+    this.classificationSvc.options(this.workspaceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(list => this.classificationOptions = list);
+  }
+
+  onProjectClassificationFilterChange(value: string): void {
+    this.projectClassificationFilter = value;
+    this.projectPageNumber = 1;
+    this.loadProjects();
   }
 
   toggleShowDeletedProjects(): void {
@@ -695,6 +729,7 @@ export class WorkspaceDetailComponent implements OnInit {
       name: '',
       description: '',
       projectType: ProjectType.Operational,
+      internalClassificationId: null,
       strategicObjectiveId: null,
       priority: ProjectPriority.Medium,
       projectManagerUserId: '',
@@ -712,6 +747,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editingProjectOriginalStatus = null;
     this.projectFormError = null;
     this.projectForm = this.emptyProjectForm();
+    this.editingProjectClassification = null;
+    this.editingProjectOriginalClassificationId = null;
     this.originalProjectDates = { start: null, end: null };
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';
@@ -728,6 +765,7 @@ export class WorkspaceDetailComponent implements OnInit {
       name: prj.name,
       description: prj.description ?? '',
       projectType: prj.projectType,
+      internalClassificationId: prj.internalClassificationId ?? null,
       strategicObjectiveId: prj.strategicObjectiveId ?? null,
       priority: prj.priority,
       projectManagerUserId: prj.projectManagerUserId,
@@ -742,6 +780,10 @@ export class WorkspaceDetailComponent implements OnInit {
       start: this.projectForm.plannedStartDate || null,
       end:   this.projectForm.plannedEndDate || null,
     };
+    this.editingProjectOriginalClassificationId = prj.internalClassificationId ?? null;
+    this.editingProjectClassification = prj.internalClassificationId
+      ? { id: prj.internalClassificationId, name: prj.internalClassificationName, isActive: prj.internalClassificationIsActive }
+      : null;
     this.sponsorDropdownOpen = false;
     this.sponsorSearchTerm = '';
 
@@ -862,6 +904,7 @@ export class WorkspaceDetailComponent implements OnInit {
         name: this.projectForm.name.trim(),
         description: this.projectForm.description?.trim() || undefined,
         projectType: this.projectForm.projectType,
+        ...internalClassificationPatch(this.editingProjectOriginalClassificationId, this.projectForm.internalClassificationId),
         status: this.projectForm.status,
         strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
         priority: this.projectForm.priority,
@@ -890,6 +933,7 @@ export class WorkspaceDetailComponent implements OnInit {
         description: this.projectForm.description?.trim() || undefined,
         workspaceId: this.workspaceId,
         projectType: this.projectForm.projectType,
+        internalClassificationId: this.projectForm.internalClassificationId || undefined,
         strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
         priority: this.projectForm.priority,
         projectManagerUserId: this.projectForm.projectManagerUserId,
@@ -1036,6 +1080,7 @@ export class WorkspaceDetailComponent implements OnInit {
       'Code':          p.projectCode,
       'Name':          p.name,
       'Type':          p.projectTypeLabel,
+      'Internal classification': p.internalClassificationName ?? '',
       'Status':        p.statusLabel,
       'Priority':      p.priorityLabel,
       'Manager':       p.projectManagerName,
@@ -1128,6 +1173,8 @@ interface ProjectFormData {
   name: string;
   description: string;
   projectType: ProjectType;
+  /** Internal classification (WO-2026-11 P-1); null = none. */
+  internalClassificationId: string | null;
   strategicObjectiveId: string | null;
   priority: ProjectPriority;
   projectManagerUserId: string;

@@ -487,7 +487,8 @@ public class ActionItemSubItemServiceTests : IDisposable
         var parent = await AddParentAsync(projectId: project.Id);
         var sub = await AddSubItemAsync(parent.Id, Friday);
         var projects = new ProjectService(_db, NullLogger<ProjectService>.Instance, Mock.Of<IEmailSender>(),
-            Mock.Of<INotificationService>(), Settings(), Mock.Of<IServiceScopeFactory>(), _calendars);
+            Mock.Of<INotificationService>(), Settings(), Mock.Of<IServiceScopeFactory>(), _calendars,
+            Mock.Of<ActionTracker.Application.Features.ProjectClassifications.Interfaces.IProjectClassificationService>());
 
         await projects.DeleteAsync(project.Id, CancellationToken.None);
         Raw(sub.Id).Should().Match<ActionItemSubItem>(s => s.IsDeleted && s.DeletedWithParent);

@@ -29,6 +29,10 @@ import { PagedResult } from '../../../../core/models/api-response.model';
 import { HasPermissionDirective } from '../../../../shared';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import {
+  CurrentProjectClassification, ProjectClassificationSelectComponent,
+} from '../../../../shared/components/project-classification-select/project-classification-select.component';
+import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 
 function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value;
@@ -55,7 +59,8 @@ const AVATAR_COLORS = [
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, HasPermissionDirective,
-            BreadcrumbComponent, PageHeaderComponent, WorkingDayHintComponent, WorkingDaysComponent],
+            BreadcrumbComponent, PageHeaderComponent, WorkingDayHintComponent, WorkingDaysComponent,
+            ProjectClassificationSelectComponent],
   templateUrl: './my-projects.component.html',
   styleUrl: './my-projects.component.scss',
 })
@@ -127,10 +132,13 @@ export class MyProjectsComponent implements OnInit {
   editSponsorDropdownOpen = false;
   editSponsorSearchTerm   = '';
   editStrategicObjectives: StrategicObjectiveOption[] = [];
+  /** Internal classification of the edited project (WO-2026-11 P-1). */
+  editCurrentClassification: CurrentProjectClassification | null = null;
+  private editOriginalClassificationId: string | null = null;
 
   // ── Working calendars (WO-2026-11 C-3) ────────────────
   private readonly createWorkspaceId = signal('');
-  private readonly editWorkspaceId   = signal('');
+  readonly editWorkspaceId           = signal('');
   /** Calendar of the workspace picked in the create drawer. */
   readonly createCalendar = injectWorkspaceCalendar(() => this.createWorkspaceId());
   /** Calendar of the edited project's workspace. */
@@ -335,6 +343,7 @@ export class MyProjectsComponent implements OnInit {
       name:                 ['', [Validators.required, Validators.maxLength(255)]],
       description:          [''],
       projectType:          [ProjectType.Operational, [Validators.required]],
+      internalClassificationId: [null as string | null],
       strategicObjectiveId: [null as string | null],
       priority:             [ProjectPriority.Medium, [Validators.required]],
       projectManagerUserId: ['', [Validators.required]],
@@ -347,6 +356,8 @@ export class MyProjectsComponent implements OnInit {
 
     this.createForm.get('workspaceId')!.valueChanges.subscribe(wsId => {
       this.createWorkspaceId.set(wsId ?? '');
+      // Classifications belong to one workspace (WO-2026-11 P-1).
+      this.createForm.get('internalClassificationId')!.setValue(null, { emitEvent: false });
       // Sponsors are workspace-scoped — drop stale selections and reload list.
       this.selectedSponsorIds = [];
       this.availableUsers = [];
@@ -379,6 +390,7 @@ export class MyProjectsComponent implements OnInit {
     this.createForm.reset({
       workspaceId: '', name: '', description: '',
       projectType: ProjectType.Operational,
+      internalClassificationId: null,
       strategicObjectiveId: null,
       priority: ProjectPriority.Medium,
       projectManagerUserId: '',
@@ -480,6 +492,7 @@ export class MyProjectsComponent implements OnInit {
       description: v.description || undefined,
       workspaceId: v.workspaceId,
       projectType: v.projectType,
+      internalClassificationId: v.internalClassificationId || undefined,
       strategicObjectiveId: v.strategicObjectiveId || undefined,
       priority: v.priority,
       projectManagerUserId: v.projectManagerUserId,
@@ -508,6 +521,7 @@ export class MyProjectsComponent implements OnInit {
       name:                 ['', [Validators.required, Validators.maxLength(255)]],
       description:          [''],
       projectType:          [ProjectType.Operational, [Validators.required]],
+      internalClassificationId: [null as string | null],
       strategicObjectiveId: [null as string | null],
       priority:             [ProjectPriority.Medium, [Validators.required]],
       projectManagerUserId: ['', [Validators.required]],
@@ -526,6 +540,8 @@ export class MyProjectsComponent implements OnInit {
     this.editDrawerError = null;
     this.editWorkspaceId.set('');
     this.editOriginalDates = { start: null, end: null };
+    this.editCurrentClassification = null;
+    this.editOriginalClassificationId = null;
     this.editSponsorSearchTerm = '';
 
     if (!this.editForm) this.buildEditForm();
@@ -545,6 +561,10 @@ export class MyProjectsComponent implements OnInit {
           this.editOriginalStatus = p.status;
           this.editIsBaselined = p.isBaselined;
           this.editSponsorIds = p.sponsors.map(s => s.userId);
+          this.editOriginalClassificationId = p.internalClassificationId ?? null;
+          this.editCurrentClassification = p.internalClassificationId
+            ? { id: p.internalClassificationId, name: p.internalClassificationName, isActive: p.internalClassificationIsActive }
+            : null;
           this.editOriginalDates = {
             start: p.plannedStartDate ? String(p.plannedStartDate).substring(0, 10) : null,
             end:   p.plannedEndDate ? String(p.plannedEndDate).substring(0, 10) : null,
@@ -554,6 +574,7 @@ export class MyProjectsComponent implements OnInit {
             name: p.name,
             description: p.description ?? '',
             projectType: p.projectType,
+            internalClassificationId: p.internalClassificationId ?? null,
             strategicObjectiveId: p.strategicObjectiveId ?? null,
             priority: p.priority,
             projectManagerUserId: p.projectManagerUserId,
@@ -692,6 +713,7 @@ export class MyProjectsComponent implements OnInit {
       name: v.name,
       description: v.description || undefined,
       projectType: v.projectType,
+      ...internalClassificationPatch(this.editOriginalClassificationId, v.internalClassificationId),
       status: v.status,
       strategicObjectiveId: v.strategicObjectiveId || undefined,
       priority: v.priority,

@@ -13,9 +13,20 @@ public class ProjectResponseDto
     public Guid WorkspaceId { get; set; }
     public string WorkspaceTitle { get; set; } = string.Empty;
 
+    /// <summary>Global classification (Operational / Strategic), shown as "Classification (global)".</summary>
     public ProjectType ProjectType { get; set; }
     public ProjectStatus Status { get; set; }
     public ActionPriority Priority { get; set; }
+
+    /// <summary>
+    /// Internal classification of the project's workspace (WO-2026-11 P-1), or
+    /// null. Only ever a classification of the project's own workspace.
+    /// </summary>
+    public Guid? InternalClassificationId { get; set; }
+    public string? InternalClassificationName { get; set; }
+
+    /// <summary>False when the project keeps a classification that has since been deactivated.</summary>
+    public bool? InternalClassificationIsActive { get; set; }
 
     public Guid? StrategicObjectiveId { get; set; }
     public string? StrategicObjectiveStatement { get; set; }
@@ -61,6 +72,10 @@ public class ProjectCreateDto
     public string? Description { get; set; }
     public Guid WorkspaceId { get; set; }
     public ProjectType ProjectType { get; set; }
+
+    /// <summary>Optional internal classification (WO-2026-11 P-1): an active one of <see cref="WorkspaceId"/>, else 400.</summary>
+    public Guid? InternalClassificationId { get; set; }
+
     public Guid? StrategicObjectiveId { get; set; }
     public ActionPriority Priority { get; set; }
     public string ProjectManagerUserId { get; set; } = string.Empty;
@@ -76,6 +91,18 @@ public class ProjectUpdateDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public ProjectType ProjectType { get; set; }
+
+    /// <summary>
+    /// Internal classification (WO-2026-11 P-1). A value sets it (an active one
+    /// of the project's workspace; the one the project already has is accepted
+    /// even when inactive); null or missing keeps the current one, so screens
+    /// that do not send it never clear it.
+    /// </summary>
+    public Guid? InternalClassificationId { get; set; }
+
+    /// <summary>True removes the internal classification. Not together with <see cref="InternalClassificationId"/>.</summary>
+    public bool ClearInternalClassification { get; set; }
+
     public ProjectStatus Status { get; set; }
     public Guid? StrategicObjectiveId { get; set; }
     public ActionPriority Priority { get; set; }
@@ -110,6 +137,13 @@ public class ProjectFilterDto
     public ProjectStatus? Status { get; set; }
     public ProjectType? ProjectType { get; set; }
     public ActionPriority? Priority { get; set; }
+
+    /// <summary>Only projects with this internal classification (by id — WO-2026-11 P-1).</summary>
+    public Guid? InternalClassificationId { get; set; }
+
+    /// <summary>True = only projects without an internal classification.</summary>
+    public bool Unclassified { get; set; }
+
     public string? SearchTerm { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;

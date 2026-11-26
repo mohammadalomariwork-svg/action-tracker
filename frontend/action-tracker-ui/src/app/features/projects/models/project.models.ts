@@ -32,7 +32,13 @@ export interface ProjectResponse {
   description?: string;
   workspaceId: string;
   workspaceTitle: string;
+  /** Global classification (Operational / Strategic) — shown as "Classification (global)". */
   projectType: ProjectType;
+  /** Internal classification of the project's workspace (WO-2026-11 P-1), or null. */
+  internalClassificationId?: string | null;
+  internalClassificationName?: string | null;
+  /** False when the project keeps a classification that has since been deactivated. */
+  internalClassificationIsActive?: boolean | null;
   status: ProjectStatus;
   priority: ProjectPriority;
   strategicObjectiveId?: string;
@@ -62,6 +68,8 @@ export interface ProjectCreate {
   description?: string;
   workspaceId: string;
   projectType: ProjectType;
+  /** Optional internal classification: an active one of `workspaceId` (WO-2026-11 P-1). */
+  internalClassificationId?: string;
   strategicObjectiveId?: string;
   priority: ProjectPriority;
   projectManagerUserId: string;
@@ -75,6 +83,12 @@ export interface ProjectUpdate {
   name: string;
   description?: string;
   projectType: ProjectType;
+  /**
+   * WO-2026-11 P-1 — build with `internalClassificationPatch`: an id sets it,
+   * `clearInternalClassification` removes it, leaving both out keeps it.
+   */
+  internalClassificationId?: string;
+  clearInternalClassification?: boolean;
   status: ProjectStatus;
   strategicObjectiveId?: string;
   priority: ProjectPriority;
@@ -99,6 +113,10 @@ export interface ProjectFilter {
   status?: ProjectStatus;
   projectType?: ProjectType;
   priority?: ProjectPriority;
+  /** Only projects with this internal classification (WO-2026-11 P-1). */
+  internalClassificationId?: string;
+  /** Only projects without an internal classification. */
+  unclassified?: boolean;
   searchTerm?: string;
   pageNumber: number;
   pageSize: number;

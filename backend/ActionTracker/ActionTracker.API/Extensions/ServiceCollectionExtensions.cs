@@ -12,6 +12,8 @@ using ActionTracker.Application.Features.ActionItemUpdates.Interfaces;
 using ActionTracker.Application.Features.ActionItemUpdates.Services;
 using ActionTracker.Application.Features.Tags.Interfaces;
 using ActionTracker.Application.Features.Tags.Services;
+using ActionTracker.Application.Features.ProjectClassifications.Interfaces;
+using ActionTracker.Application.Features.ProjectClassifications.Services;
 using ActionTracker.Application.Features.EmailTemplates;
 using ActionTracker.Application.Features.MailServerConfig;
 using ActionTracker.Application.Features.Notifications;
@@ -133,6 +135,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentService,    DocumentService>();
         services.AddScoped<ICommentService,     CommentService>();
         services.AddScoped<IProjectService,     ProjectService>();
+        services.AddScoped<IProjectClassificationService, ProjectClassificationService>();   // WO-2026-11 P-1
         services.AddScoped<IMilestoneService,   MilestoneService>();
         services.AddScoped<IProjectRiskService, ProjectRiskService>();
 

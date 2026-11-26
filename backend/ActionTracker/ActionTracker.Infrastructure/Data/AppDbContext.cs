@@ -59,6 +59,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     public DbSet<WorkspaceMember>     WorkspaceMembers     => Set<WorkspaceMember>();
     public DbSet<WorkspaceProjectManager>           WorkspaceProjectManagers           => Set<WorkspaceProjectManager>();
     public DbSet<WorkspaceStrategicProjectApprover> WorkspaceStrategicProjectApprovers => Set<WorkspaceStrategicProjectApprover>();
+    public DbSet<WorkspaceProjectClassification>    WorkspaceProjectClassifications    => Set<WorkspaceProjectClassification>();   // WO-2026-11 P-1
 
     // ── Permissions feature sets ──────────────────────────────────────────────
     public DbSet<RolePermission>         RolePermissions         => Set<RolePermission>();
@@ -179,6 +180,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             && (CurrentUserId == null || !x.ActionItem.Workspace.IsPrivate
                 || x.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
                 || x.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+
+        // Internal project classifications (WO-2026-11 P-1): deleted rows are
+        // hidden, and a private workspace's classifications are visible to its
+        // admins and members only — the Workspace rule above. A project's
+        // classification name therefore never reaches anyone who cannot see
+        // that workspace.
+        modelBuilder.Entity<WorkspaceProjectClassification>().HasQueryFilter(c => !c.IsDeleted
+            && (CurrentUserId == null || !c.Workspace.IsPrivate
+                || c.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
+                || c.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
 
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         // Drafts (IsDraft = true) are hidden from every "live" query — the

@@ -130,6 +130,7 @@
                 }
               </th>
               <th>MY ROLE</th>
+              <th>INTERNAL CLASSIFICATION</th>
               <th class="mp-th-sortable" (click)="toggleSort('status')">
                 STATUS
                 @if (sortField === 'status') {
@@ -190,6 +191,15 @@
                     <span class="mp-role-badge mp-role-badge--sponsor">
                       <i class="bi bi-person-check"></i> Sponsor
                     </span>
+                  }
+                </td>
+
+                <!-- Internal classification (WO-2026-11 P-1) -->
+                <td>
+                  @if (entry.project.internalClassificationName) {
+                    <span class="mp-classification">{{ entry.project.internalClassificationName }}</span>
+                  } @else {
+                    <span class="mp-classification mp-classification--none">None</span>
                   }
                 </td>
 
@@ -277,6 +287,12 @@
               <span [ngClass]="priorityBadgeClass(entry.project.priority)">
                 {{ entry.project.priorityLabel }}
               </span>
+              @if (entry.project.internalClassificationName) {
+                <span class="mp-classification" title="Internal classification">
+                  <i class="bi bi-bookmark" aria-hidden="true"></i>
+                  <span class="visually-hidden">Internal classification: </span>{{ entry.project.internalClassificationName }}
+                </span>
+              }
             </div>
 
             <div class="mp-card-dates mb-3">
@@ -411,10 +427,10 @@
                     placeholder="Optional description"></textarea>
         </div>
 
-        <!-- Project Type -->
+        <!-- Global classification (ProjectType) -->
         <div class="mb-3">
-          <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
-          <div class="btn-group btn-group-sm" role="group">
+          <label class="form-label d-block" id="mpPtLabel">Classification (global) <span class="text-danger">*</span></label>
+          <div class="btn-group btn-group-sm" role="group" aria-labelledby="mpPtLabel">
             <input type="radio" class="btn-check" id="mpPtOp" formControlName="projectType"
                    [value]="ProjectType.Operational" autocomplete="off" />
             <label class="btn btn-outline-primary" for="mpPtOp"><i class="bi bi-gear me-1"></i>Operational</label>
@@ -422,6 +438,14 @@
                    [value]="ProjectType.Strategic" autocomplete="off" />
             <label class="btn btn-outline-primary" for="mpPtSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
           </div>
+        </div>
+
+        <!-- Internal classification (WO-2026-11 P-1) -->
+        <div class="mb-3">
+          <app-project-classification-select
+            inputId="mpInternalClassification"
+            formControlName="internalClassificationId"
+            [workspaceId]="createForm.get('workspaceId')?.value" />
         </div>
 
         <!-- Strategic Objective (conditional) -->
@@ -620,10 +644,10 @@
             <textarea class="form-control" formControlName="description" rows="2"></textarea>
           </div>
 
-          <!-- Project Type -->
+          <!-- Global classification (ProjectType) -->
           <div class="mb-3">
-            <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
-            <div class="btn-group btn-group-sm" role="group">
+            <label class="form-label d-block" id="editPtLabel">Classification (global) <span class="text-danger">*</span></label>
+            <div class="btn-group btn-group-sm" role="group" aria-labelledby="editPtLabel">
               <input type="radio" class="btn-check" id="editPtOp" formControlName="projectType"
                      [value]="ProjectType.Operational" autocomplete="off" />
               <label class="btn btn-outline-primary" for="editPtOp"><i class="bi bi-gear me-1"></i>Operational</label>
@@ -631,6 +655,15 @@
                      [value]="ProjectType.Strategic" autocomplete="off" />
               <label class="btn btn-outline-primary" for="editPtSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
             </div>
+          </div>
+
+          <!-- Internal classification (WO-2026-11 P-1) -->
+          <div class="mb-3">
+            <app-project-classification-select
+              inputId="editInternalClassification"
+              formControlName="internalClassificationId"
+              [workspaceId]="editWorkspaceId()"
+              [current]="editCurrentClassification" />
           </div>
 
           <!-- Strategic Objective (conditional) -->

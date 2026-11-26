@@ -22,13 +22,15 @@ import {
   WorkspaceProjectManager, WorkspaceStrategicProjectApprover,
   UserDropdownItem, OrgUnitDropdownItem, StrategicPlanDropdownItem,
 } from '../../models/workspace.model';
+import { ProjectClassificationsSectionComponent } from './project-classifications-section/project-classifications-section.component';
 
 type AddResult<T> = { failed?: boolean; data?: T; user: UserDropdownItem; err?: any };
 
 @Component({
   selector: 'app-workspace-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, HasPermissionDirective,
+            ProjectClassificationsSectionComponent],
   templateUrl: './workspace-settings.component.html',
   styleUrl: './workspace-settings.component.scss',
 })

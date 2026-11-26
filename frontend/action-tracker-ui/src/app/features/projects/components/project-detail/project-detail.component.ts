@@ -35,11 +35,17 @@ import { WorkingDaysComponent } from '../../../../shared/components/working-days
 import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
 import { varianceLabel } from '../../../../shared/utils/actual-dates.util';
+import {
+  CurrentProjectClassification, ProjectClassificationSelectComponent,
+} from '../../../../shared/components/project-classification-select/project-classification-select.component';
+import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 
 interface EditFormData {
   name: string;
   description: string;
   projectType: ProjectType;
+  /** Internal classification (WO-2026-11 P-1); null = none. */
+  internalClassificationId: string | null;
   strategicObjectiveId: string | null;
   priority: ProjectPriority;
   projectManagerUserId: string;
@@ -58,7 +64,7 @@ interface EditFormData {
     CommonModule, RouterLink, FormsModule,
     CommentsSectionComponent, DocumentsSectionComponent,
     MilestoneSectionComponent, RiskRegisterSectionComponent, BreadcrumbComponent, HasPermissionDirective,
-    WorkingDayHintComponent, WorkingDaysComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, ProjectClassificationSelectComponent,
   ],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',
@@ -339,6 +345,7 @@ export class ProjectDetailComponent implements OnInit {
     return {
       name: '', description: '',
       projectType: ProjectType.Operational,
+      internalClassificationId: null,
       strategicObjectiveId: null,
       priority: ProjectPriority.Medium,
       projectManagerUserId: '',
@@ -350,6 +357,14 @@ export class ProjectDetailComponent implements OnInit {
     };
   }
 
+  /** The edited project's internal classification, for the dropdown (shows an inactive one too). */
+  get currentClassification(): CurrentProjectClassification | null {
+    const prj = this.project;
+    return prj?.internalClassificationId
+      ? { id: prj.internalClassificationId, name: prj.internalClassificationName, isActive: prj.internalClassificationIsActive }
+      : null;
+  }
+
   openEditForm(): void {
     const prj = this.project;
     if (!prj) return;
@@ -358,6 +373,7 @@ export class ProjectDetailComponent implements OnInit {
       name: prj.name,
       description: prj.description ?? '',
       projectType: prj.projectType,
+      internalClassificationId: prj.internalClassificationId ?? null,
       strategicObjectiveId: prj.strategicObjectiveId ?? null,
       priority: prj.priority,
       projectManagerUserId: prj.projectManagerUserId,
@@ -545,6 +561,7 @@ export class ProjectDetailComponent implements OnInit {
       name:                   this.editForm.name.trim(),
       description:            this.editForm.description?.trim() || undefined,
       projectType:            this.editForm.projectType,
+      ...internalClassificationPatch(this.project?.internalClassificationId, this.editForm.internalClassificationId),
       status:                 this.editForm.status,
       strategicObjectiveId:   this.editForm.strategicObjectiveId || undefined,
       priority:               this.editForm.priority,
@@ -791,6 +808,7 @@ export class ProjectDetailComponent implements OnInit {
       { Field: 'Name',                    Value: prj.name },
       { Field: 'Workspace',               Value: prj.workspaceTitle },
       { Field: 'Type',                    Value: prj.projectTypeLabel },
+      { Field: 'Internal classification', Value: prj.internalClassificationName ?? '' },
       { Field: 'Status',                  Value: prj.statusLabel },
       { Field: 'Priority',                Value: prj.priorityLabel },
       { Field: 'Manager',                 Value: prj.projectManagerName },

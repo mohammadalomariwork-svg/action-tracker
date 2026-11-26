@@ -32,6 +32,7 @@ public interface IAppDbContext
     DbSet<WorkspaceMember>     WorkspaceMembers { get; }
     DbSet<WorkspaceProjectManager>           WorkspaceProjectManagers           { get; }
     DbSet<WorkspaceStrategicProjectApprover> WorkspaceStrategicProjectApprovers { get; }
+    DbSet<WorkspaceProjectClassification>    WorkspaceProjectClassifications    { get; }   // WO-2026-11 P-1
 
     // ── Projects feature sets ─────────────────────────────────────────────────
     DbSet<Project>          Projects        { get; }

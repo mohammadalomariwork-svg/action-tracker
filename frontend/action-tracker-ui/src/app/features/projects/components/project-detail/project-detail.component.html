@@ -185,9 +185,25 @@
         </div>
 
         <div class="wd-detail-item">
-          <span class="wd-detail-label">Type</span>
+          <span class="wd-detail-label">Classification (global)</span>
           <span class="wd-detail-value">
             <span [class]="typeClass(project.projectType)">{{ project.projectTypeLabel }}</span>
+          </span>
+        </div>
+
+        <div class="wd-detail-item">
+          <span class="wd-detail-label">Internal classification</span>
+          <span class="wd-detail-value">
+            @if (project.internalClassificationName) {
+              <span class="pd-classification">
+                <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ project.internalClassificationName }}
+                @if (project.internalClassificationIsActive === false) {
+                  <span class="pd-classification__inactive">(inactive)</span>
+                }
+              </span>
+            } @else {
+              <span class="text-muted">None</span>
+            }
           </span>
         </div>
 
@@ -629,10 +645,10 @@
                   placeholder="Optional project description" rows="3"></textarea>
       </div>
 
-      <!-- Project Type toggle -->
+      <!-- Global classification (ProjectType) toggle -->
       <div class="mb-3">
-        <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
-        <div class="btn-group" role="group">
+        <label class="form-label d-block" id="editPrjTypeLabel">Classification (global) <span class="text-danger">*</span></label>
+        <div class="btn-group" role="group" aria-labelledby="editPrjTypeLabel">
           <input type="radio" class="btn-check" id="editPrjTypeOp" name="editPrjType"
                  [value]="ProjectType.Operational"
                  [(ngModel)]="editForm.projectType"
@@ -645,6 +661,16 @@
                  (ngModelChange)="onProjectTypeChange()" />
           <label class="btn btn-outline-primary" for="editPrjTypeSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
         </div>
+      </div>
+
+      <!-- Internal classification (WO-2026-11 P-1) -->
+      <div class="mb-3">
+        <app-project-classification-select
+          inputId="editPrjInternalClassification"
+          name="editPrjInternalClassification"
+          [(ngModel)]="editForm.internalClassificationId"
+          [workspaceId]="project?.workspaceId"
+          [current]="currentClassification" />
       </div>
 
       <!-- Strategic Objective (shown when Strategic) -->

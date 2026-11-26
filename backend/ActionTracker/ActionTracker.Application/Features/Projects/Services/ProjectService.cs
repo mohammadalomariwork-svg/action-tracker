@@ -6,6 +6,7 @@ using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.ProjectClassifications.Interfaces;
 using ActionTracker.Application.Features.Projects.DTOs;
 using ActionTracker.Application.Features.Projects.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -27,6 +28,7 @@ public class ProjectService : IProjectService
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWorkCalendarService _calendars;
+    private readonly IProjectClassificationService _classifications;
 
     public ProjectService(
         IAppDbContext db,
@@ -35,7 +37,8 @@ public class ProjectService : IProjectService
         INotificationService notificationService,
         IOptions<AppSettings> appSettings,
         IServiceScopeFactory scopeFactory,
-        IWorkCalendarService calendars)
+        IWorkCalendarService calendars,
+        IProjectClassificationService classifications)
     {
         _db                  = db;
         _logger              = logger;
@@ -44,6 +47,7 @@ public class ProjectService : IProjectService
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
         _calendars           = calendars;
+        _classifications     = classifications;
     }
 
     public async Task<PagedResult<ProjectResponseDto>> GetAllAsync(ProjectFilterDto filter, CancellationToken ct)
@@ -71,6 +75,17 @@ public class ProjectService : IProjectService
 
         if (filter.Priority.HasValue)
             query = query.Where(p => p.Priority == filter.Priority.Value);
+
+        // Internal classification (WO-2026-11 P-1): by id only, on top of the
+        // project filters, so a name never crosses workspaces.
+        if (filter.InternalClassificationId.HasValue)
+        {
+            var classificationId = filter.InternalClassificationId.Value;
+            query = query.Where(p => p.InternalClassificationId == classificationId);
+        }
+
+        if (filter.Unclassified)
+            query = query.Where(p => p.InternalClassificationId == null);
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
@@ -123,6 +138,18 @@ public class ProjectService : IProjectService
             ProjectType                 = p.ProjectType,
             Status                      = p.Status,
             Priority                    = p.Priority,
+            // Only a live classification of the project's own workspace is shown
+            // (the query filter also hides private ones; this guard covers the
+            // include-deleted path, which ignores query filters).
+            InternalClassificationId    = p.InternalClassification != null && !p.InternalClassification.IsDeleted
+                                          && p.InternalClassification.WorkspaceId == p.WorkspaceId
+                                              ? p.InternalClassificationId : null,
+            InternalClassificationName  = p.InternalClassification != null && !p.InternalClassification.IsDeleted
+                                          && p.InternalClassification.WorkspaceId == p.WorkspaceId
+                                              ? p.InternalClassification.Name : null,
+            InternalClassificationIsActive = p.InternalClassification != null && !p.InternalClassification.IsDeleted
+                                          && p.InternalClassification.WorkspaceId == p.WorkspaceId
+                                              ? p.InternalClassification.IsActive : (bool?)null,
             StrategicObjectiveId        = p.StrategicObjectiveId,
             StrategicObjectiveStatement = p.StrategicObjective != null ? p.StrategicObjective.Statement : null,
             ProjectManagerUserId        = p.ProjectManagerUserId,
@@ -156,6 +183,7 @@ public class ProjectService : IProjectService
             .Include(p => p.Workspace)
             .Include(p => p.ProjectManager)
             .Include(p => p.StrategicObjective)
+            .Include(p => p.InternalClassification)
             .Include(p => p.OwnerOrgUnit)
             .Include(p => p.Sponsors).ThenInclude(s => s.User)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
@@ -194,6 +222,12 @@ public class ProjectService : IProjectService
             WorkingDateCheck.New("Planned end date",   dto.PlannedEndDate),
         }, ct);
 
+        // ── Internal classification (WO-2026-11 P-1): optional, an active one of this workspace.
+        Guid? internalClassificationId = dto.InternalClassificationId is { } requested && requested != Guid.Empty
+            ? requested : null;
+        if (internalClassificationId.HasValue)
+            await _classifications.EnsureAssignableAsync(dto.WorkspaceId, internalClassificationId.Value, null, ct);
+
         // Generate project code: PRJ-{year}-{sequence}
         var year = DateTime.UtcNow.Year;
         var count = await _db.Projects
@@ -209,6 +243,7 @@ public class ProjectService : IProjectService
             Description           = dto.Description?.Trim(),
             WorkspaceId           = dto.WorkspaceId,
             ProjectType           = dto.ProjectType,
+            InternalClassificationId = internalClassificationId,
             Status                = ProjectStatus.Draft,
             StrategicObjectiveId  = dto.ProjectType == ProjectType.Strategic ? dto.StrategicObjectiveId : null,
             Priority              = dto.Priority,
@@ -358,6 +393,23 @@ public class ProjectService : IProjectService
             WorkingDateCheck.Changed("Planned end date",   dto.PlannedEndDate,   project.PlannedEndDate),
         }, ct);
 
+        // ── Internal classification (WO-2026-11 P-1) ──────────────────────────
+        // A label, not part of what was approved: changeable in every status this
+        // update accepts, outside the date freeze. Null / missing keeps it.
+        if (dto.ClearInternalClassification && dto.InternalClassificationId is { } both && both != Guid.Empty)
+            throw new ArgumentException(
+                "Send either an internal classification or clearInternalClassification, not both.");
+
+        var internalClassificationId = project.InternalClassificationId;
+        if (dto.ClearInternalClassification)
+            internalClassificationId = null;
+        else if (dto.InternalClassificationId is { } requestedClassification && requestedClassification != Guid.Empty)
+        {
+            await _classifications.EnsureAssignableAsync(
+                project.WorkspaceId, requestedClassification, project.InternalClassificationId, ct);
+            internalClassificationId = requestedClassification;
+        }
+
         // Validate milestones/phases/action items when transitioning to Active or Completed
         if ((dto.Status == ProjectStatus.Active || dto.Status == ProjectStatus.Completed)
             && project.Status != dto.Status)
@@ -372,6 +424,7 @@ public class ProjectService : IProjectService
         project.Name                  = dto.Name.Trim();
         project.Description           = dto.Description?.Trim();
         project.ProjectType           = dto.ProjectType;
+        project.InternalClassificationId = internalClassificationId;
         project.Status                = dto.Status;
         project.StrategicObjectiveId  = dto.ProjectType == ProjectType.Strategic ? dto.StrategicObjectiveId : null;
         project.Priority              = dto.Priority;
@@ -705,6 +758,14 @@ public class ProjectService : IProjectService
         }
     }
 
+    /// <summary>
+    /// The project's internal classification when it may be shown: loaded
+    /// through its query filter (live, not a private workspace the caller is
+    /// outside of) and of the project's own workspace.
+    /// </summary>
+    private static WorkspaceProjectClassification? ShownClassification(Project p) =>
+        p.InternalClassification is { IsDeleted: false } c && c.WorkspaceId == p.WorkspaceId ? c : null;
+
     private static ProjectResponseDto MapToDto(Project p)
     {
         return new ProjectResponseDto
@@ -718,6 +779,9 @@ public class ProjectService : IProjectService
             ProjectType                 = p.ProjectType,
             Status                      = p.Status,
             Priority                    = p.Priority,
+            InternalClassificationId    = ShownClassification(p)?.Id,
+            InternalClassificationName  = ShownClassification(p)?.Name,
+            InternalClassificationIsActive = ShownClassification(p)?.IsActive,
             StrategicObjectiveId        = p.StrategicObjectiveId,
             StrategicObjectiveStatement = p.StrategicObjective?.Statement,
             ProjectManagerUserId        = p.ProjectManagerUserId,

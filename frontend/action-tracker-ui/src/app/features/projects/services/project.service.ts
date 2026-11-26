@@ -28,6 +28,8 @@ export class ProjectService {
     if (filter.status) params = params.set('status', filter.status);
     if (filter.projectType) params = params.set('projectType', filter.projectType);
     if (filter.priority) params = params.set('priority', filter.priority);
+    if (filter.internalClassificationId) params = params.set('internalClassificationId', filter.internalClassificationId);
+    if (filter.unclassified) params = params.set('unclassified', true);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
     if (filter.includeDeleted) params = params.set('includeDeleted', filter.includeDeleted);
     if (filter.strategicObjectiveIds?.length) {

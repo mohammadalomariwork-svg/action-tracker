@@ -2054,6 +2054,9 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("InternalClassificationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsBaselined")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2109,6 +2112,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InternalClassificationId");
 
                     b.HasIndex("OwnerOrgUnitId");
 
@@ -2965,6 +2970,66 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("WorkspaceMembers", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceProjectClassification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkspaceId", "NormalizedName")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("WorkspaceId", "SortOrder");
+
+                    b.ToTable("WorkspaceProjectClassifications", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceProjectManager", b =>
                 {
                     b.Property<int>("Id")
@@ -3458,6 +3523,11 @@ namespace ActionTracker.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ActionTracker.Domain.Entities.Project", b =>
                 {
+                    b.HasOne("ActionTracker.Domain.Entities.WorkspaceProjectClassification", "InternalClassification")
+                        .WithMany()
+                        .HasForeignKey("InternalClassificationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ActionTracker.Domain.Entities.OrgUnit", "OwnerOrgUnit")
                         .WithMany()
                         .HasForeignKey("OwnerOrgUnitId")
@@ -3479,6 +3549,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .HasForeignKey("WorkspaceId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("InternalClassification");
 
                     b.Navigation("OwnerOrgUnit");
 
@@ -3671,6 +3743,17 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                         .WithMany("Members")
                         .HasForeignKey("WorkspaceId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
+            modelBuilder.Entity("ActionTracker.Domain.Entities.WorkspaceProjectClassification", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Workspace", "Workspace")
+                        .WithMany()
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Workspace");

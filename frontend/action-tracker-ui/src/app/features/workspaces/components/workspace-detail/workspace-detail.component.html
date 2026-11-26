@@ -252,6 +252,22 @@
               <span class="badge bg-secondary ms-2">{{ projectTotalCount }}</span>
             </h5>
             <div class="d-flex align-items-center gap-3 flex-wrap">
+              <!-- Internal classification filter (WO-2026-11 P-1) -->
+              @if (classificationOptions.length > 0 || projectClassificationFilter) {
+                <div class="wd-classification-filter">
+                  <label class="visually-hidden" for="wdProjectClassificationFilter">Filter projects by internal classification</label>
+                  <select id="wdProjectClassificationFilter" class="form-select form-select-sm"
+                          [value]="projectClassificationFilter"
+                          (change)="onProjectClassificationFilterChange($any($event.target).value)">
+                    <option value="">All internal classifications</option>
+                    <option value="none">Not classified</option>
+                    @for (c of classificationOptions; track c.id) {
+                      <option [value]="c.id">{{ c.name }}{{ c.isActive ? '' : ' (inactive)' }}</option>
+                    }
+                  </select>
+                </div>
+              }
+
               <!-- Show deleted toggle -->
               <div class="form-check form-switch mb-0">
                 <input
@@ -283,7 +299,9 @@
           @if (!projectLoading && projects.length === 0) {
             <div class="wd-empty text-center py-4">
               <i class="bi bi-kanban wd-empty-icon text-muted"></i>
-              <p class="text-muted mt-2 mb-0">No projects in this workspace yet.</p>
+              <p class="text-muted mt-2 mb-0">
+                {{ projectClassificationFilter ? 'No projects with the chosen internal classification.' : 'No projects in this workspace yet.' }}
+              </p>
             </div>
           }
 
@@ -296,6 +314,7 @@
                     <th>Code</th>
                     <th>Name</th>
                     <th>Type</th>
+                    <th>Internal classification</th>
                     <th>Priority</th>
                     <th>Status</th>
                     <th>PM</th>
@@ -316,6 +335,13 @@
                         }
                       </td>
                       <td><span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span></td>
+                      <td>
+                        @if (prj.internalClassificationName) {
+                          <span class="wd-classification" [title]="prj.internalClassificationName">{{ prj.internalClassificationName }}</span>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
                       <td><span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span></td>
                       <td><span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span></td>
                       <td>{{ prj.projectManagerName }}</td>
@@ -376,6 +402,12 @@
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                       <a class="wa-action-id" [routerLink]="['/projects', prj.id]">{{ prj.projectCode }}</a>
                       <span class="badge bg-info text-dark">{{ prj.projectTypeLabel }}</span>
+                      @if (prj.internalClassificationName) {
+                        <span class="wd-classification" title="Internal classification">
+                          <i class="bi bi-bookmark" aria-hidden="true"></i>
+                          <span class="visually-hidden">Internal classification: </span>{{ prj.internalClassificationName }}
+                        </span>
+                      }
                       <span [class]="projectPriorityClass(prj.priority)">{{ prj.priorityLabel }}</span>
                       <span [class]="projectStatusClass(prj.status)">{{ prj.statusLabel }}</span>
                       @if (prj.isDeleted) {
@@ -1010,10 +1042,10 @@
                   placeholder="Optional project description" rows="3"></textarea>
       </div>
 
-      <!-- Project Type toggle -->
+      <!-- Global classification (ProjectType) toggle -->
       <div class="mb-3">
-        <label class="form-label d-block">Project Type <span class="text-danger">*</span></label>
-        <div class="btn-group" role="group">
+        <label class="form-label d-block" id="prjTypeLabel">Classification (global) <span class="text-danger">*</span></label>
+        <div class="btn-group" role="group" aria-labelledby="prjTypeLabel">
           <input type="radio" class="btn-check" id="prjTypeOp" name="prjType"
                  [value]="ProjectType.Operational"
                  [(ngModel)]="projectForm.projectType"
@@ -1026,6 +1058,16 @@
                  (ngModelChange)="onProjectTypeChange()" />
           <label class="btn btn-outline-primary" for="prjTypeSt"><i class="bi bi-bullseye me-1"></i>Strategic</label>
         </div>
+      </div>
+
+      <!-- Internal classification (WO-2026-11 P-1) -->
+      <div class="mb-3">
+        <app-project-classification-select
+          inputId="prjInternalClassification"
+          name="prjInternalClassification"
+          [(ngModel)]="projectForm.internalClassificationId"
+          [workspaceId]="workspaceId"
+          [current]="editingProjectClassification" />
       </div>
 
       <!-- Strategic Objective (shown right after type when Strategic) -->

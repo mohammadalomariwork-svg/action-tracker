@@ -35,6 +35,10 @@ import { WorkingDayHintComponent } from '../../../../shared/components/working-d
 import { WorkingDaysComponent } from '../../../../shared/components/working-days/working-days.component';
 import { nonWorkingDatesMessage, workingDayValidator } from '../../../../shared/validators/working-day.validator';
 import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
+import {
+  CurrentProjectClassification, ProjectClassificationSelectComponent,
+} from '../../../../shared/components/project-classification-select/project-classification-select.component';
+import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 
 function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value;
@@ -48,7 +52,7 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, RouterLink, BreadcrumbComponent, PageHeaderComponent,
-    WorkingDayHintComponent, WorkingDaysComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, ProjectClassificationSelectComponent,
   ],
   templateUrl: './project-form.component.html',
   styleUrl: './project-form.component.scss',
@@ -85,6 +89,10 @@ export class ProjectFormComponent implements OnInit {
   isLoading = false;
   errorMessage: string | null = null;
   originalStatus: ProjectStatus | null = null;
+
+  /** Internal classification the edited project holds now (WO-2026-11 P-1). */
+  currentClassification: CurrentProjectClassification | null = null;
+  private originalClassificationId: string | null = null;
 
   form!: FormGroup;
 
@@ -234,6 +242,7 @@ export class ProjectFormComponent implements OnInit {
         description: v.description || undefined,
         workspaceId: wsId,
         projectType: v.projectType,
+        internalClassificationId: v.internalClassificationId || undefined,
         strategicObjectiveId: v.strategicObjectiveId || undefined,
         priority: v.priority,
         projectManagerUserId: v.projectManagerUserId,
@@ -260,6 +269,7 @@ export class ProjectFormComponent implements OnInit {
       name: v.name,
       description: v.description || undefined,
       projectType: v.projectType,
+      ...internalClassificationPatch(this.originalClassificationId, v.internalClassificationId),
       status: v.status,
       strategicObjectiveId: v.strategicObjectiveId || undefined,
       priority: v.priority,
@@ -360,6 +370,7 @@ export class ProjectFormComponent implements OnInit {
       name: ['', [Validators.required, Validators.maxLength(255)]],
       description: [''],
       projectType: [ProjectType.Operational, [Validators.required]],
+      internalClassificationId: [null as string | null],
       strategicObjectiveId: [null as string | null],
       priority: [ProjectPriority.Medium, [Validators.required]],
       projectManagerUserId: ['', [Validators.required]],
@@ -386,7 +397,8 @@ export class ProjectFormComponent implements OnInit {
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((wsId: string) => {
           this.calendarWorkspaceId.set(wsId || null);
-          this.form.patchValue({ projectManagerUserId: '' });
+          // Classifications belong to one workspace (WO-2026-11 P-1).
+          this.form.patchValue({ projectManagerUserId: '', internalClassificationId: null });
           // Sponsors are workspace-scoped — drop any stale selections.
           this.selectedSponsorIds = [];
           this.loadUsers(wsId);
@@ -485,6 +497,10 @@ export class ProjectFormComponent implements OnInit {
           this.isBaselined = p.isBaselined;
           this.originalStatus = p.status;
           this.selectedSponsorIds = p.sponsors.map(s => s.userId);
+          this.originalClassificationId = p.internalClassificationId ?? null;
+          this.currentClassification = p.internalClassificationId
+            ? { id: p.internalClassificationId, name: p.internalClassificationName, isActive: p.internalClassificationIsActive }
+            : null;
           this.originalDates = {
             start: p.plannedStartDate ? String(p.plannedStartDate).substring(0, 10) : null,
             end:   p.plannedEndDate ? String(p.plannedEndDate).substring(0, 10) : null,
@@ -496,6 +512,7 @@ export class ProjectFormComponent implements OnInit {
             name: p.name,
             description: p.description ?? '',
             projectType: p.projectType,
+            internalClassificationId: p.internalClassificationId ?? null,
             strategicObjectiveId: p.strategicObjectiveId ?? null,
             priority: p.priority,
             projectManagerUserId: p.projectManagerUserId,
