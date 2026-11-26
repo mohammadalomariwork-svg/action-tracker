@@ -8,6 +8,7 @@ import { ProjectClassificationService } from '../../../../../services/project-cl
 import { PermissionStateService } from '../../../../permissions/services/permission-state.service';
 import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ProjectClassification } from '../../../../../models/project-classification.model';
+import { isShownHere } from '../../../../../core/http/server-reason';
 
 /** Stand-in for the Bootstrap modal (the real one needs Bootstrap's global JS). */
 @Component({ selector: 'app-confirm-dialog', standalone: true, template: '' })
@@ -143,15 +144,17 @@ describe('ProjectClassificationsSectionComponent (WO-2026-11 P-1)', () => {
 
   it('shows the server reason when an add is refused', async () => {
     const el = await render([capital]);
-    svc.create.and.returnValue(throwError(() => new HttpErrorResponse({
+    const refusal = new HttpErrorResponse({
       status: 409, error: { success: false, message: 'This workspace already has a classification named "X".' },
-    })));
+    });
+    svc.create.and.returnValue(throwError(() => refusal));
 
     typeNew(el, 'X');
     el.querySelector<HTMLFormElement>('.pcs__add')!.dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
     expect(el.querySelector('#pcsNewNameProblem')!.textContent).toContain('already has a classification named "X"');
+    expect(isShownHere(refusal)).withContext('the error interceptor stays silent').toBeTrue();
   });
 
   it('renames inline: Enter saves, Escape cancels', async () => {
@@ -229,9 +232,10 @@ describe('ProjectClassificationsSectionComponent (WO-2026-11 P-1)', () => {
 
   it('shows the 409 reason of a refused delete and reloads the counts', async () => {
     const el = await render([research]);
-    svc.delete.and.returnValue(throwError(() => new HttpErrorResponse({
+    const refusal = new HttpErrorResponse({
       status: 409, error: { success: false, message: '"Research" is used by 1 project and cannot be deleted.' },
-    })));
+    });
+    svc.delete.and.returnValue(throwError(() => refusal));
 
     el.querySelector<HTMLButtonElement>('#pcsDelete-b')!.click();
     svc.list.and.returnValue(of({ success: true, data: [{ ...research, projectCount: 1, canDelete: false }] } as any));
@@ -239,6 +243,7 @@ describe('ProjectClassificationsSectionComponent (WO-2026-11 P-1)', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.pcs__alert')!.textContent).toContain('is used by 1 project');
+    expect(isShownHere(refusal)).withContext('the error interceptor stays silent').toBeTrue();
     expect(el.querySelector<HTMLButtonElement>('#pcsDelete-b')!.disabled).toBeTrue();
   });
 });

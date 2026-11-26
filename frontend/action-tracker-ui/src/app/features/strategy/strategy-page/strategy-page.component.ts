@@ -46,6 +46,7 @@ import { ManageApproversDialogComponent } from '../components/manage-approvers-d
 import { ObjectiveFormComponent } from '../../admin/components/strategic-objectives/objective-form.component';
 import { PermissionStateService } from '../../permissions/services/permission-state.service';
 import { OrgUnitOption } from '../../../shared';
+import { showErrorHere } from '../../../core/http/server-reason';
 
 @Component({
   selector: 'app-strategy-page',
@@ -325,13 +326,13 @@ export class StrategyPageComponent implements OnInit {
             this.projects.set([]);
             this.kpis.set([]);
             this.resetPages();
-            this.error.set(err?.error?.message ?? 'Failed to load strategic objectives.');
+            this.error.set(showErrorHere(err) ?? 'Failed to load strategic objectives.');
             this.loading.set(false);
           },
         });
       },
       error: err => {
-        this.error.set(err?.error?.message ?? 'Failed to load strategy data.');
+        this.error.set(showErrorHere(err) ?? 'Failed to load strategy data.');
         this.loading.set(false);
       },
     });
@@ -366,7 +367,7 @@ export class StrategyPageComponent implements OnInit {
       },
       error: err => {
         this.projects.set([]);
-        this.projectsError.set(err?.error?.message ?? 'Failed to load projects.');
+        this.projectsError.set(showErrorHere(err) ?? 'Failed to load projects.');
         this.projectsLoading.set(false);
       },
     });
@@ -400,7 +401,7 @@ export class StrategyPageComponent implements OnInit {
       },
       error: err => {
         this.kpis.set([]);
-        this.kpisError.set(err?.error?.message ?? 'Failed to load KPIs.');
+        this.kpisError.set(showErrorHere(err) ?? 'Failed to load KPIs.');
         this.kpisLoading.set(false);
       },
     });
@@ -540,7 +541,7 @@ export class StrategyPageComponent implements OnInit {
           this.dialogOpen.set(false);
         },
         error: err => {
-          const msg = err?.error?.message ?? 'Failed to create plan.';
+          const msg = showErrorHere(err) ?? 'Failed to create plan.';
           this.dialogError.set(msg);
         },
       });
@@ -575,7 +576,7 @@ export class StrategyPageComponent implements OnInit {
           }
         },
         error: err => {
-          this.dialogError.set(err?.error?.message ?? 'Failed to update plan.');
+          this.dialogError.set(showErrorHere(err) ?? 'Failed to update plan.');
         },
       });
     }
@@ -718,7 +719,7 @@ export class StrategyPageComponent implements OnInit {
         },
         error: err => {
           this.justificationSubmitting.set(false);
-          this.justificationError.set(err?.error?.message ?? 'Failed to submit request.');
+          this.justificationError.set(showErrorHere(err) ?? 'Failed to submit request.');
         },
       });
       return;
@@ -739,13 +740,13 @@ export class StrategyPageComponent implements OnInit {
           },
           error: err => {
             this.justificationSubmitting.set(false);
-            this.justificationError.set(err?.error?.message ?? 'Failed to submit revision request.');
+            this.justificationError.set(showErrorHere(err) ?? 'Failed to submit revision request.');
           },
         });
       },
       error: err => {
         this.justificationSubmitting.set(false);
-        this.justificationError.set(err?.error?.message ?? 'Failed to open revision draft.');
+        this.justificationError.set(showErrorHere(err) ?? 'Failed to open revision draft.');
       },
     });
   }

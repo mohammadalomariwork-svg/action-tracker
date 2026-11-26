@@ -55,6 +55,7 @@ import {
   hoursLabel,
   rangeLength,
 } from '../calendar-ui';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 type DayForm = FormGroup<{
   dayOfWeek: FormControl<WeekDayName>;
@@ -520,7 +521,7 @@ export class CalendarEditorComponent implements OnInit, AfterViewInit {
       },
       error: err => {
         this.saving.set(false);
-        this.showServerError(apiErrorMessage(err, 'The calendar could not be saved.'));
+        this.showServerError(showErrorHere(err) ?? apiErrorMessage(err, 'The calendar could not be saved.'));
       },
     });
   }

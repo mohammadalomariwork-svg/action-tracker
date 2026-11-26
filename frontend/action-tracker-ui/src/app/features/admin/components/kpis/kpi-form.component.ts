@@ -24,6 +24,7 @@ import { KpiService }                from '../../services/kpi.service';
 import { StrategicObjectiveService } from '../../services/strategic-objective.service';
 import { Kpi, MeasurementPeriod, MeasurementPeriodLabels } from '../../models/kpi.models';
 import { StrategicObjective }        from '../../models/strategic-objectives.models';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-kpi-form',
@@ -201,7 +202,7 @@ export class KpiFormComponent implements OnInit, OnChanges {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.error.set(err?.error?.message ?? 'An error occurred. Please try again.');
+        this.error.set(showErrorHere(err) ?? 'An error occurred. Please try again.');
       },
     });
   }

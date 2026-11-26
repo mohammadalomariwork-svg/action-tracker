@@ -23,6 +23,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { OrgUnitService } from '../../services/org-unit.service';
 import { OrgUnit, OrgUnitTree } from '../../models/org-chart.models';
 import { OrgUnitSelectComponent } from '../../../../shared';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-org-unit-form',
@@ -170,7 +171,7 @@ export class OrgUnitFormComponent implements OnInit, OnChanges {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.error.set(err?.error?.message ?? 'An error occurred. Please try again.');
+        this.error.set(showErrorHere(err) ?? 'An error occurred. Please try again.');
       },
     });
   }

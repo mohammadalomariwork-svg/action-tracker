@@ -275,8 +275,9 @@ export class ActionListComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.loading.set(false);
-        // 503 = the tag filter while the server's tag tables are missing (WO-2026-11 A-5): say why.
-        this.toastSvc.error(err?.status === 503 && err?.error?.message ? err.error.message : 'Failed to load action items.');
+        // 503 = the tag filter while the server's tag tables are missing (WO-2026-11 A-5): the error
+        // toast already gives the server's reason.
+        if (err?.status !== 503) this.toastSvc.error('Failed to load action items.');
       },
     });
   }

@@ -21,6 +21,7 @@ import { ObjectiveFormComponent }    from './objective-form.component';
 import { AdminBreadcrumbComponent }  from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }       from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective, OrgUnitSelectComponent } from '../../../../shared';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-objectives-list',
@@ -89,7 +90,7 @@ export class ObjectivesListComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err) => {
-          this.error.set(err?.error?.message ?? 'Failed to load strategic objectives.');
+          this.error.set(showErrorHere(err) ?? 'Failed to load strategic objectives.');
           this.loading.set(false);
         },
       });

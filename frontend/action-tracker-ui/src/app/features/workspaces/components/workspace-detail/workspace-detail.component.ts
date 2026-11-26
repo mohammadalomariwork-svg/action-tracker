@@ -49,6 +49,7 @@ import {
   CurrentProjectClassification, ProjectClassificationSelectComponent,
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -255,7 +256,7 @@ export class WorkspaceDetailComponent implements OnInit {
           this.loadStats();
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to load workspace details.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to load workspace details.';
           this.isLoading = false;
         },
       });
@@ -325,10 +326,9 @@ export class WorkspaceDetailComponent implements OnInit {
           this.actionTotalCount = paged.totalCount;
           this.actionLoading = false;
         },
-        error: (err) => {
+        error: () => {
+          // The error toast gives the server's reason (e.g. 503: the tag filter while the tag tables are missing).
           this.actionLoading = false;
-          // 503 = the tag filter while the server's tag tables are missing (WO-2026-11 A-5): say why.
-          if (err?.status === 503 && err?.error?.message) this.toastSvc.error(err.error.message);
         },
       });
   }
@@ -584,7 +584,7 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => {
           this.deletingActionId = null;
-          this.errorMessage = err?.error?.message ?? 'Failed to delete action item.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to delete action item.';
         },
       });
   }
@@ -606,7 +606,7 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => {
           this.restoringActionId = null;
-          this.errorMessage = err?.error?.message ?? 'Failed to restore action item.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to restore action item.';
         },
       });
   }
@@ -692,7 +692,7 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => {
           this.deletingProjectId = null;
-          this.errorMessage = err?.error?.message ?? 'Failed to delete project.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to delete project.';
         },
       });
   }
@@ -718,7 +718,7 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => {
           this.restoringProjectId = null;
-          this.errorMessage = err?.error?.message ?? 'Failed to restore project.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to restore project.';
         },
       });
   }
@@ -924,7 +924,7 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => {
           this.projectSaving = false;
-          this.errorMessage = err?.error?.message ?? 'Failed to update project.';
+          this.projectFormError = showErrorHere(err) ?? 'Failed to update project.';
         },
       });
     } else {
@@ -951,7 +951,7 @@ export class WorkspaceDetailComponent implements OnInit {
         },
         error: (err) => {
           this.projectSaving = false;
-          this.errorMessage = err?.error?.message ?? 'Failed to create project.';
+          this.projectFormError = showErrorHere(err) ?? 'Failed to create project.';
         },
       });
     }

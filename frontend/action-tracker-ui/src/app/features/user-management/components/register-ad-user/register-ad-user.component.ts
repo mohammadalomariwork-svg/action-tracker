@@ -25,6 +25,7 @@ import {
 } from '../../models/user-management.models';
 import { AdminBreadcrumbComponent } from '../../../admin/components/shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 interface ADUserForm {
   email:       FormControl<string>;
@@ -169,7 +170,7 @@ export class RegisterADUserComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err: HttpErrorResponse) => {
-          this.searchError.set(err.error?.message ?? 'Search failed. Please try again.');
+          this.searchError.set(showErrorHere(err) ?? 'Search failed. Please try again.');
           this.loading.set(false);
         },
       });
@@ -232,12 +233,11 @@ export class RegisterADUserComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.submitting.set(false);
+          const reason = showErrorHere(err);
           if (err.status === 409) {
             this.formError.set('This email is already registered.');
           } else {
-            this.formError.set(
-              err.error?.message ?? 'An unexpected error occurred. Please try again.'
-            );
+            this.formError.set(reason ?? 'An unexpected error occurred. Please try again.');
           }
         },
       });

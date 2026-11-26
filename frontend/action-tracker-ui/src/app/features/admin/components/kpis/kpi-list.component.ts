@@ -21,6 +21,7 @@ import { KpiFormComponent }            from './kpi-form.component';
 import { AdminBreadcrumbComponent }    from '../shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }         from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective }      from '../../../../shared';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-kpi-list',
@@ -107,7 +108,7 @@ export class KpiListComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err) => {
-          this.error.set(err?.error?.message ?? 'Failed to load KPIs.');
+          this.error.set(showErrorHere(err) ?? 'Failed to load KPIs.');
           this.loading.set(false);
         },
       });

@@ -9,6 +9,7 @@ import { OrgUnitDropdownItem, UserDropdownItem, WorkspaceAdmin } from '../../mod
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { OrgUnitSelectComponent } from '../../../../shared';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-workspace-form',
@@ -169,7 +170,7 @@ export class WorkspaceFormComponent implements OnInit {
           this.isLoading = false;
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to load workspace.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to load workspace.';
           this.isLoading    = false;
         },
       });
@@ -234,7 +235,7 @@ export class WorkspaceFormComponent implements OnInit {
         this.router.navigate(['/workspaces']);
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message ?? 'An error occurred. Please try again.';
+        this.errorMessage = showErrorHere(err) ?? 'An error occurred. Please try again.';
         this.isLoading    = false;
       },
     });

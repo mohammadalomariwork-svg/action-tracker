@@ -25,6 +25,7 @@ import { UserPermissionOverrideDto } from '../../../../models/user-permission.mo
 import { UserPermissionService } from '../../../../services/user-permission.service';
 import { PermissionCatalogService } from '../../../../services/permission-catalog.service';
 import { AreaActionMappingDto } from '../../../../models/permission-catalog.model';
+import { showErrorHere } from '../../../../../../core/http/server-reason';
 
 declare const bootstrap: { Modal: new (el: HTMLElement, opts?: object) => { show(): void; hide(): void; dispose(): void } };
 
@@ -207,7 +208,7 @@ export class UserOverrideFormComponent implements OnInit, AfterViewInit, OnDestr
 
     obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next:  () => { this.saving.set(false); this.close(); this.saved.emit(); },
-      error: (err) => { this.saving.set(false); this.error.set(err?.error?.message ?? 'Failed to save override.'); },
+      error: (err) => { this.saving.set(false); this.error.set(showErrorHere(err) ?? 'Failed to save override.'); },
     });
   }
 

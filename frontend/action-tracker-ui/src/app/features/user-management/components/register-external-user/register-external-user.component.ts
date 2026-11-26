@@ -23,6 +23,7 @@ import { UserManagementService } from '../../services/user-management.service';
 import { RegisterUserResponse } from '../../models/user-management.models';
 import { AdminBreadcrumbComponent } from '../../../admin/components/shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 interface ExternalUserForm {
   fullName:        FormControl<string>;
@@ -144,12 +145,11 @@ export class RegisterExternalUserComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.loading.set(false);
+          const reason = showErrorHere(err);
           if (err.status === 409) {
             this.errorMessage.set('Email or username already exists.');
           } else {
-            this.errorMessage.set(
-              err.error?.message ?? 'An unexpected error occurred. Please try again.'
-            );
+            this.errorMessage.set(reason ?? 'An unexpected error occurred. Please try again.');
           }
         },
       });

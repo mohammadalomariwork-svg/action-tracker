@@ -12,6 +12,7 @@ import {
   RolePermissionRowComponent,
   ToggleChangeEvent,
 } from '../role-permission-row/role-permission-row.component';
+import { showErrorHere } from '../../../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-role-permission-matrix',
@@ -92,7 +93,7 @@ export class RolePermissionMatrixComponent {
         next:  () => { this.saving.set(false); this.permissionChanged.emit(); },
         error: (err) => {
           this.saving.set(false);
-          this.error.set(err?.error?.message ?? 'Failed to grant permission.');
+          this.error.set(showErrorHere(err) ?? 'Failed to grant permission.');
         },
       });
   }
@@ -105,7 +106,7 @@ export class RolePermissionMatrixComponent {
       next:  () => { this.saving.set(false); this.permissionChanged.emit(); },
       error: (err) => {
         this.saving.set(false);
-        this.error.set(err?.error?.message ?? 'Failed to revoke permission.');
+        this.error.set(showErrorHere(err) ?? 'Failed to revoke permission.');
       },
     });
   }

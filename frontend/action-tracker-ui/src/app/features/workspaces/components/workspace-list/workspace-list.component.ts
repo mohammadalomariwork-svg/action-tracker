@@ -12,6 +12,7 @@ import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/br
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 import { OrgUnitSelectComponent } from '../../../../shared';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-workspace-list',
@@ -96,7 +97,7 @@ export class WorkspaceListComponent implements OnInit {
         this.isLoading = false;
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message ?? 'Failed to load workspaces.';
+        this.errorMessage = showErrorHere(err) ?? 'Failed to load workspaces.';
         this.isLoading    = false;
       },
     });
@@ -253,7 +254,7 @@ export class WorkspaceListComponent implements OnInit {
           this.drawerLoading = false;
         },
         error: (err) => {
-          this.drawerError   = err?.error?.message ?? 'Failed to load workspace.';
+          this.drawerError   = showErrorHere(err) ?? 'Failed to load workspace.';
           this.drawerLoading = false;
         },
       });
@@ -270,7 +271,7 @@ export class WorkspaceListComponent implements OnInit {
       .subscribe({
         next: () => this.loadData(),
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to delete workspace.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to delete workspace.';
         },
       });
   }
@@ -284,7 +285,7 @@ export class WorkspaceListComponent implements OnInit {
       .subscribe({
         next: () => this.loadData(),
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to restore workspace.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to restore workspace.';
         },
       });
   }
@@ -434,7 +435,7 @@ export class WorkspaceListComponent implements OnInit {
         this.loadData();
       },
       error: (err) => {
-        this.drawerError   = err?.error?.message ?? 'An error occurred. Please try again.';
+        this.drawerError   = showErrorHere(err) ?? 'An error occurred. Please try again.';
         this.drawerLoading = false;
       },
     });

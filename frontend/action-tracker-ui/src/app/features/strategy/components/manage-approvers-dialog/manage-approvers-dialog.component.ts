@@ -18,6 +18,7 @@ import { StrategicPlanWorkflowService } from '../../../../services/strategic-pla
 import { StrategicPlanApprover } from '../../../../models/strategic-plan-workflow.model';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
 import { UserDropdownItem } from '../../../workspaces/models/workspace.model';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 /**
  * Manage Approvers offcanvas — replaces the plan's approval chain wholesale.
@@ -149,7 +150,7 @@ export class ManageApproversDialogComponent implements OnInit {
         },
         error: (err) => {
           this.submitting.set(false);
-          this.error.set(this.extractError(err));
+          this.error.set(showErrorHere(err) ?? this.extractError(err));
         },
       });
   }

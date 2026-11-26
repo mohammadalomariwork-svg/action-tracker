@@ -5,6 +5,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { RolePermissionMatrixComponent } from './components/role-permission-matrix/role-permission-matrix.component';
 import { RolePermissionService } from '../../services/role-permission.service';
 import { PermissionMatrixDto } from '../../models/role-permission.model';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-role-permissions-page',
@@ -48,7 +49,7 @@ export class RolePermissionsPageComponent implements OnInit {
       },
       error: (err) => {
         this.loadingRoles.set(false);
-        this.errorRoles.set(err?.error?.message ?? 'Failed to load roles.');
+        this.errorRoles.set(showErrorHere(err) ?? 'Failed to load roles.');
       },
     });
   }
@@ -71,7 +72,7 @@ export class RolePermissionsPageComponent implements OnInit {
       },
       error: (err) => {
         this.loadingMatrix.set(false);
-        this.errorMatrix.set(err?.error?.message ?? 'Failed to load permission matrix.');
+        this.errorMatrix.set(showErrorHere(err) ?? 'Failed to load permission matrix.');
       },
     });
   }

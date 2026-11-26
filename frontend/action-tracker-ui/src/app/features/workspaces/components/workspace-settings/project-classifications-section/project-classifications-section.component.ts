@@ -9,6 +9,7 @@ import { HasPermissionDirective } from '../../../../../shared';
 import {
   classificationNameProblem, cleanClassificationName, duplicateClassificationProblem,
 } from '../../../../../shared/utils/project-classification-rules.util';
+import { showErrorHere } from '../../../../../core/http/server-reason';
 
 /**
  * Workspace Settings → "Project Classifications" (WO-2026-11 P-1): the
@@ -76,7 +77,7 @@ export class ProjectClassificationsSectionComponent {
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.loadError.set(reason(err) ?? 'The project classifications could not be loaded.');
+        this.loadError.set(showErrorHere(err) ?? 'The project classifications could not be loaded.');
         this.loading.set(false);
       },
     });
@@ -136,7 +137,7 @@ export class ProjectClassificationsSectionComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(false);
-        this.newNameProblem.set(reason(err) ?? 'The classification could not be added.');
+        this.newNameProblem.set(showErrorHere(err) ?? 'The classification could not be added.');
         this.focus('pcsNewName');
       },
     });
@@ -182,7 +183,7 @@ export class ProjectClassificationsSectionComponent {
       this.renamingId.set(null);
       this.focus(`pcsRename-${c.id}`);
     }, err => {
-      this.renameProblem.set(reason(err) ?? 'The classification could not be renamed.');
+      this.renameProblem.set(showErrorHere(err) ?? 'The classification could not be renamed.');
       this.focus(`pcsRenameInput-${c.id}`);
     });
   }
@@ -196,7 +197,7 @@ export class ProjectClassificationsSectionComponent {
       isActive ? `"${c.name}" is active again.` : `"${c.name}" is deactivated. Projects that have it keep it.`,
       () => this.focus(`pcsToggle-${c.id}`),
       err => {
-        this.actionError.set(reason(err) ?? 'The classification could not be changed.');
+        this.actionError.set(showErrorHere(err) ?? 'The classification could not be changed.');
         this.focus(`pcsToggle-${c.id}`);
       });
   }
@@ -247,7 +248,7 @@ export class ProjectClassificationsSectionComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(false);
-        this.actionError.set(reason(err) ?? 'The order could not be saved.');
+        this.actionError.set(showErrorHere(err) ?? 'The order could not be saved.');
         this.refresh(() => this.focus(`pcsRename-${c.id}`));
       },
     });
@@ -285,7 +286,7 @@ export class ProjectClassificationsSectionComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.busy.set(false);
-        this.actionError.set(reason(err) ?? 'The classification could not be deleted.');
+        this.actionError.set(showErrorHere(err) ?? 'The classification could not be deleted.');
         // The counts may have changed meanwhile (409): show the current state.
         this.refresh(() => this.focus(`pcsDelete-${c.id}`, false, `pcsRename-${c.id}`));
       },
@@ -314,17 +315,4 @@ export class ProjectClassificationsSectionComponent {
       if (select && usable && typeof usable.select === 'function') usable.select();
     }, { injector: this.injector });
   }
-}
-
-/** The server's reason for a refused request (`ApiResponse.message`, else validation errors), or null. */
-function reason(err: HttpErrorResponse | null | undefined): string | null {
-  const body = err?.error;
-  if (!body || typeof body !== 'object') return null;
-  if (typeof body.message === 'string' && body.message.trim()) return body.message;
-  if (Array.isArray(body.errors) && body.errors.length) return body.errors.join(' ');
-  if (body.errors && typeof body.errors === 'object') {
-    const first = Object.values(body.errors as Record<string, string[]>).flat()[0];
-    if (typeof first === 'string') return first;
-  }
-  return null;
 }

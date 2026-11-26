@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest } from '../../../core/models/auth.models';
 import { ThemeService } from '../../../services/theme.service';
 import { environment } from '../../../../environments/environment';
+import { showErrorHere } from '../../../core/http/server-reason';
 
 const MSAL_CONFIGURED =
   !!environment.msalConfig.auth.clientId &&
@@ -84,11 +85,7 @@ export class LoginComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMsg.set(
-          err?.error?.message
-            || err?.error?.errors?.[0]
-            || 'Invalid email or password. Please try again.',
-        );
+        this.errorMsg.set(showErrorHere(err) ?? 'Invalid email or password. Please try again.');
       },
     });
   }

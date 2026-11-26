@@ -17,6 +17,7 @@ import {
 import { HasPermissionDirective } from '../../../../shared';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 /** File rules shared with the server (`DocumentService`): 10 MB, these types (Q13). */
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
@@ -267,7 +268,8 @@ export class ActionUpdatesSectionComponent {
       }
       // The draft exists: keep it, say what did not happen, and show it.
       this.resetForm();
-      const reason = (err as HttpErrorResponse)?.error?.message;
+      // This toast carries the server's reason, so the error interceptor stays silent.
+      const reason = showErrorHere(err);
       this.toast.error(failedFile
         ? `The update was saved as a draft, but “${failedFile}” could not be attached${reason ? ': ' + reason : '.'} It was not submitted.`
         : `The update and its files were saved as a draft, but it could not be submitted${reason ? ': ' + reason : '.'}`);
@@ -456,9 +458,9 @@ export class ActionUpdatesSectionComponent {
   }
 
   /**
-   * The error interceptor already toasts a 400 with its message and a 403 / 404;
-   * a 409 (the update was submitted meanwhile) only reaches it as
-   * "Unexpected error (409)", so give the reason and reload the list.
+   * The error interceptor toasts a 400 / 403 / 404 itself; a 409 (the update was
+   * submitted meanwhile) is toasted here with the same reason (ngx-toastr drops the
+   * repeat) and reloads the list.
    */
   private reportError(err: HttpErrorResponse, fallback: string): void {
     if (err.status === 409) {

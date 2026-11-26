@@ -39,6 +39,7 @@ import {
   CurrentProjectClassification, ProjectClassificationSelectComponent,
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value;
@@ -257,7 +258,7 @@ export class ProjectFormComponent implements OnInit {
           this.router.navigate(navTarget);
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to create project.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to create project.';
           this.isLoading = false;
         },
       });
@@ -285,7 +286,7 @@ export class ProjectFormComponent implements OnInit {
         this.router.navigate(['/workspaces', this.workspaceId]);
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
+        this.errorMessage = showErrorHere(err) ?? err?.error?.detail ?? 'Failed to update project.';
         this.isLoading = false;
       },
     });
@@ -542,7 +543,7 @@ export class ProjectFormComponent implements OnInit {
           this.isLoading = false;
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to load project.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to load project.';
           this.isLoading = false;
         },
       });

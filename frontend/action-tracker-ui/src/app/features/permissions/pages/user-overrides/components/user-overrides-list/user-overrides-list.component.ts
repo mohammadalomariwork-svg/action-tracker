@@ -6,6 +6,7 @@ import { UserPermissionService } from '../../../../services/user-permission.serv
 import { UserOverrideFormComponent } from '../user-override-form/user-override-form.component';
 import { ConfirmDialogComponent } from '../../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { HasPermissionDirective } from '../../../../../../shared/directives/has-permission.directive';
+import { showErrorHere } from '../../../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-user-overrides-list',
@@ -48,7 +49,7 @@ export class UserOverridesListComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next:  (overrides) => { this.overrides.set(overrides); this.loading.set(false); },
-        error: (err)       => { this.loading.set(false); this.error.set(err?.error?.message ?? 'Failed to load overrides.'); },
+        error: (err)       => { this.loading.set(false); this.error.set(showErrorHere(err) ?? 'Failed to load overrides.'); },
       });
   }
 
@@ -78,7 +79,7 @@ export class UserOverridesListComponent {
         },
         error: (err) => {
           this.deleting.set(false);
-          this.error.set(err?.error?.message ?? 'Failed to delete override.');
+          this.error.set(showErrorHere(err) ?? 'Failed to delete override.');
         },
       });
   }

@@ -29,6 +29,7 @@ import { BreadcrumbComponent } from '../../../shared/components/breadcrumb/bread
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { OrgUnitOption } from '../../../shared';
 import { PlanFormDialogComponent } from '../components/plan-form-dialog/plan-form-dialog.component';
+import { showErrorHere } from '../../../core/http/server-reason';
 
 interface StrategyCard {
   plan: StrategicPlan;
@@ -191,7 +192,7 @@ export class StrategyShellComponent implements OnInit {
         });
       },
       error: err => {
-        this.error.set(err?.error?.message ?? 'Failed to load org units.');
+        this.error.set(showErrorHere(err) ?? 'Failed to load org units.');
         this.loading.set(false);
       },
     });
@@ -241,7 +242,7 @@ export class StrategyShellComponent implements OnInit {
         this.router.navigate(['/strategy/org-units', plan.orgUnitId]);
       },
       error: err => {
-        this.dialogError.set(err?.error?.message ?? 'Failed to create plan.');
+        this.dialogError.set(showErrorHere(err) ?? 'Failed to create plan.');
       },
     });
   }

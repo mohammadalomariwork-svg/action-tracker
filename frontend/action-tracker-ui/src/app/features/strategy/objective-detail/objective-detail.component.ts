@@ -28,6 +28,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { StrategicPlanStatus } from '../../admin/models/strategic-plans.models';
 import { ToastService } from '../../../core/services/toast.service';
+import { showErrorHere } from '../../../core/http/server-reason';
 
 interface PeriodSlot {
   /** Month value the backend uses for this period slot (3/6/9/12 for quarters etc.). */
@@ -270,7 +271,7 @@ export class ObjectiveDetailComponent implements OnInit {
           this.loading.set(false);
         },
         error: err => {
-          this.error.set(err?.error?.message ?? 'Failed to load objective.');
+          this.error.set(showErrorHere(err) ?? 'Failed to load objective.');
           this.loading.set(false);
         },
       });

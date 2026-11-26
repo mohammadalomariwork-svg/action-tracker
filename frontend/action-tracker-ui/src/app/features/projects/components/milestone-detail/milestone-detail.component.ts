@@ -43,6 +43,7 @@ import { toActionItemUpdate } from '../../../../shared/utils/action-item-payload
 import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
 import { TagChipsComponent } from '../../../../shared/components/tag-chips/tag-chips.component';
 import { tagsCell } from '../../../../shared/utils/tag-rules.util';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-milestone-detail',
@@ -206,7 +207,7 @@ export class MilestoneDetailComponent implements OnInit {
           this.isLoading = false;
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to load milestone details.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to load milestone details.';
           this.isLoading = false;
         },
       });
@@ -480,7 +481,7 @@ export class MilestoneDetailComponent implements OnInit {
         },
         error: (err) => {
           this.deletingActionId = null;
-          this.errorMessage = err?.error?.message ?? 'Failed to delete action item.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to delete action item.';
         },
       });
   }

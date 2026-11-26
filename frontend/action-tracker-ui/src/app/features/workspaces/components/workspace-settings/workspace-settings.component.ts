@@ -23,8 +23,9 @@ import {
   UserDropdownItem, OrgUnitDropdownItem, StrategicPlanDropdownItem,
 } from '../../models/workspace.model';
 import { ProjectClassificationsSectionComponent } from './project-classifications-section/project-classifications-section.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
-type AddResult<T> = { failed?: boolean; data?: T; user: UserDropdownItem; err?: any };
+type AddResult<T> = { failed?: boolean; data?: T; user: UserDropdownItem; reason?: string | null };
 
 @Component({
   selector: 'app-workspace-settings',
@@ -144,7 +145,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to load workspace.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to load workspace.';
           this.isLoading = false;
         },
       });
@@ -185,7 +186,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.workspaceCalendar  = res.data ?? null;
           this.selectedCalendarId = res.data?.workCalendarId ?? '';
         },
-        error: (err) => this.calendarLoadError = apiErrorMessage(err, 'Failed to load the working calendar.'),
+        error: (err) => this.calendarLoadError = showErrorHere(err) ?? apiErrorMessage(err, 'Failed to load the working calendar.'),
       });
   }
 
@@ -234,7 +235,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.isSavingCalendar = false;
         },
         error: (err) => {
-          this.errorMessage = apiErrorMessage(err, 'Failed to update the working calendar.');
+          this.errorMessage = showErrorHere(err) ?? apiErrorMessage(err, 'Failed to update the working calendar.');
           this.isSavingCalendar = false;
         },
       });
@@ -304,7 +305,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to add members from org unit.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to add members from org unit.';
           this.isAddingFromOrgUnit = false;
         },
       });
@@ -401,7 +402,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.isAddingAdmin = false;
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to add admin.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to add admin.';
           this.isAddingAdmin = false;
         },
       });
@@ -489,7 +490,7 @@ export class WorkspaceSettingsComponent implements OnInit {
             addNext(i + 1, added);
           },
           error: (err) => {
-            this.errorMessage = err?.error?.message ?? `Failed to add ${u.displayName}.`;
+            this.errorMessage = showErrorHere(err) ?? `Failed to add ${u.displayName}.`;
             this.isAddingApprover = false;
             // Commit whatever we got so far
             if (this.workspace && added.length > 0) {
@@ -536,7 +537,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.recomputeAvailable();
           this.successMessage = `${admin.userName} removed from admins.`;
         },
-        error: (err) => this.errorMessage = err?.error?.message ?? 'Failed to remove admin.',
+        error: (err) => this.errorMessage = showErrorHere(err) ?? 'Failed to remove admin.',
       });
   }
 
@@ -555,7 +556,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.recomputeAvailable();
           this.successMessage = `${member.userName} removed from members.`;
         },
-        error: (err) => this.errorMessage = err?.error?.message ?? 'Failed to remove member.',
+        error: (err) => this.errorMessage = showErrorHere(err) ?? 'Failed to remove member.',
       });
   }
 
@@ -574,7 +575,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.recomputeAvailable();
           this.successMessage = `${pm.userName} removed from project managers.`;
         },
-        error: (err) => this.errorMessage = err?.error?.message ?? 'Failed to remove project manager.',
+        error: (err) => this.errorMessage = showErrorHere(err) ?? 'Failed to remove project manager.',
       });
   }
 
@@ -595,7 +596,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.recomputeAvailable();
           this.successMessage = `${approver.userName} removed from the approver chain.`;
         },
-        error: (err) => this.errorMessage = err?.error?.message ?? 'Failed to remove approver.',
+        error: (err) => this.errorMessage = showErrorHere(err) ?? 'Failed to remove approver.',
       });
   }
 
@@ -637,7 +638,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.isReorderingApprovers = false;
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to reorder approvers.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to reorder approvers.';
           this.isReorderingApprovers = false;
         },
       });
@@ -663,7 +664,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.isSavingStrategy = false;
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to update strategy.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to update strategy.';
           this.isSavingStrategy = false;
         },
       });
@@ -707,7 +708,9 @@ export class WorkspaceSettingsComponent implements OnInit {
     this.successMessage = null;
 
     const obs = users.map(u =>
-      request(u).pipe(catchError((err: any) => of({ failed: true, user: u, err } as AddResult<T>)))
+      request(u).pipe(catchError((err: any) =>
+        // The page names this failure with its reason, so no toast for it (see showErrorHere).
+        of({ failed: true, user: u, reason: showErrorHere(err) } as AddResult<T>)))
     );
 
     forkJoin(obs)
@@ -715,9 +718,9 @@ export class WorkspaceSettingsComponent implements OnInit {
       .subscribe({
         next: (results: any[]) => {
           const added: T[] = [];
-          const failed: { user: UserDropdownItem; err: any }[] = [];
+          const failed: { user: UserDropdownItem; reason: string | null }[] = [];
           results.forEach((r) => {
-            if (r && r.failed) failed.push({ user: r.user, err: r.err });
+            if (r && r.failed) failed.push({ user: r.user, reason: r.reason ?? null });
             else if (r?.data) added.push(r.data as T);
           });
 
@@ -730,11 +733,12 @@ export class WorkspaceSettingsComponent implements OnInit {
             this.successMessage = added.length === 1
               ? `1 ${label} added.`
               : `${added.length} ${label}s added.`;
-          } else if (added.length === 0) {
-            this.errorMessage = failed[0].err?.error?.message ?? `Failed to add ${label}s.`;
+          } else if (added.length === 0 && failed.length === 1) {
+            this.errorMessage = failed[0].reason ?? `Failed to add ${label}s.`;
           } else {
-            this.successMessage = `${added.length} ${label}(s) added.`;
-            this.errorMessage = `Failed to add: ${failed.map(f => f.user.displayName).join(', ')}.`;
+            if (added.length > 0) this.successMessage = `${added.length} ${label}(s) added.`;
+            this.errorMessage = `Failed to add: ${failed
+              .map(f => f.reason ? `${f.user.displayName} (${f.reason})` : f.user.displayName).join(', ')}.`;
           }
         },
         error: (err) => {

@@ -12,6 +12,7 @@ import { AppRoleDto }            from '../../models/role.model';
 import { HasPermissionDirective } from '../../../../shared';
 import { AdminBreadcrumbComponent } from '../../../admin/components/shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent }      from '../../../../shared/components/page-header/page-header.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-roles-list-page',
@@ -110,10 +111,11 @@ export class RolesListPageComponent implements OnInit {
       },
       error: (err) => {
         this.deletingInProgress.set(false);
+        const reason = showErrorHere(err);
         if (err?.status === 409) {
           this.deleteError.set('Role has active users assigned. Remove users first.');
         } else {
-          this.deleteError.set('Failed to delete role.');
+          this.deleteError.set(reason ?? 'Failed to delete role.');
         }
       },
     });

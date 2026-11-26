@@ -39,6 +39,7 @@ import {
   CurrentProjectClassification, ProjectClassificationSelectComponent,
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 interface EditFormData {
   name: string;
@@ -194,7 +195,7 @@ export class ProjectDetailComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.errorMessage = err?.error?.message ?? 'Failed to load project details.';
+          this.errorMessage = showErrorHere(err) ?? 'Failed to load project details.';
           this.isLoading = false;
         },
       });
@@ -293,7 +294,7 @@ export class ProjectDetailComponent implements OnInit {
         this.loadApprovalRequests();
       },
       error: (err) => {
-        this.submitError = err?.error?.message ?? err?.error?.detail ?? err?.message ?? 'Failed to submit for approval';
+        this.submitError = showErrorHere(err) ?? err?.error?.detail ?? err?.message ?? 'Failed to submit for approval';
         this.submittingApproval = false;
       },
     });
@@ -586,7 +587,7 @@ export class ProjectDetailComponent implements OnInit {
         },
         error: (err) => {
           this.saving = false;
-          this.saveEditError = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
+          this.saveEditError = showErrorHere(err) ?? err?.error?.detail ?? 'Failed to update project.';
         },
       });
   }

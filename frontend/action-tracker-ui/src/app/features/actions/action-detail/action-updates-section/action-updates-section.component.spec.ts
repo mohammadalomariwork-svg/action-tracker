@@ -10,6 +10,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ActionUpdate, ActionUpdateList } from '../../../../models/action-update.model';
 import { DocumentService } from '../../../../core/services/document.service';
+import { isShownHere } from '../../../../core/http/server-reason';
 
 /** Stand-in for the Bootstrap modal (the real one needs Bootstrap's global JS). */
 @Component({ selector: 'app-confirm-dialog', standalone: true, template: '' })
@@ -287,7 +288,8 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
   it('an upload failure keeps the draft and does not submit', async () => {
     const el = await render([]);
     svc.create.and.returnValue(of({ success: true, data: { ...draft, id: 'n1' } } as any));
-    docs.upload.and.returnValue(throwError(() => new HttpErrorResponse({ status: 400, error: { message: 'File size exceeds the 10 MB limit.' } })));
+    const tooBig = new HttpErrorResponse({ status: 400, error: { message: 'File size exceeds the 10 MB limit.' } });
+    docs.upload.and.returnValue(throwError(() => tooBig));
 
     type(el, 'With a bad file');
     pick([pdf('big.pdf')]);
@@ -297,6 +299,7 @@ describe('ActionUpdatesSectionComponent (WO-2026-11 A-3)', () => {
 
     expect(svc.submit).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith(jasmine.stringMatching(/saved as a draft, but “big\.pdf” could not be attached: File size exceeds the 10 MB limit\. It was not submitted\./));
+    expect(isShownHere(tooBig)).withContext('this toast carries the reason: the error interceptor stays silent').toBeTrue();
     expect(svc.list).toHaveBeenCalledTimes(2);
   });
 

@@ -21,6 +21,7 @@ import {
   summarizeHours,
   summarizeWorkingDays,
 } from './calendar-ui';
+import { showErrorHere } from '../../../core/http/server-reason';
 
 /** `undefined` = not loaded yet, `null` = the usage call failed. */
 type UsageState = WorkCalendarUsage | null | undefined;
@@ -254,9 +255,8 @@ export class CalendarsComponent implements OnInit {
       },
       error: err => {
         this.busyId.set(null);
-        // 409 reasons (default / in use / name taken) are shown on the page:
-        // the global interceptor only reports them as "Unexpected error (409)".
-        this.actionError.set(apiErrorMessage(err, failureMessage));
+        // The reason (default / in use / name taken) is shown on the page, not as a toast.
+        this.actionError.set(showErrorHere(err) ?? apiErrorMessage(err, failureMessage));
       },
     });
   }

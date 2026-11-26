@@ -25,6 +25,7 @@ import {
   MeasurementPeriod,
   MeasurementPeriodLabels,
 } from '../../models/kpi.models';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 interface TargetRow {
   /** KpiTarget primary key. Undefined for months that have not been saved yet. */
@@ -160,7 +161,7 @@ export class KpiTargetsComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err) => {
-          this.error.set(err?.error?.message ?? 'Failed to load KPI.');
+          this.error.set(showErrorHere(err) ?? 'Failed to load KPI.');
           this.loading.set(false);
         },
       });
@@ -324,7 +325,7 @@ export class KpiTargetsComponent implements OnInit {
         },
         error: (err) => {
           this.saving.set(false);
-          this.error.set(err?.error?.message ?? 'Failed to save targets.');
+          this.error.set(showErrorHere(err) ?? 'Failed to save targets.');
         },
       });
   }

@@ -25,6 +25,7 @@ import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/br
 import { AdminBreadcrumbComponent } from '../../../admin/components/shared/admin-breadcrumb/admin-breadcrumb.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../../shared';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 interface OrgUnitOption { id: string; label: string; }
 
@@ -154,7 +155,7 @@ export class UserListComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err) => {
-          this.error.set(err?.error?.message ?? 'Failed to load users.');
+          this.error.set(showErrorHere(err) ?? 'Failed to load users.');
           this.loading.set(false);
         },
       });

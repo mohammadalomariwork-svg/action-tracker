@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EffectivePermissionDto } from '../../../../models/user-permission.model';
 import { UserPermissionService } from '../../../../services/user-permission.service';
+import { showErrorHere } from '../../../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-user-effective-permissions-summary',
@@ -40,7 +41,7 @@ export class UserEffectivePermissionsSummaryComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next:  (perms) => { this.permissions.set(perms); this.loading.set(false); },
-        error: (err)   => { this.loading.set(false); this.error.set(err?.error?.message ?? 'Failed to load effective permissions.'); },
+        error: (err)   => { this.loading.set(false); this.error.set(showErrorHere(err) ?? 'Failed to load effective permissions.'); },
       });
   }
 

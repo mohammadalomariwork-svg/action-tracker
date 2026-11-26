@@ -33,6 +33,7 @@ import {
   CurrentProjectClassification, ProjectClassificationSelectComponent,
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value;
@@ -509,7 +510,7 @@ export class MyProjectsComponent implements OnInit {
       },
       error: err => {
         this.drawerSaving = false;
-        this.drawerError = err?.error?.message ?? 'Failed to create project.';
+        this.drawerError = showErrorHere(err) ?? 'Failed to create project.';
       },
     });
   }
@@ -733,7 +734,7 @@ export class MyProjectsComponent implements OnInit {
       },
       error: err => {
         this.editDrawerSaving = false;
-        this.editDrawerError = err?.error?.message ?? err?.error?.detail ?? 'Failed to update project.';
+        this.editDrawerError = showErrorHere(err) ?? err?.error?.detail ?? 'Failed to update project.';
         this.cdr.markForCheck();
       },
     });

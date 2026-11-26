@@ -30,6 +30,7 @@ import { nonWorkingDatesMessage, workingDayValidator } from '../../../../shared/
 import { subItemDateProblem, toDay } from '../../../../shared/utils/sub-item-dates.util';
 import { ActionUpdatesSectionComponent } from '../action-updates-section/action-updates-section.component';
 import { DocumentsSectionComponent } from '../../../../shared/components/documents-section/documents-section.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 /** Title that is not just blanks. */
 const notBlank: ValidatorFn = (c: AbstractControl): ValidationErrors | null =>
@@ -523,7 +524,7 @@ export class SubItemsSectionComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.serverError.set(this.errorText(err, 'Could not save the sub-item.'));
+        this.serverError.set(showErrorHere(err) ?? 'Could not save the sub-item.');
         afterNextRender(() => this.focus('si-edit-error'), { injector: this.injector });
       },
     });
@@ -578,9 +579,9 @@ export class SubItemsSectionComponent {
   }
 
   /**
-   * The error interceptor already toasts a 400 with its message and a 403 / 404;
-   * a 409 (parent Done or Cancelled) only reaches it as "Unexpected error (409)",
-   * so give the reason and reload to show the locked state.
+   * The error interceptor toasts a 400 / 403 / 404 itself; a 409 (parent Done or
+   * Cancelled) is toasted here with the same reason (ngx-toastr drops the repeat)
+   * and reloads to show the locked state.
    */
   private reportError(err: HttpErrorResponse, fallback: string): void {
     if (err.status === 409) {

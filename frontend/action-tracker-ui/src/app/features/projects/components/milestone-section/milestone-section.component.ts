@@ -30,6 +30,7 @@ import {
 } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
 import { SubItemCountComponent } from '../../../../shared/components/sub-item-count/sub-item-count.component';
+import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
   selector: 'app-milestone-section',
@@ -651,7 +652,7 @@ export class MilestoneSectionComponent implements OnInit {
       },
       error: (err) => {
         this.actionSubmitting.set(false);
-        this.actionFormError = err?.error?.message ?? err?.error?.detail ?? 'Failed to create action item.';
+        this.actionFormError = showErrorHere(err) ?? err?.error?.detail ?? 'Failed to create action item.';
       },
     });
   }
