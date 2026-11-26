@@ -69,7 +69,7 @@
       <div class="doc-actions">
         <button class="btn btn-outline btn-sm" (click)="downloadDocument(doc)" title="Download"
                 [attr.aria-label]="'Download ' + doc.name">Download</button>
-        @if (doc.canDelete !== false) {
+        @if (canDelete() && doc.canDelete !== false) {
           <button class="doc-action-btn doc-action-btn--delete" (click)="askDelete(doc, $any($event.currentTarget))"
                   title="Delete" [attr.aria-label]="'Delete ' + doc.name">🗑️</button>
         }

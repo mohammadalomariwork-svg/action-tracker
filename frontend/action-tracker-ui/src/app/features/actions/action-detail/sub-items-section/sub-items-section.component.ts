@@ -15,6 +15,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionStateService } from '../../../permissions/services/permission-state.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
+import { ProjectPeopleService } from '../../../../services/project-people.service';
 import { ActionItemSubItemService } from '../../../../services/action-item-sub-item.service';
 import { ActionUpdateService } from '../../../../services/action-update.service';
 import { injectWorkspaceCalendar } from '../../../../services/workspace-calendar.service';
@@ -80,6 +81,7 @@ export class SubItemsSectionComponent {
   private readonly updateSvc    = inject(ActionUpdateService);
   private readonly toast        = inject(ToastService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly peopleSvc    = inject(ProjectPeopleService);
   private readonly permState    = inject(PermissionStateService);
   private readonly auth         = inject(AuthService);
   private readonly fb           = inject(FormBuilder);
@@ -107,7 +109,19 @@ export class SubItemsSectionComponent {
   private readonly myUserId = toSignal(this.auth.currentUser$.pipe(map(u => u?.userId ?? null)), { initialValue: null });
 
   readonly workspaceId = computed(() => this.actionItem().workspaceId);
-  readonly calendar    = injectWorkspaceCalendar(() => this.workspaceId());
+  /** WO-2026-11 P-2: a caller who reaches the item only through a project role reads the calendar through the project. */
+  readonly calendar    = injectWorkspaceCalendar(
+    () => this.workspaceId(),
+    () => (this.actionItem().viaProjectRole ? this.actionItem().projectId : null));
+
+  /**
+   * WO-2026-11 P-2: the caller may work on the parent item (`canWork`): add,
+   * edit, reorder and delete its sub-items. A viewer or sponsor, or a team
+   * member on someone else's item, only reads — except on a sub-item assigned
+   * to them, which they can still tick and add updates and files to.
+   */
+  readonly canWorkItem = computed(() => this.actionItem().canWork !== false);
+  readonly canChangeSubItems = computed(() => this.canEdit() && this.canWorkItem());
 
   private readonly reloadKey = computed(() => {
     const a = this.actionItem();
@@ -169,6 +183,21 @@ export class SubItemsSectionComponent {
   readonly fileCounts = signal<ReadonlyMap<string, number>>(new Map());
   readonly openFiles  = signal<ReadonlySet<string>>(new Set());
   readonly canUploadFiles = computed(() => this.canEdit() && this.acceptsChanges());
+
+  /** Files on one sub-item: the item's workers, or the sub-item's own assignee (P-2). */
+  canUploadFilesFor(s: ActionItemSubItem): boolean {
+    return this.canUploadFiles() && (this.canWorkItem() || this.isMine(s));
+  }
+
+  /** Updates on one sub-item: the item's workers, or the sub-item's own assignee (P-2). */
+  canWriteUpdatesFor(s: ActionItemSubItem): boolean {
+    return this.canWorkItem() || this.isMine(s);
+  }
+
+  isMine(s: ActionItemSubItem): boolean {
+    const me = this.myUserId();
+    return !!me && s.assignees.some(a => a.userId === me);
+  }
   readonly filesLockedNote = computed(() => this.list() && !this.acceptsChanges()
     ? `This action item is ${this.actionItem().statusLabel}, so files on its sub-items can no longer be added or removed.`
     : null);
@@ -269,8 +298,7 @@ export class SubItemsSectionComponent {
   // ── Permissions per row ─────────────────────────────────────────────────
   canTick(s: ActionItemSubItem): boolean {
     if (!this.acceptsChanges()) return false;
-    const me = this.myUserId();
-    return this.canEdit() || (!!me && s.assignees.some(a => a.userId === me));
+    return this.canChangeSubItems() || this.isMine(s);
   }
 
   // ── Date rule (shared by both forms) ────────────────────────────────────
@@ -453,13 +481,22 @@ export class SubItemsSectionComponent {
     this.restoreFocus();
   }
 
+  /**
+   * Assignees of the sub-items. A project's item (WO-2026-11 P-2): the
+   * workspace's assignable users plus the project's team — or only the
+   * project's people for a caller who reaches it through a project role (D4).
+   * Anyone already assigned stays in the list (`assigneeOptions`).
+   */
   private loadAssignableUsers(): void {
+    const projectId = this.actionItem().projectId;
     const ws = this.workspaceId();
-    if (!ws || this.usersLoadedFor === ws) return;
-    this.usersLoadedFor = ws;
-    this.workspaceSvc.getAssignableUsers(ws).subscribe({
+    const key = projectId ? `p:${projectId}` : ws;
+    if (!key || this.usersLoadedFor === key) return;
+    this.usersLoadedFor = key;
+    const source = projectId ? this.peopleSvc.assignableUsers(projectId) : this.workspaceSvc.getAssignableUsers(ws);
+    source.subscribe({
       next: r => this.assignableUsers.set(r.data ?? []),
-      error: () => { this.usersLoadedFor = null; this.assignableUsers.set([]); },
+      error: err => { showErrorHere(err); this.usersLoadedFor = null; this.assignableUsers.set([]); },
     });
   }
 

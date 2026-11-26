@@ -35,7 +35,7 @@ export interface CurrentProjectClassification {
   template: `
     <label class="form-label" [for]="inputId()">{{ label() }}</label>
     <select class="form-select" [id]="inputId()"
-            [disabled]="isDisabled() || !workspaceId()"
+            [disabled]="isDisabled() || locked() || !workspaceId()"
             [attr.aria-describedby]="hintId()"
             (change)="onSelect($any($event.target).value)"
             (blur)="onTouched()">
@@ -45,7 +45,9 @@ export interface CurrentProjectClassification {
       }
     </select>
     <div class="pcs-hint" [id]="hintId()">
-      @if (!workspaceId()) {
+      @if (locked()) {
+        {{ lockedNote() }}
+      } @else if (!workspaceId()) {
         Choose the workspace first.
       } @else if (loaded() && activeCount() === 0) {
         This workspace has no internal classifications. Workspace managers add them on the workspace settings page.
@@ -67,13 +69,19 @@ export class ProjectClassificationSelectComponent implements ControlValueAccesso
   readonly current = input<CurrentProjectClassification | null>(null);
   readonly inputId = input.required<string>();
   readonly label = input('Internal classification');
+  /**
+   * WO-2026-11 P-2: the caller reaches the project only through a project role
+   * and cannot read the workspace's list (404) — show the current value only.
+   */
+  readonly locked = input(false);
+  readonly lockedNote = input("Set by the workspace's admins and members.");
 
   readonly value = signal<string | null>(null);
   readonly isDisabled = signal(false);
   readonly hintId = computed(() => `${this.inputId()}-hint`);
 
   private readonly options = toSignal(
-    toObservable(this.workspaceId).pipe(
+    toObservable(computed(() => (this.locked() ? null : this.workspaceId()))).pipe(
       switchMap(id => (id ? this.service.options(id) : of<ProjectClassification[] | null>(null))),
     ),
     { initialValue: null },

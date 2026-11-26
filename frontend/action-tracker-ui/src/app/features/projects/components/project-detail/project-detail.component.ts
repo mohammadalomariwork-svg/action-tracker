@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject, signal, HostListener } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -40,6 +40,13 @@ import {
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 import { showErrorHere } from '../../../../core/http/server-reason';
+import { ProjectPeoplePanelComponent } from '../project-people-panel/project-people-panel.component';
+import { ProjectPeopleFieldsComponent } from '../../../../shared/components/project-people-fields/project-people-fields.component';
+import { ProjectPeopleService } from '../../../../services/project-people.service';
+import { PersonOption, ProjectPeopleValue } from '../../../../models/project-people.model';
+import {
+  emptyPeopleValue, isProjectManagerOf, peoplePatch, peopleValueFrom, userListOptions,
+} from '../../../../shared/utils/project-people.util';
 
 interface EditFormData {
   name: string;
@@ -50,7 +57,6 @@ interface EditFormData {
   strategicObjectiveId: string | null;
   priority: ProjectPriority;
   projectManagerUserId: string;
-  sponsorUserIds: string[];
   plannedStartDate: string;
   plannedEndDate: string;
   approvedBudget: number | null;
@@ -66,6 +72,7 @@ interface EditFormData {
     CommentsSectionComponent, DocumentsSectionComponent,
     MilestoneSectionComponent, RiskRegisterSectionComponent, BreadcrumbComponent, HasPermissionDirective,
     WorkingDayHintComponent, WorkingDaysComponent, ProjectClassificationSelectComponent,
+    ProjectPeoplePanelComponent, ProjectPeopleFieldsComponent,
   ],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.scss',
@@ -80,13 +87,16 @@ export class ProjectDetailComponent implements OnInit {
   private readonly route              = inject(ActivatedRoute);
   private readonly destroyRef         = inject(DestroyRef);
   private readonly toastSvc           = inject(ToastService);
+  private readonly peopleSvc          = inject(ProjectPeopleService);
 
   projectId!: string;
   project: ProjectResponse | null = null;
 
   // Working calendar of the project's workspace (WO-2026-11 C-3)
   private readonly calendarWorkspaceId = signal<string | null>(null);
-  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId());
+  /** Set when the caller sees the workspace only through a project role (D6). */
+  private readonly calendarViaProject = signal<string | null>(null);
+  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId(), () => this.calendarViaProject());
   stats: ProjectStats | null = null;
   isLoading = false;
   errorMessage: string | null = null;
@@ -130,10 +140,16 @@ export class ProjectDetailComponent implements OnInit {
   allUsers: AssignableUser[] = [];
   strategicObjectives: StrategicObjectiveOption[] = [];
   strategicObjectivesLoaded = false;
-  sponsorDropdownOpen = false;
-  sponsorSearchTerm = '';
-
   editForm: EditFormData = this.emptyEditForm();
+
+  // ── People block of the edit drawer (WO-2026-11 P-2) ──
+  editPeople: ProjectPeopleValue = emptyPeopleValue();
+  /** What the project had when the drawer opened; null = could not load (lists are then left alone). */
+  private originalPeople: ProjectPeopleValue | null = null;
+  peopleLoading = false;
+  canAddProjectManagers = false;
+  workspacePmOptions: PersonOption[] | null = null;
+  editTriedSave = false;
 
   // ── Approval workflow ──────────────────────────────
   approvalRequests: ProjectApprovalRequest[] = [];
@@ -189,8 +205,11 @@ export class ProjectDetailComponent implements OnInit {
         next: (res) => {
           this.project = res.data ?? null;
           this.calendarWorkspaceId.set(this.project?.workspaceId ?? null);
+          this.calendarViaProject.set(this.project && !this.project.canOpenWorkspace ? this.project.id : null);
           this.isLoading = false;
-          if (this.project?.workspaceId) {
+          // The workspace's lists answer 404 to callers who reach the project only
+          // through a project role (WO-2026-11 P-2), so they are not asked for.
+          if (this.project?.workspaceId && this.project.canOpenWorkspace && this.project.canManage) {
             this.loadUsers(this.project.workspaceId);
           }
         },
@@ -242,10 +261,45 @@ export class ProjectDetailComponent implements OnInit {
       });
   }
 
+  /** Lead or additional project manager of a Draft project (WO-2026-11 P-2, D3). */
   get canSubmitForApproval(): boolean {
     return !!this.project
       && this.project.status === ProjectStatus.Draft
-      && this.project.projectManagerUserId === this.currentUserId;
+      && (isProjectManagerOf(this.project.myRoles) || this.project.projectManagerUserId === this.currentUserId);
+  }
+
+  /** Edit, Add and the People panel's changes follow the project's `canManage` (P-2). */
+  get canManage(): boolean {
+    return !!this.project?.canManage;
+  }
+
+  /** False for a caller who reaches the project only through a project role: the workspace is not a link. */
+  get canOpenWorkspace(): boolean {
+    return this.project?.canOpenWorkspace !== false;
+  }
+
+  get breadcrumbItems(): { label: string; route?: string }[] {
+    const prj = this.project;
+    const items: { label: string; route?: string }[] = [];
+    if (this.canOpenWorkspace) {
+      items.push({ label: 'Workspaces', route: '/workspaces' });
+      items.push({ label: prj?.workspaceTitle ?? '…', route: '/workspaces/' + (prj?.workspaceId ?? '') });
+    } else {
+      items.push({ label: 'My Projects', route: '/projects/my' });
+      items.push({ label: prj?.workspaceTitle ?? '…' });
+    }
+    items.push({ label: prj?.name ?? 'Loading…' });
+    return items;
+  }
+
+  /** After a change on the People panel: sponsors and roles are shown from the project. */
+  onPeopleChanged(): void {
+    this.projectService.getById(this.projectId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.data) this.project = res.data; },
+        error: err => { showErrorHere(err); },
+      });
   }
 
   get isPendingApproval(): boolean {
@@ -350,7 +404,6 @@ export class ProjectDetailComponent implements OnInit {
       strategicObjectiveId: null,
       priority: ProjectPriority.Medium,
       projectManagerUserId: '',
-      sponsorUserIds: [],
       plannedStartDate: '', plannedEndDate: '',
       approvedBudget: null,
       status: ProjectStatus.Draft,
@@ -378,7 +431,6 @@ export class ProjectDetailComponent implements OnInit {
       strategicObjectiveId: prj.strategicObjectiveId ?? null,
       priority: prj.priority,
       projectManagerUserId: prj.projectManagerUserId,
-      sponsorUserIds: prj.sponsors.map(s => s.userId),
       plannedStartDate: prj.plannedStartDate ? String(prj.plannedStartDate).substring(0, 10) : '',
       plannedEndDate: prj.plannedEndDate ? String(prj.plannedEndDate).substring(0, 10) : '',
       approvedBudget: prj.approvedBudget ?? null,
@@ -386,8 +438,9 @@ export class ProjectDetailComponent implements OnInit {
       actualStartDate: prj.actualStartDate ? String(prj.actualStartDate).substring(0, 10) : '',
     };
 
-    this.sponsorDropdownOpen = false;
-    this.sponsorSearchTerm = '';
+    this.editTriedSave = false;
+    this.saveEditError = null;
+    this.loadEditPeople(prj);
 
     if (prj.projectType === ProjectType.Strategic) {
       this.loadStrategicObjectives();
@@ -397,6 +450,34 @@ export class ProjectDetailComponent implements OnInit {
     }
 
     this.showEditForm = true;
+  }
+
+  /** The people block: everyone on the project now, and the PM list for additional PMs (D4). */
+  private loadEditPeople(prj: ProjectResponse): void {
+    this.editPeople = emptyPeopleValue(prj.sponsors.map(s => ({ userId: s.userId, fullName: s.fullName, email: s.email })));
+    this.originalPeople = null;
+    this.canAddProjectManagers = false;
+    this.peopleLoading = true;
+    this.peopleSvc.get(prj.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        if (res.data) {
+          this.editPeople = peopleValueFrom(res.data);
+          this.originalPeople = peopleValueFrom(res.data);
+          this.canAddProjectManagers = res.data.canAddProjectManagers;
+        }
+        this.peopleLoading = false;
+      },
+      error: err => {
+        this.saveEditError = showErrorHere(err) ?? "Could not load the project's people; they are left as they are.";
+        this.peopleLoading = false;
+      },
+    });
+    if (prj.canOpenWorkspace && this.workspacePmOptions === null) {
+      this.workspaceSvc.getProjectManagers(prj.workspaceId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: res => { this.workspacePmOptions = userListOptions(res.data); },
+        error: err => { showErrorHere(err); this.workspacePmOptions = []; },
+      });
+    }
   }
 
   /** Planned dates the project holds now; unchanged dates are never flagged (Q8). */
@@ -411,8 +492,6 @@ export class ProjectDetailComponent implements OnInit {
   cancelEditForm(): void {
     this.showEditForm = false;
     this.saveEditError = null;
-    this.sponsorDropdownOpen = false;
-    this.sponsorSearchTerm = '';
   }
 
   onProjectTypeChange(): void {
@@ -427,6 +506,15 @@ export class ProjectDetailComponent implements OnInit {
 
   private loadStrategicObjectives(): void {
     if (!this.project) return;
+    // A project-only caller cannot read the workspace's plan (404): the
+    // project's own objective is kept as it is (WO-2026-11 P-2).
+    if (!this.project.canOpenWorkspace) {
+      this.strategicObjectives = this.project.strategicObjectiveId
+        ? [{ id: this.project.strategicObjectiveId, statement: this.project.strategicObjectiveStatement ?? 'Current objective', objectiveCode: '' }]
+        : [];
+      this.strategicObjectivesLoaded = true;
+      return;
+    }
     this.projectService.getStrategicObjectivesForWorkspace(this.project.workspaceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -451,8 +539,9 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   saveEdit(): void {
+    this.editTriedSave = true;
     if (!this.editForm.name.trim() || !this.editForm.projectManagerUserId
-      || this.editForm.sponsorUserIds.length === 0
+      || this.editPeople.sponsors.length === 0 || this.peopleLoading
       || !this.editForm.plannedStartDate || !this.editForm.plannedEndDate
       || this.hasDateRangeError) {
       return;
@@ -567,7 +656,7 @@ export class ProjectDetailComponent implements OnInit {
       strategicObjectiveId:   this.editForm.strategicObjectiveId || undefined,
       priority:               this.editForm.priority,
       projectManagerUserId:   this.editForm.projectManagerUserId,
-      sponsorUserIds:         this.editForm.sponsorUserIds,
+      ...peoplePatch(this.originalPeople, this.editPeople),
       plannedStartDate:       this.editForm.plannedStartDate,
       plannedEndDate:         this.editForm.plannedEndDate,
       actualStartDate:        this.editForm.actualStartDate || undefined,
@@ -590,32 +679,6 @@ export class ProjectDetailComponent implements OnInit {
           this.saveEditError = showErrorHere(err) ?? err?.error?.detail ?? 'Failed to update project.';
         },
       });
-  }
-
-  // ── Sponsor helpers ────────────────────────────────────
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    this.sponsorDropdownOpen = false;
-  }
-
-  get filteredSponsorUsers(): AssignableUser[] {
-    if (!this.sponsorSearchTerm.trim()) return this.allUsers;
-    const term = this.sponsorSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
-  }
-
-  toggleSponsor(userId: string): void {
-    const idx = this.editForm.sponsorUserIds.indexOf(userId);
-    if (idx >= 0) this.editForm.sponsorUserIds.splice(idx, 1);
-    else this.editForm.sponsorUserIds.push(userId);
-  }
-
-  isSponsorSelected(userId: string): boolean {
-    return this.editForm.sponsorUserIds.includes(userId);
-  }
-
-  getSponsorName(userId: string): string {
-    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
   }
 
   // ── Gantt ───────────────────────────────────────────────

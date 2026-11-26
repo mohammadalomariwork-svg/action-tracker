@@ -48,6 +48,10 @@ const RATINGS = ['Critical', 'High', 'Medium', 'Low'];
 export class RiskRegisterSectionComponent implements OnInit {
   readonly projectId = input.required<string>();
   readonly workspaceId = input.required<string>();
+  /** WO-2026-11 P-2: the caller may add / edit / delete risks (the project's `canManage`). */
+  readonly canManage = input(true);
+  /** WO-2026-11 P-2: the caller sees the workspace only through a project role. */
+  readonly viaProjectRole = input(false);
 
   @ViewChild('deleteConfirm') deleteConfirm!: ConfirmDialogComponent;
 

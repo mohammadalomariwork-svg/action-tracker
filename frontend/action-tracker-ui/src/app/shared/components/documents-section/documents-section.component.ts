@@ -33,6 +33,12 @@ export class DocumentsSectionComponent {
   readonly entityType = input.required<string>();
   readonly entityId = input.required<string>();
   readonly canUpload = input(true);
+  /**
+   * False hides every delete button (WO-2026-11 P-2: a viewer, sponsor or team
+   * member of the project, whom the server refuses). True leaves it to each
+   * file's own `canDelete`.
+   */
+  readonly canDelete = input(true);
   readonly lockedNote = input<string | null>(null);
   readonly maxFiles = input<number | null>(null);
   readonly compact = input(false);

@@ -16,7 +16,7 @@ import { WorkingDaysComponent } from '../../../../shared/components/working-days
 import { nonWorkingDatesMessage } from '../../../../shared/validators/working-day.validator';
 import { ProjectService } from '../../services/project.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
-import { WorkspaceService } from '../../../workspaces/services/workspace.service';
+import { ProjectPeopleService } from '../../../../services/project-people.service';
 import {
   MilestoneResponse,
   MilestoneCreate,
@@ -46,15 +46,19 @@ export class MilestoneSectionComponent implements OnInit {
   readonly workspaceId = input<string>('');
   readonly isBaselined = input<boolean>(false);
   readonly projectStatus = input<string>('draft');
+  /** WO-2026-11 P-2: the caller may add / edit / delete milestones and add action items (the project's `canManage`). */
+  readonly canManage = input(true);
+  /** WO-2026-11 P-2: the caller sees the workspace only through a project role (calendar through the project). */
+  readonly viaProjectRole = input(false);
 
   private readonly milestoneSvc       = inject(MilestoneService);
   private readonly projectSvc         = inject(ProjectService);
   private readonly toastSvc           = inject(ToastService);
 
   /** Working calendar of the project's workspace (WO-2026-11 C-3). */
-  readonly calendar = injectWorkspaceCalendar(() => this.workspaceId());
+  readonly calendar = injectWorkspaceCalendar(() => this.workspaceId(), () => (this.viaProjectRole() ? this.projectId() : null));
   private readonly actionItemSvc      = inject(ActionItemService);
-  private readonly workspaceSvc       = inject(WorkspaceService);
+  private readonly peopleSvc          = inject(ProjectPeopleService);
 
   readonly isProjectFrozen = computed(() => this.projectStatus() !== 'draft');
 
@@ -162,15 +166,19 @@ export class MilestoneSectionComponent implements OnInit {
     });
   }
 
+  /**
+   * Assignees of a new action item in this project: the workspace's assignable
+   * users plus the project's team — or, for a caller who reaches the project
+   * only through a project role, the project's own people (WO-2026-11 P-2, D4).
+   */
   private loadUsers(): void {
-    const wsId = this.workspaceId();
-    if (!wsId) {
+    if (!this.canManage()) {
       this.users.set([]);
       return;
     }
-    this.workspaceSvc.getAssignableUsers(wsId).subscribe({
+    this.peopleSvc.assignableUsers(this.projectId()).subscribe({
       next: r => this.users.set(r.data ?? []),
-      error: () => this.users.set([]),
+      error: err => { showErrorHere(err); this.users.set([]); },
     });
   }
 

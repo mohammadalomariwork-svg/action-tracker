@@ -16,6 +16,8 @@ import { WorkingDayHintComponent } from '../../../shared/components/working-day-
 import { WorkingDaysComponent } from '../../../shared/components/working-days/working-days.component';
 import { nonWorkingDatesMessage } from '../../../shared/validators/working-day.validator';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
+import { ProjectPeopleService } from '../../../services/project-people.service';
+import { showErrorHere } from '../../../core/http/server-reason';
 import { AuthService }       from '../../../core/services/auth.service';
 
 import {
@@ -91,6 +93,7 @@ export class ActionListComponent implements OnInit, OnDestroy {
   private readonly actionSvc    = inject(ActionItemService);
   private readonly toastSvc     = inject(ToastService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly peopleSvc    = inject(ProjectPeopleService);
   private readonly authSvc      = inject(AuthService);
   private readonly cdr          = inject(ChangeDetectorRef);
   private readonly route        = inject(ActivatedRoute);
@@ -180,7 +183,14 @@ export class ActionListComponent implements OnInit, OnDestroy {
   /** Tags in the create / edit panel (WO-2026-11 A-5); on edit sent only when they changed. */
   readonly formTags = signal<string[]>([]);
   private originalTags: string[] = [];
-  readonly calendar = injectWorkspaceCalendar(() => this.formWorkspaceId());
+  /**
+   * WO-2026-11 P-2: the edited item is reached only through a role on its
+   * project — calendar and assignees through the project, read-only tags (D5).
+   */
+  readonly formViaProjectRole = signal(false);
+  private readonly formViaProjectId = signal<string | null>(null);
+  formWorkspaceTitle = '';
+  readonly calendar = injectWorkspaceCalendar(() => this.formWorkspaceId(), () => this.formViaProjectId());
   /** Dates the edited item holds now; unchanged dates are never flagged (Q8). */
   originalDates: { start: string | null; due: string | null } = { start: null, due: null };
   private originalEscalationText = '';
@@ -506,6 +516,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.editingActionId = null;
     this.actionForm = this.emptyActionForm();
     this.formWorkspaceId.set('');
+    this.formViaProjectRole.set(false);
+    this.formViaProjectId.set(null);
     this.formTags.set([]);
     this.originalTags = [];
     this.originalDates = { start: null, due: null };
@@ -546,6 +558,9 @@ export class ActionListComponent implements OnInit, OnDestroy {
       escalationExplanation: latestExplanation,
     };
     this.formWorkspaceId.set(this.actionForm.workspaceId);
+    this.formWorkspaceTitle = item.workspaceTitle;
+    this.formViaProjectRole.set(!!item.viaProjectRole);
+    this.formViaProjectId.set(item.viaProjectRole ? item.projectId : null);
     this.originalTags = (item.tags ?? []).map(t => t.name);
     this.formTags.set([...this.originalTags]);
     this.originalDates = { start: this.actionForm.startDate || null, due: this.actionForm.dueDate || null };
@@ -559,13 +574,26 @@ export class ActionListComponent implements OnInit, OnDestroy {
     this.showActionForm = true;
     this.cdr.markForCheck();
 
-    // Load assignable users for the action's workspace so the picker is populated on edit.
-    if (this.actionForm.workspaceId) {
-      this.workspaceSvc.getAssignableUsers(this.actionForm.workspaceId)
+    // Load assignable users so the picker is populated on edit. A project's item
+    // (WO-2026-11 P-2): the workspace's users plus the project's team, or only
+    // the project's people through a project role (D4); current assignees stay.
+    if (this.actionForm.workspaceId || item.projectId) {
+      const source = item.projectId
+        ? this.peopleSvc.assignableUsers(item.projectId)
+        : this.workspaceSvc.getAssignableUsers(this.actionForm.workspaceId);
+      source
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: r => { this.allUsers = r.data ?? []; this.cdr.markForCheck(); },
-          error: () => { this.allUsers = []; this.cdr.markForCheck(); },
+          next: r => {
+            const list = [...(r.data ?? [])];
+            const known = new Set(list.map(u => u.userId));
+            for (const a of item.assignees) {
+              if (!known.has(a.userId)) list.push({ userId: a.userId, userName: a.fullName, email: a.email, sources: [] });
+            }
+            this.allUsers = list;
+            this.cdr.markForCheck();
+          },
+          error: err => { showErrorHere(err); this.allUsers = []; this.cdr.markForCheck(); },
         });
     }
   }

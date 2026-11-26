@@ -9,7 +9,7 @@
     @if (list(); as l) {
       <app-sub-item-count [done]="l.doneCount" [total]="l.totalCount" />
     }
-    @if (list() && acceptsChanges()) {
+    @if (list() && acceptsChanges() && canWorkItem()) {
       <button *appHasPermission="'ActionItems'; action: 'Edit'"
               id="si-add-details" type="button" class="btn btn-sm btn-outline-primary ms-auto"
               (click)="openCreate($any($event.currentTarget))">
@@ -110,7 +110,7 @@
                 </button>
               </div>
             </div>
-            @if (acceptsChanges()) {
+            @if (acceptsChanges() && canWorkItem()) {
               <div *appHasPermission="'ActionItems'; action: 'Edit'" class="si-row__actions">
                 <button type="button" class="btn btn-sm si-icon-btn" [id]="'si-up-' + s.id"
                         [disabled]="first || busyId() === s.id" (click)="move(s, -1)"
@@ -137,14 +137,14 @@
             @if (filesOpen(s.id)) {
               <div class="si-row__updates" [id]="'si-files-' + s.id">
                 <app-documents-section entityType="ActionItemSubItem" [entityId]="s.id" [compact]="true"
-                                       [canUpload]="canUploadFiles()" [lockedNote]="filesLockedNote()" [maxFiles]="10"
+                                       [canUpload]="canUploadFilesFor(s)" [lockedNote]="filesLockedNote()" [maxFiles]="10"
                                        (countChange)="setFileCount(s.id, $event)" />
               </div>
             }
             @if (updatesOpen(s.id)) {
               <div class="si-row__updates" [id]="'si-updates-' + s.id">
                 <app-action-updates-section [actionItemId]="actionItem().id" [subItemId]="s.id"
-                                            [subItemTitle]="s.title" [compact]="true"
+                                            [subItemTitle]="s.title" [compact]="true" [canWrite]="canWriteUpdatesFor(s)"
                                             (countChange)="setUpdateCount(s.id, $event)" />
               </div>
             }
@@ -154,7 +154,7 @@
     }
 
     <!-- ── Inline add ───────────────────────────────────────── -->
-    @if (acceptsChanges()) {
+    @if (acceptsChanges() && canWorkItem()) {
       <form *appHasPermission="'ActionItems'; action: 'Edit'" class="si-quick" [formGroup]="quickForm"
             (ngSubmit)="addQuick()" aria-label="Add a sub-item" novalidate>
         <div class="si-quick__field si-quick__field--title">

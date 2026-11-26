@@ -75,6 +75,18 @@ export interface ActionItem {
   escalations: EscalationInfo[];
   /** Tags (WO-2026-11 A-5), sorted by name; empty while the tag tables are missing on the server. */
   tags: TagInfo[];
+  /**
+   * WO-2026-11 P-2: the caller may work on this item — edit, status, requests,
+   * updates, files, sub-items. False for a viewer / sponsor, or a team member
+   * on someone else's item.
+   */
+  canWork: boolean;
+  /**
+   * WO-2026-11 P-2: the caller reaches this item only through a role on its
+   * project — it cannot be moved, its tags are read-only (D5) and the
+   * workspace itself cannot be opened.
+   */
+  viaProjectRole: boolean;
   createdAt: string;
   updatedAt: string;
   daysUntilDue: number;

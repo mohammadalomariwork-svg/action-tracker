@@ -1,6 +1,8 @@
 <div class="pf-page">
 
-  <app-breadcrumb [items]="[{ label: 'Workspaces', route: '/workspaces' }, { label: isEditMode ? 'Edit Project' : 'New Project' }]" />
+  <app-breadcrumb [items]="canOpenWorkspace
+    ? [{ label: 'Workspaces', route: '/workspaces' }, { label: isEditMode ? 'Edit Project' : 'New Project' }]
+    : [{ label: 'My Projects', route: '/projects/my' }, { label: 'Edit Project' }]" />
 
   <app-page-header
     [title]="isEditMode ? 'Edit Project' : 'New Project'"
@@ -8,7 +10,7 @@
     [icon]="isEditMode ? 'bi bi-pencil-square' : 'bi bi-plus-circle'"
   >
     <button class="btn btn-link text-decoration-none p-0" (click)="onCancel()">
-      <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+      <i class="bi bi-arrow-left me-1"></i>{{ canOpenWorkspace ? 'Back to Workspace' : 'Back to Project' }}
     </button>
   </app-page-header>
 
@@ -92,6 +94,7 @@
               inputId="pfInternalClassification"
               formControlName="internalClassificationId"
               [workspaceId]="needsWorkspaceSelector ? form.get('selectedWorkspaceId')?.value : workspaceId"
+              [locked]="!canOpenWorkspace"
               [current]="currentClassification" />
           </div>
 
@@ -117,7 +120,7 @@
                         [class.is-invalid]="isInvalid('strategicObjectiveId')">
                   <option [ngValue]="null">-- Select --</option>
                   @for (so of strategicObjectives; track so.id) {
-                    <option [ngValue]="so.id">{{ so.objectiveCode }} — {{ so.statement }}</option>
+                    <option [ngValue]="so.id">{{ so.objectiveCode ? so.objectiveCode + ' — ' : '' }}{{ so.statement }}</option>
                   }
                 </select>
                 @if (hasError('strategicObjectiveId', 'required')) {
@@ -141,8 +144,13 @@
           <h6 class="pf-section-title"><i class="bi bi-people me-1"></i>Team</h6>
 
           <div class="mb-3">
-            <label for="pfPM" class="form-label">Project Manager <span class="text-danger">*</span></label>
-            @if (workspacePms.length > 0) {
+            <label for="pfPM" class="form-label">Lead project manager <span class="text-danger">*</span></label>
+            @if (isEditMode && !canOpenWorkspace) {
+              <input id="pfPM" type="text" class="form-control" [value]="leadPmName" readonly aria-describedby="pfPMLocked" />
+              <div class="pf-locked-note" id="pfPMLocked">
+                <i class="bi bi-lock" aria-hidden="true"></i> Only the workspace's admins and members can change the lead project manager.
+              </div>
+            } @else if (workspacePms.length > 0) {
               <select id="pfPM" class="form-select" formControlName="projectManagerUserId"
                       [class.is-invalid]="isInvalid('projectManagerUserId')">
                 <option value="">-- Select --</option>
@@ -169,51 +177,17 @@
             }
           </div>
 
-          <!-- Sponsors multi-select -->
-          <div class="mb-3">
-            <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
-            <div class="wa-multi-select" (click)="sponsorDropdownOpen = !sponsorDropdownOpen; $event.stopPropagation()">
-              <div class="wa-multi-select__control form-select">
-                @if (selectedSponsorIds.length === 0) {
-                  <span class="text-muted">Select sponsors...</span>
-                } @else {
-                  <div class="wa-multi-select__tags">
-                    @for (id of selectedSponsorIds; track id) {
-                      <span class="wa-multi-select__tag">
-                        {{ getSponsorName(id) }}
-                        <button type="button" class="wa-multi-select__tag-remove"
-                                (click)="toggleSponsor(id); $event.stopPropagation()">
-                          <i class="bi bi-x"></i>
-                        </button>
-                      </span>
-                    }
-                  </div>
-                }
-              </div>
-              @if (sponsorDropdownOpen) {
-                <div class="wa-multi-select__dropdown">
-                  <input type="text" class="form-control form-control-sm wa-multi-select__search"
-                         placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
-                         [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
-                  <div class="wa-multi-select__options">
-                    @for (u of filteredSponsorUsers; track u.userId) {
-                      <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
-                        <input type="checkbox" [checked]="isSponsorSelected(u.userId)"
-                               (change)="toggleSponsor(u.userId)" />
-                        <span>{{ u.userName }}</span>
-                      </label>
-                    }
-                    @if (filteredSponsorUsers.length === 0) {
-                      <div class="text-muted small px-3 py-2">No users found.</div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-            @if (selectedSponsorIds.length === 0) {
-              <small class="text-danger">At least one sponsor is required.</small>
-            }
-          </div>
+          <!-- People (WO-2026-11 P-2) -->
+          @if (peopleLoading) {
+            <div class="text-muted small mb-2" role="status"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Loading people…</div>
+          }
+          <app-project-people-fields idPrefix="pf"
+                                     [(value)]="people"
+                                     [pmOptions]="pmOptions"
+                                     [canAddProjectManagers]="canOpenWorkspace && canAddProjectManagers"
+                                     [leadPmUserId]="form.get('projectManagerUserId')?.value"
+                                     [showErrors]="triedSave"
+                                     [disabled]="peopleLoading" />
         </div>
 
         <!-- Section 4 — Schedule & Budget -->
@@ -296,7 +270,7 @@
           <button type="button" class="btn btn-outline-secondary" (click)="onCancel()" [disabled]="isLoading">
             <i class="bi bi-x-lg me-1"></i>Cancel
           </button>
-          <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" [disabled]="isLoading">
+          <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" [disabled]="isLoading || cannotEdit || peopleLoading">
             @if (isLoading) {
               <span class="spinner-border spinner-border-sm" role="status"></span> Saving...
             } @else if (isEditMode) {

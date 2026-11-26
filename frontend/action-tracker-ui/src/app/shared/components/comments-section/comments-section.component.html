@@ -2,6 +2,9 @@
   <h3 class="card__title">💬 Comments ({{ comments().length }})</h3>
 
   <!-- Add Comment Form -->
+  @if (!canPost()) {
+    <p class="comment-readonly"><i class="bi bi-lock" aria-hidden="true"></i> {{ readOnlyNote() }}</p>
+  } @else {
   <div class="comment-form">
     <textarea
       class="comment-input"
@@ -29,6 +32,7 @@
       </button>
     </div>
   </div>
+  }
 
   <!-- Comments List -->
   @if (loading()) {

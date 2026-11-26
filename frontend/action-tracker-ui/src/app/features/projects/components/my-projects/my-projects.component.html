@@ -6,7 +6,7 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <app-page-header
       title="My Projects"
-      subtitle="Projects where you are assigned as Project Manager or Sponsor."
+      subtitle="Projects where you are a project manager, sponsor, viewer or team member."
       icon="bi bi-person-workspace"
     />
     <button
@@ -53,6 +53,16 @@
 
       <div class="mp-stat-card">
         <div class="mp-stat-icon mp-stat-icon--teal">
+          <i class="bi bi-people"></i>
+        </div>
+        <div class="mp-stat-body">
+          <span class="mp-stat-value">{{ otherRoleCount }}</span>
+          <span class="mp-stat-label">As Viewer or Team Member</span>
+        </div>
+      </div>
+
+      <div class="mp-stat-card">
+        <div class="mp-stat-icon mp-stat-icon--teal">
           <i class="bi bi-lightning-charge"></i>
         </div>
         <div class="mp-stat-body">
@@ -88,12 +98,14 @@
         </div>
         <select
           class="form-select form-select-sm mp-filter-select"
+          aria-label="Filter by my role"
           [(ngModel)]="roleFilter"
           (ngModelChange)="applyFilters()"
         >
           <option value="">All Roles</option>
-          <option value="manager">Project Manager</option>
-          <option value="sponsor">Sponsor</option>
+          @for (r of roleOrder; track r) {
+            <option [value]="r">{{ roleLabels[r] }}</option>
+          }
         </select>
         <select
           class="form-select form-select-sm mp-filter-select"
@@ -129,7 +141,14 @@
                   <i class="bi bi-arrow-down-up"></i>
                 }
               </th>
-              <th>MY ROLE</th>
+              <th class="mp-th-sortable" (click)="toggleSort('role')">
+                MY ROLE
+                @if (sortField === 'role') {
+                  <i class="bi" [ngClass]="sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'"></i>
+                } @else {
+                  <i class="bi bi-arrow-down-up"></i>
+                }
+              </th>
               <th>INTERNAL CLASSIFICATION</th>
               <th class="mp-th-sortable" (click)="toggleSort('status')">
                 STATUS
@@ -183,15 +202,13 @@
 
                 <!-- Role -->
                 <td>
-                  @if (entry.role === 'manager') {
-                    <span class="mp-role-badge mp-role-badge--manager">
-                      <i class="bi bi-person-gear"></i> Project Manager
-                    </span>
-                  } @else {
-                    <span class="mp-role-badge mp-role-badge--sponsor">
-                      <i class="bi bi-person-check"></i> Sponsor
-                    </span>
-                  }
+                  <div class="mp-role-list">
+                    @for (r of entry.roles; track r) {
+                      <span [class]="roleBadgeClass(r)">
+                        <i class="bi" [ngClass]="roleIcon(r)" aria-hidden="true"></i> {{ roleLabels[r] }}
+                      </span>
+                    }
+                  </div>
                 </td>
 
                 <!-- Internal classification (WO-2026-11 P-1) -->
@@ -238,9 +255,9 @@
                         <i class="bi bi-pencil-square"></i> Edit
                       </button>
                     }
-                    @if (entry.role === 'sponsor') {
-                      <span class="mp-readonly-hint" title="Read-only access as Sponsor">
-                        <i class="bi bi-eye-fill"></i> Read-only
+                    @if (accessHint(entry); as hint) {
+                      <span class="mp-readonly-hint">
+                        <i class="bi bi-eye-fill" aria-hidden="true"></i> {{ hint }}
                       </span>
                     }
                   </div>
@@ -265,15 +282,14 @@
                     <a class="wa-title text-decoration-none" [routerLink]="['/projects', entry.project.id]">
                       {{ entry.project.name }}
                     </a>
-                    <div class="mp-project-meta">{{ entry.project.projectCode }}</div>
+                    <div class="mp-project-meta">{{ entry.project.projectCode }} <span class="mp-meta-sep">&middot;</span> {{ entry.project.workspaceTitle }}</div>
                   </div>
-                  @if (entry.role === 'manager') {
-                    <span class="mp-role-badge mp-role-badge--manager">
-                      <i class="bi bi-person-gear"></i> Manager
-                    </span>
-                  } @else {
-                    <span class="mp-role-badge mp-role-badge--sponsor">
-                      <i class="bi bi-person-check"></i> Sponsor
+                </div>
+                <div class="mp-role-list mt-2">
+                  <span class="visually-hidden">My role: </span>
+                  @for (r of entry.roles; track r) {
+                    <span [class]="roleBadgeClass(r)">
+                      <i class="bi" [ngClass]="roleIcon(r)" aria-hidden="true"></i> {{ roleLabels[r] }}
                     </span>
                   }
                 </div>
@@ -315,9 +331,9 @@
                   <i class="bi bi-pencil-square"></i> Edit
                 </button>
               }
-              @if (entry.role === 'sponsor') {
+              @if (accessHint(entry); as hint) {
                 <span class="mp-readonly-hint">
-                  <i class="bi bi-eye-fill"></i> Read-only
+                  <i class="bi bi-eye-fill" aria-hidden="true"></i> {{ hint }}
                 </span>
               }
             </div>
@@ -359,7 +375,7 @@
         @if (allEntries().length === 0) {
           <i class="bi bi-clipboard-x mp-empty-icon text-muted"></i>
           <p class="text-muted mt-3 mb-1">No projects assigned to you.</p>
-          <p class="text-muted small">You are not set as a Project Manager or Sponsor on any project yet.</p>
+          <p class="text-muted small">You are not a project manager, sponsor, viewer or team member of any project yet.</p>
         } @else {
           <i class="bi bi-filter-circle mp-empty-icon text-muted"></i>
           <p class="text-muted mt-3 mb-0">No matches found. Try adjusting your search or filters.</p>
@@ -490,50 +506,13 @@
           }
         </div>
 
-        <!-- Sponsors multi-select -->
+        <!-- People (WO-2026-11 P-2) -->
         <div class="mb-3">
-          <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
-          <div class="mp-multi-select" (click)="sponsorDropdownOpen = !sponsorDropdownOpen; $event.stopPropagation()">
-            <div class="mp-multi-select__control form-select">
-              @if (selectedSponsorIds.length === 0) {
-                <span class="text-muted">Select sponsors...</span>
-              } @else {
-                <div class="mp-multi-select__tags">
-                  @for (id of selectedSponsorIds; track id) {
-                    <span class="mp-multi-select__tag">
-                      {{ getSponsorName(id) }}
-                      <button type="button" class="mp-multi-select__tag-remove"
-                              (click)="toggleSponsor(id); $event.stopPropagation()">
-                        <i class="bi bi-x"></i>
-                      </button>
-                    </span>
-                  }
-                </div>
-              }
-            </div>
-            @if (sponsorDropdownOpen) {
-              <div class="mp-multi-select__dropdown">
-                <input type="text" class="form-control form-control-sm mp-multi-select__search"
-                       placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
-                       [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
-                <div class="mp-multi-select__options">
-                  @for (u of filteredSponsorUsers; track u.userId) {
-                    <label class="mp-multi-select__option" (click)="$event.stopPropagation()">
-                      <input type="checkbox" [checked]="isSponsorSelected(u.userId)"
-                             (change)="toggleSponsor(u.userId)" />
-                      <span>{{ u.userName }}</span>
-                    </label>
-                  }
-                  @if (filteredSponsorUsers.length === 0) {
-                    <div class="text-muted small px-3 py-2">No users found.</div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-          @if (selectedSponsorIds.length === 0) {
-            <small class="text-danger">At least one sponsor is required.</small>
-          }
+          <app-project-people-fields idPrefix="mpCreate"
+                                     [(value)]="createPeople"
+                                     [pmOptions]="createPmOptions"
+                                     [leadPmUserId]="createForm.get('projectManagerUserId')?.value"
+                                     [showErrors]="createTriedSave" />
         </div>
 
         <!-- Dates -->
@@ -663,6 +642,7 @@
               inputId="editInternalClassification"
               formControlName="internalClassificationId"
               [workspaceId]="editWorkspaceId()"
+              [locked]="!editCanOpenWorkspace"
               [current]="editCurrentClassification" />
           </div>
 
@@ -674,7 +654,7 @@
                       [class.is-invalid]="editFormIsInvalid('strategicObjectiveId')">
                 <option [ngValue]="null">-- Select --</option>
                 @for (so of editStrategicObjectives; track so.id) {
-                  <option [ngValue]="so.id">{{ so.objectiveCode }} — {{ so.statement }}</option>
+                  <option [ngValue]="so.id">{{ so.objectiveCode ? so.objectiveCode + ' — ' : '' }}{{ so.statement }}</option>
                 }
               </select>
               @if (editFormHasError('strategicObjectiveId', 'required')) {
@@ -693,65 +673,40 @@
             </select>
           </div>
 
-          <!-- Project Manager -->
+          <!-- Lead project manager -->
           <div class="mb-3">
-            <label class="form-label">Project Manager <span class="text-danger">*</span></label>
-            <select class="form-select" formControlName="projectManagerUserId"
-                    [class.is-invalid]="editFormIsInvalid('projectManagerUserId')">
-              <option value="">-- Select --</option>
-              @for (user of availableUsers; track user.userId) {
-                <option [value]="user.userId">{{ user.userName }}</option>
+            <label class="form-label" for="mpEditPm">Lead project manager <span class="text-danger">*</span></label>
+            @if (editCanOpenWorkspace) {
+              <select id="mpEditPm" class="form-select" formControlName="projectManagerUserId"
+                      [class.is-invalid]="editFormIsInvalid('projectManagerUserId')">
+                <option value="">-- Select --</option>
+                @for (user of availableUsers; track user.userId) {
+                  <option [value]="user.userId">{{ user.userName }}</option>
+                }
+              </select>
+              @if (editFormHasError('projectManagerUserId', 'required')) {
+                <div class="invalid-feedback">Project manager is required.</div>
               }
-            </select>
-            @if (editFormHasError('projectManagerUserId', 'required')) {
-              <div class="invalid-feedback">Project manager is required.</div>
+            } @else {
+              <input id="mpEditPm" type="text" class="form-control" [value]="editLeadPmName" readonly aria-describedby="mpEditPmLocked" />
+              <div class="mp-locked-note" id="mpEditPmLocked">
+                <i class="bi bi-lock" aria-hidden="true"></i> Only the workspace's admins and members can change the lead project manager.
+              </div>
             }
           </div>
 
-          <!-- Sponsors multi-select -->
+          <!-- People (WO-2026-11 P-2) -->
           <div class="mb-3">
-            <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
-            <div class="mp-multi-select" (click)="editSponsorDropdownOpen = !editSponsorDropdownOpen; $event.stopPropagation()">
-              <div class="mp-multi-select__control form-select">
-                @if (editSponsorIds.length === 0) {
-                  <span class="text-muted">Select sponsors...</span>
-                } @else {
-                  <div class="mp-multi-select__tags">
-                    @for (id of editSponsorIds; track id) {
-                      <span class="mp-multi-select__tag">
-                        {{ getEditSponsorName(id) }}
-                        <button type="button" class="mp-multi-select__tag-remove"
-                                (click)="toggleEditSponsor(id); $event.stopPropagation()">
-                          <i class="bi bi-x"></i>
-                        </button>
-                      </span>
-                    }
-                  </div>
-                }
-              </div>
-              @if (editSponsorDropdownOpen) {
-                <div class="mp-multi-select__dropdown">
-                  <input type="text" class="form-control form-control-sm mp-multi-select__search"
-                         placeholder="Search users..." [(ngModel)]="editSponsorSearchTerm"
-                         [ngModelOptions]="{standalone: true}" (click)="$event.stopPropagation()" />
-                  <div class="mp-multi-select__options">
-                    @for (u of filteredEditSponsorUsers; track u.userId) {
-                      <label class="mp-multi-select__option" (click)="$event.stopPropagation()">
-                        <input type="checkbox" [checked]="isEditSponsorSelected(u.userId)"
-                               (change)="toggleEditSponsor(u.userId)" />
-                        <span>{{ u.userName }}</span>
-                      </label>
-                    }
-                    @if (filteredEditSponsorUsers.length === 0) {
-                      <div class="text-muted small px-3 py-2">No users found.</div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-            @if (editSponsorIds.length === 0) {
-              <small class="text-danger">At least one sponsor is required.</small>
+            @if (editPeopleLoading) {
+              <div class="text-muted small mb-2" role="status"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Loading people…</div>
             }
+            <app-project-people-fields idPrefix="mpEdit"
+                                       [(value)]="editPeople"
+                                       [pmOptions]="editPmOptions"
+                                       [canAddProjectManagers]="editCanAddProjectManagers"
+                                       [leadPmUserId]="editForm.getRawValue().projectManagerUserId"
+                                       [showErrors]="editTriedSave"
+                                       [disabled]="editPeopleLoading" />
           </div>
 
           <!-- Dates -->

@@ -31,6 +31,7 @@ export class ProjectService {
     if (filter.internalClassificationId) params = params.set('internalClassificationId', filter.internalClassificationId);
     if (filter.unclassified) params = params.set('unclassified', true);
     if (filter.searchTerm) params = params.set('searchTerm', filter.searchTerm);
+    if (filter.mine) params = params.set('mine', true);
     if (filter.includeDeleted) params = params.set('includeDeleted', filter.includeDeleted);
     if (filter.strategicObjectiveIds?.length) {
       for (const id of filter.strategicObjectiveIds) {

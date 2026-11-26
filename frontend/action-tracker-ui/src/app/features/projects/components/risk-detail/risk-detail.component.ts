@@ -53,6 +53,10 @@ export class RiskDetailComponent implements OnInit {
 
   projectId = '';
   workspaceId = '';
+  /** WO-2026-11 P-2: the project's `canManage` — Edit / Delete, comments and files. */
+  canManage = signal(false);
+  /** WO-2026-11 P-2: the caller sees the workspace only through a project role. */
+  viaProjectRole = signal(false);
   riskId    = '';
 
   breadcrumbs: BreadcrumbItem[] = [];
@@ -66,7 +70,12 @@ export class RiskDetailComponent implements OnInit {
     this.loadRisk();
     if (this.projectId) {
       this.projectSvc.getById(this.projectId).subscribe({
-        next: res => { if (res.success) this.workspaceId = res.data.workspaceId; },
+        next: res => {
+          if (!res.success) return;
+          this.workspaceId = res.data.workspaceId;
+          this.canManage.set(!!res.data.canManage);
+          this.viaProjectRole.set(res.data.canOpenWorkspace === false);
+        },
       });
     }
   }

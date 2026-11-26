@@ -1,0 +1,81 @@
+// WO-2026-11 P-2 — people chips + combobox. Same look as <app-tag-input>; theme tokens only.
+:host { display: block; min-width: 0; }
+
+.ppk { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+
+.ppk__head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.ppk__label { font-size: 0.8125rem; font-weight: 600; color: var(--t1); margin: 0; }
+.ppk__count { font-size: 0.75rem; color: var(--t2); white-space: nowrap; }
+
+.ppk__box {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;
+  min-height: 2.5rem; padding: 0.3rem 0.45rem;
+  border: 1.5px solid var(--bd); border-radius: var(--r-sm, 8px);
+  background: var(--inp, var(--sf)); cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(var(--ar), 0.18); }
+}
+.ppk__box--invalid { border-color: rgba(var(--errr), 0.8); }
+
+.ppk__chips { display: flex; flex-wrap: wrap; gap: 0.35rem; max-width: 100%; margin: 0; padding: 0; list-style: none; }
+
+.ppk__chip {
+  display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%;
+  padding: 0.1rem 0.15rem 0.1rem 0.15rem; border-radius: 999px;
+  border: 1px solid rgba(var(--brand-blue-r), 0.4); background: rgba(var(--brand-blue-r), 0.12);
+  color: var(--t1); font-size: 0.8125rem; font-weight: 600; line-height: 1.5;
+}
+.ppk__chips--static .ppk__chip { padding-right: 0.6rem; }
+.ppk__chip-name { overflow-wrap: anywhere; }
+
+.ppk__avatar {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 1.35rem; height: 1.35rem; border-radius: 50%;
+  background: var(--accent-fill); color: var(--on-fill);
+  font-size: 0.6875rem; font-weight: 700;
+}
+
+.ppk__remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--t2); cursor: pointer;
+
+  &:hover { background: rgba(var(--brand-blue-r), 0.2); color: var(--t1); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+}
+
+.ppk__text {
+  flex: 1 1 9rem; min-width: 6rem; border: 0; outline: none; background: transparent;
+  color: var(--t1); font-size: 0.875rem; padding: 0.25rem 0.2rem;
+
+  &::placeholder { color: var(--t2); opacity: 1; }
+  // The box draws the focus ring (:focus-within); no second ring inside it.
+  &:focus-visible { outline: none !important; }
+}
+
+.ppk__list {
+  margin: 0; padding: 0.25rem; list-style: none;
+  border: 1px solid var(--bd); border-radius: var(--r-sm, 8px);
+  background: var(--el); box-shadow: var(--sh-drop);
+  max-height: 15rem; overflow-y: auto;
+}
+.ppk__option {
+  display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.4rem 0.55rem; border-radius: 6px; cursor: pointer; color: var(--t1); font-size: 0.875rem;
+
+  &:hover, &.ppk__option--active { background: rgba(var(--brand-blue-r), 0.16); }
+  &.ppk__option--active { outline: 1px solid var(--accent); }
+}
+.ppk__option-text { display: flex; flex-direction: column; min-width: 0; }
+.ppk__option-name { overflow-wrap: anywhere; }
+.ppk__option-sub { color: var(--t2); font-size: 0.75rem; overflow-wrap: anywhere; }
+
+.ppk__error {
+  margin: 0; padding: 0.35rem 0.55rem; border-radius: 6px;
+  background: rgba(var(--errr), 0.14); border: 1px solid rgba(var(--errr), 0.4);
+  color: var(--t1); font-size: 0.8125rem;
+}
+.ppk__hint, .ppk__empty { margin: 0; color: var(--t2); font-size: 0.75rem; }
+.ppk__empty--list { padding: 0.15rem 0.1rem; }
+.ppk__note { margin: 0; color: var(--t2); font-size: 0.8125rem; }

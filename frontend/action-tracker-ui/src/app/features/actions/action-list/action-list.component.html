@@ -353,7 +353,7 @@
                       [routerLink]="['/actions', item.id, 'view']"
                       title="View"
                     ><i class="bi bi-eye"></i></a>
-                    @if (item.statusCode !== ActionStatus.Done) {
+                    @if (item.statusCode !== ActionStatus.Done && item.canWork !== false) {
                       <button *appHasPermission="'ActionItems'; action: 'Edit'"
                               class="btn btn-outline-primary btn-sm wa-action-btn"
                               title="Edit" (click)="openEditActionForm(item)"
@@ -472,7 +472,7 @@
               <a class="btn btn-outline-info btn-sm"
                  [routerLink]="['/actions', item.id, 'view']"
               ><i class="bi bi-eye me-1"></i>View</a>
-              @if (item.statusCode !== ActionStatus.Done) {
+              @if (item.statusCode !== ActionStatus.Done && item.canWork !== false) {
                 <button *appHasPermission="'ActionItems'; action: 'Edit'"
                         class="btn btn-outline-primary btn-sm"
                         (click)="openEditActionForm(item)" [disabled]="showActionForm"
@@ -751,7 +751,7 @@
                        [routerLink]="['/actions', item.id, 'view']" title="View">
                       <i class="bi bi-eye"></i>
                     </a>
-                    @if (item.statusCode !== ActionStatus.Done) {
+                    @if (item.statusCode !== ActionStatus.Done && item.canWork !== false) {
                       <button *appHasPermission="'ActionItems'; action: 'Edit'"
                               class="btn btn-outline-primary btn-sm wa-action-btn"
                               title="Edit" (click)="openEditActionForm(item)"
@@ -827,7 +827,7 @@
             <a class="btn btn-outline-info btn-sm" [routerLink]="['/actions', item.id, 'view']">
               <i class="bi bi-eye me-1"></i>View
             </a>
-            @if (item.statusCode !== ActionStatus.Done) {
+            @if (item.statusCode !== ActionStatus.Done && item.canWork !== false) {
               <button *appHasPermission="'ActionItems'; action: 'Edit'"
                       class="btn btn-outline-primary btn-sm"
                       (click)="openEditActionForm(item)" [disabled]="showActionForm">
@@ -897,6 +897,10 @@
           @for (ws of allWorkspaces; track ws.id) {
             <option [value]="ws.id">{{ ws.title }}</option>
           }
+          @if (editingActionId && formViaProjectRole()) {
+            <!-- WO-2026-11 P-2: not in the caller's workspace list; shown, not changeable -->
+            <option [value]="actionForm.workspaceId">{{ formWorkspaceTitle }}</option>
+          }
         </select>
       </div>
 
@@ -916,7 +920,11 @@
 
       <!-- Tags (WO-2026-11 A-5) — suggestions from the chosen workspace -->
       <div class="mb-3">
-        <app-tag-input inputId="my-actions-form-tags" [(tags)]="formTags" [workspaceId]="formWorkspaceId()" />
+        <!-- WO-2026-11 P-2 (D5): read-only, without suggestions, for project-only callers -->
+        <app-tag-input inputId="my-actions-form-tags" [(tags)]="formTags"
+                       [workspaceId]="formViaProjectRole() ? null : formWorkspaceId()"
+                       [disabled]="formViaProjectRole()"
+                       lockedNote="Tags are set by the workspace's admins and members." />
       </div>
 
       <!-- Assignees multi-select -->

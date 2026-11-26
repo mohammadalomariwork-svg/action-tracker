@@ -1,6 +1,6 @@
 <div class="wd-page">
 
-  <app-breadcrumb [items]="[{ label: 'Workspaces', route: '/workspaces' }, { label: project?.workspaceTitle ?? '…', route: '/workspaces/' + (project?.workspaceId ?? '') }, { label: project?.name ?? 'Loading…' }]" />
+  <app-breadcrumb [items]="breadcrumbItems" />
 
   <!-- Loading -->
   @if (isLoading) {
@@ -47,9 +47,15 @@
         </div>
 
         <div class="wd-merged-header__actions">
-          <a [routerLink]="['/workspaces', project.workspaceId]" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>Back to Workspace
-          </a>
+          @if (canOpenWorkspace) {
+            <a [routerLink]="['/workspaces', project.workspaceId]" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-arrow-left me-1"></i>Back to Workspace
+            </a>
+          } @else {
+            <a routerLink="/projects/my" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-arrow-left me-1"></i>Back to My Projects
+            </a>
+          }
           <button class="btn btn-sm" [class.btn-primary]="showGantt" [class.btn-outline-primary]="!showGantt"
                   (click)="toggleGantt()" title="Toggle Gantt chart">
             <i class="bi bi-bar-chart-steps me-1"></i>Gantt
@@ -69,7 +75,7 @@
               }
             </button>
           }
-          @if (!isProjectFrozen) {
+          @if (!isProjectFrozen && canManage) {
             <button *appHasPermission="'Projects'; action: 'Edit'" class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
               <i class="bi bi-pencil me-1"></i>Edit
             </button>
@@ -180,7 +186,12 @@
         <div class="wd-detail-item">
           <span class="wd-detail-label">Workspace</span>
           <span class="wd-detail-value">
-            <a [routerLink]="['/workspaces', project.workspaceId]" class="wa-link">{{ project.workspaceTitle }}</a>
+            @if (canOpenWorkspace) {
+              <a [routerLink]="['/workspaces', project.workspaceId]" class="wa-link">{{ project.workspaceTitle }}</a>
+            } @else {
+              <!-- WO-2026-11 P-2 (D7): the name is shown, the workspace itself cannot be opened -->
+              <span>{{ project.workspaceTitle }}</span>
+            }
           </span>
         </div>
 
@@ -329,6 +340,12 @@
         </div>
       </div>
     </div>
+
+    <!-- ── People (WO-2026-11 P-2) ──────────────────────── -->
+    <app-project-people-panel class="d-block mb-4"
+                              [projectId]="project.id"
+                              [workspaceId]="canOpenWorkspace ? project.workspaceId : null"
+                              (changed)="onPeopleChanged()" />
 
     <!-- ── Gantt Chart ────────────────────────────────── -->
     @if (showGantt) {
@@ -576,12 +593,15 @@
         [workspaceId]="project.workspaceId"
         [isBaselined]="project.isBaselined"
         [projectStatus]="project.status"
+        [canManage]="canManage"
+        [viaProjectRole]="!canOpenWorkspace"
       />
     </div>
 
     <!-- ── Risk Register Section ─────────────────────── -->
     <div class="mb-4">
-      <app-risk-register-section [projectId]="project.id" [workspaceId]="project.workspaceId" />
+      <app-risk-register-section [projectId]="project.id" [workspaceId]="project.workspaceId"
+                                 [canManage]="canManage" [viaProjectRole]="!canOpenWorkspace" />
     </div>
 
     <!-- ── Comments Section ───────────────────────────── -->
@@ -589,6 +609,8 @@
       <app-comments-section
         entityType="Project"
         [entityId]="project.id"
+        [canPost]="canManage"
+        readOnlyNote="Only the project's managers can comment on the project."
       />
     </div>
 
@@ -597,6 +619,9 @@
       <app-documents-section
         entityType="Project"
         [entityId]="project.id"
+        [canUpload]="canManage"
+        [canDelete]="canManage"
+        lockedNote="Only the project's managers can add or remove the project's files."
       />
     </div>
 
@@ -670,6 +695,7 @@
           name="editPrjInternalClassification"
           [(ngModel)]="editForm.internalClassificationId"
           [workspaceId]="project?.workspaceId"
+          [locked]="!canOpenWorkspace"
           [current]="currentClassification" />
       </div>
 
@@ -681,7 +707,7 @@
             <select class="form-select" [(ngModel)]="editForm.strategicObjectiveId">
               <option [ngValue]="null">-- Select --</option>
               @for (so of strategicObjectives; track so.id) {
-                <option [ngValue]="so.id">{{ so.objectiveCode }} — {{ so.statement }}</option>
+                <option [ngValue]="so.id">{{ so.objectiveCode ? so.objectiveCode + ' — ' : '' }}{{ so.statement }}</option>
               }
             </select>
             @if (!editForm.strategicObjectiveId) {
@@ -709,65 +735,38 @@
         </select>
       </div>
 
-      <!-- Project Manager -->
+      <!-- Project Manager (the lead) -->
       <div class="mb-3">
-        <label class="form-label">Project Manager <span class="text-danger">*</span></label>
-        <select class="form-select" [(ngModel)]="editForm.projectManagerUserId">
-          <option value="">-- Select --</option>
-          @for (user of allUsers; track user.userId) {
-            <option [value]="user.userId">{{ user.userName }}</option>
+        @if (canOpenWorkspace) {
+          <label class="form-label" for="editPrjPm">Lead project manager <span class="text-danger">*</span></label>
+          <select id="editPrjPm" class="form-select" [(ngModel)]="editForm.projectManagerUserId">
+            <option value="">-- Select --</option>
+            @for (user of allUsers; track user.userId) {
+              <option [value]="user.userId">{{ user.userName }}</option>
+            }
+          </select>
+          @if (!editForm.projectManagerUserId) {
+            <small class="text-danger">Project manager is required.</small>
           }
-        </select>
-        @if (!editForm.projectManagerUserId) {
-          <small class="text-danger">Project manager is required.</small>
+        } @else {
+          <span class="form-label d-block">Lead project manager</span>
+          <p class="mb-0">{{ project?.projectManagerName }}</p>
+          <small class="pd-locked-note"><i class="bi bi-lock" aria-hidden="true"></i> Only the workspace's admins and members can change the lead project manager.</small>
         }
       </div>
 
-      <!-- Sponsors multi-select -->
+      <!-- People (WO-2026-11 P-2) -->
       <div class="mb-3">
-        <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
-        <div class="wa-multi-select" (click)="sponsorDropdownOpen = !sponsorDropdownOpen; $event.stopPropagation()">
-          <div class="wa-multi-select__control form-select">
-            @if (editForm.sponsorUserIds.length === 0) {
-              <span class="text-muted">Select sponsors...</span>
-            } @else {
-              <div class="wa-multi-select__tags">
-                @for (id of editForm.sponsorUserIds; track id) {
-                  <span class="wa-multi-select__tag">
-                    {{ getSponsorName(id) }}
-                    <button type="button" class="wa-multi-select__tag-remove"
-                            (click)="toggleSponsor(id); $event.stopPropagation()">
-                      <i class="bi bi-x"></i>
-                    </button>
-                  </span>
-                }
-              </div>
-            }
-          </div>
-          @if (sponsorDropdownOpen) {
-            <div class="wa-multi-select__dropdown">
-              <input type="text" class="form-control form-control-sm wa-multi-select__search"
-                     placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
-                     (click)="$event.stopPropagation()" />
-              <div class="wa-multi-select__options">
-                @for (u of filteredSponsorUsers; track u.userId) {
-                  <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isSponsorSelected(u.userId)"
-                           (change)="toggleSponsor(u.userId)" />
-                    <span class="wa-multi-select__avatar">{{ u.userName.charAt(0).toUpperCase() }}</span>
-                    <span>{{ u.userName }}</span>
-                  </label>
-                }
-                @if (filteredSponsorUsers.length === 0) {
-                  <div class="text-muted small px-3 py-2">No users found.</div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-        @if (editForm.sponsorUserIds.length === 0) {
-          <small class="text-danger">At least one sponsor is required.</small>
+        @if (peopleLoading) {
+          <div class="text-muted small" role="status"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Loading people…</div>
         }
+        <app-project-people-fields idPrefix="editPrj"
+                                   [(value)]="editPeople"
+                                   [pmOptions]="workspacePmOptions"
+                                   [canAddProjectManagers]="canAddProjectManagers"
+                                   [leadPmUserId]="editForm.projectManagerUserId"
+                                   [showErrors]="editTriedSave"
+                                   [disabled]="peopleLoading" />
       </div>
 
       <!-- Planned Start & End Date -->
@@ -830,7 +829,7 @@
                 (click)="cancelEditForm()" [disabled]="saving">Cancel</button>
         <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
                 (click)="saveEdit()"
-                [disabled]="saving || !editForm.name.trim() || !editForm.projectManagerUserId || editForm.sponsorUserIds.length === 0 || !editForm.plannedStartDate || !editForm.plannedEndDate || hasDateRangeError || (isProjectStrategic && !editForm.strategicObjectiveId)">
+                [disabled]="saving || peopleLoading || !editForm.name.trim() || !editForm.projectManagerUserId || editPeople.sponsors.length === 0 || !editForm.plannedStartDate || !editForm.plannedEndDate || hasDateRangeError || (isProjectStrategic && !editForm.strategicObjectiveId)">
           @if (saving) {
             <span class="spinner-border spinner-border-sm" role="status"></span> Saving...
           } @else {

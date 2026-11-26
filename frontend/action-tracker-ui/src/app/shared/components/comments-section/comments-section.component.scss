@@ -261,3 +261,13 @@
   padding: 1rem 0;
   margin: 0;
 }
+
+// WO-2026-11 P-2: read-only callers see a note instead of the form.
+.comment-readonly {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-sm, 8px);
+  color: var(--t2);
+  font-size: 0.8125rem;
+}

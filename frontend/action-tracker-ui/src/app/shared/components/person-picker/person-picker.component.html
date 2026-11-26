@@ -1,0 +1,88 @@
+<div class="ppk" [class.ppk--disabled]="disabled()">
+  <div class="ppk__head">
+    <label class="ppk__label" [for]="inputId()" [attr.id]="inputId() + '-label'">
+      {{ label() }}@if (required()) { <span class="text-danger" aria-hidden="true"> *</span> }
+    </label>
+    @if (selected().length && max() !== 1) {
+      <span class="ppk__count">{{ selected().length }}</span>
+    }
+  </div>
+
+  @if (disabled()) {
+    @if (selected().length) {
+      <ul class="ppk__chips ppk__chips--static" [attr.aria-labelledby]="inputId() + '-label'">
+        @for (p of selected(); track p.userId) {
+          <li class="ppk__chip">
+            <span class="ppk__avatar" aria-hidden="true">{{ initial(p.fullName) }}</span>
+            <span class="ppk__chip-name">{{ p.fullName }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="ppk__empty">No one.</p>
+    }
+    @if (lockedNote()) {
+      <p class="ppk__note"><i class="bi bi-lock" aria-hidden="true"></i> {{ lockedNote() }}</p>
+    }
+  } @else {
+    <div class="ppk__box" [class.ppk__box--invalid]="missing()" (click)="focusBox()">
+      @if (selected().length) {
+        <ul class="ppk__chips" [attr.aria-label]="label() + ' chosen'">
+          @for (p of selected(); track p.userId; let i = $index) {
+            <li class="ppk__chip" [title]="p.email || p.fullName">
+              <span class="ppk__avatar" aria-hidden="true">{{ initial(p.fullName) }}</span>
+              <span class="ppk__chip-name">{{ p.fullName }}</span>
+              <button type="button" class="ppk__remove" (click)="remove(i); $event.stopPropagation()"
+                      [attr.aria-label]="'Remove ' + p.fullName + ' from ' + label()">
+                <i class="bi bi-x" aria-hidden="true"></i>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      @if (!atMax()) {
+        <input #box class="ppk__text" type="text" role="combobox" autocomplete="off"
+               [id]="inputId()" [value]="text()"
+               [attr.aria-expanded]="listOpen()" [attr.aria-controls]="listId()"
+               [attr.aria-activedescendant]="activeId()" aria-autocomplete="list"
+               [attr.aria-describedby]="describedBy()" [attr.aria-invalid]="missing() ? true : null"
+               [attr.aria-required]="required() ? true : null"
+               [placeholder]="!isLocal() ? 'Type a name or e-mail' : (options()?.length ? 'Choose a person' : 'No one to add')"
+               (input)="onInput($any($event.target).value)" (keydown)="onKeydown($event)"
+               (focus)="onFocus()" (blur)="onBlur()" />
+      }
+    </div>
+
+    @if (listOpen()) {
+      <ul class="ppk__list" role="listbox" [id]="listId()" [attr.aria-label]="label()">
+        @for (p of choices(); track p.userId; let i = $index) {
+          <li role="option" class="ppk__option" [id]="optionId(i)"
+              [class.ppk__option--active]="i === active()" [attr.aria-selected]="i === active()"
+              (mousedown)="$event.preventDefault()" (click)="choose(p)">
+            <span class="ppk__avatar" aria-hidden="true">{{ initial(p.fullName) }}</span>
+            <span class="ppk__option-text">
+              <span class="ppk__option-name">{{ p.fullName }}</span>
+              @if (p.email || p.orgUnitName) {
+                <span class="ppk__option-sub">{{ p.email }}@if (p.email && p.orgUnitName) { · }{{ p.orgUnitName }}</span>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    } @else if (emptyNote()) {
+      <p class="ppk__empty ppk__empty--list">{{ emptyNote() }}</p>
+    }
+
+    @if (missing()) {
+      <p class="ppk__error" [id]="errorId()">{{ requiredMessage() }}</p>
+    }
+    @if (hint()) {
+      <p class="ppk__hint" [id]="hintId()">{{ hint() }}</p>
+    } @else {
+      <span class="visually-hidden" [id]="hintId()">
+        {{ isLocal() ? 'Arrow keys move through the list, Enter adds.' : 'Type a name or e-mail, arrow keys move through the results, Enter adds.' }}
+      </span>
+    }
+  }
+  <span class="visually-hidden" aria-live="polite">{{ status() }}</span>
+</div>

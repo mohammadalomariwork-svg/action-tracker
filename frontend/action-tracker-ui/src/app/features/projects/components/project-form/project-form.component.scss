@@ -256,3 +256,6 @@
   border-color: rgba(var(--ar), 0.15);
   color: var(--accent);
 }
+
+// WO-2026-11 P-2: a field the caller cannot change through a project role.
+.pf-locked-note { margin-top: 0.25rem; color: var(--t2); font-size: 0.8125rem; }

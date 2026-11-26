@@ -1129,51 +1129,17 @@
         }
       </div>
 
-      <!-- Sponsors multi-select -->
+      <!-- People (WO-2026-11 P-2) -->
       <div class="mb-3">
-        <label class="form-label">Sponsor(s) <span class="text-danger">*</span></label>
-        <div class="wa-multi-select" (click)="sponsorDropdownOpen = !sponsorDropdownOpen; $event.stopPropagation()">
-          <div class="wa-multi-select__control form-select">
-            @if (projectForm.sponsorUserIds.length === 0) {
-              <span class="text-muted">Select sponsors...</span>
-            } @else {
-              <div class="wa-multi-select__tags">
-                @for (id of projectForm.sponsorUserIds; track id) {
-                  <span class="wa-multi-select__tag">
-                    {{ getSponsorName(id) }}
-                    <button type="button" class="wa-multi-select__tag-remove"
-                            (click)="toggleSponsor(id); $event.stopPropagation()">
-                      <i class="bi bi-x"></i>
-                    </button>
-                  </span>
-                }
-              </div>
-            }
-          </div>
-          @if (sponsorDropdownOpen) {
-            <div class="wa-multi-select__dropdown">
-              <input type="text" class="form-control form-control-sm wa-multi-select__search"
-                     placeholder="Search users..." [(ngModel)]="sponsorSearchTerm"
-                     (click)="$event.stopPropagation()" />
-              <div class="wa-multi-select__options">
-                @for (u of filteredSponsorUsers; track u.userId) {
-                  <label class="wa-multi-select__option" (click)="$event.stopPropagation()">
-                    <input type="checkbox" [checked]="isSponsorSelected(u.userId)"
-                           (change)="toggleSponsor(u.userId)" />
-                    <span class="wa-multi-select__avatar">{{ u.userName.charAt(0).toUpperCase() }}</span>
-                    <span>{{ u.userName }}</span>
-                  </label>
-                }
-                @if (filteredSponsorUsers.length === 0) {
-                  <div class="text-muted small px-3 py-2">No users found.</div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-        @if (projectForm.sponsorUserIds.length === 0) {
-          <small class="text-danger">At least one sponsor is required.</small>
+        @if (projectPeopleLoading) {
+          <div class="text-muted small mb-2" role="status"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Loading people…</div>
         }
+        <app-project-people-fields idPrefix="wdPrj"
+                                   [(value)]="projectPeople"
+                                   [pmOptions]="pmOptions"
+                                   [leadPmUserId]="projectForm.projectManagerUserId"
+                                   [showErrors]="projectTriedSave"
+                                   [disabled]="projectPeopleLoading" />
       </div>
 
       <!-- Planned Start & End Date -->
@@ -1235,7 +1201,7 @@
                 (click)="cancelProjectForm()" [disabled]="projectSaving">Cancel</button>
         <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
                 (click)="saveProject()"
-                [disabled]="projectSaving || !projectForm.name.trim() || !projectForm.projectManagerUserId || projectForm.sponsorUserIds.length === 0 || !projectForm.plannedStartDate || !projectForm.plannedEndDate || hasProjectDateRangeError || (isProjectStrategic && !projectForm.strategicObjectiveId)">
+                [disabled]="projectSaving || projectPeopleLoading || !projectForm.name.trim() || !projectForm.projectManagerUserId || projectPeople.sponsors.length === 0 || !projectForm.plannedStartDate || !projectForm.plannedEndDate || hasProjectDateRangeError || (isProjectStrategic && !projectForm.strategicObjectiveId)">
           @if (projectSaving) {
             <span class="spinner-border spinner-border-sm" role="status"></span> Saving...
           } @else {

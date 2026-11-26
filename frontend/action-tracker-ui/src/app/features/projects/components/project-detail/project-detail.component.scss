@@ -807,3 +807,6 @@ $gantt-bar-h:   1.35rem;
   color: var(--t2);
   font-size: .8125rem;
 }
+
+// WO-2026-11 P-2: a field the caller cannot change through a project role.
+.pd-locked-note { display: block; margin-top: 0.25rem; color: var(--t2); font-size: 0.8125rem; }

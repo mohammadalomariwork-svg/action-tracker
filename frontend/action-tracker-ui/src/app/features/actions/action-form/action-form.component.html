@@ -87,7 +87,11 @@
 
           <!-- Tags (WO-2026-11 A-5) — suggestions from the chosen workspace -->
           <div class="field field--full">
-            <app-tag-input inputId="action-tags" [(tags)]="tags" [workspaceId]="selectedWorkspaceId()" />
+            <!-- WO-2026-11 P-2 (D5): read-only, without suggestions, for project-only callers -->
+            <app-tag-input inputId="action-tags" [(tags)]="tags"
+                           [workspaceId]="viaProjectRole() ? null : selectedWorkspaceId()"
+                           [disabled]="viaProjectRole()"
+                           lockedNote="Tags are set by the workspace's admins and members." />
           </div>
         </section>
 
@@ -102,17 +106,26 @@
               <label class="field__label" for="workspaceId">
                 Workspace <span class="req">*</span>
               </label>
-              <select
-                id="workspaceId"
-                class="field__select"
-                [class.field__input--error]="isInvalid('workspaceId')"
-                formControlName="workspaceId"
-              >
-                <option value="">— Select workspace —</option>
-                @for (ws of workspaces(); track ws.id) {
-                  <option [value]="ws.id">{{ ws.title }}</option>
-                }
-              </select>
+              @if (workspaceLocked()) {
+                <!-- WO-2026-11 P-2: a project's item stays in the project's workspace -->
+                <input id="workspaceId" type="text" class="field__input" readonly
+                       [value]="editItem()?.workspaceTitle ?? ''" aria-describedby="workspaceIdLocked" />
+                <span class="field__hint" id="workspaceIdLocked">
+                  <i class="bi bi-lock" aria-hidden="true"></i> A project's action item stays in the project's workspace.
+                </span>
+              } @else {
+                <select
+                  id="workspaceId"
+                  class="field__select"
+                  [class.field__input--error]="isInvalid('workspaceId')"
+                  formControlName="workspaceId"
+                >
+                  <option value="">— Select workspace —</option>
+                  @for (ws of workspaces(); track ws.id) {
+                    <option [value]="ws.id">{{ ws.title }}</option>
+                  }
+                </select>
+              }
               @if (isInvalid('workspaceId')) {
                 <span class="field__error">Workspace is required.</span>
               }

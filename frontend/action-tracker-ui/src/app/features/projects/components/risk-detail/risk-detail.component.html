@@ -29,16 +29,18 @@
         <button class="btn btn-outline-secondary btn-sm" (click)="goBack()">
           <i class="bi bi-arrow-left me-1"></i> Back
         </button>
-        <ng-container *appHasPermission="'Projects'; action: 'Edit'">
-          <button class="btn btn-outline-primary btn-sm" (click)="openEdit()">
-            <i class="bi bi-pencil me-1"></i> Edit
-          </button>
-        </ng-container>
-        <ng-container *appHasPermission="'Projects'; action: 'Delete'">
-          <button class="btn btn-outline-danger btn-sm" (click)="confirmDelete()">
-            <i class="bi bi-trash me-1"></i> Delete
-          </button>
-        </ng-container>
+        @if (canManage()) {
+          <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+            <button class="btn btn-outline-primary btn-sm" (click)="openEdit()">
+              <i class="bi bi-pencil me-1"></i> Edit
+            </button>
+          </ng-container>
+          <ng-container *appHasPermission="'Projects'; action: 'Delete'">
+            <button class="btn btn-outline-danger btn-sm" (click)="confirmDelete()">
+              <i class="bi bi-trash me-1"></i> Delete
+            </button>
+          </ng-container>
+        }
       </div>
     </div>
 
@@ -79,12 +81,15 @@
 
         <!-- Comments -->
         <div class="mb-3">
-          <app-comments-section entityType="ProjectRisk" [entityId]="r.id" />
+          <app-comments-section entityType="ProjectRisk" [entityId]="r.id" [canPost]="canManage()"
+                                readOnlyNote="Only the project's managers can comment on its risks." />
         </div>
 
         <!-- Documents -->
         <div class="mb-3">
-          <app-documents-section entityType="ProjectRisk" [entityId]="r.id" />
+          <app-documents-section entityType="ProjectRisk" [entityId]="r.id"
+                                 [canUpload]="canManage()" [canDelete]="canManage()"
+                                 lockedNote="Only the project's managers can add or remove a risk's files." />
         </div>
 
       </div>
@@ -197,6 +202,7 @@
       <app-risk-form
         [projectId]="projectId"
         [workspaceId]="workspaceId"
+        [viaProjectRole]="viaProjectRole()"
         [risk]="risk()"
         (saved)="onEditSaved($event)"
         (cancelled)="onEditCancelled()"

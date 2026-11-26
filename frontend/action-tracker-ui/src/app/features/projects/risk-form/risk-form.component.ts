@@ -11,6 +11,7 @@ import { ReactiveFormsModule, FormBuilder, FormControl, FormGroup, Validators } 
 
 import { ProjectRiskService } from '../../../services/project-risk.service';
 import { WorkspaceService } from '../../workspaces/services/workspace.service';
+import { ProjectPeopleService } from '../../../services/project-people.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ProjectRisk, RISK_CATEGORIES, RISK_STATUSES } from '../../../models/project-risk.model';
 import { AssignableUser } from '../../../core/models/action-item.model';
@@ -49,6 +50,12 @@ export class RiskFormComponent implements OnInit {
   @Input({ required: true }) projectId!: string;
   @Input({ required: true }) workspaceId!: string;
   @Input() risk: ProjectRisk | null = null;
+  /**
+   * WO-2026-11 P-2: the caller sees the workspace only through a project role —
+   * owners come from the project's people (`GET /projects/:id/assignable-users`)
+   * instead of the workspace's list, which answers 404 to them.
+   */
+  @Input() viaProjectRole = false;
 
   saved = output<ProjectRisk>();
   cancelled = output<void>();
@@ -56,6 +63,7 @@ export class RiskFormComponent implements OnInit {
   private readonly fb           = inject(FormBuilder);
   private readonly riskService  = inject(ProjectRiskService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly peopleSvc    = inject(ProjectPeopleService);
   private readonly toast        = inject(ToastService);
 
   readonly categories  = RISK_CATEGORIES;
@@ -98,7 +106,11 @@ export class RiskFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.workspaceId) {
+    if (this.viaProjectRole && this.projectId) {
+      this.peopleSvc.assignableUsers(this.projectId).subscribe({
+        next: res => { if (res.success) this.users.set(res.data); },
+      });
+    } else if (this.workspaceId) {
       this.workspaceSvc.getAssignableUsers(this.workspaceId).subscribe({
         next: res => { if (res.success) this.users.set(res.data); },
       });

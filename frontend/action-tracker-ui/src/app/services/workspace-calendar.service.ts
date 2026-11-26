@@ -83,10 +83,34 @@ export class WorkspaceCalendarService {
     return rules$;
   }
 
+  /**
+   * The same calendar reached through a project (WO-2026-11 P-2, D6):
+   * `GET /projects/:id/calendar`, for callers who see the project only through
+   * a project role and get 404 on the workspace route. Cached per project.
+   */
+  getViaProject(projectId: string): Observable<WorkspaceCalendarRules | null> {
+    const key = `project:${projectId}`;
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) return cached.rules$;
+
+    const rules$ = this.http.get<ApiResponse<WorkspaceCalendar>>(`${environment.apiUrl}/projects/${projectId}/calendar`).pipe(
+      map(res => (res?.data ? toWorkspaceCalendarRules(res.data) : null)),
+      catchError(() => {
+        this.cache.delete(key);
+        return of(null);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.cache.set(key, { loadedAt: Date.now(), rules$ });
+    return rules$;
+  }
+
   /** Drops one workspace's cached calendar, or all of them. */
   invalidate(workspaceId?: string): void {
-    if (workspaceId) this.cache.delete(workspaceId);
-    else this.cache.clear();
+    if (!workspaceId) { this.cache.clear(); return; }
+    this.cache.delete(workspaceId);
+    // Calendars reached through a project of that workspace may be stale too.
+    for (const key of [...this.cache.keys()]) if (key.startsWith('project:')) this.cache.delete(key);
   }
 }
 
@@ -102,12 +126,16 @@ export function toWorkspaceCalendarRules(calendar: WorkspaceCalendar): Workspace
 
 /**
  * Signal of the calendar for whichever workspace `workspaceId` returns, kept up
- * to date as that changes. Call in an injection context (a field initialiser
- * or the constructor). Null while loading, when there is no workspace yet, or
- * when the calendar cannot be loaded.
+ * to date as that changes. When `viaProjectId` returns a project id the
+ * calendar is loaded through that project instead (`GET /projects/:id/calendar`)
+ * — pass it only for callers who cannot open the workspace (`canOpenWorkspace`
+ * false on the project, `viaProjectRole` on an action item). Call in an
+ * injection context (a field initialiser or the constructor). Null while
+ * loading, when there is no workspace yet, or when the calendar cannot be loaded.
  */
 export function injectWorkspaceCalendar(
   workspaceId: () => string | null | undefined,
+  viaProjectId?: () => string | null | undefined,
 ): Signal<WorkspaceCalendarRules | null> {
   const service = inject(WorkspaceCalendarService);
   const result  = signal<WorkspaceCalendarRules | null>(null);
@@ -115,10 +143,14 @@ export function injectWorkspaceCalendar(
 
   effect(() => {
     const id = workspaceId() || null;
+    // WO-2026-11 P-2 (D6): a caller who sees the workspace only through a
+    // project role reads the calendar through that project.
+    const projectId = viaProjectId?.() || null;
     untracked(() => {
       subscription?.unsubscribe();
       if (result()?.calendar.workspaceId !== id) result.set(null);
-      if (id) subscription = service.get(id).subscribe(rules => result.set(rules));
+      if (projectId) subscription = service.getViaProject(projectId).subscribe(rules => result.set(rules));
+      else if (id) subscription = service.get(id).subscribe(rules => result.set(rules));
     });
   });
   inject(DestroyRef).onDestroy(() => subscription?.unsubscribe());

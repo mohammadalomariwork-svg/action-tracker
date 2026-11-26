@@ -588,3 +588,10 @@
   color: var(--t2);
   font-size: 0.8125rem;
 }
+
+// WO-2026-11 P-2: the caller can read the item but not work on it.
+.ad-readonly-hint {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.25rem 0.65rem; border: 1px solid var(--bd); border-radius: 999px;
+  color: var(--t2); font-size: 0.8125rem;
+}

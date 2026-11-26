@@ -61,6 +61,11 @@ export class ActionUpdatesSectionComponent {
   readonly compact      = input(false);
   /** Any change re-loads the list (the page passes the reloaded action item, e.g. after a direction). */
   readonly reloadToken  = input<unknown>(null);
+  /**
+   * WO-2026-11 P-2: false for a caller who may only read the item (a viewer or
+   * sponsor, or a team member on someone else's item) — no form, no draft edits.
+   */
+  readonly canWrite     = input(true);
 
   /** Updates the caller can see (submitted + own drafts), whenever the list changes. */
   readonly countChange = output<number>();

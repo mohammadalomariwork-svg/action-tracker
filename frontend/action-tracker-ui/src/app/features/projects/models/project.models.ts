@@ -1,3 +1,5 @@
+import { ProjectRoleName } from '../../../models/project-people.model';
+
 export enum ProjectType {
   Operational = 'operational',
   Strategic = 'strategic',
@@ -56,6 +58,15 @@ export interface ProjectResponse {
   isBaselined: boolean;
   isDeleted: boolean;
   actionItemCount: number;
+  /**
+   * WO-2026-11 P-2: the caller's roles on this project — `leadProjectManager`,
+   * `projectManager`, `sponsor`, `viewer`, `teamMember` (empty = none).
+   */
+  myRoles: ProjectRoleName[];
+  /** The caller may change the project, its people, milestones and risks. */
+  canManage: boolean;
+  /** The caller sees the project's workspace itself (false = only through a project role). */
+  canOpenWorkspace: boolean;
   createdAt: string;
   updatedAt?: string;
   projectTypeLabel: string;
@@ -74,6 +85,12 @@ export interface ProjectCreate {
   priority: ProjectPriority;
   projectManagerUserId: string;
   sponsorUserIds: string[];
+  /** WO-2026-11 P-2: additional project managers (must be on the workspace's PM list). PUT: missing keeps. */
+  additionalManagerUserIds?: string[];
+  /** WO-2026-11 P-2: viewers (any active user). PUT: missing keeps. */
+  viewerUserIds?: string[];
+  /** WO-2026-11 P-2: team members (any active user). PUT: missing keeps. */
+  teamMemberUserIds?: string[];
   plannedStartDate: string;
   plannedEndDate: string;
   approvedBudget?: number;
@@ -94,6 +111,12 @@ export interface ProjectUpdate {
   priority: ProjectPriority;
   projectManagerUserId: string;
   sponsorUserIds: string[];
+  /** WO-2026-11 P-2: additional project managers (must be on the workspace's PM list). PUT: missing keeps. */
+  additionalManagerUserIds?: string[];
+  /** WO-2026-11 P-2: viewers (any active user). PUT: missing keeps. */
+  viewerUserIds?: string[];
+  /** WO-2026-11 P-2: team members (any active user). PUT: missing keeps. */
+  teamMemberUserIds?: string[];
   plannedStartDate: string;
   plannedEndDate: string;
   actualStartDate?: string;
@@ -118,6 +141,8 @@ export interface ProjectFilter {
   /** Only projects without an internal classification. */
   unclassified?: boolean;
   searchTerm?: string;
+  /** WO-2026-11 P-2: only projects where the caller holds a project role (My Projects). */
+  mine?: boolean;
   pageNumber: number;
   pageSize: number;
   sortBy: string;

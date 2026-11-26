@@ -15,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { ActionItemService } from '../../../core/services/action-item.service';
 import { ToastService }      from '../../../core/services/toast.service';
 import { WorkspaceService }  from '../../workspaces/services/workspace.service';
+import { ProjectPeopleService } from '../../../services/project-people.service';
 import { WorkflowService }   from '../../../services/workflow.service';
 
 import {
@@ -78,6 +79,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   private readonly actionSvc     = inject(ActionItemService);
   private readonly toastSvc      = inject(ToastService);
   private readonly workspaceSvc  = inject(WorkspaceService);
+  private readonly peopleSvc    = inject(ProjectPeopleService);
   private readonly workflowSvc   = inject(WorkflowService);
   private readonly destroy$      = new Subject<void>();
 
@@ -157,7 +159,16 @@ export class ActionFormComponent implements OnInit, OnDestroy {
   // ── Working calendar (WO-2026-11 C-3) ─────────────────
   readonly selectedWorkspaceId = toSignal(this.form.get('workspaceId')!.valueChanges, { initialValue: '' });
   /** Calendar of the chosen workspace: drives the date hints and the save guard. */
-  readonly calendar = injectWorkspaceCalendar(() => this.selectedWorkspaceId());
+  readonly calendar = injectWorkspaceCalendar(
+    () => this.selectedWorkspaceId(),
+    () => (this.editItem()?.viaProjectRole ? this.editItem()?.projectId : null));
+  /** WO-2026-11 P-2: reached only through a project role — read-only tags without suggestions (D5). */
+  readonly viaProjectRole = computed(() => !!this.editItem()?.viaProjectRole);
+  /**
+   * WO-2026-11 P-2: a project's action item stays in the project's workspace
+   * (the server refuses a move with 400, or 403 through a project role).
+   */
+  readonly workspaceLocked = computed(() => !!this.editItem()?.projectId);
   /** Dates the item holds now (`yyyy-MM-dd`); unchanged dates are never flagged (Q8). */
   readonly originalStartDate = computed(() => this.editItem()?.startDate?.slice(0, 10) ?? null);
   readonly originalDueDate   = computed(() => this.editItem()?.dueDate?.slice(0, 10) ?? null);
@@ -206,7 +217,11 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.workspaceSvc.getAssignableUsers(workspaceId).subscribe({
+    // A project's item (WO-2026-11 P-2): the workspace's assignable users plus
+    // the project's team, or only the project's people through a project role (D4).
+    const projectId = this.editItem()?.projectId;
+    const source = projectId ? this.peopleSvc.assignableUsers(projectId) : this.workspaceSvc.getAssignableUsers(workspaceId);
+    source.subscribe({
       next: r => {
         const list = [...(r.data ?? [])];
         // Edit mode: keep already-selected assignees visible even if they're
@@ -255,6 +270,13 @@ export class ActionFormComponent implements OnInit, OnDestroy {
           return;
         }
 
+        // WO-2026-11 P-2: a viewer / sponsor, or a team member on someone else's item.
+        if (item.canWork === false) {
+          this.toastSvc.error('You can see this action item but not change it.');
+          this.router.navigate(['/actions', item.id, 'view']);
+          return;
+        }
+
         this.editItem.set(item);
         this.originalTags = (item.tags ?? []).map(t => t.name);
         this.tags.set([...this.originalTags]);
@@ -272,6 +294,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
           progress:    item.progress,
           // isEscalated is managed from the detail view, not the form
         });
+        if (item.projectId) this.form.get('workspaceId')!.disable({ emitEvent: false });
         this.loadingItem.set(false);
 
         // Workflow: lock dates for standalone items

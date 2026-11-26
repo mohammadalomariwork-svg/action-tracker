@@ -11,11 +11,13 @@
     <button class="btn btn-sm btn-outline-secondary" (click)="printRisks()" title="Print">
       <i class="bi bi-printer"></i>
     </button>
-    <ng-container *appHasPermission="'Projects'; action: 'Edit'">
-      <button class="btn btn-sm btn-primary" (click)="openCreate()">
-        <i class="bi bi-plus-lg me-1"></i> Add Risk
-      </button>
-    </ng-container>
+    @if (canManage()) {
+      <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+        <button class="btn btn-sm btn-primary" (click)="openCreate()">
+          <i class="bi bi-plus-lg me-1"></i> Add Risk
+        </button>
+      </ng-container>
+    }
   </div>
 </div>
 
@@ -138,16 +140,20 @@
               <button class="btn btn-sm btn-outline-primary me-1" (click)="viewRisk(r.id)" title="View">
                 <i class="bi bi-eye"></i>
               </button>
-              <ng-container *appHasPermission="'Projects'; action: 'Edit'">
-                <button class="btn btn-sm btn-outline-secondary me-1" (click)="openEdit(r.id)" title="Edit">
-                  <i class="bi bi-pencil"></i>
-                </button>
-              </ng-container>
-              <ng-container *appHasPermission="'Projects'; action: 'Delete'">
-                <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(r.id)" title="Delete">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </ng-container>
+              @if (canManage()) {
+                <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+                  <button class="btn btn-sm btn-outline-secondary me-1" (click)="openEdit(r.id)" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </ng-container>
+              }
+              @if (canManage()) {
+                <ng-container *appHasPermission="'Projects'; action: 'Delete'">
+                  <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(r.id)" title="Delete">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </ng-container>
+              }
             </td>
           </tr>
         } @empty {
@@ -197,6 +203,7 @@
   <app-risk-form
     [projectId]="projectId()"
     [workspaceId]="workspaceId()"
+    [viaProjectRole]="viaProjectRole()"
     [risk]="editingRisk()"
     (saved)="onFormSaved($event)"
     (cancelled)="closeForm()"

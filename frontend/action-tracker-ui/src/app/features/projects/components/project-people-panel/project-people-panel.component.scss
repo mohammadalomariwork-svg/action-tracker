@@ -1,0 +1,77 @@
+// WO-2026-11 P-2 — People panel on the project page. Same card as the page's
+// sections (.wd-section). Theme tokens only — works in dark and light.
+:host { display: block; }
+
+.ppl {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  padding: 1.25rem 1.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover { border-color: var(--accent); box-shadow: var(--neon); }
+}
+
+.ppl__header {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.75rem;
+  padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--bd);
+}
+.ppl__heading {
+  margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--th);
+  &:focus { outline: none; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm, 0.25rem); }
+  i { color: var(--accent); }
+}
+.ppl__mine {
+  margin-left: auto; padding: 0.15rem 0.6rem; border-radius: 999px;
+  border: 1px solid rgba(var(--brand-blue-r), 0.4); background: rgba(var(--brand-blue-r), 0.12);
+  color: var(--t1); font-size: 0.75rem; font-weight: 600;
+}
+
+.ppl__groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem 1.5rem; }
+.ppl__group { min-width: 0; }
+.ppl__group-title {
+  display: flex; align-items: center; gap: 0.4rem;
+  margin: 0 0 0.5rem; font-size: 0.8125rem; font-weight: 700; color: var(--t1);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.ppl__group-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 1.4rem; height: 1.25rem;
+  padding: 0 0.35rem; border-radius: 999px; background: var(--el); border: 1px solid var(--bd);
+  color: var(--t2); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0;
+}
+
+.ppl__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.ppl__person {
+  display: flex; align-items: center; gap: 0.6rem; min-width: 0;
+  padding: 0.45rem 0.6rem; border: 1px solid var(--bd); border-radius: var(--r-sm, 8px); background: var(--el);
+}
+.ppl__avatar {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  background: var(--accent-fill); color: var(--on-fill); font-size: 0.75rem; font-weight: 700;
+}
+.ppl__who { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.ppl__name { color: var(--t1); font-size: 0.875rem; font-weight: 600; overflow-wrap: anywhere; }
+.ppl__sub { color: var(--t2); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ppl__inactive {
+  margin-left: 0.35rem; padding: 0 0.4rem; border-radius: 999px;
+  background: rgba(var(--warnr), 0.16); color: var(--t1); font-size: 0.6875rem; font-weight: 600;
+}
+.ppl__remove { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.3rem; }
+.ppl__empty, .ppl__note { margin: 0.35rem 0 0; color: var(--t2); font-size: 0.8125rem; }
+
+.ppl__add { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--bd); }
+.ppl__add-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.75rem; }
+.ppl__add-role { flex: 0 0 11rem; }
+.ppl__add-person { flex: 1 1 16rem; min-width: 0; }
+.ppl__add-go { flex: 0 0 auto; padding-top: 1.55rem; }
+
+// Phone width: one column, the button under the picker.
+@media (max-width: 575.98px) {
+  .ppl { padding: 1rem; }
+  .ppl__mine { margin-left: 0; }
+  .ppl__add-role, .ppl__add-person { flex: 1 1 100%; }
+  .ppl__add-go { padding-top: 0; }
+  .ppl__remove-text { display: none; }
+}

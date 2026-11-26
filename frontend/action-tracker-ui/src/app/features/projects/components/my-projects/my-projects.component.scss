@@ -9,11 +9,12 @@
 // ── Summary Stat Cards ────────────────────────────────────────────────────────
 .mp-stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);   // WO-2026-11 P-2: five cards (viewer / team member added)
   gap: 1rem;
   margin-bottom: 1.5rem;
 
-  @media (max-width: 1199px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1399px) { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 991px)  { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 479px)  { grid-template-columns: 1fr; }
 }
 
@@ -565,3 +566,17 @@
   padding-left: 0;
   color: var(--t2);
 }
+
+// ── WO-2026-11 P-2: all of the caller's roles ───────────────────────────────
+.mp-role-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.mp-role-badge--viewer {
+  background: rgba(var(--brand-blue-r), 0.12);
+  border: 1px solid rgba(var(--brand-blue-r), 0.35);
+  color: var(--t1);
+}
+.mp-role-badge--team {
+  background: rgba(var(--okr), 0.14);
+  border: 1px solid rgba(var(--okr), 0.4);
+  color: var(--t1);
+}
+.mp-locked-note { margin-top: 0.25rem; color: var(--t2); font-size: 0.8125rem; }

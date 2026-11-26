@@ -49,6 +49,10 @@ import {
   CurrentProjectClassification, ProjectClassificationSelectComponent,
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
+import { ProjectPeopleFieldsComponent } from '../../../../shared/components/project-people-fields/project-people-fields.component';
+import { ProjectPeopleService } from '../../../../services/project-people.service';
+import { ProjectPeopleValue } from '../../../../models/project-people.model';
+import { emptyPeopleValue, peoplePatch, peopleValueFrom, userListOptions } from '../../../../shared/utils/project-people.util';
 import { showErrorHere } from '../../../../core/http/server-reason';
 
 @Component({
@@ -57,7 +61,7 @@ import { showErrorHere } from '../../../../core/http/server-reason';
   imports: [
     SubItemCountComponent, TagChipsComponent, TagFilterComponent,
     CommonModule, RouterLink, FormsModule, ReactiveFormsModule, BreadcrumbComponent, HasPermissionDirective,
-    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent, ProjectClassificationSelectComponent,
+    WorkingDayHintComponent, WorkingDaysComponent, ActualDatesFieldsComponent, ProjectClassificationSelectComponent, ProjectPeopleFieldsComponent,
   ],
   templateUrl: './workspace-detail.component.html',
   styleUrl: './workspace-detail.component.scss',
@@ -161,8 +165,15 @@ export class WorkspaceDetailComponent implements OnInit {
   projectForm: ProjectFormData = this.emptyProjectForm();
   strategicObjectives: StrategicObjectiveOption[] = [];
   strategicObjectivesLoaded = false;
-  sponsorDropdownOpen = false;
-  sponsorSearchTerm = '';
+  // ── People of the project in the drawer (WO-2026-11 P-2) ──
+  projectPeople: ProjectPeopleValue = emptyPeopleValue();
+  private originalProjectPeople: ProjectPeopleValue | null = null;
+  projectPeopleLoading = false;
+  projectTriedSave = false;
+  private readonly projectPeopleSvc = inject(ProjectPeopleService);
+
+  /** The workspace's Project Managers as options for additional PMs. */
+  get pmOptions() { return userListOptions(this.workspaceProjectManagers); }
 
   // Expose enums to template
   readonly ActionStatus = ActionStatus;
@@ -461,7 +472,6 @@ export class WorkspaceDetailComponent implements OnInit {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.assigneeDropdownOpen = false;
-    this.sponsorDropdownOpen = false;
   }
 
   get latestEscalation(): EscalationInfo | null {
@@ -733,7 +743,6 @@ export class WorkspaceDetailComponent implements OnInit {
       strategicObjectiveId: null,
       priority: ProjectPriority.Medium,
       projectManagerUserId: '',
-      sponsorUserIds: [],
       plannedStartDate: '',
       plannedEndDate: '',
       approvedBudget: null,
@@ -750,8 +759,10 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editingProjectClassification = null;
     this.editingProjectOriginalClassificationId = null;
     this.originalProjectDates = { start: null, end: null };
-    this.sponsorDropdownOpen = false;
-    this.sponsorSearchTerm = '';
+    this.projectPeople = emptyPeopleValue();
+    this.originalProjectPeople = null;
+    this.projectPeopleLoading = false;
+    this.projectTriedSave = false;
     this.strategicObjectives = [];
     this.strategicObjectivesLoaded = false;
     this.showProjectForm = true;
@@ -769,7 +780,6 @@ export class WorkspaceDetailComponent implements OnInit {
       strategicObjectiveId: prj.strategicObjectiveId ?? null,
       priority: prj.priority,
       projectManagerUserId: prj.projectManagerUserId,
-      sponsorUserIds: prj.sponsors.map(s => s.userId),
       plannedStartDate: prj.plannedStartDate ? String(prj.plannedStartDate).substring(0, 10) : '',
       plannedEndDate: prj.plannedEndDate ? String(prj.plannedEndDate).substring(0, 10) : '',
       approvedBudget: prj.approvedBudget ?? null,
@@ -784,8 +794,8 @@ export class WorkspaceDetailComponent implements OnInit {
     this.editingProjectClassification = prj.internalClassificationId
       ? { id: prj.internalClassificationId, name: prj.internalClassificationName, isActive: prj.internalClassificationIsActive }
       : null;
-    this.sponsorDropdownOpen = false;
-    this.sponsorSearchTerm = '';
+    this.projectTriedSave = false;
+    this.loadProjectPeople(prj);
 
     if (prj.projectType === ProjectType.Strategic) {
       this.loadStrategicObjectives();
@@ -800,8 +810,26 @@ export class WorkspaceDetailComponent implements OnInit {
   cancelProjectForm(): void {
     this.showProjectForm = false;
     this.editingProjectId = null;
-    this.sponsorDropdownOpen = false;
-    this.sponsorSearchTerm = '';
+  }
+
+  /** Everyone on the edited project, for the people block. */
+  private loadProjectPeople(prj: ProjectResponse): void {
+    this.projectPeople = emptyPeopleValue(prj.sponsors.map(s => ({ userId: s.userId, fullName: s.fullName, email: s.email })));
+    this.originalProjectPeople = null;
+    this.projectPeopleLoading = true;
+    this.projectPeopleSvc.get(prj.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        if (res.data) {
+          this.projectPeople = peopleValueFrom(res.data);
+          this.originalProjectPeople = peopleValueFrom(res.data);
+        }
+        this.projectPeopleLoading = false;
+      },
+      error: err => {
+        this.projectFormError = showErrorHere(err) ?? "Could not load the project's people; they are left as they are.";
+        this.projectPeopleLoading = false;
+      },
+    });
   }
 
   onProjectTypeChange(): void {
@@ -833,34 +861,15 @@ export class WorkspaceDetailComponent implements OnInit {
     return this.projectForm.projectType === ProjectType.Strategic;
   }
 
-  get filteredSponsorUsers(): AssignableUser[] {
-    if (!this.sponsorSearchTerm.trim()) return this.allUsers;
-    const term = this.sponsorSearchTerm.toLowerCase();
-    return this.allUsers.filter(u => u.userName.toLowerCase().includes(term));
-  }
-
-  toggleSponsor(userId: string): void {
-    const idx = this.projectForm.sponsorUserIds.indexOf(userId);
-    if (idx >= 0) this.projectForm.sponsorUserIds.splice(idx, 1);
-    else this.projectForm.sponsorUserIds.push(userId);
-  }
-
-  isSponsorSelected(userId: string): boolean {
-    return this.projectForm.sponsorUserIds.includes(userId);
-  }
-
-  getSponsorName(userId: string): string {
-    return this.allUsers.find(u => u.userId === userId)?.userName ?? userId;
-  }
-
   get hasProjectDateRangeError(): boolean {
     return !!(this.projectForm.plannedStartDate && this.projectForm.plannedEndDate
       && this.projectForm.plannedEndDate <= this.projectForm.plannedStartDate);
   }
 
   saveProject(): void {
+    this.projectTriedSave = true;
     if (!this.projectForm.name.trim() || !this.projectForm.projectManagerUserId
-      || this.projectForm.sponsorUserIds.length === 0
+      || this.projectPeople.sponsors.length === 0 || this.projectPeopleLoading
       || !this.projectForm.plannedStartDate || !this.projectForm.plannedEndDate
       || this.hasProjectDateRangeError) {
       return;
@@ -909,7 +918,7 @@ export class WorkspaceDetailComponent implements OnInit {
         strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
         priority: this.projectForm.priority,
         projectManagerUserId: this.projectForm.projectManagerUserId,
-        sponsorUserIds: this.projectForm.sponsorUserIds,
+        ...peoplePatch(this.originalProjectPeople, this.projectPeople),
         plannedStartDate: this.projectForm.plannedStartDate,
         plannedEndDate: this.projectForm.plannedEndDate,
         actualStartDate: this.projectForm.actualStartDate || undefined,
@@ -937,7 +946,7 @@ export class WorkspaceDetailComponent implements OnInit {
         strategicObjectiveId: this.projectForm.strategicObjectiveId || undefined,
         priority: this.projectForm.priority,
         projectManagerUserId: this.projectForm.projectManagerUserId,
-        sponsorUserIds: this.projectForm.sponsorUserIds,
+        ...peoplePatch(null, this.projectPeople),
         plannedStartDate: this.projectForm.plannedStartDate,
         plannedEndDate: this.projectForm.plannedEndDate,
         approvedBudget: this.projectForm.approvedBudget ? +this.projectForm.approvedBudget : undefined,
@@ -1178,7 +1187,6 @@ interface ProjectFormData {
   strategicObjectiveId: string | null;
   priority: ProjectPriority;
   projectManagerUserId: string;
-  sponsorUserIds: string[];
   plannedStartDate: string;
   plannedEndDate: string;
   approvedBudget: number | null;

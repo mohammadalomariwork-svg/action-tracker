@@ -12,6 +12,7 @@ import { ToastService }          from '../../../core/services/toast.service';
 import { AuthService }           from '../../../core/services/auth.service';
 import { WorkflowService }       from '../../../services/workflow.service';
 import { WorkspaceService }      from '../../workspaces/services/workspace.service';
+import { ProjectPeopleService }  from '../../../services/project-people.service';
 
 import {
   ActionItem, ActionItemUpdate, ActionStatus, ActionPriority,
@@ -80,6 +81,7 @@ export class ActionDetailComponent implements OnInit {
   private readonly authService  = inject(AuthService);
   private readonly workflowSvc  = inject(WorkflowService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly peopleSvc    = inject(ProjectPeopleService);
   private readonly injector     = inject(Injector);
   private readonly permState    = inject(PermissionStateService);
 
@@ -107,6 +109,14 @@ export class ActionDetailComponent implements OnInit {
   readonly ActionPriority = ActionPriority;
 
   readonly workspaceId = computed(() => this.item()?.workspaceId ?? '');
+  /**
+   * WO-2026-11 P-2: the caller may work on this item (edit, status, requests,
+   * updates, files, sub-items). False for a viewer or sponsor of its project,
+   * or a team member on someone else's item.
+   */
+  readonly canWork = computed(() => this.item()?.canWork !== false);
+  /** WO-2026-11 P-2: reached only through a project role — no workspace link, read-only tags (D5). */
+  readonly viaProjectRole = computed(() => !!this.item()?.viaProjectRole);
 
   // ── Files on the action item (WO-2026-11 A-4) ─────────
   private readonly permissions = toSignal(this.permState.permissions$, { initialValue: [] });
@@ -120,11 +130,13 @@ export class ActionDetailComponent implements OnInit {
   /** The upload form: ActionItems.Edit and an item that is not locked. */
   readonly canUploadItemFiles = computed(() => {
     this.permissions();
-    return !this.itemFilesLockedNote() && this.permState.hasPermission('ActionItems', 'Edit');
+    return !this.itemFilesLockedNote() && this.canWork() && this.permState.hasPermission('ActionItems', 'Edit');
   });
 
   // ── Working calendar (WO-2026-11 C-3) ─────────────────
-  readonly calendar = injectWorkspaceCalendar(() => this.workspaceId());
+  readonly calendar = injectWorkspaceCalendar(
+    () => this.workspaceId(),
+    () => (this.viaProjectRole() ? this.item()?.projectId : null));
   /** Dates the item holds now; unchanged dates are never flagged (Q8). */
   readonly originalStartDate = computed(() => this.item()?.startDate?.slice(0, 10) ?? null);
   readonly originalDueDate   = computed(() => this.item()?.dueDate?.slice(0, 10) ?? null);
@@ -141,11 +153,13 @@ export class ActionDetailComponent implements OnInit {
 
   readonly breadcrumbItems = computed(() => {
     const ai = this.item();
+    const viaRole = !!ai?.viaProjectRole;
     const items: { label: string; route?: string }[] = [
-      { label: 'Workspaces', route: '/workspaces' },
+      viaRole ? { label: 'My Projects', route: '/projects/my' } : { label: 'Workspaces', route: '/workspaces' },
     ];
     if (ai) {
-      items.push({ label: ai.workspaceTitle || '…', route: '/workspaces/' + ai.workspaceId });
+      // WO-2026-11 P-2 (D7): the workspace's name is shown; it is not a link for project-only callers.
+      items.push(viaRole ? { label: ai.workspaceTitle || '…' } : { label: ai.workspaceTitle || '…', route: '/workspaces/' + ai.workspaceId });
       if (ai.projectId) {
         items.push({ label: ai.projectName || '…', route: '/projects/' + ai.projectId });
       }
@@ -164,12 +178,14 @@ export class ActionDetailComponent implements OnInit {
     if (ai?.milestoneId && ai?.projectId) {
       return ['/projects', ai.projectId, 'milestones', ai.milestoneId];
     }
+    if (ai?.viaProjectRole && ai.projectId) return ['/projects', ai.projectId];
     return ['/workspaces', ai?.workspaceId ?? ''];
   });
 
   readonly backLabel = computed(() => {
     const ai = this.item();
     if (ai?.milestoneId) return 'Back to Milestone';
+    if (ai?.viaProjectRole && ai.projectId) return 'Back to Project';
     return 'Back to Workspace';
   });
 
@@ -226,7 +242,7 @@ export class ActionDetailComponent implements OnInit {
       next: r => {
         this.item.set(r.data);
         this.loading.set(false);
-        this.loadUsers(r.data?.workspaceId ?? '');
+        if (r.data?.canWork !== false) this.loadUsers(r.data?.workspaceId ?? '');
       },
       error: () => {
         this.toastSvc.error('Failed to load action item.');
@@ -235,12 +251,20 @@ export class ActionDetailComponent implements OnInit {
     });
   }
 
+  /**
+   * The assignee picker. A project's item (WO-2026-11 P-2): the workspace's
+   * assignable users plus the project's team, or — for a caller who reaches it
+   * through a project role — only the project's people (D4); current assignees
+   * are always kept.
+   */
   private loadUsers(workspaceId: string): void {
-    if (!workspaceId) {
+    const projectId = this.item()?.projectId;
+    if (!workspaceId && !projectId) {
       this.allUsers = [];
       return;
     }
-    this.workspaceSvc.getAssignableUsers(workspaceId).subscribe({
+    const source = projectId ? this.peopleSvc.assignableUsers(projectId) : this.workspaceSvc.getAssignableUsers(workspaceId);
+    source.subscribe({
       next: r => {
         const list = [...(r.data ?? [])];
         // Keep currently-assigned users visible even if they are no longer

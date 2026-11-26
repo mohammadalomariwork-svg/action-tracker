@@ -20,6 +20,12 @@ import { CommentInfo } from '../../../core/models/comment.model';
 export class CommentsSectionComponent implements OnInit {
   readonly entityType = input.required<string>();
   readonly entityId = input.required<string>();
+  /**
+   * False replaces the form with `readOnlyNote` (WO-2026-11 P-2: a viewer,
+   * sponsor or team member of the project, whom the server refuses).
+   */
+  readonly canPost = input(true);
+  readonly readOnlyNote = input('You can read the comments here but not add any.');
 
   private readonly commentSvc = inject(CommentService);
   private readonly toastSvc = inject(ToastService);

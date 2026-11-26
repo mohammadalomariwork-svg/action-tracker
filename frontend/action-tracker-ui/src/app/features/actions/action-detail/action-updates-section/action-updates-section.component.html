@@ -23,6 +23,7 @@
   </div>
 
   <!-- ── New update ───────────────────────────────────────── -->
+  @if (canWrite()) {
   <form *appHasPermission="'ActionItems'; action: 'Edit'" class="au-form" novalidate
         [attr.aria-label]="subItemTitle() ? 'New action update on ' + subItemTitle() : 'New action update'"
         (submit)="$event.preventDefault()">
@@ -96,6 +97,7 @@
       A draft is visible only to you. A submitted update is shared with everyone who can see this action item and cannot be changed or deleted.
     </p>
   </form>
+  }
 
   <!-- ── List ─────────────────────────────────────────────── -->
   @if (loading() && !list()) {
@@ -172,11 +174,11 @@
               @if (filesOpen(u.id)) {
                 <div class="au-files" [id]="idPrefix() + '-files-' + u.id">
                   <app-documents-section entityType="ActionItemUpdate" [entityId]="u.id" [compact]="true"
-                                         [canUpload]="u.canEdit && canEditPerm()" [maxFiles]="maxFiles"
+                                         [canUpload]="u.canEdit && canEditPerm() && canWrite()" [maxFiles]="maxFiles"
                                          (countChange)="setFileCount(u.id, $event)" />
                 </div>
               }
-              @if (u.canEdit) {
+              @if (u.canEdit && canWrite()) {
                 <div *appHasPermission="'ActionItems'; action: 'Edit'" class="au-entry__actions">
                   <button type="button" class="btn btn-sm au-btn" [id]="idPrefix() + '-editbtn-' + u.id"
                           [disabled]="busyId() === u.id" (click)="startEdit(u)">

@@ -1,0 +1,134 @@
+<section class="ppl" aria-labelledby="ppl-heading">
+  <div class="ppl__header">
+    <h5 class="ppl__heading" id="ppl-heading" #heading tabindex="-1">
+      <i class="bi bi-people me-2" aria-hidden="true"></i>People
+    </h5>
+    @if (myRolesLabel()) {
+      <span class="ppl__mine">Your role: {{ myRolesLabel() }}</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="text-muted small py-2" role="status">
+      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Loading people…
+    </div>
+  } @else if (loadError()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-0" role="alert">
+      <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i><span>{{ loadError() }}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" (click)="load()">Try again</button>
+    </div>
+  } @else if (people()) {
+    @if (removeError()) {
+      <div class="alert alert-danger d-flex align-items-start gap-2 py-2" role="alert">
+        <i class="bi bi-exclamation-triangle-fill mt-1" aria-hidden="true"></i><span>{{ removeError() }}</span>
+        <button type="button" class="btn-close ms-auto" aria-label="Dismiss" (click)="removeError.set(null)"></button>
+      </div>
+    }
+
+    <div class="ppl__groups">
+      @for (g of groups(); track g.role) {
+        <div class="ppl__group">
+          <h6 class="ppl__group-title" [id]="'ppl-' + g.role">
+            {{ g.title }} <span class="ppl__group-count">{{ g.people.length }}</span>
+          </h6>
+          @if (g.people.length) {
+            <ul class="ppl__list" [attr.aria-labelledby]="'ppl-' + g.role">
+              @for (person of g.people; track person.userId) {
+                <li class="ppl__person">
+                  <span class="ppl__avatar" aria-hidden="true">{{ (person.fullName || '?').charAt(0).toUpperCase() }}</span>
+                  <span class="ppl__who">
+                    <span class="ppl__name">
+                      {{ person.fullName }}
+                      @if (!person.isActive) { <span class="ppl__inactive">inactive</span> }
+                    </span>
+                    @if (person.email || person.orgUnitName) {
+                      <span class="ppl__sub" [title]="person.email + (person.orgUnitName ? ' · ' + person.orgUnitName : '')">{{ person.email }}@if (person.email && person.orgUnitName) { · }{{ person.orgUnitName }}</span>
+                    }
+                  </span>
+                  @if (canManage() && g.role !== 'leadProjectManager') {
+                    <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+                      <button type="button" class="btn btn-sm btn-outline-danger ppl__remove"
+                              [disabled]="isRemoving(g.role, person.userId) || isLastSponsor(g.role)"
+                              [title]="isLastSponsor(g.role) ? 'A project needs at least one sponsor.' : ''"
+                              [attr.aria-label]="'Remove ' + person.fullName + ' as ' + roleLabel(g.role)"
+                              (click)="askRemove($any(g.role), person)">
+                        @if (isRemoving(g.role, person.userId)) {
+                          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                        } @else {
+                          <i class="bi bi-person-dash" aria-hidden="true"></i>
+                        }
+                        <span class="ppl__remove-text">Remove</span>
+                      </button>
+                    </ng-container>
+                  }
+                </li>
+              }
+            </ul>
+            @if (g.role === 'sponsor' && canManage() && g.people.length === 1) {
+              <p class="ppl__note">A project needs at least one sponsor; add another before removing this one.</p>
+            }
+            @if (g.role === 'leadProjectManager' && canManage()) {
+              <p class="ppl__note">The lead project manager is changed through Edit.</p>
+            }
+          } @else {
+            <p class="ppl__empty">{{ g.empty }}</p>
+          }
+        </div>
+      }
+    </div>
+
+    @if (canManage()) {
+      <ng-container *appHasPermission="'Projects'; action: 'Edit'">
+        <form class="ppl__add" (ngSubmit)="add()" aria-labelledby="ppl-add-title">
+          <h6 class="ppl__group-title" id="ppl-add-title">Add a person</h6>
+          @if (addError()) {
+            <div class="alert alert-danger d-flex align-items-start gap-2 py-2 mb-2" role="alert">
+              <i class="bi bi-exclamation-triangle-fill mt-1" aria-hidden="true"></i><span>{{ addError() }}</span>
+            </div>
+          }
+          <div class="ppl__add-row">
+            <div class="ppl__add-role">
+              <label class="form-label small fw-semibold mb-1" for="ppl-add-role">Role</label>
+              <select id="ppl-add-role" class="form-select form-select-sm" name="pplAddRole"
+                      [ngModel]="addRole()" (ngModelChange)="onRoleChange($event)">
+                @for (r of roleChoices(); track r.value) {
+                  <option [value]="r.value">{{ r.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="ppl__add-person">
+              @if (addRole() === 'projectManager') {
+                <app-person-picker inputId="ppl-add-person" label="Person" [max]="1"
+                                   [options]="pmOptions() ?? []" [exclude]="takenForRole()"
+                                   hint="Only people on the workspace's Project Managers list."
+                                   [selected]="addPerson()" (selectedChange)="addPerson.set($event)" />
+              } @else {
+                <app-person-picker inputId="ppl-add-person" label="Person" [max]="1"
+                                   [search]="lookup" [exclude]="takenForRole()"
+                                   hint="Any active user, by name or e-mail."
+                                   [selected]="addPerson()" (selectedChange)="addPerson.set($event)" />
+              }
+            </div>
+            <div class="ppl__add-go">
+              <button type="submit" class="btn btn-primary btn-sm" [disabled]="!addPerson().length || adding()">
+                @if (adding()) {
+                  <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Adding…
+                } @else {
+                  <i class="bi bi-person-plus me-1" aria-hidden="true"></i>Add
+                }
+              </button>
+            </div>
+          </div>
+          @if (!people()!.canAddProjectManagers) {
+            <p class="ppl__note mb-0">Only the workspace's admins and members can add project managers.</p>
+          }
+        </form>
+      </ng-container>
+    } @else {
+      <p class="ppl__note mb-0">Only the project's managers and the workspace's admins and members can change who is on the project.</p>
+    }
+  }
+</section>
+
+<app-confirm-dialog #confirmRemove title="Remove from project" [message]="confirmMessage"
+                    confirmLabel="Remove" [danger]="true" (confirmed)="onConfirmRemove($event)" />

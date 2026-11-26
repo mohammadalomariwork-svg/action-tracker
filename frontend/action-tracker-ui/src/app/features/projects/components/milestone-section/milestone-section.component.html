@@ -16,7 +16,7 @@
         <p class="ms-page-subtitle">Track and manage project milestones, deadlines, and progress.</p>
       </div>
     </div>
-    @if (!isProjectFrozen()) {
+    @if (!isProjectFrozen() && canManage()) {
       <div class="d-flex gap-2">
         <button *appHasPermission="'Projects'; action: 'Create'"
                 class="btn btn-primary" (click)="openCreateForm()" [disabled]="showForm()">
@@ -183,17 +183,21 @@
                        [routerLink]="['/projects', projectId(), 'milestones', m.id]" title="View">
                       <i class="bi bi-eye"></i> View
                     </a>
-                    <button *appHasPermission="'Projects'; action: 'Edit'"
-                            class="ms-action-btn"
-                            (click)="openEditForm(m)" title="Edit"
-                            [disabled]="showForm()">
-                      <i class="bi bi-pencil-square"></i> Edit
-                    </button>
-                    <button *appHasPermission="'Projects'; action: 'Delete'"
-                            class="ms-action-btn ms-action-btn--danger"
-                            (click)="deleteMilestone(m)" title="Delete">
-                      <i class="bi bi-trash"></i> Delete
-                    </button>
+                    @if (canManage()) {
+                      <button *appHasPermission="'Projects'; action: 'Edit'"
+                              class="ms-action-btn"
+                              (click)="openEditForm(m)" title="Edit"
+                              [disabled]="showForm()">
+                        <i class="bi bi-pencil-square"></i> Edit
+                      </button>
+                    }
+                    @if (canManage()) {
+                      <button *appHasPermission="'Projects'; action: 'Delete'"
+                              class="ms-action-btn ms-action-btn--danger"
+                              (click)="deleteMilestone(m)" title="Delete">
+                        <i class="bi bi-trash"></i> Delete
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -309,14 +313,18 @@
               <a class="ms-action-btn" [routerLink]="['/projects', projectId(), 'milestones', m.id]">
                 <i class="bi bi-eye"></i> View
               </a>
-              <button *appHasPermission="'Projects'; action: 'Edit'"
-                      class="ms-action-btn" (click)="openEditForm(m)" [disabled]="showForm()">
-                <i class="bi bi-pencil-square"></i> Edit
-              </button>
-              <button *appHasPermission="'Projects'; action: 'Delete'"
-                      class="ms-action-btn ms-action-btn--danger" (click)="deleteMilestone(m)">
-                <i class="bi bi-trash"></i> Delete
-              </button>
+              @if (canManage()) {
+                <button *appHasPermission="'Projects'; action: 'Edit'"
+                        class="ms-action-btn" (click)="openEditForm(m)" [disabled]="showForm()">
+                  <i class="bi bi-pencil-square"></i> Edit
+                </button>
+              }
+              @if (canManage()) {
+                <button *appHasPermission="'Projects'; action: 'Delete'"
+                        class="ms-action-btn ms-action-btn--danger" (click)="deleteMilestone(m)">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              }
               <button class="ms-action-btn" (click)="toggleExpand(m.id)">
                 <i class="bi" [ngClass]="isExpanded(m.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 {{ isExpanded(m.id) ? 'Hide Actions' : 'Show Actions' }}
@@ -393,10 +401,12 @@
       <div class="ms-empty">
         <i class="bi bi-flag ms-empty-icon text-muted"></i>
         <p class="text-muted mt-3 mb-3">No milestones yet.</p>
-        <button *appHasPermission="'Projects'; action: 'Create'"
-                class="btn btn-primary btn-sm" (click)="openCreateForm()">
-          <i class="bi bi-plus-circle me-1"></i>Add First Milestone
-        </button>
+        @if (canManage()) {
+          <button *appHasPermission="'Projects'; action: 'Create'"
+                  class="btn btn-primary btn-sm" (click)="openCreateForm()">
+            <i class="bi bi-plus-circle me-1"></i>Add First Milestone
+          </button>
+        }
       </div>
     } @else if (filteredMilestones.length === 0 && searchTerm) {
       <div class="ms-empty">

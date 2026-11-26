@@ -9,6 +9,7 @@ import { MilestoneService } from '../../services/milestone.service';
 import { ProjectService } from '../../services/project.service';
 import { ActionItemService } from '../../../../core/services/action-item.service';
 import { WorkspaceService } from '../../../workspaces/services/workspace.service';
+import { ProjectPeopleService } from '../../../../services/project-people.service';
 import {
   MilestoneResponse,
   MilestoneStatus,
@@ -61,6 +62,7 @@ export class MilestoneDetailComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
   private readonly actionService = inject(ActionItemService);
   private readonly workspaceSvc = inject(WorkspaceService);
+  private readonly peopleSvc    = inject(ProjectPeopleService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toastSvc = inject(ToastService);
@@ -75,10 +77,15 @@ export class MilestoneDetailComponent implements OnInit {
   // Workspace/Project context (loaded from project)
   workspaceId: string | null = null;
   workspaceTitle: string | null = null;
+  /** WO-2026-11 P-2: the project's `canManage` — Edit milestone, Add / Delete action item, comments, files. */
+  canManage = false;
+  /** WO-2026-11 P-2: the caller sees the workspace only through a project role (no link; calendar through the project). */
+  viaProjectRole = false;
 
   // Working calendar of the project's workspace (WO-2026-11 C-3)
   private readonly calendarWorkspaceId = signal<string | null>(null);
-  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId());
+  private readonly calendarViaProject = signal<string | null>(null);
+  readonly calendar = injectWorkspaceCalendar(() => this.calendarWorkspaceId(), () => this.calendarViaProject());
   /** Dates the edited record holds now; unchanged dates are never flagged (Q8). */
   originalActionDates: { start: string | null; due: string | null } = { start: null, due: null };
   originalMilestoneDates: { start: string | null; due: string | null } = { start: null, due: null };
@@ -219,25 +226,42 @@ export class MilestoneDetailComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.workspaceId = res.data?.workspaceId ?? null;
+          this.canManage = !!res.data?.canManage;
+          this.viaProjectRole = res.data?.canOpenWorkspace === false;
+          this.calendarViaProject.set(this.viaProjectRole ? this.projectId : null);
           this.calendarWorkspaceId.set(this.workspaceId);
           this.workspaceTitle = res.data?.workspaceTitle ?? null;
           this.projectName = res.data?.name ?? null;
           this.loadActionItems();
-          if (this.workspaceId) {
-            this.loadAssignableUsers(this.workspaceId);
-          }
+          this.loadAssignableUsers();
         },
         error: () => {},
       });
   }
 
-  private loadAssignableUsers(workspaceId: string): void {
-    this.workspaceSvc.getAssignableUsers(workspaceId)
+  /**
+   * Assignees of this milestone's action items (WO-2026-11 P-2): the
+   * workspace's assignable users plus the project's team — or only the
+   * project's people for a caller who reaches it through a project role (D4).
+   */
+  private loadAssignableUsers(): void {
+    this.peopleSvc.assignableUsers(this.projectId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => this.allUsers = res.data ?? [],
-        error: () => { this.allUsers = []; },
+        error: (err) => { showErrorHere(err); this.allUsers = []; },
       });
+  }
+
+  get breadcrumbItems(): { label: string; route?: string }[] {
+    return [
+      this.viaProjectRole ? { label: 'My Projects', route: '/projects/my' } : { label: 'Workspaces', route: '/workspaces' },
+      this.viaProjectRole
+        ? { label: this.workspaceTitle ?? '…' }
+        : { label: this.workspaceTitle ?? '…', route: '/workspaces/' + (this.workspaceId ?? '') },
+      { label: this.projectName ?? '…', route: '/projects/' + this.projectId },
+      { label: this.milestone?.name ?? 'Loading…' },
+    ];
   }
 
   private loadStats(): void {

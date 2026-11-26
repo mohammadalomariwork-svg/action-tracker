@@ -34,7 +34,7 @@
     }
 
     <!-- ── Escalation Direction Panel ────────────────────── -->
-    @if (ai.isEscalated && (isCreator() || canReviewWorkflow())) {
+    @if (ai.isEscalated && (isCreator() || canReviewWorkflow()) && canWork()) {
       <div class="wf-direction-panel mb-4">
         <div class="wd-section-header">
           <h5 class="mb-0"><i class="bi bi-compass me-2 text-warning"></i>Escalation Direction</h5>
@@ -100,12 +100,15 @@
           <a [routerLink]="backRoute()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>{{ backLabel() }}
           </a>
-          @if (!ai.isEscalated && ai.statusCode !== ActionStatus.Done) {
+          @if (!ai.isEscalated && ai.statusCode !== ActionStatus.Done && canWork()) {
             <button class="btn btn-warning btn-sm" (click)="showEscalateDialog.set(true)">
               <i class="bi bi-exclamation-triangle me-1"></i>Escalate
             </button>
           }
-          @if (ai.statusCode !== ActionStatus.Done) {
+          @if (!canWork()) {
+            <!-- WO-2026-11 P-2: a viewer / sponsor, or a team member on someone else's item -->
+            <span class="ad-readonly-hint"><i class="bi bi-eye" aria-hidden="true"></i> Read-only for you</span>
+          } @else if (ai.statusCode !== ActionStatus.Done) {
             <button *appHasPermission="'ActionItems'; action: 'Edit'"
                     class="btn btn-primary btn-sm" (click)="openEditForm()" [disabled]="showEditForm">
               <i class="bi bi-pencil me-1"></i>Edit
@@ -133,7 +136,12 @@
         <div class="wd-detail-item">
           <span class="wd-detail-label">Workspace</span>
           <span class="wd-detail-value">
-            <a [routerLink]="['/workspaces', ai.workspaceId]" class="wa-link">{{ ai.workspaceTitle }}</a>
+            @if (viaProjectRole()) {
+              <!-- WO-2026-11 P-2 (D7): shown, not a link — the workspace itself cannot be opened -->
+              <span>{{ ai.workspaceTitle }}</span>
+            } @else {
+              <a [routerLink]="['/workspaces', ai.workspaceId]" class="wa-link">{{ ai.workspaceTitle }}</a>
+            }
           </span>
         </div>
 
@@ -372,7 +380,7 @@
 
     <!-- ── Action Updates (WO-2026-11 A-3, replaces comments) ── -->
     <!-- [reloadToken]: a reloaded item (e.g. after a direction) reloads the list. -->
-    <app-action-updates-section class="mb-4" [actionItemId]="ai.id" [reloadToken]="ai" />
+    <app-action-updates-section class="mb-4" [actionItemId]="ai.id" [reloadToken]="ai" [canWrite]="canWork()" />
 
     <!-- ── Documents Section ──────────────────────────── -->
     <div class="mb-4">
@@ -449,7 +457,11 @@
 
       <!-- Tags (WO-2026-11 A-5) — suggestions from this item's workspace -->
       <div class="mb-3">
-        <app-tag-input inputId="ad-edit-tags" [(tags)]="editTags" [workspaceId]="item()?.workspaceId" />
+        <!-- WO-2026-11 P-2 (D5): read-only, without suggestions, for project-only callers -->
+        <app-tag-input inputId="ad-edit-tags" [(tags)]="editTags"
+                       [workspaceId]="viaProjectRole() ? null : item()?.workspaceId"
+                       [disabled]="viaProjectRole()"
+                       lockedNote="Tags are set by the workspace's admins and members." />
       </div>
 
       <!-- Assignees multi-select dropdown -->
