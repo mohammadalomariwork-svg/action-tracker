@@ -65,6 +65,8 @@ public class Project
     public ApplicationUser ProjectManager { get; set; } = null!;
     public OrgUnit? OwnerOrgUnit { get; set; }
     public ICollection<ProjectSponsor> Sponsors { get; set; } = new List<ProjectSponsor>();
+    /// <summary>Additional project managers, viewers and team members (WO-2026-11 P-2).</summary>
+    public ICollection<ProjectMember> People { get; set; } = new List<ProjectMember>();
     public ICollection<ProjectRisk> Risks { get; set; } = new List<ProjectRisk>();
     public ICollection<ProjectApprovalRequest> ApprovalRequests { get; set; } = new List<ProjectApprovalRequest>();
 }

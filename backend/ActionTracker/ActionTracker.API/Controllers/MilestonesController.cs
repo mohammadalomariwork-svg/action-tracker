@@ -1,6 +1,7 @@
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Milestones.DTOs;
 using ActionTracker.Application.Features.Milestones.Interfaces;
+using ActionTracker.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,7 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Returns all milestones for a project, ordered by sequence.</summary>
     [HttpGet]
+    [Authorize(Policy = PermissionPolicies.MilestonesView)]     // WO-2026-11 P-2 (D11)
     [ProducesResponseType(typeof(ApiResponse<List<MilestoneResponseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByProject(Guid projectId, CancellationToken ct)
     {
@@ -31,6 +33,7 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Returns a single milestone by ID.</summary>
     [HttpGet("{milestoneId:guid}")]
+    [Authorize(Policy = PermissionPolicies.MilestonesView)]     // WO-2026-11 P-2 (D11)
     [ProducesResponseType(typeof(ApiResponse<MilestoneResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid projectId, Guid milestoneId, CancellationToken ct)
@@ -44,6 +47,7 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Creates a new milestone for the project.</summary>
     [HttpPost]
+    [Authorize(Policy = PermissionPolicies.MilestonesCreate)]   // WO-2026-11 P-2 (D11): UI gate Projects.Create; every holder has it
     [ProducesResponseType(typeof(ApiResponse<MilestoneResponseDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(Guid projectId, [FromBody] MilestoneCreateDto dto, CancellationToken ct)
@@ -69,6 +73,8 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Updates an existing milestone.</summary>
     [HttpPut("{milestoneId:guid}")]
+    // WO-2026-11 P-2 (D11): no policy on purpose — the milestone detail page offers Edit to
+    // every user, and 1,673 active users (Team Member) lack Milestones.Edit in production.
     [ProducesResponseType(typeof(ApiResponse<MilestoneResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid projectId, Guid milestoneId, [FromBody] MilestoneUpdateDto dto, CancellationToken ct)
@@ -90,6 +96,7 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Soft-deletes a milestone.</summary>
     [HttpDelete("{milestoneId:guid}")]
+    [Authorize(Policy = PermissionPolicies.MilestonesDelete)]   // WO-2026-11 P-2 (D11): UI gate Projects.Delete; every holder has it
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid projectId, Guid milestoneId, CancellationToken ct)
@@ -107,6 +114,7 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Returns action-item stats for a specific milestone.</summary>
     [HttpGet("{milestoneId:guid}/stats")]
+    [Authorize(Policy = PermissionPolicies.MilestonesView)]     // WO-2026-11 P-2 (D11)
     [ProducesResponseType(typeof(ApiResponse<MilestoneStatsDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMilestoneStats(Guid projectId, Guid milestoneId, CancellationToken ct)
     {
@@ -116,6 +124,7 @@ public class MilestonesController : ControllerBase
 
     /// <summary>Locks milestone dates by saving baseline values.</summary>
     [HttpPost("baseline")]
+    [Authorize(Policy = PermissionPolicies.MilestonesEdit)]     // WO-2026-11 P-2 (D11): not called by the UI
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Baseline(Guid projectId, CancellationToken ct)

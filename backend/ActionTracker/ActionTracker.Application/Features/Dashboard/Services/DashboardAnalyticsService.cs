@@ -89,6 +89,19 @@ public class DashboardAnalyticsService : IDashboardAnalyticsService
         return await _workspaceAccess.GetVisibleWorkspaceIdsAsync(userId);
     }
 
+    /// <summary>
+    /// WO-2026-11 P-2: projects where the caller is lead PM, sponsor or a project
+    /// member. The scoped queries also include these projects (and their action
+    /// items) — and nothing else of their workspaces. The counting rules in
+    /// <c>DashboardRules</c> are unchanged; this only widens which rows they count.
+    /// </summary>
+    private async Task<List<Guid>> RoleProjectIdsAsync()
+    {
+        var userId = _currentUser.UserId;
+        if (string.IsNullOrEmpty(userId)) return new List<Guid>();
+        return await _workspaceAccess.GetProjectRoleProjectIdsAsync(userId) ?? new List<Guid>();
+    }
+
     private async Task<List<ActionRow>> LoadActionRowsAsync(IQueryable<ActionItem> query, CancellationToken ct) =>
         await query.AsNoTracking()
             .Select(a => new ActionRow
@@ -109,10 +122,12 @@ public class DashboardAnalyticsService : IDashboardAnalyticsService
     private async Task<List<ActionRow>> LoadVisibleActionRowsAsync(CancellationToken ct)
     {
         var wsIds = await VisibleWorkspaceIdsAsync();
-        if (wsIds is { Count: 0 }) return new List<ActionRow>();
+        var roleIds = await RoleProjectIdsAsync();   // WO-2026-11 P-2
+        if (wsIds is { Count: 0 } && roleIds.Count == 0) return new List<ActionRow>();
 
         var query = _db.ActionItems.AsQueryable();
-        if (wsIds != null) query = query.Where(a => wsIds.Contains(a.WorkspaceId));
+        if (wsIds != null) query = query.Where(a => wsIds.Contains(a.WorkspaceId)
+            || (a.ProjectId != null && roleIds.Contains(a.ProjectId.Value)));
         return await LoadActionRowsAsync(query, ct);
     }
 
@@ -431,11 +446,12 @@ public class DashboardAnalyticsService : IDashboardAnalyticsService
         var empty = (new List<ProjectRowDto>(), new List<MilestoneRow>());
 
         var wsIds = await VisibleWorkspaceIdsAsync();
-        if (wsIds is { Count: 0 }) return empty;
+        var roleIds = await RoleProjectIdsAsync();   // WO-2026-11 P-2
+        if (wsIds is { Count: 0 } && roleIds.Count == 0) return empty;
         if (objectiveIds is { Count: 0 }) return empty;
 
         var query = _db.Projects.AsNoTracking().AsQueryable();
-        if (wsIds != null) query = query.Where(p => wsIds.Contains(p.WorkspaceId));
+        if (wsIds != null) query = query.Where(p => wsIds.Contains(p.WorkspaceId) || roleIds.Contains(p.Id));
         if (objectiveIds != null)
             query = query.Where(p =>
                 p.StrategicObjectiveId.HasValue && objectiveIds.Contains(p.StrategicObjectiveId.Value));
@@ -467,7 +483,8 @@ public class DashboardAnalyticsService : IDashboardAnalyticsService
         // Project-linked action items and milestones. Both are filtered to the
         // visible projects in memory rather than with a long IN list.
         var actionQuery = _db.ActionItems.Where(a => a.ProjectId != null);
-        if (wsIds != null) actionQuery = actionQuery.Where(a => wsIds.Contains(a.WorkspaceId));
+        if (wsIds != null) actionQuery = actionQuery.Where(a => wsIds.Contains(a.WorkspaceId)
+            || (a.ProjectId != null && roleIds.Contains(a.ProjectId.Value)));
         var actions = (await LoadActionRowsAsync(actionQuery, ct))
             .Where(a => projectIds.Contains(a.ProjectId!.Value))
             .ToLookup(a => a.ProjectId!.Value);

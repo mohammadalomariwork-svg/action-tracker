@@ -14,6 +14,9 @@ using ActionTracker.Application.Features.Tags.Interfaces;
 using ActionTracker.Application.Features.Workflow.DTOs;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Application.Helpers;
+using ActionTracker.Application.Features.ProjectPeople;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +36,7 @@ public class ActionItemService : IActionItemService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWorkCalendarService _calendars;
     private readonly IActionItemTagService _tags;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     public ActionItemService(
         IAppDbContext dbContext,
@@ -52,6 +56,7 @@ public class ActionItemService : IActionItemService
         _scopeFactory         = scopeFactory;
         _calendars            = calendars;
         _tags                 = tags;
+        _access               = new ProjectAccessService(dbContext);
     }
 
     // -------------------------------------------------------------------------
@@ -96,7 +101,7 @@ public class ActionItemService : IActionItemService
 
         if (filter.IncludeDeleted)
             query = query.IgnoreQueryFilters()
-                .WhereWorkspaceVisibleTo(_dbContext.CurrentUserId);
+                .WhereWorkspaceVisibleTo(_dbContext);
 
         // Enum filters
         if (filter.Status.HasValue)
@@ -163,13 +168,16 @@ public class ActionItemService : IActionItemService
 
         // Workspace-membership scoping: regular users only see action items in
         // workspaces they're a member/admin of. Privileged roles pass null.
+        // WO-2026-11 P-2: plus the action items of projects where they hold a project role.
         if (filter.VisibleWorkspaceIds != null)
         {
             var wsIds = filter.VisibleWorkspaceIds;
-            if (wsIds.Count == 0)
+            var roleProjectIds = filter.RoleProjectIds ?? new List<Guid>();
+            if (wsIds.Count == 0 && roleProjectIds.Count == 0)
                 query = query.Where(a => false);
             else
-                query = query.Where(a => wsIds.Contains(a.WorkspaceId));
+                query = query.Where(a => wsIds.Contains(a.WorkspaceId)
+                    || (a.ProjectId != null && roleProjectIds.Contains(a.ProjectId.Value)));
         }
 
         // Full-text search across title, description, and assignee identity
@@ -212,6 +220,7 @@ public class ActionItemService : IActionItemService
         var items = paged.Items.Select(ActionItemMapper.ToDto).ToList();
         await FillSubItemCountsAsync(items, subItemOnlyAssigneeId, ct);
         await _tags.FillTagsAsync(items, ct);
+        await FillMyAccessAsync(items);
 
         return new PagedResult<ActionItemResponseDto>
         {
@@ -236,6 +245,7 @@ public class ActionItemService : IActionItemService
         var dto = ActionItemMapper.ToDto(item);
         await FillSubItemCountsAsync(new[] { dto }, null, ct);
         await _tags.FillTagsAsync(new[] { dto }, ct);
+        await FillMyAccessAsync(new[] { dto });
         return dto;
     }
 
@@ -244,6 +254,56 @@ public class ActionItemService : IActionItemService
     /// through the sub-item query filters (live, visible sub-items only). With
     /// <paramref name="myUserId"/> also counts that user's sub-items.
     /// </summary>
+    /// <summary>
+    /// WO-2026-11 P-2: <c>CanWork</c> / <c>ViaProjectRole</c> on each response, the
+    /// same decision as <c>IProjectAccessService.CanWorkOnItemAsync</c>, worked out
+    /// for a whole page with a few id queries.
+    /// </summary>
+    private async Task FillMyAccessAsync(IReadOnlyCollection<ActionItemResponseDto> items)
+    {
+        if (items.Count == 0) return;
+        var userId = _dbContext.CurrentUserId;
+        if (userId == null)
+        {
+            foreach (var i in items) { i.CanWork = true; i.ViaProjectRole = false; }
+            return;
+        }
+
+        var workspaceIds = items.Select(i => i.WorkspaceId).Distinct().ToList();
+        var workspaceLevel = (await _dbContext.Workspaces.IgnoreQueryFilters()
+            .Where(w => workspaceIds.Contains(w.Id))
+            .WhereWorkspaceLevelVisibleTo(userId)
+            .Select(w => w.Id)
+            .ToListAsync()).ToHashSet();
+
+        var projectIds = items
+            .Where(i => !workspaceLevel.Contains(i.WorkspaceId) && i.ProjectId != null)
+            .Select(i => i.ProjectId!.Value).Distinct().ToList();
+        var managerOf = new HashSet<Guid>();
+        var teamOf    = new HashSet<Guid>();
+        if (projectIds.Count > 0)
+        {
+            managerOf.UnionWith(await _dbContext.Projects.IgnoreQueryFilters()
+                .Where(p => projectIds.Contains(p.Id) && p.ProjectManagerUserId == userId)
+                .Select(p => p.Id).ToListAsync());
+            var roles = await _dbContext.ProjectMembers.AsNoTracking()
+                .Where(m => projectIds.Contains(m.ProjectId) && m.UserId == userId)
+                .Select(m => new { m.ProjectId, m.Role }).ToListAsync();
+            managerOf.UnionWith(roles.Where(r => r.Role == ProjectMemberRole.ProjectManager).Select(r => r.ProjectId));
+            teamOf.UnionWith(roles.Where(r => r.Role == ProjectMemberRole.TeamMember).Select(r => r.ProjectId));
+        }
+
+        foreach (var i in items)
+        {
+            var wsLevel = workspaceLevel.Contains(i.WorkspaceId);
+            var pid = i.ProjectId ?? Guid.Empty;
+            i.ViaProjectRole = !wsLevel;
+            i.CanWork = wsLevel
+                || managerOf.Contains(pid)
+                || (teamOf.Contains(pid) && i.Assignees.Any(a => string.Equals(a.UserId, userId, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
     private async Task FillSubItemCountsAsync(
         IReadOnlyCollection<ActionItemResponseDto> items, string? myUserId, CancellationToken ct)
     {
@@ -290,6 +350,26 @@ public class ActionItemService : IActionItemService
     public async Task<ActionItemResponseDto> CreateAsync(
         ActionItemCreateDto dto, string createdByUserId, CancellationToken ct)
     {
+        // ── Where the item goes (WO-2026-11 P-2, decision D12) ─────────────────
+        // A project item: the project must be one the caller sees, they must be
+        // allowed to manage it (the workspace rule as today, or a project manager),
+        // and the item sits in the project's own workspace. Any other item: a
+        // workspace the caller sees at workspace level. Before P-2 a hidden project
+        // was skipped and the item saved into it.
+        var callerHasWorkspaceLevel = await _access.IsWorkspaceLevelAsync(dto.WorkspaceId);
+        if (dto.ProjectId.HasValue && dto.ProjectId.Value != Guid.Empty)
+        {
+            var access = await _access.EnsureCanManageAsync(dto.ProjectId.Value);
+            if (access.WorkspaceId != dto.WorkspaceId)
+                throw new ArgumentException("A project's action items must be in the project's workspace.");
+        }
+        else if (!callerHasWorkspaceLevel)
+        {
+            throw new KeyNotFoundException($"Workspace {dto.WorkspaceId} not found.");
+        }
+        if (!callerHasWorkspaceLevel && dto.Tags is { Count: > 0 })
+            throw new ProjectAccessDeniedException(ProjectAccessDeniedException.TagsReadOnly);
+
         // Block creation if linked to a non-Draft project
         if (dto.ProjectId.HasValue && dto.ProjectId.Value != Guid.Empty)
         {
@@ -469,6 +549,7 @@ public class ActionItemService : IActionItemService
 
         var createdDto = ActionItemMapper.ToDto(created);
         await _tags.FillTagsAsync(new[] { createdDto }, ct);
+        await FillMyAccessAsync(new[] { createdDto });
         return createdDto;
     }
 
@@ -484,6 +565,35 @@ public class ActionItemService : IActionItemService
             .Include(a => a.Escalations)
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
+
+        // ── Access (WO-2026-11 P-2) ───────────────────────────────────────────
+        // The workspace rule as today, a project manager, or a team member assigned
+        // to the item. Through a project role an item stays where it is and its tags
+        // are read-only (decision D5). A move by anyone lands in a workspace they see
+        // at workspace level, and in a project they may manage, of that workspace
+        // (decision D12).
+        await _access.EnsureCanWorkOnItemAsync(id);
+        var movedWorkspaceId = dto.WorkspaceId ?? item.WorkspaceId;
+        Guid? movedProjectId = dto.ProjectId is null
+            ? item.ProjectId
+            : dto.ProjectId.Value == Guid.Empty ? null : dto.ProjectId.Value;
+        var moves = movedWorkspaceId != item.WorkspaceId || movedProjectId != item.ProjectId;
+        if (!await _access.IsWorkspaceLevelAsync(item.WorkspaceId))
+        {
+            if (moves) throw new ProjectAccessDeniedException(ProjectAccessDeniedException.NoMove);
+            if (dto.Tags is not null) throw new ProjectAccessDeniedException(ProjectAccessDeniedException.TagsReadOnly);
+        }
+        else if (moves)
+        {
+            if (movedWorkspaceId != item.WorkspaceId && !await _access.IsWorkspaceLevelAsync(movedWorkspaceId))
+                throw new KeyNotFoundException($"Workspace {movedWorkspaceId} not found.");
+            if (movedProjectId is { } targetProjectId)
+            {
+                var target = await _access.EnsureCanManageAsync(targetProjectId);
+                if (target.WorkspaceId != movedWorkspaceId)
+                    throw new ArgumentException("A project's action items must be in the project's workspace.");
+            }
+        }
 
         // ── Block edits on completed items ────────────────────────────────────
         // The one exception (WO-2026-11 A-1): a payload that only sets the
@@ -746,6 +856,7 @@ public class ActionItemService : IActionItemService
         var updatedDto = ActionItemMapper.ToDto(updated);
         await FillSubItemCountsAsync(new[] { updatedDto }, null, ct);
         await _tags.FillTagsAsync(new[] { updatedDto }, ct);
+        await FillMyAccessAsync(new[] { updatedDto });
         return updatedDto;
     }
 
@@ -757,6 +868,9 @@ public class ActionItemService : IActionItemService
 
         if (item.ProjectId.HasValue)
         {
+            // WO-2026-11 P-2: deleting a project's item is a manage right.
+            await _access.EnsureCanManageAsync(item.ProjectId.Value);
+
             var parentProject = await _dbContext.Projects
                 .Where(p => p.Id == item.ProjectId.Value && !p.IsDeleted)
                 .Select(p => new { p.Status })
@@ -777,7 +891,7 @@ public class ActionItemService : IActionItemService
     {
         var item = await _dbContext.ActionItems
             .IgnoreQueryFilters()
-            .WhereWorkspaceVisibleTo(_dbContext.CurrentUserId)
+            .WhereWorkspaceVisibleTo(_dbContext)
             .Include(a => a.Project)
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
@@ -787,6 +901,10 @@ public class ActionItemService : IActionItemService
 
         if (item.ProjectId != null && item.Project != null && item.Project.IsDeleted)
             throw new InvalidOperationException("Cannot restore this action item because its parent project is deleted. Restore the project first.");
+
+        // WO-2026-11 P-2: restoring a project's item is a manage right.
+        if (item.ProjectId != null)
+            await _access.EnsureCanManageAsync(item.ProjectId.Value);
 
         item.IsDeleted = false;
         // Only the sub-items deleted together with this item (WO-2026-11 A-2, D2).
@@ -801,6 +919,8 @@ public class ActionItemService : IActionItemService
         var item = await _dbContext.ActionItems
             .FirstOrDefaultAsync(a => a.Id == id, ct)
             ?? throw new KeyNotFoundException($"ActionItem {id} not found.");
+
+        await _access.EnsureCanWorkOnItemAsync(id);   // WO-2026-11 P-2
 
         // ── Workflow auto-request for standalone items ─────────────────────────
         if (item.IsStandalone && newStatus != item.Status)

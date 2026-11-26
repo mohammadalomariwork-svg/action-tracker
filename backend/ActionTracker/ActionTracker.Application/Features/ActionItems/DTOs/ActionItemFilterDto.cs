@@ -63,4 +63,12 @@ public class ActionItemFilterDto
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public List<Guid>? VisibleWorkspaceIds { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2: projects where the caller is lead PM, sponsor or a project member —
+    /// their action items are listed even outside <see cref="VisibleWorkspaceIds"/>. Always set
+    /// by the controller (a query-string value is overwritten).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<Guid> RoleProjectIds { get; set; } = new();
 }

@@ -204,7 +204,8 @@ public class WorkingDateRuleTests : IDisposable
     private ProjectService NewProjectService() =>
         new(_db, NullLogger<ProjectService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
             Settings(), ScopeFactory(), _calendars,
-            Mock.Of<ActionTracker.Application.Features.ProjectClassifications.Interfaces.IProjectClassificationService>());
+            Mock.Of<ActionTracker.Application.Features.ProjectClassifications.Interfaces.IProjectClassificationService>(),
+            ActionTracker.Tests.Unit.ProjectPeople.ProjectPeopleTestHelpers.NewPeopleService(_db));
 
     private static ActionItemCreateDto NewActionItem(Guid workspaceId, DateTime dueDate, DateTime? startDate = null) => new()
     {

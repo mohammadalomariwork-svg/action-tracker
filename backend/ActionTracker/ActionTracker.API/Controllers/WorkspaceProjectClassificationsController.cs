@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ActionTracker.API.Filters;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ProjectClassifications;
 using ActionTracker.Application.Features.ProjectClassifications.DTOs;
@@ -26,6 +27,7 @@ namespace ActionTracker.API.Controllers;
 [ApiController]
 [Route("api/workspaces/{workspaceId:guid}/project-classifications")]
 [Authorize(AuthenticationSchemes = "LocalBearer,AzureAD")]
+[WorkspaceLevelAccess] // P-2: a workspace's classification list stays workspace-level
 public class WorkspaceProjectClassificationsController : ControllerBase
 {
     private readonly IProjectClassificationService _service;

@@ -1,4 +1,6 @@
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.ActionItemSubItems.DTOs;
 using ActionTracker.Application.Features.ActionItemSubItems.Interfaces;
 using ActionTracker.Application.Features.Calendars;
@@ -22,6 +24,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
     private readonly IWorkspaceService _workspaces;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ActionItemSubItemService> _logger;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     public ActionItemSubItemService(
         IAppDbContext db,
@@ -35,6 +38,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         _workspaces   = workspaces;
         _scopeFactory = scopeFactory;
         _logger       = logger;
+        _access       = new ProjectAccessService(db);
     }
 
     // ── Read ─────────────────────────────────────────────────────────────────
@@ -51,6 +55,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         Guid actionItemId, CreateActionItemSubItemDto dto, string userId, CancellationToken ct = default)
     {
         var parent = await LoadParentAsync(actionItemId, ct);
+        await _access.EnsureCanWorkOnItemAsync(actionItemId);   // WO-2026-11 P-2
         EnsureParentAcceptsChanges(parent);
 
         var start = dto.StartDate.HasValue ? ActionItemSubItemRules.ToStoredDay(dto.StartDate.Value) : (DateTime?)null;
@@ -68,7 +73,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         }, ct);
 
         var assigneeIds = DistinctIds(dto.AssigneeIds);
-        await EnsureAssignableAsync(parent.WorkspaceId, assigneeIds, ct);
+        await EnsureAssignableAsync(parent.WorkspaceId, actionItemId, assigneeIds, ct);
 
         var nextOrder = (await _db.ActionItemSubItems
             .Where(s => s.ActionItemId == actionItemId)
@@ -104,6 +109,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         Guid actionItemId, Guid subItemId, UpdateActionItemSubItemDto dto, string userId, CancellationToken ct = default)
     {
         var parent = await LoadParentAsync(actionItemId, ct);
+        await _access.EnsureCanWorkOnItemAsync(actionItemId);   // WO-2026-11 P-2
         EnsureParentAcceptsChanges(parent);
         var subItem = await LoadTrackedSubItemAsync(actionItemId, subItemId, ct);
 
@@ -135,7 +141,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         var wanted  = DistinctIds(dto.AssigneeIds);
         var current = subItem.Assignees.Select(a => a.UserId).ToList();
         var added   = wanted.Where(id => !current.Contains(id, StringComparer.Ordinal)).ToList();
-        await EnsureAssignableAsync(parent.WorkspaceId, added, ct);
+        await EnsureAssignableAsync(parent.WorkspaceId, actionItemId, added, ct);
 
         subItem.Title           = dto.Title.Trim();
         subItem.Description     = NormalizeDescription(dto.Description);
@@ -161,6 +167,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
     public async Task DeleteAsync(Guid actionItemId, Guid subItemId, string userId, CancellationToken ct = default)
     {
         var parent = await LoadParentAsync(actionItemId, ct);
+        await _access.EnsureCanWorkOnItemAsync(actionItemId);   // WO-2026-11 P-2
         EnsureParentAcceptsChanges(parent);
         var subItem = await LoadTrackedSubItemAsync(actionItemId, subItemId, ct);
 
@@ -194,6 +201,10 @@ public class ActionItemSubItemService : IActionItemSubItemService
             throw new UnauthorizedAccessException(
                 "Only a user assigned to this sub-item, or who may edit action items, can mark it done or not done.");
 
+        // WO-2026-11 P-2: through a project role, only a project manager or a team
+        // member assigned to the item or to this sub-item.
+        await _access.EnsureCanWorkOnItemAsync(actionItemId, subItemId);
+
         EnsureParentAcceptsChanges(parent);
 
         if (subItem.IsDone != isDone)
@@ -216,6 +227,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         Guid actionItemId, IReadOnlyList<Guid> subItemIds, string userId, CancellationToken ct = default)
     {
         var parent = await LoadParentAsync(actionItemId, ct);
+        await _access.EnsureCanWorkOnItemAsync(actionItemId);   // WO-2026-11 P-2
         EnsureParentAcceptsChanges(parent);
 
         var subItems = await _db.ActionItemSubItems
@@ -284,13 +296,24 @@ public class ActionItemSubItemService : IActionItemSubItemService
     /// <c>GET /api/workspaces/{id}/assignable-users</c> (active admins, members
     /// and project managers of the workspace).
     /// </summary>
-    private async Task EnsureAssignableAsync(Guid workspaceId, IReadOnlyCollection<string> userIds, CancellationToken ct)
+    private async Task EnsureAssignableAsync(Guid workspaceId, Guid actionItemId, IReadOnlyCollection<string> userIds, CancellationToken ct)
     {
         if (userIds.Count == 0) return;
 
         var pool = (await _workspaces.GetAssignableUsersAsync(workspaceId))
             .Select(u => u.UserId)
             .ToHashSet(StringComparer.Ordinal);
+
+        // WO-2026-11 P-2: plus the active team members of the parent's project.
+        var team = await _db.ActionItems.AsNoTracking()
+            .Where(a => a.Id == actionItemId && a.ProjectId != null)
+            .SelectMany(a => _db.ProjectMembers
+                .Where(m => m.ProjectId == a.ProjectId
+                    && m.Role == Domain.Enums.ProjectMemberRole.TeamMember
+                    && m.User.IsActive)
+                .Select(m => m.UserId))
+            .ToListAsync(ct);
+        pool.UnionWith(team);
 
         var refused = userIds.Where(id => !pool.Contains(id)).ToList();
         if (refused.Count == 0) return;
@@ -302,7 +325,7 @@ public class ActionItemSubItemService : IActionItemSubItemService
         var labels = refused.Select(id => names.TryGetValue(id, out var n) && n.Length > 0 ? n : $"unknown user {id}");
 
         throw new ArgumentException(
-            "Sub-item assignees must be active admins, members or project managers of the action item's workspace. "
+            "Sub-item assignees must be active admins, members or project managers of the action item's workspace, or team members of its project. "
             + "Not allowed: " + string.Join(", ", labels) + ".");
     }
 

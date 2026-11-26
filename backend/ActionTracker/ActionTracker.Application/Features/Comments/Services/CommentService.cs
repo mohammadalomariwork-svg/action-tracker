@@ -1,6 +1,8 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Comments.DTOs;
 using ActionTracker.Application.Features.Comments.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -41,10 +43,12 @@ public class CommentService : ICommentService
 
     private readonly IAppDbContext _dbContext;
     private readonly ILogger<CommentService> _logger;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     public CommentService(IAppDbContext dbContext, ILogger<CommentService> logger)
     {
         _dbContext = dbContext;
+        _access    = new ProjectAccessService(dbContext);
         _logger = logger;
     }
 
@@ -79,6 +83,7 @@ public class CommentService : ICommentService
         var type = RequireSupportedType(entityType);
         await EnsureParentVisibleAsync(type, entityId, ct);
         RefuseActionItemWrite(type);
+        await EnsureProjectRoleWriteAsync(type, entityId, ct);   // WO-2026-11 P-2
 
         var comment = new Comment
         {
@@ -110,6 +115,7 @@ public class CommentService : ICommentService
     {
         var comment = await LoadVisibleCommentAsync(commentId, ct);
         RefuseActionItemWrite(comment.RelatedEntityType);
+        await EnsureProjectRoleWriteAsync(RequireSupportedType(comment.RelatedEntityType), comment.RelatedEntityId, ct);   // WO-2026-11 P-2
 
         if (comment.AuthorUserId != userId)
             throw new UnauthorizedAccessException("You can only edit your own comments.");
@@ -131,6 +137,7 @@ public class CommentService : ICommentService
     {
         var comment = await LoadVisibleCommentAsync(commentId, ct);
         RefuseActionItemWrite(comment.RelatedEntityType);
+        await EnsureProjectRoleWriteAsync(RequireSupportedType(comment.RelatedEntityType), comment.RelatedEntityId, ct);   // WO-2026-11 P-2
 
         if (comment.AuthorUserId != userId)
             throw new UnauthorizedAccessException("You can only delete your own comments.");
@@ -170,6 +177,24 @@ public class CommentService : ICommentService
         if (comment is null || type is null || !await IsParentVisibleAsync(type, comment.RelatedEntityId, ct))
             throw new KeyNotFoundException($"Comment {commentId} not found.");
         return comment;
+    }
+
+    /// <summary>
+    /// WO-2026-11 P-2: through a project role, only the project's managers may write
+    /// comments on the project, its milestones and risks; viewers, sponsors and team
+    /// members read them. Workspace-level callers keep today's rights.
+    /// </summary>
+    private async Task EnsureProjectRoleWriteAsync(string type, Guid entityId, CancellationToken ct)
+    {
+        Guid? projectId = type switch
+        {
+            ProjectType     => entityId,
+            MilestoneType   => await _dbContext.Milestones.Where(m => m.Id == entityId).Select(m => (Guid?)m.ProjectId).FirstOrDefaultAsync(ct),
+            ProjectRiskType => await _dbContext.ProjectRisks.Where(r => r.Id == entityId).Select(r => (Guid?)r.ProjectId).FirstOrDefaultAsync(ct),
+            _               => null,
+        };
+        if (projectId is { } pid)
+            await _access.EnsureCanManageAsync(pid);
     }
 
     private async Task EnsureParentVisibleAsync(string type, Guid entityId, CancellationToken ct)

@@ -24,7 +24,7 @@ public static class ActionItemSubItemCascade
         // same unit of work. The private-workspace rule is re-applied.
         var subItems = await db.ActionItemSubItems
             .IgnoreQueryFilters()
-            .WhereWorkspaceVisibleTo(db.CurrentUserId)
+            .WhereWorkspaceVisibleTo(db)
             .Where(s => parentIds.Contains(s.ActionItemId) && !s.IsDeleted)
             .ToListAsync(ct);
 
@@ -44,7 +44,7 @@ public static class ActionItemSubItemCascade
 
         var subItems = await db.ActionItemSubItems
             .IgnoreQueryFilters()
-            .WhereWorkspaceVisibleTo(db.CurrentUserId)
+            .WhereWorkspaceVisibleTo(db)
             .Where(s => parentIds.Contains(s.ActionItemId) && s.IsDeleted && s.DeletedWithParent)
             .ToListAsync(ct);
 

@@ -80,6 +80,10 @@ public class ActionItemsController : ControllerBase
         filter.VisibleWorkspaceIds = string.IsNullOrEmpty(userId)
             ? new List<Guid>()
             : await _accessResolver.GetVisibleWorkspaceIdsAsync(userId);
+        // WO-2026-11 P-2: plus the projects where the caller holds a project role (never taken from the query string).
+        filter.RoleProjectIds = string.IsNullOrEmpty(userId)
+            ? new List<Guid>()
+            : await _accessResolver.GetProjectRoleProjectIdsAsync(userId);
 
         return await ListAsync(filter, () => _service.GetAllAsync(filter, ct));
     }

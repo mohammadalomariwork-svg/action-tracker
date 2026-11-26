@@ -38,13 +38,26 @@ public class ProjectClassificationsControllerIntegrationTests
         await db.SaveChangesAsync();
     }
 
-    private Task<HttpResponseMessage> CreateProjectAsync(Session as_, Guid workspaceId, Guid? classificationId) =>
-        SendAsync(HttpMethod.Post, "/api/projects", as_, new
+    private async Task<HttpResponseMessage> CreateProjectAsync(Session as_, Guid workspaceId, Guid? classificationId)
+    {
+        // WO-2026-11 P-2: POST /api/projects needs Projects.Create, which the seeded
+        // Workspace Admin role does not hold (nor does it in production; the UI's
+        // New Project button needs it too). Being put on a workspace's PM list gives
+        // the Project Manager role in the app, so the test does the same.
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>>();
+            var user = await users.FindByIdAsync(as_.UserId);
+            if (user != null && !await users.IsInRoleAsync(user, AppRoles.ProjectManager))
+                await users.AddToRoleAsync(user, AppRoles.ProjectManager);
+        }
+        return await SendAsync(HttpMethod.Post, "/api/projects", as_, new
         {
             name = "P-1 project " + Guid.NewGuid().ToString("N")[..6], workspaceId, projectType = "operational",
             priority = "medium", projectManagerUserId = as_.UserId, sponsorUserIds = new[] { as_.UserId },
             plannedStartDate = Monday, plannedEndDate = Friday, internalClassificationId = classificationId,
         });
+    }
 
     [Fact]
     public async Task Every_route_needs_a_signed_in_user()

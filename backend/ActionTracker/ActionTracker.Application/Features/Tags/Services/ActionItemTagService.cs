@@ -144,7 +144,7 @@ public sealed class ActionItemTagService : IActionItemTagService
         // visibility rules, and the private-workspace rule is applied again.
         var rows = await _db.ActionItemTags
             .IgnoreQueryFilters()
-            .WhereWorkspaceVisibleTo(_db.CurrentUserId)
+            .WhereWorkspaceVisibleTo(_db)
             .Where(x => ids.Contains(x.ActionItemId))
             .Select(x => new { x.ActionItemId, x.TagId, x.Tag.Name, x.Tag.WorkspaceId })
             .ToListAsync(ct);
@@ -210,8 +210,14 @@ public sealed class ActionItemTagService : IActionItemTagService
         // The same items as /my-actions (assigned to the caller, live, through
         // the private-workspace filters), so no option names a tag the caller
         // cannot already see on a row.
+        // WO-2026-11 P-2: through the link's own rule (not the Tag filter, which is
+        // workspace-level), so a team member of a project in a private workspace
+        // gets the tags on their own rows — and nothing else of that workspace.
         var rows = await _db.ActionItemTags
-            .Where(x => x.ActionItem.Assignees.Any(a => a.UserId == userId)
+            .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)
+            .Where(x => !x.ActionItem.IsDeleted
+                        && x.ActionItem.Assignees.Any(a => a.UserId == userId)
                         && x.Tag.WorkspaceId == x.ActionItem.WorkspaceId)
             .Select(x => new
             {

@@ -39,4 +39,15 @@ public interface IWorkflowNotificationHelper
     /// request ended; a draft, deleted update or deleted parent sends nothing.
     /// </summary>
     Task NotifyActionUpdateSubmittedAsync(Guid updateId, string actorUserId);
+
+    // ── Project people (WO-2026-11 P-2) ──────────────────────────────────────
+
+    /// <summary>
+    /// In-app + e-mail (<c>Project.PersonAdded</c>) to each person added to the
+    /// project, with the role they were given (wire names from
+    /// <c>ProjectAccessRoles</c>), except <paramref name="actorUserId"/>; inactive
+    /// users are skipped. Loads the project by id, so it can run after the request
+    /// ended; a deleted project sends nothing. Every e-mail value is HTML-encoded.
+    /// </summary>
+    Task NotifyProjectPeopleAddedAsync(Guid projectId, IReadOnlyCollection<(string UserId, string Role)> added, string? actorUserId);
 }

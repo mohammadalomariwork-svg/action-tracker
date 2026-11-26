@@ -488,7 +488,8 @@ public class ActionItemSubItemServiceTests : IDisposable
         var sub = await AddSubItemAsync(parent.Id, Friday);
         var projects = new ProjectService(_db, NullLogger<ProjectService>.Instance, Mock.Of<IEmailSender>(),
             Mock.Of<INotificationService>(), Settings(), Mock.Of<IServiceScopeFactory>(), _calendars,
-            Mock.Of<ActionTracker.Application.Features.ProjectClassifications.Interfaces.IProjectClassificationService>());
+            Mock.Of<ActionTracker.Application.Features.ProjectClassifications.Interfaces.IProjectClassificationService>(),
+            ActionTracker.Tests.Unit.ProjectPeople.ProjectPeopleTestHelpers.NewPeopleService(_db));
 
         await projects.DeleteAsync(project.Id, CancellationToken.None);
         Raw(sub.Id).Should().Match<ActionItemSubItem>(s => s.IsDeleted && s.DeletedWithParent);
@@ -527,7 +528,7 @@ public class ActionItemSubItemServiceTests : IDisposable
         await FluentActions.Invoking(() => service.ReorderAsync(parent.Id, new[] { sub.Id }, Outsider)).Should().ThrowAsync<KeyNotFoundException>();
 
         // ...including the IgnoreQueryFilters paths, which re-apply the rule.
-        _db.ActionItemSubItems.IgnoreQueryFilters().WhereWorkspaceVisibleTo(Outsider).Should().BeEmpty();
+        _db.ActionItemSubItems.IgnoreQueryFilters().WhereWorkspaceVisibleTo(_db).Should().BeEmpty();   // current user = Outsider
         (await ActionItemSubItemCascade.DeleteWithParentsAsync(_db, new[] { parent.Id }, CancellationToken.None)).Should().Be(0);
         _db.ChangeTracker.Clear();
 

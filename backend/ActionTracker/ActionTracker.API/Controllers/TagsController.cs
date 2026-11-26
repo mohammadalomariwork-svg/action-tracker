@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ActionTracker.API.Filters;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.Tags.DTOs;
 using ActionTracker.Application.Features.Tags.Interfaces;
@@ -16,6 +17,7 @@ namespace ActionTracker.API.Controllers;
 /// </summary>
 [ApiController]
 [Authorize(AuthenticationSchemes = "LocalBearer,AzureAD")]
+[WorkspaceLevelAccess] // P-2: the workspace tag suggestions stay workspace-level
 public class TagsController : ControllerBase
 {
     private readonly IActionItemTagService _tags;

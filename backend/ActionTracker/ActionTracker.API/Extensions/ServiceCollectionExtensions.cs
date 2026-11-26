@@ -136,6 +136,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICommentService,     CommentService>();
         services.AddScoped<IProjectService,     ProjectService>();
         services.AddScoped<IProjectClassificationService, ProjectClassificationService>();   // WO-2026-11 P-1
+        services.AddScoped<ActionTracker.Application.Features.ProjectPeople.Interfaces.IProjectAccessService, ActionTracker.Application.Features.ProjectPeople.Services.ProjectAccessService>();   // WO-2026-11 P-2
+        services.AddScoped<ActionTracker.Application.Features.ProjectPeople.Interfaces.IProjectPeopleService, ActionTracker.Application.Features.ProjectPeople.Services.ProjectPeopleService>();   // WO-2026-11 P-2
         services.AddScoped<IMilestoneService,   MilestoneService>();
         services.AddScoped<IProjectRiskService, ProjectRiskService>();
 

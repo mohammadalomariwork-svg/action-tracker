@@ -37,6 +37,7 @@ public interface IAppDbContext
     // ── Projects feature sets ─────────────────────────────────────────────────
     DbSet<Project>          Projects        { get; }
     DbSet<ProjectSponsor>   ProjectSponsors { get; }
+    DbSet<ProjectMember>    ProjectMembers  { get; }   // WO-2026-11 P-2
     DbSet<Milestone>        Milestones      { get; }
     DbSet<ProjectRisk>      ProjectRisks    { get; }
 
@@ -82,6 +83,25 @@ public interface IAppDbContext
     /// restriction after <c>IgnoreQueryFilters()</c>.
     /// </summary>
     string? CurrentUserId { get; }
+
+    /// <summary>
+    /// WO-2026-11 P-2: live projects where <see cref="CurrentUserId"/> is lead PM,
+    /// sponsor or a project member (empty in system context). The query filters
+    /// let these projects — and everything under them — through, also in a
+    /// private workspace; re-apply it after <c>IgnoreQueryFilters()</c> with the
+    /// <c>WhereWorkspaceVisibleTo(db)</c> overloads.
+    /// </summary>
+    IReadOnlyCollection<Guid> ProjectRoleProjectIds { get; }
+
+    /// <summary>
+    /// WO-2026-11 P-2: the workspaces of <see cref="ProjectRoleProjectIds"/>. The
+    /// Workspace filter lets these rows through only so joins keep the project's
+    /// rows; workspace-level reads must use <c>WhereWorkspaceLevelVisibleTo</c>.
+    /// </summary>
+    IReadOnlyCollection<Guid> ProjectRoleWorkspaceIds { get; }
+
+    /// <summary>Forget the role ids so the next query works them out again (after a change to project people).</summary>
+    void ResetProjectRoles();
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

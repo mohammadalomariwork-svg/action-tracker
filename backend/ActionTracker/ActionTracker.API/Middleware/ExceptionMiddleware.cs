@@ -33,6 +33,8 @@ public class ExceptionMiddleware : IMiddleware
     {
         var (statusCode, title) = ex switch
         {
+            // WO-2026-11 P-2: visible project, link does not allow the change (before its base type).
+            ActionTracker.Application.Features.ProjectPeople.ProjectAccessDeniedException => (StatusCodes.Status403Forbidden, "Forbidden"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized,          "Unauthorized"),
             ArgumentException           => (StatusCodes.Status400BadRequest,            "Bad Request"),
             KeyNotFoundException        => (StatusCodes.Status404NotFound,              "Not Found"),
@@ -53,6 +55,10 @@ public class ExceptionMiddleware : IMiddleware
             // In production only the title is surfaced; detail is available in non-production
             Detail = _env.IsProduction() ? title : ex.Message,
         };
+
+        // WO-2026-11 P-2: the project-access reason is written for users; the client shows `message`.
+        if (ex is ActionTracker.Application.Features.ProjectPeople.ProjectAccessDeniedException)
+            problemDetails.Extensions["message"] = ex.Message;
 
         // Stack trace only in non-production environments
         if (!_env.IsProduction() && ex.StackTrace is not null)

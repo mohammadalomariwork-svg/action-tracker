@@ -223,6 +223,21 @@ public static class EmailTemplateSeeder
                 CreatedAt = now,
             },
 
+            // ── Project people (WO-2026-11 P-2) ──────────────────────────────
+            // Body placeholders carry HTML-encoded text; the subject's values are
+            // decoded by EmailSender.ResolveSubject.
+            new()
+            {
+                Id          = new Guid("b2c3d4e5-0101-4000-8000-000000000101"),
+                TemplateKey = "Project.PersonAdded",
+                Name        = "Added to a Project",
+                Subject     = "You've been added to project {{ProjectName}} ({{ProjectCode}}) as {{RoleName}}",
+                Description = "Sent to a person added to a project as project manager, sponsor, viewer or team member (not to the person who added them).",
+                HtmlBody    = BuildProjectPersonAddedBody(),
+                IsActive  = true,
+                CreatedAt = now,
+            },
+
             // ── Project templates ───────────────────────────────���────────────
             new()
             {
@@ -512,6 +527,21 @@ public static class EmailTemplateSeeder
         "<tr><td style=\"padding: 8px; font-weight: 600;\">Workspace:</td><td style=\"padding: 8px;\">{{WorkspaceName}}</td></tr>" +
         "</table>" +
         "<a href=\"{{ItemUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Action Item</a>" +
+        "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
+        "</div>";
+
+    private static string BuildProjectPersonAddedBody() =>
+        "<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+        "<h2 style=\"color: #0F52BA;\">You've Been Added to a Project</h2>" +
+        "<p>Hi {{RecipientName}},</p>" +
+        "<p><strong>{{ActorName}}</strong> added you to the following project as <strong>{{RoleName}}</strong>. {{RoleDescription}}</p>" +
+        "<table style=\"width: 100%; border-collapse: collapse; margin: 16px 0;\">" +
+        "<tr><td style=\"padding: 8px; font-weight: 600; width: 160px;\">Project:</td><td style=\"padding: 8px;\">{{ProjectName}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Project code:</td><td style=\"padding: 8px;\">{{ProjectCode}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Project manager:</td><td style=\"padding: 8px;\">{{ProjectManager}}</td></tr>" +
+        "<tr><td style=\"padding: 8px; font-weight: 600;\">Workspace:</td><td style=\"padding: 8px;\">{{WorkspaceName}}</td></tr>" +
+        "</table>" +
+        "<a href=\"{{ProjectUrl}}\" style=\"display: inline-block; padding: 10px 24px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 4px;\">View Project</a>" +
         "<p style=\"margin-top: 24px; font-size: 12px; color: #666;\">This is an automated message from KU Action Tracker.</p>" +
         "</div>";
 

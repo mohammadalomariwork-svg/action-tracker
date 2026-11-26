@@ -6,6 +6,8 @@ using ActionTracker.Application.Features.Milestones.DTOs;
 using ActionTracker.Application.Features.Milestones.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +26,7 @@ public class MilestoneService : IMilestoneService
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWorkCalendarService _calendars;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     public MilestoneService(
         IAppDbContext db,
@@ -41,6 +44,7 @@ public class MilestoneService : IMilestoneService
         _appSettings         = appSettings.Value;
         _scopeFactory        = scopeFactory;
         _calendars           = calendars;
+        _access              = new ProjectAccessService(db);
     }
 
     public async Task<List<MilestoneResponseDto>> GetByProjectAsync(Guid projectId, CancellationToken ct)
@@ -68,6 +72,9 @@ public class MilestoneService : IMilestoneService
     {
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
             ?? throw new KeyNotFoundException($"Project {projectId} not found.");
+
+        // WO-2026-11 P-2: the workspace rule as today, or a project manager.
+        await _access.EnsureCanManageAsync(projectId);
 
         if (project.Status != ProjectStatus.Draft)
             throw new ArgumentException("New milestones cannot be added after the project has been submitted for approval or activated.");
@@ -183,6 +190,8 @@ public class MilestoneService : IMilestoneService
             .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId, ct)
             ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
 
+        await _access.EnsureCanManageAsync(projectId);   // WO-2026-11 P-2
+
         var previousStatus = milestone.Status;
 
         // Check if project is frozen (not Draft) — block date changes
@@ -297,6 +306,8 @@ public class MilestoneService : IMilestoneService
             .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId, ct)
             ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
 
+        await _access.EnsureCanManageAsync(projectId);   // WO-2026-11 P-2
+
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
         if (project != null && project.Status != ProjectStatus.Draft)
             throw new ArgumentException("Milestones cannot be removed after the project has been submitted for approval or activated.");
@@ -307,6 +318,12 @@ public class MilestoneService : IMilestoneService
 
     public async Task BaselineMilestonesAsync(Guid projectId, CancellationToken ct)
     {
+        // WO-2026-11 P-2: a visible project needs the manage right. A hidden or
+        // unknown one keeps today's answer (nothing to baseline).
+        var access = await _access.GetAsync(projectId);
+        if (access != null && !access.CanManage)
+            await _access.EnsureCanManageAsync(projectId);
+
         var milestones = await _db.Milestones
             .Where(m => m.ProjectId == projectId)
             .ToListAsync(ct);

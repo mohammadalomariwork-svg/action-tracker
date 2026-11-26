@@ -259,6 +259,122 @@ public class WorkflowNotificationHelper : IWorkflowNotificationHelper
         }
     }
 
+    // ── Project people (WO-2026-11 P-2) ──────────────────────────────────────
+
+    public const string ProjectPersonAddedTemplateKey = "Project.PersonAdded";
+
+    public async Task NotifyProjectPeopleAddedAsync(
+        Guid projectId, IReadOnlyCollection<(string UserId, string Role)> added, string? actorUserId)
+    {
+        var recipients = added
+            .Where(a => !string.IsNullOrWhiteSpace(a.UserId)
+                && !string.Equals(a.UserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(a => a.UserId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (recipients.Count == 0) return;
+
+        // Runs after the request (no user context); reads only this project.
+        var project = await _db.Projects.IgnoreQueryFilters().AsNoTracking()
+            .Include(p => p.Workspace)
+            .Include(p => p.ProjectManager)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
+        if (project is null || project.IsDeleted) return;
+
+        var actorName = string.IsNullOrWhiteSpace(actorUserId) ? "Someone" : await GetDisplayNameAsync(actorUserId);
+        var userIds   = recipients.Select(g => g.Key).ToList();
+        var users     = await _db.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id) && u.IsActive)
+            .ToListAsync();
+        var url = $"/projects/{project.Id}";
+
+        foreach (var user in users)
+        {
+            var roles    = recipients.First(g => string.Equals(g.Key, user.Id, StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.Role).Distinct().ToList();
+            var roleName = string.Join(" and ", roles.Select(ProjectRoleName));
+            var message  = $"{actorName} added you to project {project.Name} ({project.ProjectCode}) as {roleName}";
+
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId               = user.Id,
+                    Title                = "Added to a Project",
+                    Message              = message,
+                    Type                 = "Project",
+                    ActionType           = "PersonAdded",
+                    RelatedEntityType    = "Project",
+                    RelatedEntityId      = project.Id,
+                    RelatedEntityCode    = project.ProjectCode,
+                    Url                  = url,
+                    CreatedByUserId      = actorUserId,
+                    CreatedByDisplayName = actorName,
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create the project-person notification for {ProjectCode}", project.ProjectCode);
+            }
+
+            if (string.IsNullOrEmpty(user.Email)) continue;
+            var placeholders = BuildProjectPersonAddedPlaceholders(
+                project, roleName, string.Join(" ", roles.Select(ProjectRoleDescription).Distinct()), actorName,
+                !string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName! : user.FullName,
+                $"{_appSettings.FrontendBaseUrl}{url}");
+            try
+            {
+                await _emailSender.SendEmailAsync(ProjectPersonAddedTemplateKey, placeholders,
+                    new List<string> { user.Email }, "Project", project.Id, actorUserId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send {TemplateKey} to {Email}", ProjectPersonAddedTemplateKey, user.Email);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Placeholders of <c>Project.PersonAdded</c>. Every value is HTML-encoded —
+    /// <see cref="EmailSender"/> puts them into the body as they are and decodes
+    /// them only for the plain-text subject.
+    /// </summary>
+    public static Dictionary<string, string> BuildProjectPersonAddedPlaceholders(
+        Project project, string roleName, string roleDescription, string actorName, string recipientName, string projectUrl)
+        => new()
+        {
+            ["ProjectName"]     = Html(project.Name),
+            ["ProjectCode"]     = Html(project.ProjectCode),
+            ["ProjectManager"]  = Html(project.ProjectManager is null ? string.Empty
+                : (!string.IsNullOrWhiteSpace(project.ProjectManager.DisplayName)
+                    ? project.ProjectManager.DisplayName : project.ProjectManager.FullName)),
+            ["WorkspaceName"]   = Html(project.Workspace?.Title),
+            ["RoleName"]        = Html(roleName),
+            ["RoleDescription"] = Html(roleDescription),
+            ["ActorName"]       = Html(actorName),
+            ["RecipientName"]   = Html(recipientName),
+            ["ProjectUrl"]      = Html(projectUrl),
+        };
+
+    private static string ProjectRoleName(string role) => role switch
+    {
+        "leadProjectManager" => "lead project manager",
+        "projectManager"     => "project manager",
+        "sponsor"            => "sponsor",
+        "viewer"             => "viewer",
+        "teamMember"         => "team member",
+        _                    => role,
+    };
+
+    private static string ProjectRoleDescription(string role) => role switch
+    {
+        "leadProjectManager" => "You manage the project and receive its approval decisions.",
+        "projectManager"     => "You can manage the project with its lead project manager.",
+        "sponsor"            => "You can view the project and everything in it.",
+        "viewer"             => "You can view the project and everything in it.",
+        "teamMember"         => "You can view the project and work on the action items assigned to you.",
+        _                    => string.Empty,
+    };
+
     // ── Sub-items (WO-2026-11 A-2) ───────────────────────────────────────────
 
     public const string SubItemAssignedTemplateKey  = "ActionItem.SubItemAssigned";

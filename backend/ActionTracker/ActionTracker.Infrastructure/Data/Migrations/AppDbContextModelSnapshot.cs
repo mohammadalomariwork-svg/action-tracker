@@ -2222,6 +2222,43 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.ToTable("ProjectApprovalRequests", (string)null);
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("AddedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("AddedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProjectId", "UserId", "Role")
+                        .IsUnique();
+
+                    b.ToTable("ProjectMembers", (string)null);
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectRisk", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3572,6 +3609,25 @@ namespace ActionTracker.Infrastructure.Data.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectMember", b =>
+                {
+                    b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
+                        .WithMany("People")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ActionTracker.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ActionTracker.Domain.Entities.ProjectRisk", b =>
                 {
                     b.HasOne("ActionTracker.Domain.Entities.Project", "Project")
@@ -3881,6 +3937,8 @@ namespace ActionTracker.Infrastructure.Data.Migrations
             modelBuilder.Entity("ActionTracker.Domain.Entities.Project", b =>
                 {
                     b.Navigation("ApprovalRequests");
+
+                    b.Navigation("People");
 
                     b.Navigation("Risks");
 

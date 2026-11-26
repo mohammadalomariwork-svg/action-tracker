@@ -2,6 +2,8 @@ using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ActionItemUpdates.DTOs;
 using ActionTracker.Application.Features.ActionItemUpdates.Interfaces;
 using ActionTracker.Application.Features.Documents;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
@@ -23,6 +25,7 @@ public class ActionItemUpdateService : IActionItemUpdateService
     private readonly IAppDbContext _db;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ActionItemUpdateService> _logger;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     public ActionItemUpdateService(
         IAppDbContext db,
@@ -32,6 +35,7 @@ public class ActionItemUpdateService : IActionItemUpdateService
         _db           = db;
         _scopeFactory = scopeFactory;
         _logger       = logger;
+        _access       = new ProjectAccessService(db);
     }
 
     // ── Read ─────────────────────────────────────────────────────────────────
@@ -109,6 +113,9 @@ public class ActionItemUpdateService : IActionItemUpdateService
         Guid actionItemId, Guid? subItemId, CreateActionUpdateDto dto, string userId, CancellationToken ct = default)
     {
         await EnsureTargetVisibleAsync(actionItemId, subItemId, ct);
+        // WO-2026-11 P-2: through a project role, a project manager or a team member
+        // assigned to the item (or to this sub-item); viewers and sponsors read only.
+        await _access.EnsureCanWorkOnItemAsync(actionItemId, subItemId);
 
         var now = DateTime.UtcNow;
         var update = new ActionItemUpdate
@@ -219,6 +226,10 @@ public class ActionItemUpdateService : IActionItemUpdateService
         // this also covers a caller without a user context.
         if (!string.Equals(update.AuthorUserId, userId, StringComparison.Ordinal))
             throw new KeyNotFoundException($"Action update {updateId} not found.");
+
+        // WO-2026-11 P-2: an author who lost the right to work on the item (e.g. a
+        // team member taken off it) cannot change their old draft through the role.
+        await _access.EnsureCanWorkOnItemAsync(actionItemId, subItemId);
 
         return update;
     }

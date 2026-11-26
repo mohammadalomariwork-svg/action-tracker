@@ -1,4 +1,6 @@
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.Documents.DTOs;
 using ActionTracker.Application.Features.Documents.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -40,6 +42,7 @@ public class DocumentService : IDocumentService
     private readonly ILogger<DocumentService> _logger;
     private readonly IStrategicScopeService _scopeService;
     private readonly IUserRoleService _roles;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
 
@@ -93,6 +96,7 @@ public class DocumentService : IDocumentService
         _logger       = logger;
         _scopeService = scopeService;
         _roles        = roles;
+        _access       = new ProjectAccessService(dbContext);
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -119,6 +123,7 @@ public class DocumentService : IDocumentService
     {
         var parent = await ResolveVisibleParentAsync(RequireType(entityType), entityId, caller, ct);
         EnsureCanWrite(parent, caller);
+        await EnsureProjectRoleWriteAsync(parent, ct);   // WO-2026-11 P-2
         EnsureNotLocked(parent);
         await EnsureKpiScopedWriteAsync(parent, caller.UserId, ct);
 
@@ -203,6 +208,7 @@ public class DocumentService : IDocumentService
 
         var parent = await ResolveVisibleParentOfDocumentAsync(doc, caller, ct);
         EnsureCanWrite(parent, caller);
+        await EnsureProjectRoleWriteAsync(parent, ct);   // WO-2026-11 P-2
         EnsureNotLocked(parent);
         await EnsureKpiScopedWriteAsync(parent, caller.UserId, ct);
 
@@ -324,6 +330,47 @@ public class DocumentService : IDocumentService
             .FirstOrDefaultAsync(ct);
         return row is null ? null
             : new Parent(DocumentEntityTypes.ActionItemUpdate, id) { UpdateStatus = row.Status, UpdateAuthorId = row.AuthorUserId };
+    }
+
+    /// <summary>
+    /// WO-2026-11 P-2: the project-role ceiling on uploads and deletes. Callers who
+    /// see the record at workspace level keep today's rights; through a project
+    /// role, project / milestone / risk files need a project manager, action-item,
+    /// sub-item and update files need the right to work on the item.
+    /// </summary>
+    private async Task EnsureProjectRoleWriteAsync(Parent parent, CancellationToken ct)
+    {
+        switch (parent.Type)
+        {
+            case DocumentEntityTypes.ActionItem:
+                await _access.EnsureCanWorkOnItemAsync(parent.Id);
+                break;
+            case DocumentEntityTypes.ActionItemSubItem:
+            {
+                var itemId = await _dbContext.ActionItemSubItems.Where(s => s.Id == parent.Id)
+                    .Select(s => s.ActionItemId).FirstAsync(ct);
+                await _access.EnsureCanWorkOnItemAsync(itemId, parent.Id);
+                break;
+            }
+            case DocumentEntityTypes.ActionItemUpdate:
+            {
+                var target = await _dbContext.ActionItemUpdates.Where(u => u.Id == parent.Id)
+                    .Select(u => new { u.ActionItemId, u.SubItemId }).FirstAsync(ct);
+                await _access.EnsureCanWorkOnItemAsync(target.ActionItemId, target.SubItemId);
+                break;
+            }
+            case DocumentEntityTypes.Project:
+                await _access.EnsureCanManageAsync(parent.Id);
+                break;
+            case DocumentEntityTypes.Milestone:
+                await _access.EnsureCanManageAsync(await _dbContext.Milestones.Where(m => m.Id == parent.Id)
+                    .Select(m => m.ProjectId).FirstAsync(ct));
+                break;
+            case DocumentEntityTypes.ProjectRisk:
+                await _access.EnsureCanManageAsync(await _dbContext.ProjectRisks.Where(r => r.Id == parent.Id)
+                    .Select(r => r.ProjectId).FirstAsync(ct));
+                break;
+        }
     }
 
     /// <summary>

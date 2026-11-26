@@ -7,6 +7,10 @@ using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.ProjectClassifications.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople;
+using ActionTracker.Application.Features.ProjectPeople.DTOs;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.Projects.DTOs;
 using ActionTracker.Application.Features.Projects.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -29,6 +33,8 @@ public class ProjectService : IProjectService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWorkCalendarService _calendars;
     private readonly IProjectClassificationService _classifications;
+    private readonly IProjectPeopleService _people;     // WO-2026-11 P-2
+    private readonly IProjectAccessService _access;     // WO-2026-11 P-2
 
     public ProjectService(
         IAppDbContext db,
@@ -38,7 +44,8 @@ public class ProjectService : IProjectService
         IOptions<AppSettings> appSettings,
         IServiceScopeFactory scopeFactory,
         IWorkCalendarService calendars,
-        IProjectClassificationService classifications)
+        IProjectClassificationService classifications,
+        IProjectPeopleService people)
     {
         _db                  = db;
         _logger              = logger;
@@ -48,6 +55,8 @@ public class ProjectService : IProjectService
         _scopeFactory        = scopeFactory;
         _calendars           = calendars;
         _classifications     = classifications;
+        _people              = people;
+        _access              = new ProjectAccessService(db);
     }
 
     public async Task<PagedResult<ProjectResponseDto>> GetAllAsync(ProjectFilterDto filter, CancellationToken ct)
@@ -62,7 +71,7 @@ public class ProjectService : IProjectService
 
         if (filter.IncludeDeleted)
             query = query.IgnoreQueryFilters()
-                .WhereWorkspaceVisibleTo(_db.CurrentUserId);
+                .WhereWorkspaceVisibleTo(_db);
 
         if (filter.WorkspaceId.HasValue)
             query = query.Where(p => p.WorkspaceId == filter.WorkspaceId.Value);
@@ -106,14 +115,22 @@ public class ProjectService : IProjectService
 
         // Workspace-membership scoping: regular users only see projects in workspaces
         // they're a member/admin of. Privileged roles pass null (no restriction).
+        // WO-2026-11 P-2: plus the projects where they hold a project role.
+        var roleProjectIds = filter.RoleProjectIds ?? new List<Guid>();
         if (filter.VisibleWorkspaceIds != null)
         {
             var wsIds = filter.VisibleWorkspaceIds;
-            if (wsIds.Count == 0)
+            if (wsIds.Count == 0 && roleProjectIds.Count == 0)
                 query = query.Where(p => false);
             else
-                query = query.Where(p => wsIds.Contains(p.WorkspaceId));
+                query = query.Where(p => wsIds.Contains(p.WorkspaceId) || roleProjectIds.Contains(p.Id));
         }
+
+        // My Projects (P-2): only projects where the caller holds a project role.
+        if (filter.Mine)
+            query = roleProjectIds.Count == 0
+                ? query.Where(p => false)
+                : query.Where(p => roleProjectIds.Contains(p.Id));
 
         // Sorting
         query = filter.SortBy?.ToLower() switch
@@ -174,7 +191,55 @@ public class ProjectService : IProjectService
             UpdatedAt        = p.UpdatedAt,
         });
 
-        return await PagedResult<ProjectResponseDto>.CreateAsync(projected, filter.PageNumber, filter.PageSize, ct);
+        var page = await PagedResult<ProjectResponseDto>.CreateAsync(projected, filter.PageNumber, filter.PageSize, ct);
+        await FillMyAccessAsync(page.Items);
+        return page;
+    }
+
+    /// <summary>
+    /// WO-2026-11 P-2: the caller's roles and rights on each project of a response.
+    /// Ids only, so one query per kind for the whole page.
+    /// </summary>
+    private async Task FillMyAccessAsync(IReadOnlyCollection<ProjectResponseDto> items)
+    {
+        if (items.Count == 0) return;
+        var userId = _db.CurrentUserId;
+        var projectIds = items.Select(i => i.Id).ToList();
+        var workspaceIds = items.Select(i => i.WorkspaceId).Distinct().ToList();
+
+        var workspaceLevel = userId == null
+            ? workspaceIds.ToHashSet()
+            : (await _db.Workspaces.IgnoreQueryFilters()
+                .Where(w => workspaceIds.Contains(w.Id))
+                .WhereWorkspaceLevelVisibleTo(userId)
+                .Select(w => w.Id)
+                .ToListAsync()).ToHashSet();
+
+        var sponsorOf = userId == null ? new HashSet<Guid>()
+            : (await _db.ProjectSponsors.AsNoTracking()
+                .Where(s => s.UserId == userId && projectIds.Contains(s.ProjectId))
+                .Select(s => s.ProjectId).ToListAsync()).ToHashSet();
+        var memberRoles = userId == null ? new List<(Guid ProjectId, ProjectMemberRole Role)>()
+            : (await _db.ProjectMembers.AsNoTracking()
+                .Where(m => m.UserId == userId && projectIds.Contains(m.ProjectId))
+                .Select(m => new { m.ProjectId, m.Role }).ToListAsync())
+                .Select(m => (m.ProjectId, m.Role)).ToList();
+
+        foreach (var item in items)
+        {
+            var access = new ProjectAccess(
+                item.Id,
+                item.WorkspaceId,
+                workspaceLevel.Contains(item.WorkspaceId),
+                userId != null && string.Equals(item.ProjectManagerUserId, userId, StringComparison.OrdinalIgnoreCase),
+                memberRoles.Contains((item.Id, ProjectMemberRole.ProjectManager)),
+                sponsorOf.Contains(item.Id),
+                memberRoles.Contains((item.Id, ProjectMemberRole.Viewer)),
+                memberRoles.Contains((item.Id, ProjectMemberRole.TeamMember)));
+            item.MyRoles = access.Roles.ToList();
+            item.CanManage = access.CanManage;
+            item.CanOpenWorkspace = access.WorkspaceLevel;
+        }
     }
 
     public async Task<ProjectResponseDto?> GetByIdAsync(Guid id, CancellationToken ct)
@@ -191,6 +256,7 @@ public class ProjectService : IProjectService
         if (project is null) return null;
         var dto = MapToDto(project);
         dto.ActionItemCount = await _db.ActionItems.CountAsync(a => a.ProjectId == id, ct);
+        await FillMyAccessAsync(new[] { dto });
         return dto;
     }
 
@@ -202,6 +268,12 @@ public class ProjectService : IProjectService
 
         if (dto.SponsorUserIds.Count == 0)
             throw new ArgumentException("At least one sponsor is required.");
+
+        // WO-2026-11 P-2 (decision D12): a project is created in a workspace the
+        // caller sees at workspace level — not in a private one they reach only
+        // through a role on another project (they would gain the new project).
+        if (_db.CurrentUserId != null && !await _access.IsWorkspaceLevelAsync(dto.WorkspaceId))
+            throw new KeyNotFoundException($"Workspace {dto.WorkspaceId} not found.");
 
         // Gate: PM must be on the workspace's project-manager list.
         if (string.IsNullOrWhiteSpace(dto.ProjectManagerUserId))
@@ -260,19 +332,15 @@ public class ProjectService : IProjectService
 
         _db.Projects.Add(project);
 
-        // Add sponsors
-        foreach (var sponsorId in dto.SponsorUserIds.Distinct())
-        {
-            _db.ProjectSponsors.Add(new ProjectSponsor
-            {
-                ProjectId = project.Id,
-                UserId    = sponsorId,
-            });
-        }
+        // Sponsors, additional PMs, viewers, team members (WO-2026-11 P-2): validated
+        // and staged with the project, saved in the same SaveChanges.
+        var addedPeople = await _people.StageForNewProjectAsync(project, dto.SponsorUserIds, new ProjectPeopleLists(
+            dto.AdditionalManagerUserIds, dto.ViewerUserIds, dto.TeamMemberUserIds));
 
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("Project {ProjectCode} created by user {UserId}", projectCode, userId);
+        _people.NotifyInBackground(project.Id, addedPeople);
 
         // Fire-and-forget email notification
         var capturedProject = project;
@@ -349,6 +417,18 @@ public class ProjectService : IProjectService
             .Include(p => p.Sponsors)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new KeyNotFoundException($"Project {id} not found.");
+
+        // WO-2026-11 P-2: the workspace rule as today, or a project manager of this
+        // project; a sponsor, viewer or team member reaching it only through their
+        // role gets 403.
+        var access = await _access.EnsureCanManageAsync(id);
+        var previousLeadPm = project.ProjectManagerUserId;
+        // Before the PM-list check, so its answer cannot tell a project-only caller
+        // who is on the workspace's list (decision D4).
+        if (!access.WorkspaceLevel
+            && !string.Equals(dto.ProjectManagerUserId, previousLeadPm, StringComparison.OrdinalIgnoreCase))
+            throw new ProjectAccessDeniedException(
+                "Only the workspace's admins and members can change the lead project manager.");
 
         var previousStatus = project.Status;
 
@@ -435,25 +515,15 @@ public class ProjectService : IProjectService
         project.ActualStartDate       = dto.ActualStartDate;
         project.ApprovedBudget        = dto.ApprovedBudget;
 
-        // Sync sponsors
-        var existingSponsorIds = project.Sponsors.Select(s => s.UserId).ToHashSet();
-        var newSponsorIds = dto.SponsorUserIds.Distinct().ToHashSet();
-
-        // Remove sponsors no longer in list
-        foreach (var removed in project.Sponsors.Where(s => !newSponsorIds.Contains(s.UserId)).ToList())
-            _db.ProjectSponsors.Remove(removed);
-
-        // Add new sponsors
-        foreach (var addId in newSponsorIds.Where(id2 => !existingSponsorIds.Contains(id2)))
-        {
-            _db.ProjectSponsors.Add(new ProjectSponsor
-            {
-                ProjectId = project.Id,
-                UserId    = addId,
-            });
-        }
+        // Sponsors (full list, as before), additional PMs / viewers / team members
+        // (missing keeps), a new lead PM (WO-2026-11 P-2).
+        var addedPeople = await _people.StageForProjectUpdateAsync(
+            project, previousLeadPm, dto.SponsorUserIds,
+            new ProjectPeopleLists(dto.AdditionalManagerUserIds, dto.ViewerUserIds, dto.TeamMemberUserIds),
+            access.WorkspaceLevel);
 
         await _db.SaveChangesAsync(ct);
+        _people.NotifyInBackground(project.Id, addedPeople);
 
         // Fire-and-forget email if status changed
         if (dto.Status != previousStatus)
@@ -544,6 +614,9 @@ public class ProjectService : IProjectService
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new KeyNotFoundException($"Project {id} not found.");
 
+        // WO-2026-11 P-2: only the workspace rule as today or a project manager.
+        await _access.EnsureCanManageAsync(id);
+
         project.IsDeleted = true;
 
         var milestones = await _db.Milestones
@@ -570,7 +643,7 @@ public class ProjectService : IProjectService
     {
         var project = await _db.Projects
             .IgnoreQueryFilters()
-            .WhereWorkspaceVisibleTo(_db.CurrentUserId)
+            .WhereWorkspaceVisibleTo(_db)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new KeyNotFoundException($"Project {id} not found.");
 
@@ -604,7 +677,8 @@ public class ProjectService : IProjectService
     public async Task<List<StrategicObjectiveOptionDto>> GetStrategicObjectivesForWorkspaceAsync(
         Guid workspaceId, CancellationToken ct)
     {
-        var workspace = await _db.Workspaces.FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+        // WO-2026-11 P-2: the workspace's linked plan is workspace-level data.
+        var workspace = await _db.Workspaces.WhereWorkspaceLevelVisibleTo(_db.CurrentUserId).FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
             ?? throw new KeyNotFoundException($"Workspace {workspaceId} not found.");
 
         // Workspace must be explicitly linked to a strategic plan for its

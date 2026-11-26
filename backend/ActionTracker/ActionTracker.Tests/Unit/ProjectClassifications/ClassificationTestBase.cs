@@ -81,7 +81,8 @@ public abstract class ClassificationTestBase : IDisposable
 
         var calendars = new WorkCalendarService(Db, new FixedWorkspaceAccess(), new WorkCalendarCache(), NullLogger<WorkCalendarService>.Instance);
         return new ProjectService(Db, NullLogger<ProjectService>.Instance, Mock.Of<IEmailSender>(), Mock.Of<INotificationService>(),
-            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), factory.Object, calendars, Classifications());
+            Options.Create(new AppSettings { FrontendBaseUrl = "http://localhost:4200" }), factory.Object, calendars, Classifications(),
+            ActionTracker.Tests.Unit.ProjectPeople.ProjectPeopleTestHelpers.NewPeopleService(Db, factory.Object));
     }
 
     /// <summary>Runs as <paramref name="user"/> (the query filters read the current user) on a clean tracker.</summary>

@@ -19,6 +19,9 @@ public sealed class FixedWorkspaceAccess : IWorkspaceAccessResolver
     private readonly List<Guid>? _ids;
     public FixedWorkspaceAccess(List<Guid>? ids = null) => _ids = ids;
     public Task<List<Guid>?> GetVisibleWorkspaceIdsAsync(string userId) => Task.FromResult(_ids);
+    // WO-2026-11 P-2: no project roles; every workspace visible at workspace level.
+    public Task<List<Guid>> GetProjectRoleProjectIdsAsync(string userId) => Task.FromResult(new List<Guid>());
+    public Task<bool> IsWorkspaceLevelVisibleAsync(string? userId, Guid workspaceId) => Task.FromResult(true);
 }
 
 public static class TagTestHelpers

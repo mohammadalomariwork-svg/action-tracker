@@ -34,6 +34,66 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     /// </summary>
     public string? CurrentUserId => _currentUser?.UserId;
 
+    // ── Project people (WO-2026-11 P-2) ──────────────────────────────────────
+    // The private-workspace filters also let a user see the projects where they
+    // are lead PM, sponsor or a ProjectMember, and those projects' workspaces
+    // (needed so joins to Workspace keep the row). The ids are worked out once per
+    // context and user (a request), read as filter parameters, and reset after a
+    // save that touches projects, sponsors or project people. They cannot be
+    // expressed as navigations inside the filters: Workspace → Project →
+    // Workspace is a cycle that EF Core does not detect (stack overflow).
+    private bool _projectRolesLoaded;
+    private string? _projectRolesUserId;
+    private List<Guid> _projectRoleProjectIds = new();
+    private List<Guid> _projectRoleWorkspaceIds = new();
+
+    /// <summary>Live projects where the current user is lead PM, sponsor or a project member. Read by the query filters.</summary>
+    public List<Guid> ProjectRoleProjectIds
+    {
+        get { EnsureProjectRolesLoaded(); return _projectRoleProjectIds; }
+    }
+
+    /// <summary>Workspaces of <see cref="ProjectRoleProjectIds"/>. Only lets the Workspace row join; workspace-level reads use the old rule.</summary>
+    public List<Guid> ProjectRoleWorkspaceIds
+    {
+        get { EnsureProjectRolesLoaded(); return _projectRoleWorkspaceIds; }
+    }
+
+    IReadOnlyCollection<Guid> IAppDbContext.ProjectRoleProjectIds => ProjectRoleProjectIds;
+    IReadOnlyCollection<Guid> IAppDbContext.ProjectRoleWorkspaceIds => ProjectRoleWorkspaceIds;
+
+    /// <inheritdoc />
+    public void ResetProjectRoles() => _projectRolesLoaded = false;
+
+    private void EnsureProjectRolesLoaded()
+    {
+        var userId = CurrentUserId;
+        if (_projectRolesLoaded && _projectRolesUserId == userId) return;
+
+        _projectRolesLoaded = true;
+        _projectRolesUserId = userId;
+        if (userId == null)
+        {
+            _projectRoleProjectIds = new List<Guid>();
+            _projectRoleWorkspaceIds = new List<Guid>();
+            return;
+        }
+
+        // No query filters here (none apply to Project after IgnoreQueryFilters,
+        // and ProjectSponsor / ProjectMember have none), so this never re-enters.
+        // Deleted projects grant nothing.
+        var rows = Set<Project>().IgnoreQueryFilters().AsNoTracking()
+            .Where(p => !p.IsDeleted
+                && (p.ProjectManagerUserId == userId
+                    || p.Sponsors.Any(s => s.UserId == userId)
+                    || p.People.Any(m => m.UserId == userId)))
+            .Select(p => new { p.Id, p.WorkspaceId })
+            .ToList();
+
+        _projectRoleProjectIds = rows.Select(r => r.Id).ToList();
+        _projectRoleWorkspaceIds = rows.Select(r => r.WorkspaceId).Distinct().ToList();
+    }
+
     // ── Legacy / shared domain sets ───────────────────────────────────────────
     public DbSet<ActionItem>           ActionItems           => Set<ActionItem>();
     public DbSet<ActionItemAssignee>   ActionItemAssignees   => Set<ActionItemAssignee>();
@@ -74,6 +134,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
     //       It maps to "WorkspaceStrategicObjectives" to avoid a table clash.
     public DbSet<Project>           Projects             => Set<Project>();
     public DbSet<ProjectSponsor>    ProjectSponsors      => Set<ProjectSponsor>();
+    public DbSet<ProjectMember>     ProjectMembers       => Set<ProjectMember>();   // WO-2026-11 P-2
     public DbSet<Milestone>         Milestones           => Set<Milestone>();
     public DbSet<ProjectRisk>       ProjectRisks         => Set<ProjectRisk>();
 
@@ -130,15 +191,28 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         // or anything under it. These filters make every query and aggregate
         // (dashboards, reports, stats, strategy roll-ups) skip private data for
         // everyone else. CurrentUserId == null (system context) is unrestricted.
+        //
+        // Project people (WO-2026-11 P-2): the lead PM, sponsors and project
+        // members of a project also see that project and everything under it
+        // (ProjectRoleProjectIds), also in a private workspace. The Workspace row
+        // itself is let through for them (ProjectRoleWorkspaceIds) only so that
+        // joins to it keep their project's rows; every workspace-level read (the
+        // workspace's lists, members, settings, tags) applies the old rule
+        // through WhereWorkspaceLevelVisibleTo / IWorkspaceAccessResolver instead.
+        // An action item is reached through its project only when it sits in the
+        // project's own workspace.
         modelBuilder.Entity<Workspace>().HasQueryFilter(w =>
             CurrentUserId == null || !w.IsPrivate
             || w.Admins.Any(a => a.AdminUserId == CurrentUserId)
-            || w.Members.Any(m => m.UserId == CurrentUserId));
+            || w.Members.Any(m => m.UserId == CurrentUserId)
+            || ProjectRoleWorkspaceIds.Contains(w.Id));
 
         modelBuilder.Entity<ActionItem>().HasQueryFilter(e => !e.IsDeleted
             && (CurrentUserId == null || !e.Workspace.IsPrivate
                 || e.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || e.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || e.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || (e.ProjectId != null && ProjectRoleProjectIds.Contains(e.ProjectId.Value)
+                    && e.Project!.WorkspaceId == e.WorkspaceId)));
 
         // Sub-items and their assignees (WO-2026-11 A-2) follow their parent
         // action item: hidden when the sub-item or the parent is deleted, and
@@ -148,12 +222,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             && !s.ActionItem.IsDeleted
             && (CurrentUserId == null || !s.ActionItem.Workspace.IsPrivate
                 || s.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || s.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || s.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || (s.ActionItem.ProjectId != null && ProjectRoleProjectIds.Contains(s.ActionItem.ProjectId.Value)
+                    && s.ActionItem.Project!.WorkspaceId == s.ActionItem.WorkspaceId)));
         modelBuilder.Entity<ActionItemSubItemAssignee>().HasQueryFilter(x => !x.SubItem.IsDeleted
             && !x.SubItem.ActionItem.IsDeleted
             && (CurrentUserId == null || !x.SubItem.ActionItem.Workspace.IsPrivate
                 || x.SubItem.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || x.SubItem.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || x.SubItem.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || (x.SubItem.ActionItem.ProjectId != null && ProjectRoleProjectIds.Contains(x.SubItem.ActionItem.ProjectId.Value)
+                    && x.SubItem.ActionItem.Project!.WorkspaceId == x.SubItem.ActionItem.WorkspaceId)));
 
         // Action updates (WO-2026-11 A-3) follow their action item and sub-item
         // like the sub-item filter above (deleted parent / sub-item, private
@@ -166,7 +244,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             && (CurrentUserId == null || u.Status == ActionItemUpdateStatus.Submitted || u.AuthorUserId == CurrentUserId)
             && (CurrentUserId == null || !u.ActionItem.Workspace.IsPrivate
                 || u.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || u.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || u.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || (u.ActionItem.ProjectId != null && ProjectRoleProjectIds.Contains(u.ActionItem.ProjectId.Value)
+                    && u.ActionItem.Project!.WorkspaceId == u.ActionItem.WorkspaceId)));
 
         // Tags (WO-2026-11 A-5): a private workspace's tags are visible to its
         // admins and members only — the Workspace rule above. An item's tag
@@ -176,20 +256,31 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             CurrentUserId == null || !t.Workspace.IsPrivate
             || t.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
             || t.Workspace.Members.Any(m => m.UserId == CurrentUserId));
+        // P-2: Tag itself stays workspace-level (suggestions never reach project
+        // people); the links follow the item, and an item's own tag names are read
+        // through ActionItemTagService.FillTagsAsync.
         modelBuilder.Entity<ActionItemTag>().HasQueryFilter(x => !x.ActionItem.IsDeleted
             && (CurrentUserId == null || !x.ActionItem.Workspace.IsPrivate
                 || x.ActionItem.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || x.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || x.ActionItem.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || (x.ActionItem.ProjectId != null && ProjectRoleProjectIds.Contains(x.ActionItem.ProjectId.Value)
+                    && x.ActionItem.Project!.WorkspaceId == x.ActionItem.WorkspaceId)));
 
         // Internal project classifications (WO-2026-11 P-1): deleted rows are
         // hidden, and a private workspace's classifications are visible to its
         // admins and members only — the Workspace rule above. A project's
         // classification name therefore never reaches anyone who cannot see
         // that workspace.
+        // P-2: project people also see the one classification their own project
+        // carries (so the project shows it) — never the workspace's list, which
+        // its endpoints keep behind the workspace-level rule.
         modelBuilder.Entity<WorkspaceProjectClassification>().HasQueryFilter(c => !c.IsDeleted
             && (CurrentUserId == null || !c.Workspace.IsPrivate
                 || c.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || c.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || c.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || Projects.Any(p => p.InternalClassificationId == c.Id
+                    && p.WorkspaceId == c.WorkspaceId
+                    && ProjectRoleProjectIds.Contains(p.Id))));
 
         modelBuilder.Entity<OrgUnit>().HasQueryFilter(o => !o.IsDeleted);
         // Drafts (IsDraft = true) are hidden from every "live" query — the
@@ -201,16 +292,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         modelBuilder.Entity<Project>().HasQueryFilter(p => !p.IsDeleted
             && (CurrentUserId == null || !p.Workspace.IsPrivate
                 || p.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || p.Workspace.Members.Any(m => m.UserId == CurrentUserId)));
+                || p.Workspace.Members.Any(m => m.UserId == CurrentUserId)
+                || ProjectRoleProjectIds.Contains(p.Id)));
         modelBuilder.Entity<Milestone>().HasQueryFilter(m => !m.IsDeleted
             && (CurrentUserId == null || !m.Project.Workspace.IsPrivate
                 || m.Project.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || m.Project.Workspace.Members.Any(wm => wm.UserId == CurrentUserId)));
+                || m.Project.Workspace.Members.Any(wm => wm.UserId == CurrentUserId)
+                || ProjectRoleProjectIds.Contains(m.ProjectId)));
         modelBuilder.Entity<EmailTemplate>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ProjectRisk>().HasQueryFilter(r => !r.IsDeleted
             && (CurrentUserId == null || !r.Project.Workspace.IsPrivate
                 || r.Project.Workspace.Admins.Any(a => a.AdminUserId == CurrentUserId)
-                || r.Project.Workspace.Members.Any(wm => wm.UserId == CurrentUserId)));
+                || r.Project.Workspace.Members.Any(wm => wm.UserId == CurrentUserId)
+                || ProjectRoleProjectIds.Contains(r.ProjectId)));
         modelBuilder.Entity<ProjectApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<StrategicPlanApprovalRequest>().HasQueryFilter(r => !r.IsDeleted);
         modelBuilder.Entity<KpiActual>().HasQueryFilter(a => !a.IsDeleted);
@@ -487,6 +581,30 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
             }
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        var touchesProjectRoles = TouchesProjectRoles();
+        var result = await base.SaveChangesAsync(cancellationToken);
+        if (touchesProjectRoles) ResetProjectRoles();
+        return result;
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        var touchesProjectRoles = TouchesProjectRoles();
+        var result = base.SaveChanges(acceptAllChangesOnSuccess);
+        if (touchesProjectRoles) ResetProjectRoles();
+        return result;
+    }
+
+    /// <summary>
+    /// A save that adds, changes or removes a project, sponsor or project member
+    /// can change who sees what (WO-2026-11 P-2): the role ids are worked out
+    /// again on the next query.
+    /// </summary>
+    private bool TouchesProjectRoles()
+    {
+        static bool Changed(EntityState s) => s is EntityState.Added or EntityState.Modified or EntityState.Deleted;
+        return ChangeTracker.Entries<Project>().Any(e => Changed(e.State))
+            || ChangeTracker.Entries<ProjectSponsor>().Any(e => Changed(e.State))
+            || ChangeTracker.Entries<ProjectMember>().Any(e => Changed(e.State));
     }
 }

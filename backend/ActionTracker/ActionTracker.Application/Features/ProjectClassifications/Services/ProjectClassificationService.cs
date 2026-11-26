@@ -184,7 +184,8 @@ public class ProjectClassificationService : IProjectClassificationService
     /// </summary>
     private async Task EnsureCanReadAsync(Guid workspaceId, string userId, CancellationToken ct)
     {
-        if (!await _db.Workspaces.AnyAsync(w => w.Id == workspaceId, ct))
+        // P-2: workspace-level rule — the Workspace filter also lets project people's workspaces through.
+        if (!await _db.Workspaces.WhereWorkspaceLevelVisibleTo(_db.CurrentUserId).AnyAsync(w => w.Id == workspaceId, ct))
             throw NotFound(workspaceId);
 
         var visible = await _access.GetVisibleWorkspaceIdsAsync(userId);
@@ -200,7 +201,8 @@ public class ProjectClassificationService : IProjectClassificationService
     /// <summary>Write access: the private-workspace filter, then the resolver (as the calendar setting).</summary>
     private async Task EnsureCanWriteAsync(Guid workspaceId, string userId, CancellationToken ct)
     {
-        if (!await _db.Workspaces.AnyAsync(w => w.Id == workspaceId, ct))
+        // P-2: workspace-level rule — the Workspace filter also lets project people's workspaces through.
+        if (!await _db.Workspaces.WhereWorkspaceLevelVisibleTo(_db.CurrentUserId).AnyAsync(w => w.Id == workspaceId, ct))
             throw NotFound(workspaceId);
 
         var visible = await _access.GetVisibleWorkspaceIdsAsync(userId);

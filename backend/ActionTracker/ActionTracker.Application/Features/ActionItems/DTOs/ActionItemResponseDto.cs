@@ -68,6 +68,15 @@ public class ActionItemResponseDto
     /// <summary>Tags (WO-2026-11 A-5), by name; all of the item's own workspace. Empty while the tag tables are missing.</summary>
     public List<TagDto> Tags { get; set; } = new();
 
+    /// <summary>WO-2026-11 P-2: the caller may work on this item (edit, status, requests, updates, files, sub-items).</summary>
+    public bool CanWork { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2: the caller reaches this item only through a role on its project — it
+    /// cannot be moved, its tags are read-only and the workspace itself cannot be opened.
+    /// </summary>
+    public bool ViaProjectRole { get; set; }
+
     // Multi-assignee info
     public List<AssigneeDto> Assignees { get; set; } = new();
 

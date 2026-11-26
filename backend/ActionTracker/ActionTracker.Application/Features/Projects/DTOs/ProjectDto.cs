@@ -50,6 +50,18 @@ public class ProjectResponseDto
 
     public int ActionItemCount { get; set; }
 
+    /// <summary>
+    /// WO-2026-11 P-2: the caller's roles on this project — <c>leadProjectManager</c>,
+    /// <c>projectManager</c>, <c>sponsor</c>, <c>viewer</c>, <c>teamMember</c>.
+    /// </summary>
+    public List<string> MyRoles { get; set; } = new();
+
+    /// <summary>P-2: the caller may change the project, its people, milestones and risks.</summary>
+    public bool CanManage { get; set; }
+
+    /// <summary>P-2: the caller sees the project's workspace itself (false = only through a project role).</summary>
+    public bool CanOpenWorkspace { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -80,6 +92,14 @@ public class ProjectCreateDto
     public ActionPriority Priority { get; set; }
     public string ProjectManagerUserId { get; set; } = string.Empty;
     public List<string> SponsorUserIds { get; set; } = new();
+
+    /// <summary>WO-2026-11 P-2: additional project managers (on the workspace's PM list).</summary>
+    public List<string>? AdditionalManagerUserIds { get; set; }
+    /// <summary>WO-2026-11 P-2: viewers (any active user).</summary>
+    public List<string>? ViewerUserIds { get; set; }
+    /// <summary>WO-2026-11 P-2: team members (any active user).</summary>
+    public List<string>? TeamMemberUserIds { get; set; }
+
     public Guid? OwnerOrgUnitId { get; set; }
     public DateTime PlannedStartDate { get; set; }
     public DateTime PlannedEndDate { get; set; }
@@ -108,6 +128,14 @@ public class ProjectUpdateDto
     public ActionPriority Priority { get; set; }
     public string ProjectManagerUserId { get; set; } = string.Empty;
     public List<string> SponsorUserIds { get; set; } = new();
+
+    /// <summary>WO-2026-11 P-2: additional project managers. Missing (null) keeps them.</summary>
+    public List<string>? AdditionalManagerUserIds { get; set; }
+    /// <summary>WO-2026-11 P-2: viewers. Missing (null) keeps them.</summary>
+    public List<string>? ViewerUserIds { get; set; }
+    /// <summary>WO-2026-11 P-2: team members. Missing (null) keeps them.</summary>
+    public List<string>? TeamMemberUserIds { get; set; }
+
     public Guid? OwnerOrgUnitId { get; set; }
     public DateTime PlannedStartDate { get; set; }
     public DateTime PlannedEndDate { get; set; }
@@ -166,6 +194,18 @@ public class ProjectFilterDto
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public List<Guid>? VisibleWorkspaceIds { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2: projects where the caller is lead PM, sponsor or a project
+    /// member — listed even outside <see cref="VisibleWorkspaceIds"/>. Always set by
+    /// the controller from <c>IWorkspaceAccessResolver</c> (a query-string value is
+    /// overwritten).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<Guid> RoleProjectIds { get; set; } = new();
+
+    /// <summary>WO-2026-11 P-2 (My Projects): only projects where the caller holds a project role.</summary>
+    public bool Mine { get; set; }
 
     /// <summary>
     /// When non-null and non-empty, only projects whose StrategicObjectiveId is

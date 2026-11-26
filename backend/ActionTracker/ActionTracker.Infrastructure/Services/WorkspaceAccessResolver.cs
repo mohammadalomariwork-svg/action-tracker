@@ -45,4 +45,29 @@ public class WorkspaceAccessResolver : IWorkspaceAccessResolver
 
         return await adminIds.Concat(memberIds).Distinct().ToListAsync();
     }
+
+    /// <inheritdoc />
+    public async Task<List<Guid>> GetProjectRoleProjectIdsAsync(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return new List<Guid>();
+
+        // Same rule as AppDbContext.ProjectRoleProjectIds, for any user (not only
+        // the request's). Read fresh on every call: removing a person takes effect
+        // on the next request.
+        return await _db.Projects.IgnoreQueryFilters()
+            .Where(p => !p.IsDeleted
+                && (p.ProjectManagerUserId == userId
+                    || p.Sponsors.Any(s => s.UserId == userId)
+                    || p.People.Any(m => m.UserId == userId)))
+            .Select(p => p.Id)
+            .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public Task<bool> IsWorkspaceLevelVisibleAsync(string? userId, Guid workspaceId)
+        => _db.Workspaces.IgnoreQueryFilters()
+            .Where(w => w.Id == workspaceId)
+            .WhereWorkspaceLevelVisibleTo(userId)
+            .AnyAsync();
 }

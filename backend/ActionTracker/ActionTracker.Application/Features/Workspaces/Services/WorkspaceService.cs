@@ -9,6 +9,7 @@ using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
 using ActionTracker.Application.Features.Workspaces.DTOs;
 using ActionTracker.Application.Features.Workspaces.Interfaces;
+using ActionTracker.Application.Helpers;
 using ActionTracker.Application.RoleManagement.DTOs;
 using ActionTracker.Application.RoleManagement.Services;
 using ActionTracker.Domain.Constants;
@@ -68,8 +69,11 @@ public class WorkspaceService : IWorkspaceService
     {
         try
         {
+            // P-2: the Workspace filter also lets project people's workspaces
+            // through (for joins); a workspace list keeps the workspace-level rule.
             var baseQuery = _db.Workspaces
                 .Include(w => w.Admins)
+                .WhereWorkspaceLevelVisibleTo(_db.CurrentUserId)
                 .AsQueryable();
 
             // Workspace-membership scoping: regular users only see workspaces
@@ -121,7 +125,8 @@ public class WorkspaceService : IWorkspaceService
                 return new WorkspaceSummaryDto();
 
             // Build the scoped workspace query (mirrors GetAllWorkspacesAsync logic).
-            IQueryable<Workspace> workspaceScope = _db.Workspaces;
+            // P-2: workspace-level rule (project people's workspaces are not theirs to count).
+            IQueryable<Workspace> workspaceScope = _db.Workspaces.WhereWorkspaceLevelVisibleTo(_db.CurrentUserId);
             if (visibleWorkspaceIds != null)
                 workspaceScope = workspaceScope.Where(w => visibleWorkspaceIds.Contains(w.Id));
 
@@ -327,6 +332,7 @@ public class WorkspaceService : IWorkspaceService
         {
             var list = await _db.Workspaces
                 .Include(w => w.Admins)
+                .WhereWorkspaceLevelVisibleTo(_db.CurrentUserId)   // P-2
                 .Where(w => w.IsActive && w.Admins.Any(a => a.AdminUserId == adminUserId))
                 .OrderByDescending(w => w.CreatedAt)
                 .Select(w => new WorkspaceListDto

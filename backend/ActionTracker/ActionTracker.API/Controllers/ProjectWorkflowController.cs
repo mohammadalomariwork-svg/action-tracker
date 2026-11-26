@@ -84,6 +84,7 @@ public class ProjectWorkflowController : ControllerBase
 
     /// <summary>Get pending approval requests where the current user is a reviewer.</summary>
     [HttpGet("pending-reviews")]
+    [Authorize(Policy = PermissionPolicies.ProjectsView)]   // WO-2026-11 P-2 (D11)
     public async Task<IActionResult> GetPendingReviews()
     {
         var result = await _workflowService.GetPendingReviewsAsync(GetUserId());
@@ -92,6 +93,7 @@ public class ProjectWorkflowController : ControllerBase
 
     /// <summary>Get approval requests submitted by the current user.</summary>
     [HttpGet("my-requests")]
+    [Authorize(Policy = PermissionPolicies.ProjectsView)]   // WO-2026-11 P-2 (D11)
     public async Task<IActionResult> GetMyRequests()
     {
         var result = await _workflowService.GetMyRequestsAsync(GetUserId());
@@ -100,6 +102,7 @@ public class ProjectWorkflowController : ControllerBase
 
     /// <summary>Get pending count for header badge.</summary>
     [HttpGet("pending-summary")]
+    [Authorize(Policy = PermissionPolicies.ProjectsView)]   // WO-2026-11 P-2 (D11)
     public async Task<IActionResult> GetPendingSummary()
     {
         var result = await _workflowService.GetPendingSummaryAsync(GetUserId());
@@ -108,6 +111,7 @@ public class ProjectWorkflowController : ControllerBase
 
     /// <summary>Check if current user can review a specific project.</summary>
     [HttpGet("can-review/{projectId:guid}")]
+    [Authorize(Policy = PermissionPolicies.ProjectsView)]   // WO-2026-11 P-2 (D11)
     public async Task<IActionResult> CanReview(Guid projectId)
     {
         var canReview = await _workflowService.CanReviewProjectAsync(projectId, GetUserId());
@@ -116,6 +120,7 @@ public class ProjectWorkflowController : ControllerBase
 
     /// <summary>Validate whether a project can be submitted for approval.</summary>
     [HttpGet("validate-submit/{projectId:guid}")]
+    [Authorize(Policy = PermissionPolicies.ProjectsView)]   // WO-2026-11 P-2 (D11)
     public async Task<IActionResult> ValidateSubmit(Guid projectId)
     {
         var result = await _workflowService.ValidateSubmitForApprovalAsync(projectId, GetUserId());

@@ -1,6 +1,8 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.ProjectRisks.DTOs;
 using ActionTracker.Application.Features.ProjectRisks.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Helpers;
 using ActionTracker.Domain.Entities;
 using ActionTracker.Domain.Enums;
@@ -14,6 +16,7 @@ public class ProjectRiskService : IProjectRiskService
     private readonly IAppDbContext _db;
     private readonly IUserLookupService _userLookup;
     private readonly ILogger<ProjectRiskService> _logger;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     public ProjectRiskService(
         IAppDbContext db,
@@ -23,6 +26,7 @@ public class ProjectRiskService : IProjectRiskService
         _db         = db;
         _userLookup = userLookup;
         _logger     = logger;
+        _access     = new ProjectAccessService(db);
     }
 
     public async Task<PagedResult<ProjectRiskSummaryDto>> GetByProjectAsync(
@@ -78,6 +82,7 @@ public class ProjectRiskService : IProjectRiskService
     {
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == dto.ProjectId, ct)
             ?? throw new KeyNotFoundException($"Project {dto.ProjectId} not found.");
+        await _access.EnsureCanManageAsync(project.Id);   // WO-2026-11 P-2
 
         // Generate RiskCode
         var prefix = "RISK-";
@@ -147,6 +152,7 @@ public class ProjectRiskService : IProjectRiskService
         var risk = await _db.ProjectRisks
             .FirstOrDefaultAsync(r => r.Id == id, ct)
             ?? throw new KeyNotFoundException($"ProjectRisk {id} not found.");
+        await _access.EnsureCanManageAsync(risk.ProjectId);   // WO-2026-11 P-2
 
         var previousStatus = risk.Status;
 
@@ -197,6 +203,7 @@ public class ProjectRiskService : IProjectRiskService
         var risk = await _db.ProjectRisks
             .FirstOrDefaultAsync(r => r.Id == id, ct)
             ?? throw new KeyNotFoundException($"ProjectRisk {id} not found.");
+        await _access.EnsureCanManageAsync(risk.ProjectId);   // WO-2026-11 P-2
 
         risk.IsDeleted = true;
         await _db.SaveChangesAsync(ct);
@@ -204,10 +211,17 @@ public class ProjectRiskService : IProjectRiskService
 
     public async Task RestoreAsync(Guid id, CancellationToken ct = default)
     {
+        // WO-2026-11 P-2 (decision D12): the private-workspace rule is re-applied
+        // after IgnoreQueryFilters — before, any risk could be restored by id.
         var risk = await _db.ProjectRisks
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)
             .FirstOrDefaultAsync(r => r.Id == id, ct)
             ?? throw new KeyNotFoundException($"ProjectRisk {id} not found.");
+        // A live project needs the manage right; under a deleted project only the
+        // workspace rule above applies, as before.
+        if (await _access.GetAsync(risk.ProjectId) != null)
+            await _access.EnsureCanManageAsync(risk.ProjectId);
 
         risk.IsDeleted = false;
         await _db.SaveChangesAsync(ct);

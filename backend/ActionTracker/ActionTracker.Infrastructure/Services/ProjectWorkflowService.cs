@@ -104,8 +104,10 @@ public class ProjectWorkflowService : IProjectWorkflowService
         if (project.Status != ProjectStatus.Draft)
             throw new ArgumentException("Project can only be submitted for approval when in Draft status.");
 
-        if (project.ProjectManagerUserId != requestedByUserId)
-            throw new ArgumentException("Only the project manager can submit a project for approval.");
+        // WO-2026-11 P-2 (decision D3): the lead PM or an additional PM may submit.
+        // Routing, reviewers and notifications stay with the lead PM (unchanged below).
+        if (!await IsProjectManagerAsync(project.Id, project.ProjectManagerUserId, requestedByUserId))
+            throw new ArgumentException("Only the project's project managers can submit it for approval.");
 
         var hasPending = await _db.ProjectApprovalRequests
             .AnyAsync(r => r.ProjectId == dto.ProjectId && r.Status == ProjectApprovalStatus.Pending);
@@ -544,8 +546,8 @@ public class ProjectWorkflowService : IProjectWorkflowService
         if (project.Status != ProjectStatus.Draft)
             result.Errors.Add("Project can only be submitted for approval when in Draft status.");
 
-        if (project.ProjectManagerUserId != userId)
-            result.Errors.Add("Only the project manager can submit a project for approval.");
+        if (!await IsProjectManagerAsync(projectId, project.ProjectManagerUserId, userId))   // WO-2026-11 P-2 (D3)
+            result.Errors.Add("Only the project's project managers can submit it for approval.");
 
         var hasPending = await _db.ProjectApprovalRequests
             .AnyAsync(r => r.ProjectId == projectId && r.Status == ProjectApprovalStatus.Pending);
@@ -650,6 +652,19 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
         return sponsoredProjectIds.Union(managerOfProjectIds).Distinct().ToList();
     }
+
+    /// <summary>
+    /// WO-2026-11 P-2 (decision D3): the lead PM (<c>ProjectManagerUserId</c>) or an
+    /// additional project manager (<c>ProjectMembers</c>, role ProjectManager) may
+    /// submit. Only who may press Submit changes — the request is routed exactly as
+    /// before, from the lead PM.
+    /// </summary>
+    private async Task<bool> IsProjectManagerAsync(Guid projectId, string leadProjectManagerUserId, string userId)
+        => string.Equals(leadProjectManagerUserId, userId, StringComparison.OrdinalIgnoreCase)
+           || await _db.ProjectMembers.AnyAsync(m =>
+                  m.ProjectId == projectId
+                  && m.UserId == userId
+                  && m.Role == ProjectMemberRole.ProjectManager);
 
     private async Task<bool> IsDirectLineManagerAsync(string projectManagerUserId, string candidateManagerUserId)
     {

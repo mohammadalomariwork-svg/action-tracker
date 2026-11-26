@@ -6,6 +6,8 @@ using ActionTracker.Application.Features.Calendars;
 using ActionTracker.Application.Features.Calendars.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.Workflow.DTOs;
 using ActionTracker.Application.Features.Workflow.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -27,6 +29,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ActionItemWorkflowService> _logger;
     private readonly IWorkCalendarService _calendars;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2
 
     // Statuses that block new workflow requests
     private static readonly HashSet<ActionStatus> TerminalStatuses = new()
@@ -70,6 +73,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         _scopeFactory        = scopeFactory;
         _logger              = logger;
         _calendars           = calendars;
+        _access              = new ProjectAccessService(db);
     }
 
     // -------------------------------------------------------------------------
@@ -79,11 +83,17 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
     public async Task<WorkflowRequestResponseDto> CreateDateChangeRequestAsync(
         CreateDateChangeRequestDto dto, string requestedByUserId)
     {
+        // WO-2026-11 P-2 (decision D12): the private-workspace rule and the deletion
+        // flag are re-applied after IgnoreQueryFilters — before, a request could be
+        // raised on any item by id and the response carried its title.
         var actionItem = await _db.ActionItems
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)
+            .Where(a => !a.IsDeleted)
             .Include(a => a.Assignees)
             .FirstOrDefaultAsync(a => a.Id == dto.ActionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {dto.ActionItemId} not found.");
+        await _access.EnsureCanWorkOnItemAsync(actionItem.Id);
 
         if (TerminalStatuses.Contains(actionItem.Status))
             throw new InvalidOperationException(
@@ -169,11 +179,15 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
     public async Task<WorkflowRequestResponseDto> CreateStatusChangeRequestAsync(
         CreateStatusChangeRequestDto dto, string requestedByUserId)
     {
+        // WO-2026-11 P-2 (decision D12): as for date-change requests.
         var actionItem = await _db.ActionItems
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)
+            .Where(a => !a.IsDeleted)
             .Include(a => a.Assignees)
             .FirstOrDefaultAsync(a => a.Id == dto.ActionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {dto.ActionItemId} not found.");
+        await _access.EnsureCanWorkOnItemAsync(actionItem.Id);
 
         if (!AllowedSourceStatuses.Contains(actionItem.Status))
             throw new InvalidOperationException(
@@ -388,6 +402,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         // Get action item IDs where the reviewer is the creator
         var createdItemIds = await _db.ActionItems
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)   // WO-2026-11 P-2 (D12)
             .Where(a => a.CreatedByUserId == reviewerUserId && !a.IsDeleted)
             .Select(a => a.Id)
             .ToListAsync();
@@ -437,6 +452,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
         // Get all action item IDs this user can review
         var createdItemIds = await _db.ActionItems
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)   // WO-2026-11 P-2 (D12)
             .Where(a => a.CreatedByUserId == userId && !a.IsDeleted)
             .Select(a => a.Id)
             .ToListAsync();
@@ -480,6 +496,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
             .Include(a => a.Project)
             .FirstOrDefaultAsync(a => a.Id == actionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {actionItemId} not found.");
+        await _access.EnsureCanWorkOnItemAsync(actionItemId);   // WO-2026-11 P-2
 
         actionItem.IsEscalated = true;
         actionItem.UpdatedAt = DateTime.UtcNow;
@@ -635,6 +652,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
             .Include(a => a.Assignees)
             .FirstOrDefaultAsync(a => a.Id == dto.ActionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {dto.ActionItemId} not found.");
+        await _access.EnsureCanWorkOnItemAsync(dto.ActionItemId);   // WO-2026-11 P-2
 
         _logger.LogInformation(
             "Direction given for ActionItem {ActionItemId} by {UserId}: {Direction}",
@@ -735,6 +753,7 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
     {
         var actionItem = await _db.ActionItems
             .IgnoreQueryFilters()
+            .WhereWorkspaceVisibleTo(_db)   // WO-2026-11 P-2 (D12)
             .Include(a => a.Assignees)
             .FirstOrDefaultAsync(a => a.Id == actionItemId);
 

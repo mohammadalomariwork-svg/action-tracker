@@ -1,5 +1,6 @@
 using System;
 using System.Security.Claims;
+using ActionTracker.API.Filters;
 using ActionTracker.API.Models;
 using ActionTracker.Application.Features.ActionItems.DTOs;
 using ActionTracker.Application.Features.Calendars.DTOs;
@@ -19,6 +20,8 @@ namespace ActionTracker.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Policy = "LocalOrAzureAD")]
+// P-2: every route with {id} keeps the workspace-level rule (404 for project-only people).
+[WorkspaceLevelAccess("id")]
 public class WorkspacesController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;
