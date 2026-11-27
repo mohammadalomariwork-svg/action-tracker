@@ -49,8 +49,7 @@
 
     @if (!canManage) {
       <div class="alert alert-warning">
-        You can view these settings but you don't have permission to change them. Workspace admins
-        can manage access on this page.
+        You can view these settings but not change them: only this workspace's admins and Admins can.
       </div>
     }
 
@@ -463,7 +462,7 @@
     </section>
 
     <!-- ── Project Classifications (WO-2026-11 P-1) ─────────────────────── -->
-    <app-project-classifications-section [workspaceId]="workspace.id" />
+    <app-project-classifications-section [workspaceId]="workspace.id" [canManage]="canManage" />
 
     <!-- ── Strategic Project Approvers (ordered chain) ──────────────────── -->
     <section class="ws-section">

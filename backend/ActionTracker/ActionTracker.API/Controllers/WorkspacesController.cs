@@ -196,6 +196,7 @@ public class WorkspacesController : ControllerBase
     /// <param name="id">Primary key of the workspace to update.</param>
     /// <param name="dto">Update payload. The <c>Id</c> field must match the route.</param>
     [HttpPut("{id:guid}")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
@@ -256,6 +257,7 @@ public class WorkspacesController : ControllerBase
     /// <summary>Soft-deletes a workspace by setting it inactive.</summary>
     /// <param name="id">Primary key of the workspace to delete.</param>
     [HttpDelete("{id:guid}")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesDelete)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -277,6 +279,7 @@ public class WorkspacesController : ControllerBase
     /// <summary>Restores a soft-deleted workspace by setting it active again.</summary>
     /// <param name="id">Primary key of the workspace to restore.</param>
     [HttpPatch("{id:guid}/restore")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -322,6 +325,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Assigns a regular user to a workspace.</summary>
     [HttpPost("{id:guid}/members")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceMemberDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),             StatusCodes.Status400BadRequest)]
@@ -340,6 +344,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Removes a regular member from a workspace.</summary>
     [HttpDelete("{id:guid}/members/{userId}")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -356,6 +361,7 @@ public class WorkspacesController : ControllerBase
     /// workspace member. Already-existing members are skipped.
     /// </summary>
     [HttpPost("{id:guid}/members/from-org-unit")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<AddMembersFromOrgUnitResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),                         StatusCodes.Status400BadRequest)]
@@ -390,6 +396,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Links or unlinks the strategic plan attached to a workspace.</summary>
     [HttpPut("{id:guid}/strategy")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status404NotFound)]
@@ -463,6 +470,7 @@ public class WorkspacesController : ControllerBase
     /// calendar; existing records are not re-checked.
     /// </summary>
     [HttpPut("{id:guid}/calendar")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceCalendarDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<string>),               StatusCodes.Status400BadRequest)]
@@ -502,6 +510,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Adds a user to the workspace's project-manager list.</summary>
     [HttpPost("{id:guid}/project-managers")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceProjectManagerDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),                    StatusCodes.Status400BadRequest)]
@@ -511,7 +520,9 @@ public class WorkspacesController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
 
         var addedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var row = await _workspaceService.AddProjectManagerAsync(id, dto, addedBy);
+        WorkspaceProjectManagerDto? row;
+        try { row = await _workspaceService.AddProjectManagerAsync(id, dto, addedBy); }
+        catch (ArgumentException ex) { return BadRequest(ApiResponse<string>.Fail(ex.Message)); }   // WO-2026-11 P-2b (fix 5)
         if (row is null)
             return BadRequest(ApiResponse<string>.Fail("Workspace not found or user already a project manager."));
 
@@ -520,6 +531,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Removes a user from the workspace's project-manager list.</summary>
     [HttpDelete("{id:guid}/project-managers/{userId}")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -547,6 +559,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Appends a user to the workspace's strategic-project approver chain.</summary>
     [HttpPost("{id:guid}/strategic-project-approvers")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<WorkspaceStrategicProjectApproverDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<string>),                              StatusCodes.Status400BadRequest)]
@@ -557,7 +570,9 @@ public class WorkspacesController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail("Invalid request data."));
 
         var addedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var row = await _workspaceService.AddStrategicProjectApproverAsync(id, dto, addedBy);
+        WorkspaceStrategicProjectApproverDto? row;
+        try { row = await _workspaceService.AddStrategicProjectApproverAsync(id, dto, addedBy); }
+        catch (ArgumentException ex) { return BadRequest(ApiResponse<string>.Fail(ex.Message)); }   // WO-2026-11 P-2b (fix 5)
         if (row is null)
             return BadRequest(ApiResponse<string>.Fail("Workspace not found or user already an approver."));
 
@@ -566,6 +581,7 @@ public class WorkspacesController : ControllerBase
 
     /// <summary>Removes a user from the workspace's strategic-project approver chain.</summary>
     [HttpDelete("{id:guid}/strategic-project-approvers/{userId}")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status404NotFound)]
@@ -582,6 +598,7 @@ public class WorkspacesController : ControllerBase
     /// every current approver's UserId in the desired (1-based) order.
     /// </summary>
     [HttpPut("{id:guid}/strategic-project-approvers/reorder")]
+    [WorkspaceSettingsAccess("id")]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]

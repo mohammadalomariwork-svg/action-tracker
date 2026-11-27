@@ -382,7 +382,8 @@ public class ActionItemUpdateServiceTests : IDisposable
     {
         var item = await AddItemAsync();
         var sub = await AddSubItemAsync(item.Id);
-        var other = await AddSubItemAsync(item.Id);
+        // WO-2026-11 P-2b: Alice works on the other sub-item as its assignee (updates of that sub-item).
+        var other = await AddSubItemAsync(item.Id, false, Alice);
 
         var onItem = await As(Author, s => s.CreateAsync(item.Id, null, Submitted("item"), Author));
         var onSub  = await As(Author, s => s.CreateAsync(item.Id, sub.Id, Submitted("sub"), Author));

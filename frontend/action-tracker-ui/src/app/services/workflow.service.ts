@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   WorkflowRequest,
@@ -9,7 +9,6 @@ import {
   CreateStatusChangeRequest,
   ReviewWorkflowRequest,
   WorkflowDirection,
-  CanReviewResponse
 } from '../models/workflow.model';
 import { ApiResponse, PagedResult } from '../core/models/api-response.model';
 
@@ -56,7 +55,14 @@ export class WorkflowService {
     return this.http.post<ApiResponse<void>>(`${this.baseUrl}/give-direction`, dto);
   }
 
-  canReview(actionItemId: string): Observable<ApiResponse<CanReviewResponse>> {
-    return this.http.get<ApiResponse<CanReviewResponse>>(`${this.baseUrl}/can-review/${actionItemId}`);
+  /**
+   * Whether the caller may review the item's date / status requests (its creator or a
+   * line manager of an assignee). The API answers `ApiResponse<bool>` — `data` is the
+   * boolean itself. Until 2026-11-27 the callers read `data.canReview`, which is always
+   * undefined, so the Review buttons on the action page never showed.
+   */
+  canReview(actionItemId: string): Observable<boolean> {
+    return this.http.get<ApiResponse<boolean>>(`${this.baseUrl}/can-review/${actionItemId}`)
+      .pipe(map(r => r?.data === true));
   }
 }

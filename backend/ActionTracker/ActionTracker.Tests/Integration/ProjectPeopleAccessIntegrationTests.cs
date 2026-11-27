@@ -1,3 +1,4 @@
+using ActionTracker.Application.Features.ProjectPeople;
 using System.Net;
 using System.Net.Http.Headers;
 using ActionTracker.Application.Features.ActionItems.DTOs;
@@ -360,10 +361,10 @@ public class ProjectPeopleAccessIntegrationTests
             .Should().Contain(w.ProjectId.ToString()).And.NotContain(w.SiblingId.ToString());
     }
 
-    // ── No link: as before ──────────────────────────────────────────────────
+    // ── No link: private as before; public read-only since P-2b ─────────────
 
     [Fact]
-    public async Task A_user_with_no_link_gets_what_they_got_before()
+    public async Task A_user_with_no_link_sees_nothing_private_and_only_reads_public()
     {
         var priv = await BuildWorldAsync();
         var pub  = await BuildWorldAsync(isPrivate: false);
@@ -375,14 +376,20 @@ public class ProjectPeopleAccessIntegrationTests
         (await StatusAsync(HttpMethod.Get, $"/api/documents/{priv.ProjectDocId}/download", outsider)).Should().Be(HttpStatusCode.NotFound);
         (await (await SendAsync(HttpMethod.Get, "/api/projects?pageSize=500", outsider)).Content.ReadAsStringAsync()).Should().NotContain(priv.ProjectId.ToString());
 
-        // Public workspace: by id as before (read and write), not in the lists (resolver), as before.
+        // Public workspace: read by id as before, not in the lists (resolver), as before;
+        // writes need a link since WO-2026-11 P-2b (403 with the reason, nothing changed).
         var p = await SendAsync(HttpMethod.Get, $"/api/projects/{pub.ProjectId}", outsider);
         p.StatusCode.Should().Be(HttpStatusCode.OK);
         var dto = await ReadAsync<ProjectResponseDto>(p);
         dto.MyRoles.Should().BeEmpty();
-        dto.CanManage.Should().BeTrue();
-        (await StatusAsync(HttpMethod.Put, $"/api/action-items/{pub.ItemOtherId}", outsider, new { title = "Public edit" })).Should().Be(HttpStatusCode.OK);
-        (await StatusAsync(HttpMethod.Put, $"/api/projects/{pub.ProjectId}/milestones/{pub.MilestoneId}", outsider, MilestoneBody("Public"))).Should().Be(HttpStatusCode.OK);
+        dto.CanManage.Should().BeFalse();
+        var itemPut = await SendAsync(HttpMethod.Put, $"/api/action-items/{pub.ItemOtherId}", outsider, new { title = "Public edit" });
+        itemPut.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await MessageAsync(itemPut)).Should().Be(ProjectAccessDeniedException.ItemWorkersOnly);
+        var msPut = await SendAsync(HttpMethod.Put, $"/api/projects/{pub.ProjectId}/milestones/{pub.MilestoneId}", outsider, MilestoneBody("Public"));
+        msPut.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await MessageAsync(msPut)).Should().Be(ProjectAccessDeniedException.ManagersOnly);
+        (await StatusAsync(HttpMethod.Get, $"/api/action-items/{pub.ItemOtherId}", outsider)).Should().Be(HttpStatusCode.OK);
         (await (await SendAsync(HttpMethod.Get, "/api/projects?pageSize=500", outsider)).Content.ReadAsStringAsync()).Should().NotContain(pub.ProjectId.ToString());
         (await StatusAsync(HttpMethod.Get, $"/api/workspaces/{pub.WorkspaceId}/assignable-users", outsider)).Should().Be(HttpStatusCode.OK);
     }

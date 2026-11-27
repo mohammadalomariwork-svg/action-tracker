@@ -67,6 +67,7 @@ public class WorkspaceProjectClassificationsController : ControllerBase
 
     /// <summary>Adds a classification at the end of the list, active. 409 when the name is taken (any case).</summary>
     [HttpPost]
+    [WorkspaceSettingsAccess]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<ProjectClassificationDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -83,6 +84,7 @@ public class WorkspaceProjectClassificationsController : ControllerBase
     /// classification of the workspace exactly once (400 otherwise).
     /// </summary>
     [HttpPut("reorder")]
+    [WorkspaceSettingsAccess]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<List<ProjectClassificationDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -99,6 +101,7 @@ public class WorkspaceProjectClassificationsController : ControllerBase
     /// name is taken (any case).
     /// </summary>
     [HttpPut("{classificationId:guid}")]
+    [WorkspaceSettingsAccess]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(typeof(ApiResponse<ProjectClassificationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -115,6 +118,7 @@ public class WorkspaceProjectClassificationsController : ControllerBase
     /// included — uses it; the message says how many.
     /// </summary>
     [HttpDelete("{classificationId:guid}")]
+    [WorkspaceSettingsAccess]   // WO-2026-11 P-2b: this workspace's admins or an Admin
     [Authorize(Policy = PermissionPolicies.WorkspacesEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

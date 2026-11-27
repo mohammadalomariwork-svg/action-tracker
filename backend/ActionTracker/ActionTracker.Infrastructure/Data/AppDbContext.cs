@@ -94,6 +94,33 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>, IAppDbContext
         _projectRoleWorkspaceIds = rows.Select(r => r.WorkspaceId).Distinct().ToList();
     }
 
+    // ── System roles of the request user (WO-2026-11 P-2b) ───────────────────
+    private string? _rolesUserId;
+    private bool _rolesLoaded;
+    private IReadOnlyCollection<string> _currentUserRoles = Array.Empty<string>();
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<string> CurrentUserRoles
+    {
+        get
+        {
+            var userId = CurrentUserId;
+            if (_rolesLoaded && _rolesUserId == userId) return _currentUserRoles;
+            _rolesLoaded = true;
+            _rolesUserId = userId;
+            // Same rows UserManager.GetRolesAsync reads (AspNetUserRoles → AspNetRoles).
+            _currentUserRoles = userId == null
+                ? Array.Empty<string>()
+                : UserRoles.AsNoTracking()
+                    .Where(ur => ur.UserId == userId)
+                    .Join(Roles.AsNoTracking(), ur => ur.RoleId, r => r.Id, (ur, r) => r.Name!)
+                    .Where(n => n != null)
+                    .ToList()
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return _currentUserRoles;
+        }
+    }
+
     // ── Legacy / shared domain sets ───────────────────────────────────────────
     public DbSet<ActionItem>           ActionItems           => Set<ActionItem>();
     public DbSet<ActionItemAssignee>   ActionItemAssignees   => Set<ActionItemAssignee>();

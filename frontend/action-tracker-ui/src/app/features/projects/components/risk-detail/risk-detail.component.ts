@@ -57,6 +57,8 @@ export class RiskDetailComponent implements OnInit {
   canManage = signal(false);
   /** WO-2026-11 P-2: the caller sees the workspace only through a project role. */
   viaProjectRole = signal(false);
+  /** WO-2026-11 P-2b: shown instead of the upload form to non-managers (deleting follows each file's `canDelete`). */
+  readonly filesLockedNote = "Only the project's managers can add files to a risk.";
   riskId    = '';
 
   breadcrumbs: BreadcrumbItem[] = [];

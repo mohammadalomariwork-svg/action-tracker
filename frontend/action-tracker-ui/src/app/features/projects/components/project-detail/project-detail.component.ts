@@ -40,12 +40,15 @@ import {
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 import { showErrorHere } from '../../../../core/http/server-reason';
+import {
+  editableStatusOptions, leadPmOptions, LeadPmOption, ProjectStatusOption, statusEditHint,
+} from '../../../../shared/utils/project-edit-options.util';
 import { ProjectPeoplePanelComponent } from '../project-people-panel/project-people-panel.component';
 import { ProjectPeopleFieldsComponent } from '../../../../shared/components/project-people-fields/project-people-fields.component';
 import { ProjectPeopleService } from '../../../../services/project-people.service';
 import { PersonOption, ProjectPeopleValue } from '../../../../models/project-people.model';
 import {
-  emptyPeopleValue, isProjectManagerOf, peoplePatch, peopleValueFrom, userListOptions,
+  emptyPeopleValue, peoplePatch, peopleValueFrom, userListOptions,
 } from '../../../../shared/utils/project-people.util';
 
 interface EditFormData {
@@ -175,13 +178,11 @@ export class ProjectDetailComponent implements OnInit {
     { value: ProjectPriority.Critical, label: 'Critical' },
   ];
 
-  readonly PROJECT_STATUS_OPTIONS = [
-    { value: ProjectStatus.Draft,     label: 'Draft'     },
-    { value: ProjectStatus.Active,    label: 'Active'    },
-    { value: ProjectStatus.OnHold,    label: 'On Hold'   },
-    { value: ProjectStatus.Completed, label: 'Completed' },
-    { value: ProjectStatus.Cancelled, label: 'Cancelled' },
-  ];
+  /** WO-2026-11 P-2b (fix 1): only the statuses a plain edit may set (the response's `allowedStatuses`). */
+  editStatusOptions: ProjectStatusOption[] = [];
+  editStatusHint: string | null = null;
+  /** WO-2026-11 P-2b (fix 6): the workspace's Project Managers list, plus a current lead who is not on it. */
+  leadPmChoices: LeadPmOption[] = [];
 
   ngOnInit(): void {
     this.projectId = this.route.snapshot.paramMap.get('id')!;
@@ -261,14 +262,25 @@ export class ProjectDetailComponent implements OnInit {
       });
   }
 
-  /** Lead or additional project manager of a Draft project (WO-2026-11 P-2, D3). */
+  /**
+   * A Draft project and the server's `canSubmit`: its lead or additional PMs (P-2, D3)
+   * and the Admin role (WO-2026-11 P-2b, B5).
+   */
   get canSubmitForApproval(): boolean {
     return !!this.project
       && this.project.status === ProjectStatus.Draft
-      && (isProjectManagerOf(this.project.myRoles) || this.project.projectManagerUserId === this.currentUserId);
+      && this.project.canSubmit === true;
+  }
+
+  /** Authors keep their own comments; through a project role only, the P-2 ceiling (a manager) applies. */
+  get canEditOwnComments(): boolean {
+    return this.canOpenWorkspace || this.canManage;
   }
 
   /** Edit, Add and the People panel's changes follow the project's `canManage` (P-2). */
+  /** WO-2026-11 P-2b: shown instead of the upload form to non-managers (deleting follows each file's `canDelete`). */
+  readonly filesLockedNote = "Only the project's managers can add files to the project.";
+
   get canManage(): boolean {
     return !!this.project?.canManage;
   }
@@ -437,6 +449,9 @@ export class ProjectDetailComponent implements OnInit {
       status: prj.status,
       actualStartDate: prj.actualStartDate ? String(prj.actualStartDate).substring(0, 10) : '',
     };
+    this.editStatusOptions = editableStatusOptions(prj.status, prj.allowedStatuses);
+    this.editStatusHint = statusEditHint(prj.status);
+    this.refreshLeadPmChoices();
 
     this.editTriedSave = false;
     this.saveEditError = null;
@@ -474,10 +489,14 @@ export class ProjectDetailComponent implements OnInit {
     });
     if (prj.canOpenWorkspace && this.workspacePmOptions === null) {
       this.workspaceSvc.getProjectManagers(prj.workspaceId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: res => { this.workspacePmOptions = userListOptions(res.data); },
-        error: err => { showErrorHere(err); this.workspacePmOptions = []; },
+        next: res => { this.workspacePmOptions = userListOptions(res.data); this.refreshLeadPmChoices(); },
+        error: err => { showErrorHere(err); this.workspacePmOptions = []; this.refreshLeadPmChoices(); },
       });
     }
+  }
+
+  private refreshLeadPmChoices(): void {
+    this.leadPmChoices = leadPmOptions(this.workspacePmOptions, this.project?.projectManagerUserId, this.project?.projectManagerName);
   }
 
   /** Planned dates the project holds now; unchanged dates are never flagged (Q8). */

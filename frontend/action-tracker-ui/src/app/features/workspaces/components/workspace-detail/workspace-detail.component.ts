@@ -7,7 +7,6 @@ import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 import { WorkspaceService } from '../../services/workspace.service';
-import { AuthService } from '../../../../core/services/auth.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../shared';
 import { WorkingDayHintComponent } from '../../../../shared/components/working-day-hint/working-day-hint.component';
@@ -54,6 +53,7 @@ import { ProjectPeopleService } from '../../../../services/project-people.servic
 import { ProjectPeopleValue } from '../../../../models/project-people.model';
 import { emptyPeopleValue, peoplePatch, peopleValueFrom, userListOptions } from '../../../../shared/utils/project-people.util';
 import { showErrorHere } from '../../../../core/http/server-reason';
+import { editableStatusOptions, ProjectStatusOption, statusEditHint } from '../../../../shared/utils/project-edit-options.util';
 
 @Component({
   selector: 'app-workspace-detail',
@@ -68,7 +68,6 @@ import { showErrorHere } from '../../../../core/http/server-reason';
 })
 export class WorkspaceDetailComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
-  private readonly authService      = inject(AuthService);
   private readonly actionService    = inject(ActionItemService);
   private readonly projectService   = inject(ProjectService);
   private readonly milestoneService = inject(MilestoneService);
@@ -93,7 +92,11 @@ export class WorkspaceDetailComponent implements OnInit {
   isLoading = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
-  canManage = false;
+
+  /** WO-2026-11 P-2b (B2): New Project follows the server's create rule for this workspace. */
+  get canCreateProjects(): boolean { return this.workspace?.canCreateProjects === true; }
+  /** WO-2026-11 P-2b (B2): New Action (a standalone item) follows the server's create rule. */
+  get canCreateActionItems(): boolean { return this.workspace?.canCreateActionItems === true; }
 
   // Stats
   workspaceStats: WorkspaceStats | null = null;
@@ -204,13 +207,9 @@ export class WorkspaceDetailComponent implements OnInit {
     { value: ProjectPriority.Critical, label: 'Critical' },
   ];
 
-  readonly PROJECT_STATUS_OPTIONS = [
-    { value: ProjectStatus.Draft,     label: 'Draft'     },
-    { value: ProjectStatus.Active,    label: 'Active'    },
-    { value: ProjectStatus.OnHold,    label: 'On Hold'   },
-    { value: ProjectStatus.Completed, label: 'Completed' },
-    { value: ProjectStatus.Cancelled, label: 'Cancelled' },
-  ];
+  /** WO-2026-11 P-2b (fix 1): the statuses a plain edit may set for the project being edited. */
+  projectStatusOptions: ProjectStatusOption[] = [];
+  projectStatusHint: string | null = null;
 
   private readonly STATUS_MAP: Record<string, ActionStatus> = {
     todo: ActionStatus.ToDo, inprogress: ActionStatus.InProgress,
@@ -257,7 +256,6 @@ export class WorkspaceDetailComponent implements OnInit {
           this.workspace = res.data ?? null;
           this.workspaceMembers = this.workspace?.members ?? [];
           this.workspaceProjectManagers = this.workspace?.projectManagers ?? [];
-          this.resolvePermissions();
           this.isLoading = false;
           this.loadActionItems();
           this.loadTagOptions();
@@ -270,20 +268,6 @@ export class WorkspaceDetailComponent implements OnInit {
           this.errorMessage = showErrorHere(err) ?? 'Failed to load workspace details.';
           this.isLoading = false;
         },
-      });
-  }
-
-  private resolvePermissions(): void {
-    if (this.authService.hasRole('Admin') || this.authService.hasRole('Manager')) {
-      this.canManage = true;
-      return;
-    }
-    this.authService.currentUser$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(user => {
-        if (user && this.workspace?.admins?.some(a => a.userId === user.email)) {
-          this.canManage = true;
-        }
       });
   }
 
@@ -771,6 +755,8 @@ export class WorkspaceDetailComponent implements OnInit {
   openEditProjectForm(prj: ProjectResponse): void {
     this.editingProjectId = prj.id;
     this.editingProjectOriginalStatus = prj.status;
+    this.projectStatusOptions = editableStatusOptions(prj.status, prj.allowedStatuses);
+    this.projectStatusHint = statusEditHint(prj.status);
     this.projectFormError = null;
     this.projectForm = {
       name: prj.name,

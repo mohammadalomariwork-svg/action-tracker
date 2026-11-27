@@ -61,10 +61,6 @@ export interface WorkflowDirection {
   directionText: string;
 }
 
-export interface CanReviewResponse {
-  canReview: boolean;
-}
-
 export const WORKFLOW_STATUS_CONFIG: Record<string, { label: string; cssClass: string }> = {
   Pending:  { label: 'Pending',  cssClass: 'bg-warning text-dark' },
   Approved: { label: 'Approved', cssClass: 'bg-success text-white' },

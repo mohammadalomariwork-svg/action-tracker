@@ -274,14 +274,16 @@
                     <button *appHasPermission="'Workspaces'; action: 'View'" class="wl-action-btn" (click)="onView(workspace.id)" title="View">
                       <i class="bi bi-eye"></i> View
                     </button>
+                    @if (workspace.canManageSettings) {
                     <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn" (click)="onEdit(workspace.id)" title="Edit">
                       <i class="bi bi-pencil-square"></i> Edit
                     </button>
-                    @if (workspace.isActive) {
+                    }
+                    @if (workspace.canManageSettings && workspace.isActive) {
                       <button *appHasPermission="'Workspaces'; action: 'Delete'" class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)" title="Delete">
                         <i class="bi bi-trash"></i> Delete
                       </button>
-                    } @else {
+                    } @else if (workspace.canManageSettings) {
                       <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)" title="Restore">
                         <i class="bi bi-arrow-counterclockwise"></i> Restore
                       </button>
@@ -354,14 +356,16 @@
               <button *appHasPermission="'Workspaces'; action: 'View'" class="wl-action-btn" (click)="onView(workspace.id)">
                 <i class="bi bi-eye"></i> View
               </button>
+              @if (workspace.canManageSettings) {
               <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn" (click)="onEdit(workspace.id)">
                 <i class="bi bi-pencil-square"></i> Edit
               </button>
-              @if (workspace.isActive) {
+              }
+              @if (workspace.canManageSettings && workspace.isActive) {
                 <button *appHasPermission="'Workspaces'; action: 'Delete'" class="wl-action-btn wl-action-btn--danger" (click)="onDelete(workspace.id)">
                   <i class="bi bi-trash"></i> Delete
                 </button>
-              } @else {
+              } @else if (workspace.canManageSettings) {
                 <button *appHasPermission="'Workspaces'; action: 'Edit'" class="wl-action-btn wl-action-btn--success" (click)="onRestore(workspace.id)">
                   <i class="bi bi-arrow-counterclockwise"></i> Restore
                 </button>

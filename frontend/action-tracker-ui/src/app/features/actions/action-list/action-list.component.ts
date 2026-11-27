@@ -745,7 +745,8 @@ export class ActionListComponent implements OnInit, OnDestroy {
         this.toastSvc.success('Action item deleted.');
         this.loadStats();
       },
-      error: () => this.toastSvc.error('Failed to delete action item.'),
+      // The server's reason (e.g. a 403 from the ownership rule), so the interceptor's identical toast is dropped.
+      error: err => this.toastSvc.error(err?.error?.message ?? 'Failed to delete action item.'),
     });
   }
 

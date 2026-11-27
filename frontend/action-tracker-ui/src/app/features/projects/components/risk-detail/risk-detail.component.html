@@ -82,14 +82,15 @@
         <!-- Comments -->
         <div class="mb-3">
           <app-comments-section entityType="ProjectRisk" [entityId]="r.id" [canPost]="canManage()"
+                                [canEditOwn]="!viaProjectRole() || canManage()"
                                 readOnlyNote="Only the project's managers can comment on its risks." />
         </div>
 
         <!-- Documents -->
         <div class="mb-3">
           <app-documents-section entityType="ProjectRisk" [entityId]="r.id"
-                                 [canUpload]="canManage()" [canDelete]="canManage()"
-                                 lockedNote="Only the project's managers can add or remove a risk's files." />
+                                 [canUpload]="canManage()"
+                                 [lockedNote]="canManage() ? null : filesLockedNote" />
         </div>
 
       </div>

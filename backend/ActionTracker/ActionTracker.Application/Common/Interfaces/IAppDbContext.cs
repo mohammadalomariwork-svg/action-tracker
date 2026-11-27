@@ -103,5 +103,13 @@ public interface IAppDbContext
     /// <summary>Forget the role ids so the next query works them out again (after a change to project people).</summary>
     void ResetProjectRoles();
 
+    /// <summary>
+    /// WO-2026-11 P-2b: the system roles (AspNetRoles names) of <see cref="CurrentUserId"/>,
+    /// read once per context and user from the database — the same source as the
+    /// permission policies. Empty in system context. Used by the ownership rule
+    /// (<c>IProjectAccessService</c>) for the Admin and PMO Head rights.
+    /// </summary>
+    IReadOnlyCollection<string> CurrentUserRoles { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

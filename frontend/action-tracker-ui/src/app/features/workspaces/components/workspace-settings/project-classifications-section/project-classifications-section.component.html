@@ -21,6 +21,7 @@
     </div>
   }
 
+  @if (canManage()) {
   <form *appHasPermission="'Workspaces'; action: 'Edit'" class="pcs__add" (submit)="add($event)" novalidate>
     <label for="pcsNewName" class="visually-hidden">New classification name</label>
     <input id="pcsNewName" type="text" class="form-control form-control-sm"
@@ -34,6 +35,7 @@
       <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Add classification
     </button>
   </form>
+  }
   @if (newNameProblem()) {
     <div id="pcsNewNameProblem" class="pcs__problem" role="alert">{{ newNameProblem() }}</div>
   }
@@ -84,7 +86,7 @@
             <span class="pcs__usage" [class.pcs__usage--used]="!c.canDelete">{{ usageText(c) }}</span>
           </div>
 
-          @if (renamingId() !== c.id) {
+          @if (renamingId() !== c.id && canManage()) {
             <div class="pcs__actions" *appHasPermission="'Workspaces'; action: 'Edit'">
               <button type="button" class="btn btn-outline-secondary btn-sm" [id]="'pcsUp-' + c.id"
                       [disabled]="first || busy()" (click)="move(c, -1)"

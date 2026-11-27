@@ -356,6 +356,16 @@ public class ActionItemUpdatesControllerIntegrationTests
         var assignee = await SignInAsync("directed", AppRoles.TeamMember);
         var item = await AddItemAsync(new[] { director.UserId }, new[] { assignee.UserId }, assignees: new[] { assignee.UserId });
 
+        // WO-2026-11 P-2b (B4): only on an escalated item (409 before).
+        (await SendAsync(HttpMethod.Post, "/api/action-items/workflow/give-direction", director,
+            new { actionItemId = item, directionText = "Too early" })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.ActionItems.FindAsync(item))!.IsEscalated = true;
+            await db.SaveChangesAsync();
+        }
+
         var response = await SendAsync(HttpMethod.Post, "/api/action-items/workflow/give-direction", director,
             new { actionItemId = item, directionText = "Call the <vendor> today" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);

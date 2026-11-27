@@ -82,6 +82,19 @@ export interface ActionItem {
    */
   canWork: boolean;
   /**
+   * WO-2026-11 P-2b (fix 9): on a live item the delete would succeed, on a deleted
+   * one the restore (the `ActionItems.Delete` / `Edit` permission is needed on top).
+   * A project item: the caller manages the project (and, for a delete, it is still
+   * Draft); a standalone item: its creator, the workspace's admins or an Admin.
+   */
+  canDelete?: boolean;
+  /**
+   * WO-2026-11 P-2b (B4): the item is escalated and the caller may give direction
+   * (its creator, a line manager of an assignee, or whoever manages it). Only on
+   * GET by id; absent on lists.
+   */
+  canGiveDirection?: boolean | null;
+  /**
    * WO-2026-11 P-2: the caller reaches this item only through a role on its
    * project — it cannot be moved, its tags are read-only (D5) and the
    * workspace itself cannot be opened.

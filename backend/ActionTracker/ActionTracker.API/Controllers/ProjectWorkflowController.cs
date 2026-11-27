@@ -27,7 +27,10 @@ public class ProjectWorkflowController : ControllerBase
     private string GetUserId() =>
         User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
 
-    /// <summary>Submit a project for start-approval (Draft → PendingApproval).</summary>
+    /// <summary>
+    /// Submit a project for start-approval (Draft → PendingApproval). 400 for a rule
+    /// (status, who may submit, milestones), 422 with the reason for the approver chain.
+    /// </summary>
     [HttpPost("submit")]
     [Authorize(Policy = PermissionPolicies.ProjectsEdit)]
     public async Task<IActionResult> Submit([FromBody] SubmitProjectApprovalRequestDto dto)
@@ -44,6 +47,13 @@ public class ProjectWorkflowController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<ProjectApprovalRequestDto>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            // WO-2026-11 P-2b: an approver-chain refusal (none configured, first approver
+            // missing or inactive) keeps its 422 but carries its reason in production too —
+            // ExceptionMiddleware would only say "Unprocessable Entity" there.
+            return UnprocessableEntity(ApiResponse<ProjectApprovalRequestDto>.Fail(ex.Message));
         }
     }
 

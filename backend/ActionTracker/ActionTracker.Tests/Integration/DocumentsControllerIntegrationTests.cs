@@ -289,12 +289,19 @@ public class DocumentsControllerIntegrationTests : IClassFixture<ActionTrackerWe
         var creator = await SignInAsync("creator-d4", AppRoles.TeamMember);
         var assignee = await SignInAsync("assignee-d4", AppRoles.TeamMember);
         var subAssignee = await SignInAsync("subassignee-d4", AppRoles.TeamMember);
+        // WO-2026-11 P-2b: only linked people work on an item. The other editor is a second
+        // admin of the workspace (works on the standalone item, but is neither its creator
+        // nor an assignee); a plain member with no link cannot upload at all.
         var editor = await SignInAsync("editor-d4", AppRoles.TeamMember);
-        var (item, sub) = await AddItemAsync(new[] { creator.UserId }, new[] { assignee.UserId, subAssignee.UserId, editor.UserId },
+        var member = await SignInAsync("member-d4", AppRoles.TeamMember);
+        var (item, sub) = await AddItemAsync(new[] { creator.UserId, editor.UserId }, new[] { assignee.UserId, subAssignee.UserId, member.UserId },
             assignees: new[] { assignee.UserId }, subAssignees: new[] { subAssignee.UserId });
 
         var creatorsFile = await ReadAsync<DocumentResponseDto>(await UploadAsync(creator, "ActionItem", item));
         var editorsFile = await ReadAsync<DocumentResponseDto>(await UploadAsync(editor, "ActionItem", item));
+        var byMember = await UploadAsync(member, "ActionItem", item);
+        byMember.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await MessageAsync(byMember)).Should().Be(ActionTracker.Application.Features.ProjectPeople.ProjectAccessDeniedException.StandaloneWorkersOnly);
         var subFile = await ReadAsync<DocumentResponseDto>(await UploadAsync(creator, "ActionItemSubItem", sub));
 
         var asEditor = await ReadAsync<List<DocumentResponseDto>>(await ListAsync(editor, "ActionItem", item));

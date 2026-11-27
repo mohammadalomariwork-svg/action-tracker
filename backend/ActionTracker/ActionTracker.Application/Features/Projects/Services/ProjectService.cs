@@ -11,6 +11,7 @@ using ActionTracker.Application.Features.ProjectPeople;
 using ActionTracker.Application.Features.ProjectPeople.DTOs;
 using ActionTracker.Application.Features.ProjectPeople.Interfaces;
 using ActionTracker.Application.Features.ProjectPeople.Services;
+using ActionTracker.Application.Features.Projects;
 using ActionTracker.Application.Features.Projects.DTOs;
 using ActionTracker.Application.Features.Projects.Interfaces;
 using ActionTracker.Application.Helpers;
@@ -197,48 +198,23 @@ public class ProjectService : IProjectService
     }
 
     /// <summary>
-    /// WO-2026-11 P-2: the caller's roles and rights on each project of a response.
-    /// Ids only, so one query per kind for the whole page.
+    /// WO-2026-11 P-2 / P-2b: the caller's roles and rights on each project of a
+    /// response — the same rule as the guards (<see cref="IProjectAccessService"/>).
     /// </summary>
     private async Task FillMyAccessAsync(IReadOnlyCollection<ProjectResponseDto> items)
     {
         if (items.Count == 0) return;
-        var userId = _db.CurrentUserId;
-        var projectIds = items.Select(i => i.Id).ToList();
-        var workspaceIds = items.Select(i => i.WorkspaceId).Distinct().ToList();
-
-        var workspaceLevel = userId == null
-            ? workspaceIds.ToHashSet()
-            : (await _db.Workspaces.IgnoreQueryFilters()
-                .Where(w => workspaceIds.Contains(w.Id))
-                .WhereWorkspaceLevelVisibleTo(userId)
-                .Select(w => w.Id)
-                .ToListAsync()).ToHashSet();
-
-        var sponsorOf = userId == null ? new HashSet<Guid>()
-            : (await _db.ProjectSponsors.AsNoTracking()
-                .Where(s => s.UserId == userId && projectIds.Contains(s.ProjectId))
-                .Select(s => s.ProjectId).ToListAsync()).ToHashSet();
-        var memberRoles = userId == null ? new List<(Guid ProjectId, ProjectMemberRole Role)>()
-            : (await _db.ProjectMembers.AsNoTracking()
-                .Where(m => m.UserId == userId && projectIds.Contains(m.ProjectId))
-                .Select(m => new { m.ProjectId, m.Role }).ToListAsync())
-                .Select(m => (m.ProjectId, m.Role)).ToList();
+        var access = await _access.GetManyAsync(items
+            .Select(i => new ProjectFacts(i.Id, i.WorkspaceId, i.ProjectManagerUserId)).ToList());
 
         foreach (var item in items)
         {
-            var access = new ProjectAccess(
-                item.Id,
-                item.WorkspaceId,
-                workspaceLevel.Contains(item.WorkspaceId),
-                userId != null && string.Equals(item.ProjectManagerUserId, userId, StringComparison.OrdinalIgnoreCase),
-                memberRoles.Contains((item.Id, ProjectMemberRole.ProjectManager)),
-                sponsorOf.Contains(item.Id),
-                memberRoles.Contains((item.Id, ProjectMemberRole.Viewer)),
-                memberRoles.Contains((item.Id, ProjectMemberRole.TeamMember)));
-            item.MyRoles = access.Roles.ToList();
-            item.CanManage = access.CanManage;
-            item.CanOpenWorkspace = access.WorkspaceLevel;
+            var a = access[item.Id];
+            item.MyRoles = a.Roles.ToList();
+            item.CanManage = a.CanManage;
+            item.CanSubmit = a.CanSubmit;
+            item.CanOpenWorkspace = a.WorkspaceLevel;
+            item.AllowedStatuses = ProjectStatusRules.AllowedTargets(item.Status).ToList();
         }
     }
 
@@ -272,8 +248,9 @@ public class ProjectService : IProjectService
         // WO-2026-11 P-2 (decision D12): a project is created in a workspace the
         // caller sees at workspace level — not in a private one they reach only
         // through a role on another project (they would gain the new project).
-        if (_db.CurrentUserId != null && !await _access.IsWorkspaceLevelAsync(dto.WorkspaceId))
-            throw new KeyNotFoundException($"Workspace {dto.WorkspaceId} not found.");
+        // P-2b (B2): and only by its admins, members, people on its Project
+        // Managers list, or the Admin / PMO roles (403 otherwise).
+        await _access.EnsureCanCreateInWorkspaceAsync(dto.WorkspaceId, project: true);
 
         // Gate: PM must be on the workspace's project-manager list.
         if (string.IsNullOrWhiteSpace(dto.ProjectManagerUserId))
@@ -428,7 +405,7 @@ public class ProjectService : IProjectService
         if (!access.WorkspaceLevel
             && !string.Equals(dto.ProjectManagerUserId, previousLeadPm, StringComparison.OrdinalIgnoreCase))
             throw new ProjectAccessDeniedException(
-                "Only the workspace's admins and members can change the lead project manager.");
+                "Through your project role you cannot change the lead project manager.");
 
         var previousStatus = project.Status;
 
@@ -453,9 +430,11 @@ public class ProjectService : IProjectService
                     "Add them on the workspace settings page first.");
         }
 
-        // Block status changes from PendingApproval via normal update — only workflow review can do that
-        if (project.Status == ProjectStatus.PendingApproval && dto.Status != ProjectStatus.PendingApproval)
-            throw new ArgumentException("Project status can only be changed from PendingApproval through the approval workflow.");
+        // WO-2026-11 P-2b (fix 1, B5): a plain edit cannot take the approval
+        // workflow's steps — leave Draft (other than to Cancelled), enter or leave
+        // Pending Approval, reopen an approved or closed project.
+        if (ProjectStatusRules.RefusalReason(project.Status, dto.Status) is { } statusRefusal)
+            throw new ArgumentException(statusRefusal);
 
         // Date freeze: block date changes when project is not in Draft
         if (project.Status != ProjectStatus.Draft)
@@ -647,20 +626,28 @@ public class ProjectService : IProjectService
             .FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new KeyNotFoundException($"Project {id} not found.");
 
+        // WO-2026-11 P-2b: restoring is a manage right, like deleting.
+        await _access.EnsureCanManageAsync(id, includeDeleted: true);
+
         if (!project.IsDeleted)
             throw new InvalidOperationException("Project is not deleted.");
 
+        // P-2b (fix 10): only what was deleted with the project. DeleteAsync marks the
+        // project, its milestones and its items in one save, and AppDbContext stamps
+        // every modified row of a save with the same UpdatedAt, so a milestone or
+        // item deleted on its own earlier (another stamp) stays deleted. No migration.
+        var deletedAt = project.UpdatedAt;
         project.IsDeleted = false;
 
-        var milestones = await _db.Milestones
+        var milestones = deletedAt is null ? new List<Milestone>() : await _db.Milestones
             .IgnoreQueryFilters()
-            .Where(m => m.ProjectId == id && m.IsDeleted)
+            .Where(m => m.ProjectId == id && m.IsDeleted && m.UpdatedAt == deletedAt)
             .ToListAsync(ct);
         foreach (var m in milestones) m.IsDeleted = false;
 
-        var actionItems = await _db.ActionItems
+        var actionItems = deletedAt is null ? new List<ActionItem>() : await _db.ActionItems
             .IgnoreQueryFilters()
-            .Where(a => a.ProjectId == id && a.IsDeleted)
+            .Where(a => a.ProjectId == id && a.IsDeleted && a.UpdatedAt == deletedAt.Value)
             .ToListAsync(ct);
         foreach (var a in actionItems) a.IsDeleted = false;
 
@@ -726,20 +713,29 @@ public class ProjectService : IProjectService
 
     // ── Email helpers ──────────────────────────────────────────
 
-    private Dictionary<string, string> BuildProjectPlaceholders(Project p) => new()
-    {
-        ["ProjectCode"]     = p.ProjectCode,
-        ["ProjectName"]     = p.Name,
-        ["Description"]     = p.Description ?? string.Empty,
-        ["Status"]          = p.Status.ToString(),
-        ["Priority"]        = p.Priority.ToString(),
-        ["ProjectManager"]  = p.ProjectManager != null ? $"{p.ProjectManager.FirstName} {p.ProjectManager.LastName}".Trim() : string.Empty,
-        ["WorkspaceName"]   = p.Workspace?.Title ?? string.Empty,
-        ["PlannedStartDate"]= p.PlannedStartDate.ToString("yyyy-MM-dd"),
-        ["PlannedEndDate"]  = p.PlannedEndDate.ToString("yyyy-MM-dd"),
-        ["Budget"]          = p.ApprovedBudget?.ToString("N2") ?? string.Empty,
-        ["ItemUrl"]         = $"{_appSettings.FrontendBaseUrl}/projects/{p.Id}",
-    };
+    /// <summary>
+    /// Placeholders of Project.Created / StatusChanged / Completed. WO-2026-11 P-2b
+    /// (fix 7): every value is HTML-encoded. EmailSender puts them into the body as
+    /// they are and decodes them only for the plain-text subject.
+    /// </summary>
+    public static Dictionary<string, string> BuildProjectPlaceholders(Project p, string frontendBaseUrl) =>
+        EmailPlaceholders.Encode(new Dictionary<string, string>
+        {
+            ["ProjectCode"]     = p.ProjectCode,
+            ["ProjectName"]     = p.Name,
+            ["Description"]     = p.Description ?? string.Empty,
+            ["Status"]          = p.Status.ToString(),
+            ["Priority"]        = p.Priority.ToString(),
+            ["ProjectManager"]  = p.ProjectManager != null ? $"{p.ProjectManager.FirstName} {p.ProjectManager.LastName}".Trim() : string.Empty,
+            ["WorkspaceName"]   = p.Workspace?.Title ?? string.Empty,
+            ["PlannedStartDate"]= p.PlannedStartDate.ToString("yyyy-MM-dd"),
+            ["PlannedEndDate"]  = p.PlannedEndDate.ToString("yyyy-MM-dd"),
+            ["Budget"]          = p.ApprovedBudget?.ToString("N2") ?? string.Empty,
+            ["ItemUrl"]         = $"{frontendBaseUrl}/projects/{p.Id}",
+        });
+
+    private Dictionary<string, string> BuildProjectPlaceholders(Project p) =>
+        BuildProjectPlaceholders(p, _appSettings.FrontendBaseUrl);
 
     private async Task<List<string>> GetProjectRecipientEmailsAsync(Project project)
     {

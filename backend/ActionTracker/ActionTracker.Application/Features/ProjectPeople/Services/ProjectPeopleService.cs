@@ -194,7 +194,7 @@ public class ProjectPeopleService : IProjectPeopleService
         {
             if (!callerHasWorkspaceLevel)
                 throw new ProjectAccessDeniedException(
-                    "Only the workspace's admins and members can change the lead project manager.");
+                    "Through your project role you cannot change the lead project manager.");
             added.Add(new ProjectPersonAdded(project.ProjectManagerUserId, ProjectAccessRoles.LeadProjectManager));
             // The lead is never also an additional PM.
             _db.ProjectMembers.RemoveRange(existing.Where(m =>
@@ -371,7 +371,7 @@ public class ProjectPeopleService : IProjectPeopleService
         if (userIds.Count == 0) return;
         if (!callerHasWorkspaceLevel)
             throw new ProjectAccessDeniedException(
-                "Only the workspace's admins and members can add project managers to this project.");
+                "Through your project role you cannot add project managers to this project.");
         if (userIds.Any(id => SameId(id, project.ProjectManagerUserId)))
             throw new ArgumentException(ProjectPeopleRules.LeadIsNotAdditional);
 

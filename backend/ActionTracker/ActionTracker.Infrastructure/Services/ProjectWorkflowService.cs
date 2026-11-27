@@ -3,6 +3,8 @@ using ActionTracker.Application.Common.Extensions;
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Notifications;
 using ActionTracker.Application.Features.Notifications.DTOs;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.Projects.DTOs;
 using ActionTracker.Application.Features.Projects.Interfaces;
 using ActionTracker.Domain.Entities;
@@ -70,7 +72,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
             if (!string.IsNullOrEmpty(email))
             {
-                await SendEmailSafeAsync("Project.Created", new Dictionary<string, string>
+                await SendEmailSafeAsync("Project.Created", EmailPlaceholders.Encode(new Dictionary<string, string>
                 {
                     ["ProjectCode"] = project.ProjectCode,
                     ["ProjectName"] = project.Name,
@@ -85,7 +87,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
                     ["Priority"] = project.Priority.ToString(),
                     ["Budget"] = project.ApprovedBudget?.ToString("N2") ?? "",
                     ["ItemUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
-                }, email, project.Id, createdByUserId);
+                }), email, project.Id, createdByUserId);
             }
         }
     }
@@ -104,10 +106,11 @@ public class ProjectWorkflowService : IProjectWorkflowService
         if (project.Status != ProjectStatus.Draft)
             throw new ArgumentException("Project can only be submitted for approval when in Draft status.");
 
-        // WO-2026-11 P-2 (decision D3): the lead PM or an additional PM may submit.
-        // Routing, reviewers and notifications stay with the lead PM (unchanged below).
-        if (!await IsProjectManagerAsync(project.Id, project.ProjectManagerUserId, requestedByUserId))
-            throw new ArgumentException("Only the project's project managers can submit it for approval.");
+        // WO-2026-11 P-2 (decision D3): the lead PM or an additional PM may submit;
+        // P-2b (B5): so may the Admin role. Routing, reviewers and notifications stay
+        // with the lead PM and the workspace's chain (unchanged below).
+        if (!await CanSubmitAsync(project.Id, project.ProjectManagerUserId, requestedByUserId))
+            throw new ArgumentException(SubmitNotAllowedMessage);
 
         var hasPending = await _db.ProjectApprovalRequests
             .AnyAsync(r => r.ProjectId == dto.ProjectId && r.Status == ProjectApprovalStatus.Pending);
@@ -252,7 +255,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
         if (!string.IsNullOrEmpty(firstApprover.Email))
         {
-            await SendEmailSafeAsync("ProjectApproval.Requested", new Dictionary<string, string>
+            await SendEmailSafeAsync("ProjectApproval.Requested", EmailPlaceholders.Encode(new Dictionary<string, string>
             {
                 ["ProjectCode"] = project.ProjectCode,
                 ["ProjectName"] = project.Name,
@@ -260,7 +263,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
                 ["Reason"] = request.Reason,
                 ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
                 ["ApprovalUrl"] = $"{_appSettings.FrontendBaseUrl}/approvals",
-            }, firstApprover.Email, project.Id, requestedByUserId);
+            }), firstApprover.Email, project.Id, requestedByUserId);
         }
 
         return MapToDto(request, project);
@@ -399,7 +402,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
         var pmEmail = await GetUserEmailAsync(project.ProjectManagerUserId);
         if (pmEmail != null)
         {
-            await SendEmailSafeAsync("ProjectApproval.Reviewed", new Dictionary<string, string>
+            await SendEmailSafeAsync("ProjectApproval.Reviewed", EmailPlaceholders.Encode(new Dictionary<string, string>
             {
                 ["ProjectCode"] = project.ProjectCode,
                 ["ProjectName"] = project.Name,
@@ -407,7 +410,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
                 ["ReviewedByName"] = reviewerName,
                 ["ReviewComment"] = request.ReviewComment ?? "",
                 ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
-            }, pmEmail, project.Id, reviewerUserId);
+            }), pmEmail, project.Id, reviewerUserId);
         }
 
         // If we advanced the chain, ping the next approver.
@@ -425,7 +428,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
             if (!string.IsNullOrEmpty(nextApprover.Email))
             {
-                await SendEmailSafeAsync("ProjectApproval.Requested", new Dictionary<string, string>
+                await SendEmailSafeAsync("ProjectApproval.Requested", EmailPlaceholders.Encode(new Dictionary<string, string>
                 {
                     ["ProjectCode"] = project.ProjectCode,
                     ["ProjectName"] = project.Name,
@@ -433,7 +436,7 @@ public class ProjectWorkflowService : IProjectWorkflowService
                     ["Reason"] = advanceRequest.Reason,
                     ["ProjectUrl"] = $"{_appSettings.FrontendBaseUrl}/projects/{project.Id}",
                     ["ApprovalUrl"] = $"{_appSettings.FrontendBaseUrl}/approvals",
-                }, nextApprover.Email, project.Id, reviewerUserId);
+                }), nextApprover.Email, project.Id, reviewerUserId);
             }
         }
 
@@ -487,11 +490,14 @@ public class ProjectWorkflowService : IProjectWorkflowService
     {
         var legacyReviewableProjectIds = await GetReviewableProjectIdsAsync(userId);
 
+        // WO-2026-11 P-2b (fix 8): only requests on projects the caller can see —
+        // the same rows pending-reviews lists (its Include drops hidden projects).
         var count = await _db.ProjectApprovalRequests
             .CountAsync(r => r.Status == ProjectApprovalStatus.Pending
                 && (r.AssignedReviewerUserId == userId
                     || (r.AssignedReviewerUserId == null
-                        && legacyReviewableProjectIds.Contains(r.ProjectId))));
+                        && legacyReviewableProjectIds.Contains(r.ProjectId)))
+                && _db.Projects.Any(p => p.Id == r.ProjectId));
 
         return new ProjectApprovalSummaryDto { PendingProjectApprovals = count };
     }
@@ -546,8 +552,8 @@ public class ProjectWorkflowService : IProjectWorkflowService
         if (project.Status != ProjectStatus.Draft)
             result.Errors.Add("Project can only be submitted for approval when in Draft status.");
 
-        if (!await IsProjectManagerAsync(projectId, project.ProjectManagerUserId, userId))   // WO-2026-11 P-2 (D3)
-            result.Errors.Add("Only the project's project managers can submit it for approval.");
+        if (!await CanSubmitAsync(projectId, project.ProjectManagerUserId, userId))   // WO-2026-11 P-2 (D3), P-2b (B5)
+            result.Errors.Add(SubmitNotAllowedMessage);
 
         var hasPending = await _db.ProjectApprovalRequests
             .AnyAsync(r => r.ProjectId == projectId && r.Status == ProjectApprovalStatus.Pending);
@@ -556,12 +562,33 @@ public class ProjectWorkflowService : IProjectWorkflowService
 
         if (project.ProjectType == ProjectType.Strategic)
         {
-            var hasChain = await _db.WorkspaceStrategicProjectApprovers
-                .AnyAsync(a => a.WorkspaceId == project.WorkspaceId);
-            if (!hasChain)
+            // The submit routes to the chain's first approver (unchanged); WO-2026-11 P-2b:
+            // the validation now also names a first approver who is no longer an active
+            // user, which the submit refuses (422) — before, only the submit said so.
+            var firstApprover = await _db.WorkspaceStrategicProjectApprovers
+                .AsNoTracking()
+                .Where(a => a.WorkspaceId == project.WorkspaceId)
+                .OrderBy(a => a.Order)
+                .Select(a => new { a.UserId, a.UserName })
+                .FirstOrDefaultAsync();
+            if (firstApprover is null)
                 result.Errors.Add(
                     "This workspace has no Strategic Project Approvers configured. " +
                     "Add at least one approver on the workspace settings page before submitting a strategic project for approval.");
+            else
+            {
+                var approverUser = await _db.Users.AsNoTracking()
+                    .Where(u => u.Id == firstApprover.UserId)
+                    .Select(u => new { u.IsActive, u.FirstName, u.LastName })
+                    .FirstOrDefaultAsync();
+                if (approverUser is null || !approverUser.IsActive)
+                {
+                    var name = approverUser is null
+                        ? firstApprover.UserName
+                        : $"{approverUser.FirstName} {approverUser.LastName}".Trim();
+                    result.Errors.Add(FirstApproverInactiveMessage(string.IsNullOrWhiteSpace(name) ? firstApprover.UserId : name));
+                }
+            }
         }
 
         // Phase coverage
@@ -651,6 +678,27 @@ public class ProjectWorkflowService : IProjectWorkflowService
         }
 
         return sponsoredProjectIds.Union(managerOfProjectIds).Distinct().ToList();
+    }
+
+    /// <summary>WO-2026-11 P-2b: validate-submit's reason for an inactive (or removed) first approver.</summary>
+    public static string FirstApproverInactiveMessage(string approverName) =>
+        $"The first approver in this workspace's Strategic Project Approvers chain ({approverName}) is not an active user. " +
+        "Change the chain on the workspace settings page before submitting a strategic project for approval.";
+
+    public const string SubmitNotAllowedMessage =
+        "Only the project's project managers or an Admin can submit it for approval.";
+
+    /// <summary>
+    /// WO-2026-11 P-2b (B5): who may press Submit — <see cref="ProjectAccess.CanSubmit"/>
+    /// (a PM of the project, or the Admin role where the project is seen at workspace
+    /// level). Only the request user's own roles are known; for anyone else only the
+    /// PM rule applies.
+    /// </summary>
+    private async Task<bool> CanSubmitAsync(Guid projectId, string leadProjectManagerUserId, string userId)
+    {
+        if (string.Equals(_db.CurrentUserId, userId, StringComparison.OrdinalIgnoreCase))
+            return (await new ProjectAccessService(_db).GetAsync(projectId))?.CanSubmit == true;
+        return await IsProjectManagerAsync(projectId, leadProjectManagerUserId, userId);
     }
 
     /// <summary>

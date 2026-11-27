@@ -377,17 +377,25 @@ public class MilestoneService : IMilestoneService
 
     // ── Email helpers ──────────────────────────────────────────
 
-    private Dictionary<string, string> BuildMilestonePlaceholders(Milestone m, Project p) => new()
-    {
-        ["MilestoneCode"]        = m.MilestoneCode,
-        ["MilestoneName"]        = m.Name,
-        ["ProjectName"]          = p.Name,
-        ["ProjectCode"]          = p.ProjectCode,
-        ["Status"]               = m.Status.ToString(),
-        ["PlannedDueDate"]       = m.PlannedDueDate.ToString("yyyy-MM-dd"),
-        ["CompletionPercentage"] = m.CompletionPercentage.ToString(),
-        ["ItemUrl"]              = $"{_appSettings.FrontendBaseUrl}/projects/{p.Id}/milestones/{m.Id}",
-    };
+    private Dictionary<string, string> BuildMilestonePlaceholders(Milestone m, Project p) =>
+        BuildMilestonePlaceholders(m, p, _appSettings.FrontendBaseUrl);
+
+    /// <summary>
+    /// Placeholders of Milestone.Created / Milestone.Completed. WO-2026-11 P-2b (B7):
+    /// every value is HTML-encoded (EmailSender puts them into the body as they are).
+    /// </summary>
+    public static Dictionary<string, string> BuildMilestonePlaceholders(Milestone m, Project p, string frontendBaseUrl) =>
+        EmailPlaceholders.Encode(new Dictionary<string, string>
+        {
+            ["MilestoneCode"]        = m.MilestoneCode,
+            ["MilestoneName"]        = m.Name,
+            ["ProjectName"]          = p.Name,
+            ["ProjectCode"]          = p.ProjectCode,
+            ["Status"]               = m.Status.ToString(),
+            ["PlannedDueDate"]       = m.PlannedDueDate.ToString("yyyy-MM-dd"),
+            ["CompletionPercentage"] = m.CompletionPercentage.ToString(),
+            ["ItemUrl"]              = $"{frontendBaseUrl}/projects/{p.Id}/milestones/{m.Id}",
+        });
 
     private async Task<string?> GetUserEmailAsync(string? userId)
     {

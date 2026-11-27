@@ -35,6 +35,8 @@ export class ProjectClassificationsSectionComponent {
   private readonly injector = inject(Injector);
 
   readonly workspaceId = input.required<string>();
+  /** WO-2026-11 P-2b: this workspace's admins or an Admin (`canManageSettings`); `Workspaces.Edit` on top. */
+  readonly canManage = input(true);
 
   readonly maxLength = PROJECT_CLASSIFICATION_MAX_LENGTH;
   readonly items = signal<ProjectClassification[]>([]);

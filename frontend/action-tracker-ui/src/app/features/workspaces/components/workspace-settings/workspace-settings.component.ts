@@ -7,7 +7,6 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { WorkspaceService } from '../../services/workspace.service';
-import { AuthService } from '../../../../core/services/auth.service';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 import { PermissionStateService } from '../../../permissions/services/permission-state.service';
@@ -37,7 +36,6 @@ type AddResult<T> = { failed?: boolean; data?: T; user: UserDropdownItem; reason
 })
 export class WorkspaceSettingsComponent implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
-  private readonly authService      = inject(AuthService);
   private readonly route            = inject(ActivatedRoute);
   private readonly router           = inject(Router);
   private readonly destroyRef       = inject(DestroyRef);
@@ -134,7 +132,8 @@ export class WorkspaceSettingsComponent implements OnInit {
         next: (res) => {
           this.workspace = res.data ?? null;
           this.selectedStrategicPlanId = this.workspace?.strategicPlanId ?? '';
-          this.resolvePermissions();
+          // WO-2026-11 P-2b: the server's flag — this workspace's admins and the Admin role.
+          this.canManage = this.workspace?.canManageSettings === true;
           this.isLoading = false;
           this.loadWorkspaceCalendar();
           if (this.canManage) {
@@ -148,20 +147,6 @@ export class WorkspaceSettingsComponent implements OnInit {
           this.errorMessage = showErrorHere(err) ?? 'Failed to load workspace.';
           this.isLoading = false;
         },
-      });
-  }
-
-  private resolvePermissions(): void {
-    if (this.authService.hasRole('Admin') || this.authService.hasRole('Manager')) {
-      this.canManage = true;
-      return;
-    }
-    this.authService.currentUser$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(user => {
-        if (user && this.workspace?.admins?.some(a => a.userId === user.email)) {
-          this.canManage = true;
-        }
       });
   }
 

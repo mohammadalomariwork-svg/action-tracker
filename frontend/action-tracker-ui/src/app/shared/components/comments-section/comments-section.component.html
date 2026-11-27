@@ -81,10 +81,12 @@
       } @else {
         <!-- View mode -->
         <p class="comment-text">{{ c.content }}</p>
-        <div class="comment-actions">
-          <button class="comment-action-btn" (click)="startEditComment(c)" title="Edit">✏️</button>
-          <button class="comment-action-btn comment-action-btn--delete" (click)="deleteComment(c.id)" title="Delete">🗑️</button>
-        </div>
+        @if (canChange(c)) {
+          <div class="comment-actions">
+            <button class="comment-action-btn" (click)="startEditComment(c)" title="Edit" aria-label="Edit comment">✏️</button>
+            <button class="comment-action-btn comment-action-btn--delete" (click)="deleteComment(c.id)" title="Delete" aria-label="Delete comment">🗑️</button>
+          </div>
+        }
       }
     </div>
   }

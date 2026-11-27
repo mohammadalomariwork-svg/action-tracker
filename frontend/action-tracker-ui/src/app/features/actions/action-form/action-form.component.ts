@@ -320,7 +320,7 @@ export class ActionFormComponent implements OnInit, OnDestroy {
       error: () => {},
     });
     this.workflowSvc.canReview(actionItemId).subscribe({
-      next: r => this.canReview.set(r.data?.canReview ?? false),
+      next: canReview => this.canReview.set(canReview),
       error: () => {},
     });
   }

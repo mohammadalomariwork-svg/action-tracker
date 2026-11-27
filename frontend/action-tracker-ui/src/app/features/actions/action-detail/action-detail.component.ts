@@ -9,7 +9,6 @@ import { FormsModule } from '@angular/forms';
 
 import { ActionItemService }     from '../../../core/services/action-item.service';
 import { ToastService }          from '../../../core/services/toast.service';
-import { AuthService }           from '../../../core/services/auth.service';
 import { WorkflowService }       from '../../../services/workflow.service';
 import { WorkspaceService }      from '../../workspaces/services/workspace.service';
 import { ProjectPeopleService }  from '../../../services/project-people.service';
@@ -78,7 +77,6 @@ export class ActionDetailComponent implements OnInit {
   private readonly route        = inject(ActivatedRoute);
   private readonly actionSvc    = inject(ActionItemService);
   private readonly toastSvc     = inject(ToastService);
-  private readonly authService  = inject(AuthService);
   private readonly workflowSvc  = inject(WorkflowService);
   private readonly workspaceSvc = inject(WorkspaceService);
   private readonly peopleSvc    = inject(ProjectPeopleService);
@@ -92,7 +90,6 @@ export class ActionDetailComponent implements OnInit {
   readonly workflowRequests   = signal<WorkflowRequest[]>([]);
   readonly pendingRequests    = signal<WorkflowRequest[]>([]);
   readonly canReviewWorkflow  = signal(false);
-  readonly isCreator          = signal(false);
   readonly showDirectionForm  = signal(false);
   directionText = '';
   readonly showReviewDialog   = signal(false);
@@ -524,17 +521,8 @@ export class ActionDetailComponent implements OnInit {
       error: () => {},
     });
     this.workflowSvc.canReview(actionItemId).subscribe({
-      next: r => this.canReviewWorkflow.set(r.data?.canReview ?? false),
+      next: canReview => this.canReviewWorkflow.set(canReview),
       error: () => {},
-    });
-    // Check if current user is the creator (via auth)
-    this.authService.currentUser$.subscribe(user => {
-      const ai = this.item();
-      // We check creator by matching createdByUserId if available, otherwise skip
-      if (user && ai) {
-        // isCreator is used for escalation direction panel
-        this.isCreator.set(true); // Default; backend enforces actual check
-      }
     });
   }
 

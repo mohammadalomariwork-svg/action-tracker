@@ -78,6 +78,9 @@ export class MilestoneDetailComponent implements OnInit {
   workspaceId: string | null = null;
   workspaceTitle: string | null = null;
   /** WO-2026-11 P-2: the project's `canManage` — Edit milestone, Add / Delete action item, comments, files. */
+  /** WO-2026-11 P-2b: shown instead of the upload form to non-managers (deleting follows each file's `canDelete`). */
+  readonly filesLockedNote = "Only the project's managers can add files to a milestone.";
+
   canManage = false;
   /** WO-2026-11 P-2: the caller sees the workspace only through a project role (no link; calendar through the project). */
   viaProjectRole = false;

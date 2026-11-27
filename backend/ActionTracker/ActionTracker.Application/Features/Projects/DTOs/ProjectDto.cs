@@ -62,6 +62,19 @@ public class ProjectResponseDto
     /// <summary>P-2: the caller sees the project's workspace itself (false = only through a project role).</summary>
     public bool CanOpenWorkspace { get; set; }
 
+    /// <summary>
+    /// P-2b (B5): the caller may press Submit for Approval: a PM of the project or the
+    /// Admin role. Whether the project is ready (Draft, milestones, approvers) is
+    /// checked by validate-submit and the submit itself.
+    /// </summary>
+    public bool CanSubmit { get; set; }
+
+    /// <summary>
+    /// P-2b (fix 1): the statuses a plain edit (PUT) may set from the current one,
+    /// the current one included (<c>ProjectStatusRules</c>).
+    /// </summary>
+    public List<ProjectStatus> AllowedStatuses { get; set; } = new();
+
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

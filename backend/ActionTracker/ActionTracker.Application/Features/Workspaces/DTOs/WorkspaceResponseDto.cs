@@ -49,4 +49,25 @@ public class WorkspaceResponseDto
 
     /// <summary>UTC timestamp of the most recent update, or <c>null</c> if never updated.</summary>
     public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2b: the caller may change this workspace's settings (the workspace,
+    /// admins, members, Project Managers list, approvers, classifications, calendar,
+    /// strategy link): an admin of it or the Admin role. The Workspaces.Edit /
+    /// Workspaces.Delete permission is needed on top.
+    /// </summary>
+    public bool CanManageSettings { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2b (B2): the caller may create a project here (an admin or member of the
+    /// workspace, on its Project Managers list, or the Admin / PMO Head / PMO Analyst role).
+    /// <c>Projects.Create</c> is needed on top.
+    /// </summary>
+    public bool CanCreateProjects { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2b (B2): the caller may add a standalone action item here (an admin or
+    /// member, or the Admin / PMO roles). <c>ActionItems.Create</c> is needed on top.
+    /// </summary>
+    public bool CanCreateActionItems { get; set; }
 }

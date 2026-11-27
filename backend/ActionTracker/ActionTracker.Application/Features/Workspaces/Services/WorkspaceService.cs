@@ -1,3 +1,5 @@
+using ActionTracker.Application.Features.ProjectPeople.Services;
+using ActionTracker.Application.Features.ProjectPeople.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +38,7 @@ public class WorkspaceService : IWorkspaceService
     private readonly AppSettings _appSettings;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IRoleManagementService _roleManagementService;
+    private readonly IProjectAccessService _access;   // WO-2026-11 P-2b
 
     /// <summary>
     /// Initialises a new instance of <see cref="WorkspaceService"/>.
@@ -56,6 +59,42 @@ public class WorkspaceService : IWorkspaceService
         _appSettings            = appSettings.Value;
         _scopeFactory           = scopeFactory;
         _roleManagementService  = roleManagementService;
+        _access                 = new ProjectAccessService(db);
+    }
+
+    /// <summary>
+    /// WO-2026-11 P-2b (fix 5): the user a PM-list or approver row is for must exist and be
+    /// active (<see cref="ArgumentException"/>, 400 with the reason).
+    /// </summary>
+    private async Task<(string Id, string Name)> RequireActiveUserAsync(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("Choose a user.");
+        var user = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName })
+            .FirstOrDefaultAsync()
+            ?? throw new ArgumentException("The selected user does not exist or is inactive.");
+        var name = $"{user.FirstName} {user.LastName}".Trim();
+        return (user.Id, string.IsNullOrWhiteSpace(name) ? user.UserName ?? user.Id : name);
+    }
+
+    /// <summary>
+    /// WO-2026-11 P-2b: <c>CanManageSettings</c> on each workspace of a response —
+    /// the rule of the settings writes (this workspace's admins or an Admin).
+    /// </summary>
+    private async Task FillCanManageSettingsAsync(IReadOnlyCollection<WorkspaceListDto> list)
+    {
+        var manageable = await _access.GetManageableWorkspaceIdsAsync(list.Select(w => w.Id).ToList());
+        foreach (var w in list) w.CanManageSettings = manageable.Contains(w.Id);
+    }
+
+    private async Task FillCanManageSettingsAsync(WorkspaceResponseDto dto)
+    {
+        dto.CanManageSettings = (await _access.GetManageableWorkspaceIdsAsync(new[] { dto.Id })).Contains(dto.Id);
+        // P-2b (B2): the workspace page's New Project / New Action follow the create rule.
+        dto.CanCreateProjects = await _access.CanCreateInWorkspaceAsync(dto.Id, project: true);
+        dto.CanCreateActionItems = await _access.CanCreateInWorkspaceAsync(dto.Id, project: false);
     }
 
     // -------------------------------------------------------------------------
@@ -106,6 +145,7 @@ public class WorkspaceService : IWorkspaceService
                 .ToListAsync();
 
             await EnrichListAdminsAsync(list);
+            await FillCanManageSettingsAsync(list);
             return list;
         }
         catch (Exception ex)
@@ -313,6 +353,7 @@ public class WorkspaceService : IWorkspaceService
                     .FirstOrDefaultAsync();
             }
 
+            await FillCanManageSettingsAsync(dto);
             return dto;
         }
         catch (Exception ex)
@@ -352,6 +393,7 @@ public class WorkspaceService : IWorkspaceService
                 .ToListAsync();
 
             await EnrichListAdminsAsync(list);
+            await FillCanManageSettingsAsync(list);
             return list;
         }
         catch (Exception ex)
@@ -1192,6 +1234,8 @@ public class WorkspaceService : IWorkspaceService
         var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
         if (!workspaceExists) return null;
 
+        var user = await RequireActiveUserAsync(dto.UserId);   // WO-2026-11 P-2b (fix 5)
+
         var alreadyExists = await _db.WorkspaceProjectManagers
             .AnyAsync(p => p.WorkspaceId == workspaceId && p.UserId == dto.UserId);
         if (alreadyExists) return null;
@@ -1199,8 +1243,8 @@ public class WorkspaceService : IWorkspaceService
         var row = new WorkspaceProjectManager
         {
             WorkspaceId   = workspaceId,
-            UserId        = dto.UserId,
-            UserName      = dto.UserName,
+            UserId        = user.Id,
+            UserName      = string.IsNullOrWhiteSpace(dto.UserName) ? user.Name : dto.UserName,
             AddedAt       = DateTime.UtcNow,
             AddedByUserId = addedByUserId,
         };
@@ -1318,6 +1362,8 @@ public class WorkspaceService : IWorkspaceService
         var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId);
         if (!workspaceExists) return null;
 
+        var user = await RequireActiveUserAsync(dto.UserId);   // WO-2026-11 P-2b (fix 5)
+
         var alreadyExists = await _db.WorkspaceStrategicProjectApprovers
             .AnyAsync(a => a.WorkspaceId == workspaceId && a.UserId == dto.UserId);
         if (alreadyExists) return null;
@@ -1331,8 +1377,8 @@ public class WorkspaceService : IWorkspaceService
         var row = new WorkspaceStrategicProjectApprover
         {
             WorkspaceId   = workspaceId,
-            UserId        = dto.UserId,
-            UserName      = dto.UserName,
+            UserId        = user.Id,
+            UserName      = string.IsNullOrWhiteSpace(dto.UserName) ? user.Name : dto.UserName,
             Order         = maxOrder + 1,
             AddedAt       = DateTime.UtcNow,
             AddedByUserId = addedByUserId,

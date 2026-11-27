@@ -67,6 +67,17 @@ export interface ProjectResponse {
   canManage: boolean;
   /** The caller sees the project's workspace itself (false = only through a project role). */
   canOpenWorkspace: boolean;
+  /**
+   * WO-2026-11 P-2b (B5): the caller may press Submit for Approval — a PM of the
+   * project or the Admin role. Whether the project is ready is `validate-submit`'s job.
+   */
+  canSubmit?: boolean;
+  /**
+   * WO-2026-11 P-2b (fix 1): the statuses a plain edit may set from the current one
+   * (the current one included). Leaving Draft other than to Cancelled goes through
+   * Submit for Approval.
+   */
+  allowedStatuses?: ProjectStatus[];
   createdAt: string;
   updatedAt?: string;
   projectTypeLabel: string;

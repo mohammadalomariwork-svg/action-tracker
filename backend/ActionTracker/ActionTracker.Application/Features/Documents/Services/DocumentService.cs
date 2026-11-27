@@ -1,4 +1,5 @@
 using ActionTracker.Application.Common.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople;
 using ActionTracker.Application.Features.ProjectPeople.Interfaces;
 using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Application.Features.Documents.DTOs;
@@ -208,12 +209,16 @@ public class DocumentService : IDocumentService
 
         var parent = await ResolveVisibleParentOfDocumentAsync(doc, caller, ct);
         EnsureCanWrite(parent, caller);
-        await EnsureProjectRoleWriteAsync(parent, ct);   // WO-2026-11 P-2
+        // WO-2026-11 P-2; project, milestone and risk files: the delete rule below (P-2b, fix 3).
+        if (parent.ProjectAccess is null)
+            await EnsureProjectRoleWriteAsync(parent, ct);
         EnsureNotLocked(parent);
         await EnsureKpiScopedWriteAsync(parent, caller.UserId, ct);
 
         if (!CanDelete(parent, doc, caller, await IsAdminIfNeededAsync(parent, caller, ct)))
-            throw new UnauthorizedAccessException(parent.Type == DocumentEntityTypes.ActionItemUpdate
+            throw parent.ProjectAccess is not null
+                ? new ProjectAccessDeniedException(ProjectAccessDeniedException.FileDeleteOnly)
+                : new UnauthorizedAccessException(parent.Type == DocumentEntityTypes.ActionItemUpdate
                 ? "Only the author of a draft action update can remove its files."
                 : "Only the person who uploaded this file, the action item's creator or assignees"
                   + (parent.Type == DocumentEntityTypes.ActionItemSubItem ? ", the sub-item's assignees" : string.Empty)
@@ -241,6 +246,12 @@ public class DocumentService : IDocumentService
 
         /// <summary>The org unit of a KPI record (scope check on write).</summary>
         public Guid? KpiOrgUnitId { get; init; }
+
+        /// <summary>
+        /// Project, milestone and risk files (WO-2026-11 P-2b): the caller's access to the
+        /// owning project, for the delete rule (uploader or manager). Null for other types.
+        /// </summary>
+        public ProjectAccess? ProjectAccess { get; init; }
     }
 
     private static string RequireType(string? entityType) =>
@@ -269,12 +280,12 @@ public class DocumentService : IDocumentService
             DocumentEntityTypes.ActionItemSubItem => await LoadSubItemParentAsync(id, ct),
             DocumentEntityTypes.ActionItemUpdate  => await LoadUpdateParentAsync(id, ct),
 
-            DocumentEntityTypes.Project => await _dbContext.Projects.AnyAsync(p => p.Id == id, ct)
-                ? new Parent(type, id) : null,
-            DocumentEntityTypes.Milestone => await _dbContext.Milestones.AnyAsync(m => m.Id == id, ct)
-                ? new Parent(type, id) : null,
-            DocumentEntityTypes.ProjectRisk => await _dbContext.ProjectRisks.AnyAsync(r => r.Id == id, ct)
-                ? new Parent(type, id) : null,
+            DocumentEntityTypes.Project => await LoadProjectParentAsync(type, id,
+                await _dbContext.Projects.Where(p => p.Id == id).Select(p => (Guid?)p.Id).FirstOrDefaultAsync(ct)),
+            DocumentEntityTypes.Milestone => await LoadProjectParentAsync(type, id,
+                await _dbContext.Milestones.Where(m => m.Id == id).Select(m => (Guid?)m.ProjectId).FirstOrDefaultAsync(ct)),
+            DocumentEntityTypes.ProjectRisk => await LoadProjectParentAsync(type, id,
+                await _dbContext.ProjectRisks.Where(r => r.Id == id).Select(r => (Guid?)r.ProjectId).FirstOrDefaultAsync(ct)),
 
             DocumentEntityTypes.KpiTarget or DocumentEntityTypes.KpiActual => await LoadKpiParentAsync(type, id, ct),
 
@@ -285,6 +296,17 @@ public class DocumentService : IDocumentService
             parent = null;
 
         return parent ?? throw new KeyNotFoundException(notFound ?? $"{type} {id} not found.");
+    }
+
+    /// <summary>
+    /// A project, milestone or risk found through its query filter (null = hidden), with
+    /// the caller's access to the project (P-2b). A record whose project is hidden is hidden.
+    /// </summary>
+    private async Task<Parent?> LoadProjectParentAsync(string type, Guid id, Guid? projectId)
+    {
+        if (projectId is null) return null;
+        var access = await _access.GetAsync(projectId.Value);
+        return access is null ? null : new Parent(type, id) { ProjectAccess = access };
     }
 
     /// <summary>Through the action-item query filter (deleted, private workspace).</summary>
@@ -469,6 +491,12 @@ public class DocumentService : IDocumentService
                 || parent.DeleteRightsUserIds.Contains(caller.UserId, StringComparer.Ordinal),
             DocumentEntityTypes.ActionItemUpdate =>
                 string.Equals(parent.UpdateAuthorId, caller.UserId, StringComparison.Ordinal),
+            // P-2b (fix 3, B6): whoever manages the project, or the uploader — through a
+            // project role only the uploader must also be a manager (P-2 ceiling).
+            DocumentEntityTypes.Project or DocumentEntityTypes.Milestone or DocumentEntityTypes.ProjectRisk =>
+                parent.ProjectAccess is { } access
+                && (access.CanManage
+                    || (access.WorkspaceLevel && string.Equals(doc.UploadedByUserId, caller.UserId, StringComparison.OrdinalIgnoreCase))),
             _ => true,
         };
     }

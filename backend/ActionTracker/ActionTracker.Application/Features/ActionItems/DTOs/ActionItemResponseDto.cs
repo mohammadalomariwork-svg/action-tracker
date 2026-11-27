@@ -68,8 +68,26 @@ public class ActionItemResponseDto
     /// <summary>Tags (WO-2026-11 A-5), by name; all of the item's own workspace. Empty while the tag tables are missing.</summary>
     public List<TagDto> Tags { get; set; } = new();
 
-    /// <summary>WO-2026-11 P-2: the caller may work on this item (edit, status, requests, updates, files, sub-items).</summary>
+    /// <summary>
+    /// WO-2026-11 P-2 / P-2b: the caller may work on this item (edit, status, requests,
+    /// escalation, updates, files, sub-items): its creator and assignees, whoever manages
+    /// its project; a standalone item also the workspace's admins and an Admin.
+    /// </summary>
     public bool CanWork { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2b (fix 9): on a live item the delete would succeed, on a deleted one the
+    /// restore (permission policies aside). A project item: the manage right on the project,
+    /// and the project still in Draft for a delete; a standalone item: its creator, the
+    /// workspace's admins or an Admin.
+    /// </summary>
+    public bool CanDelete { get; set; }
+
+    /// <summary>
+    /// WO-2026-11 P-2b (B4): the caller may give direction now (the item is escalated and they
+    /// are its creator, a line manager of an assignee or manage it). Only on GET by id; null elsewhere.
+    /// </summary>
+    public bool? CanGiveDirection { get; set; }
 
     /// <summary>
     /// WO-2026-11 P-2: the caller reaches this item only through a role on its project — it

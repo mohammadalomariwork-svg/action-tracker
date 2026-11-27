@@ -40,6 +40,7 @@ import {
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 import { showErrorHere } from '../../../../core/http/server-reason';
+import { editableStatusOptions, ProjectStatusOption, statusEditHint } from '../../../../shared/utils/project-edit-options.util';
 import { ProjectPeopleFieldsComponent } from '../../../../shared/components/project-people-fields/project-people-fields.component';
 import { ProjectPeopleService } from '../../../../services/project-people.service';
 import { PersonOption, ProjectPeopleValue } from '../../../../models/project-people.model';
@@ -104,6 +105,9 @@ export class ProjectFormComponent implements OnInit {
   leadPmName = '';
   /** The edited project cannot be changed by the caller (a viewer, sponsor or team member — P-2). */
   cannotEdit = false;
+  /** WO-2026-11 P-2b (fix 1): the statuses a plain edit may set (the response's `allowedStatuses`). */
+  statusOptions: ProjectStatusOption[] = [];
+  statusHint: string | null = null;
   private currentObjective: StrategicObjectiveOption | null = null;
 
   isLoading = false;
@@ -511,12 +515,14 @@ export class ProjectFormComponent implements OnInit {
           this.calendarWorkspaceId.set(p.workspaceId);
           this.isBaselined = p.isBaselined;
           this.originalStatus = p.status;
+          this.statusOptions = editableStatusOptions(p.status, p.allowedStatuses);
+          this.statusHint = statusEditHint(p.status);
           this.canOpenWorkspace = p.canOpenWorkspace !== false;
           this.calendarViaProject.set(this.canOpenWorkspace ? null : p.id);
           this.leadPmName = p.projectManagerName;
           this.cannotEdit = p.canManage === false;
           if (this.cannotEdit)
-            this.errorMessage = 'You can see this project, but only its project managers and the workspace’s admins and members can edit it.';
+            this.errorMessage = 'You can see this project, but only its project managers, the workspace’s admins, Admins and the PMO Head can edit it.';
           this.currentObjective = p.strategicObjectiveId
             ? { id: p.strategicObjectiveId, statement: p.strategicObjectiveStatement ?? 'Current objective', objectiveCode: '' }
             : null;

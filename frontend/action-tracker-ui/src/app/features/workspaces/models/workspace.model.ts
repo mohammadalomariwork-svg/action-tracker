@@ -85,6 +85,15 @@ export interface Workspace {
   createdAt: Date;
   /** UTC timestamp of the most recent update, absent if never updated. */
   updatedAt?: Date;
+  /**
+   * WO-2026-11 P-2b: the caller may change this workspace's settings — an admin of it
+   * or the Admin role (`Workspaces.Edit` / `Delete` needed on top).
+   */
+  canManageSettings?: boolean;
+  /** WO-2026-11 P-2b (B2): the caller may create a project here (`Projects.Create` on top). */
+  canCreateProjects?: boolean;
+  /** WO-2026-11 P-2b (B2): the caller may add a standalone action item here (`ActionItems.Create` on top). */
+  canCreateActionItems?: boolean;
 }
 
 /**
@@ -108,6 +117,8 @@ export interface WorkspaceList {
   milestoneCount: number;
   actionItemCount: number;
   openActionItemCount: number;
+  /** WO-2026-11 P-2b: the caller may change this workspace's settings (an admin of it or the Admin role). */
+  canManageSettings?: boolean;
   admins: WorkspaceListAdmin[];
 }
 

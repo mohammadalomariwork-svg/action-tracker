@@ -493,14 +493,15 @@
 
         <!-- Project Manager -->
         <div class="mb-3">
-          <label class="form-label">Project Manager <span class="text-danger">*</span></label>
-          <select class="form-select" formControlName="projectManagerUserId"
-                  [class.is-invalid]="formIsInvalid('projectManagerUserId')">
+          <label class="form-label" for="mpCreatePm">Project Manager <span class="text-danger">*</span></label>
+          <select id="mpCreatePm" class="form-select" formControlName="projectManagerUserId"
+                  [class.is-invalid]="formIsInvalid('projectManagerUserId')" aria-describedby="mpCreatePmHelp">
             <option value="">-- Select --</option>
-            @for (user of availableUsers; track user.userId) {
-              <option [value]="user.userId">{{ user.userName }}</option>
+            @for (opt of createLeadPmChoices; track opt.userId) {
+              <option [value]="opt.userId">{{ opt.label }}</option>
             }
           </select>
+          <small id="mpCreatePmHelp" class="mp-field-hint">From the workspace's Project Managers list.</small>
           @if (formHasError('projectManagerUserId', 'required')) {
             <div class="invalid-feedback">Project manager is required.</div>
           }
@@ -678,12 +679,13 @@
             <label class="form-label" for="mpEditPm">Lead project manager <span class="text-danger">*</span></label>
             @if (editCanOpenWorkspace) {
               <select id="mpEditPm" class="form-select" formControlName="projectManagerUserId"
-                      [class.is-invalid]="editFormIsInvalid('projectManagerUserId')">
+                      [class.is-invalid]="editFormIsInvalid('projectManagerUserId')" aria-describedby="mpEditPmHelp">
                 <option value="">-- Select --</option>
-                @for (user of availableUsers; track user.userId) {
-                  <option [value]="user.userId">{{ user.userName }}</option>
+                @for (opt of editLeadPmChoices; track opt.userId) {
+                  <option [value]="opt.userId">{{ opt.label }}</option>
                 }
               </select>
+              <small id="mpEditPmHelp" class="mp-field-hint">From the workspace's Project Managers list.</small>
               @if (editFormHasError('projectManagerUserId', 'required')) {
                 <div class="invalid-feedback">Project manager is required.</div>
               }
@@ -747,12 +749,16 @@
           <!-- Status & Actual Start -->
           <div class="row">
             <div class="col-6 mb-3">
-              <label class="form-label">Status</label>
-              <select class="form-select" formControlName="status" (change)="editDrawerError = null">
-                @for (opt of STATUS_OPTIONS; track opt.value) {
+              <label class="form-label" for="mpEditStatus">Status</label>
+              <select id="mpEditStatus" class="form-select" formControlName="status" (change)="editDrawerError = null"
+                      [attr.aria-describedby]="editStatusHint ? 'mpEditStatusHint' : null">
+                @for (opt of editStatusOptions; track opt.value) {
                   <option [ngValue]="opt.value">{{ opt.label }}</option>
                 }
               </select>
+              @if (editStatusHint) {
+                <small id="mpEditStatusHint" class="mp-field-hint">{{ editStatusHint }}</small>
+              }
             </div>
             <div class="col-6 mb-3">
               <label class="form-label">Actual Start Date</label>

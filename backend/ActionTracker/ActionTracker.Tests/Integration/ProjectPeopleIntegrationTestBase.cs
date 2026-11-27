@@ -160,7 +160,7 @@ public abstract class ProjectPeopleIntegrationTestBase : TagsIntegrationTestBase
         return sub;
     }
 
-    private static Guid AddDoc(AppDbContext db, string type, Guid entityId, string uploader)
+    protected static Guid AddDoc(AppDbContext db, string type, Guid entityId, string uploader)
     {
         var doc = new Document
         {

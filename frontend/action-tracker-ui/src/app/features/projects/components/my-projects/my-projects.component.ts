@@ -24,7 +24,7 @@ import {
   StrategicObjectiveOption,
 } from '../../models/project.models';
 import { MilestoneResponse } from '../../models/milestone.models';
-import { AssignableUser, ActionItem, ActionItemFilter, ActionStatus } from '../../../../core/models/action-item.model';
+import { ActionItem, ActionItemFilter, ActionStatus } from '../../../../core/models/action-item.model';
 import { PagedResult } from '../../../../core/models/api-response.model';
 import { HasPermissionDirective } from '../../../../shared';
 import { BreadcrumbComponent } from '../../../../shared/components/breadcrumb/breadcrumb.component';
@@ -34,6 +34,9 @@ import {
 } from '../../../../shared/components/project-classification-select/project-classification-select.component';
 import { internalClassificationPatch } from '../../../../shared/utils/project-classification-rules.util';
 import { showErrorHere } from '../../../../core/http/server-reason';
+import {
+  editableStatusOptions, leadPmOptions, LeadPmOption, ProjectStatusOption, statusEditHint,
+} from '../../../../shared/utils/project-edit-options.util';
 import { ProjectPeopleFieldsComponent } from '../../../../shared/components/project-people-fields/project-people-fields.component';
 import { ProjectPeopleService } from '../../../../services/project-people.service';
 import {
@@ -130,7 +133,6 @@ export class MyProjectsComponent implements OnInit {
   drawerError:  string | null = null;
   createForm!:  FormGroup;
   workspaces:   WorkspaceList[] = [];
-  availableUsers: AssignableUser[] = [];
   strategicObjectives: StrategicObjectiveOption[] = [];
   /** People of the new project (WO-2026-11 P-2). */
   createPeople: ProjectPeopleValue = emptyPeopleValue();
@@ -182,13 +184,13 @@ export class MyProjectsComponent implements OnInit {
     untracked(() => this.revalidate(this.editForm, ['plannedStartDate', 'plannedEndDate']));
   });
 
-  readonly STATUS_OPTIONS = [
-    { value: ProjectStatus.Draft,     label: 'Draft' },
-    { value: ProjectStatus.Active,    label: 'Active' },
-    { value: ProjectStatus.OnHold,    label: 'On Hold' },
-    { value: ProjectStatus.Completed, label: 'Completed' },
-    { value: ProjectStatus.Cancelled, label: 'Cancelled' },
-  ];
+  /** WO-2026-11 P-2b (fix 1): the statuses a plain edit may set for the project being edited. */
+  editStatusOptions: ProjectStatusOption[] = [];
+  editStatusHint: string | null = null;
+  /** WO-2026-11 P-2b (fix 6): lead-PM choices from the workspace's Project Managers list. */
+  createLeadPmChoices: LeadPmOption[] = [];
+  editLeadPmChoices: LeadPmOption[] = [];
+  private editLeadPmUserId: string | null = null;
 
   readonly ProjectType     = ProjectType;
   readonly PRIORITY_OPTIONS = [
@@ -421,15 +423,16 @@ export class MyProjectsComponent implements OnInit {
       // WO-2026-11 P-2: sponsors, viewers and team members are any active user
       // and stay; additional PMs come from the new workspace's PM list.
       this.createPeople = { ...this.createPeople, additionalManagers: [] };
-      this.availableUsers = [];
       this.createPmOptions = null;
+      this.createLeadPmChoices = [];
       if (wsId) {
-        this.workspaceSvc.getAssignableUsers(wsId).subscribe({
-          next: res => { this.availableUsers = res.data ?? []; this.cdr.markForCheck(); },
-        });
         this.workspaceSvc.getProjectManagers(wsId).subscribe({
-          next: res => { this.createPmOptions = userListOptions(res.data); this.cdr.markForCheck(); },
-          error: err => { showErrorHere(err); this.createPmOptions = []; this.cdr.markForCheck(); },
+          next: res => {
+            this.createPmOptions = userListOptions(res.data);
+            this.createLeadPmChoices = leadPmOptions(this.createPmOptions, null, null);
+            this.cdr.markForCheck();
+          },
+          error: err => { showErrorHere(err); this.createPmOptions = []; this.createLeadPmChoices = []; this.cdr.markForCheck(); },
         });
       }
       if (wsId && this.createForm.get('projectType')?.value === ProjectType.Strategic) {
@@ -473,8 +476,6 @@ export class MyProjectsComponent implements OnInit {
         next: res => this.workspaces = (res.data ?? []).filter(w => w.isActive),
       });
     }
-    // availableUsers is now workspace-scoped — loaded when the user picks a workspace.
-    this.availableUsers = [];
 
     this.showDrawer = true;
   }
@@ -599,8 +600,6 @@ export class MyProjectsComponent implements OnInit {
 
     if (!this.editForm) this.buildEditForm();
 
-    // availableUsers is workspace-scoped — load after we know the project's workspace.
-    this.availableUsers = [];
 
     // Load fresh project data
     this.editDrawerLoading = true;
@@ -612,6 +611,10 @@ export class MyProjectsComponent implements OnInit {
         next: res => {
           const p: ProjectResponse = res.data;
           this.editOriginalStatus = p.status;
+          this.editStatusOptions = editableStatusOptions(p.status, p.allowedStatuses);
+          this.editStatusHint = statusEditHint(p.status);
+          this.editLeadPmUserId = p.projectManagerUserId;
+          this.editLeadPmChoices = leadPmOptions(null, p.projectManagerUserId, p.projectManagerName);
           this.editIsBaselined = p.isBaselined;
           this.editCanOpenWorkspace = p.canOpenWorkspace !== false;
           this.editViaProject.set(this.editCanOpenWorkspace ? null : p.id);
@@ -672,11 +675,12 @@ export class MyProjectsComponent implements OnInit {
           }
 
           if (this.editCanOpenWorkspace) {
-            this.workspaceSvc.getAssignableUsers(p.workspaceId).subscribe({
-              next: res => { this.availableUsers = res.data ?? []; this.cdr.markForCheck(); },
-            });
             this.workspaceSvc.getProjectManagers(p.workspaceId).subscribe({
-              next: res => { this.editPmOptions = userListOptions(res.data); this.cdr.markForCheck(); },
+              next: res => {
+                this.editPmOptions = userListOptions(res.data);
+                this.editLeadPmChoices = leadPmOptions(this.editPmOptions, this.editLeadPmUserId, this.editLeadPmName);
+                this.cdr.markForCheck();
+              },
               error: err => { showErrorHere(err); this.editPmOptions = []; this.cdr.markForCheck(); },
             });
           }
@@ -883,10 +887,12 @@ export class MyProjectsComponent implements OnInit {
     });
   }
 
-  /** Lead or additional PM who may change the project (WO-2026-11 P-2), unless it is closed. */
+  /**
+   * The server's `canManage` (WO-2026-11 P-2b: its PMs, the workspace's admins, Admin,
+   * PMO Head), unless the project is closed.
+   */
   canEdit(entry: MyProjectEntry): boolean {
-    return isProjectManagerOf(entry.roles)
-      && entry.project.canManage !== false
+    return entry.project.canManage === true
       && entry.project.status !== ProjectStatus.Completed
       && entry.project.status !== ProjectStatus.Cancelled;
   }

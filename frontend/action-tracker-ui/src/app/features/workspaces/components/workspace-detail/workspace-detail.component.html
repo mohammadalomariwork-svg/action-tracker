@@ -43,12 +43,14 @@
           </div>
         </div>
         <div class="wd-export-btns">
-          <a *appHasPermission="'Workspaces'; action: 'Edit'"
-             class="btn btn-sm btn-outline-primary"
-             [routerLink]="['/workspaces', workspace.id, 'settings']"
-             title="Manage admins, members, project managers, approvers, and strategy">
-            <i class="bi bi-gear me-1"></i>Configure Workspace
-          </a>
+          @if (workspace.canManageSettings) {
+            <a *appHasPermission="'Workspaces'; action: 'Edit'"
+               class="btn btn-sm btn-outline-primary"
+               [routerLink]="['/workspaces', workspace.id, 'settings']"
+               title="Manage admins, members, project managers, approvers, and strategy">
+              <i class="bi bi-gear me-1"></i>Configure Workspace
+            </a>
+          }
           <button class="btn btn-sm btn-outline-success" (click)="exportToExcel()" title="Export to Excel">
             <i class="bi bi-file-earmark-excel me-1"></i>Excel
           </button>
@@ -280,7 +282,7 @@
                 <label class="form-check-label small text-muted" for="showDeletedProjectsToggle">Show deleted</label>
               </div>
 
-              @if (canManage) {
+              @if (canCreateProjects) {
                 <button *appHasPermission="'Projects'; action: 'Create'"
                         class="btn btn-primary btn-sm" (click)="openNewProjectForm()" [disabled]="showProjectForm">
                   <i class="bi bi-plus-circle me-1"></i>New Project
@@ -356,7 +358,7 @@
                             <a class="btn btn-outline-info btn-sm wa-action-btn"
                                [routerLink]="['/projects', prj.id]"
                                title="View"><i class="bi bi-eye"></i></a>
-                            @if (canManage && prj.status !== ProjectStatus.Completed && prj.status !== ProjectStatus.Cancelled) {
+                            @if (prj.canManage && prj.status !== ProjectStatus.Completed && prj.status !== ProjectStatus.Cancelled) {
                               <button *appHasPermission="'Projects'; action: 'Edit'"
                                       class="btn btn-outline-primary btn-sm wa-action-btn"
                                       (click)="openEditProjectForm(prj)"
@@ -374,8 +376,9 @@
                                 }
                               </button>
                             }
-                          } @else if (canManage) {
-                            <button class="btn btn-outline-success btn-sm wa-action-btn"
+                          } @else if (prj.canManage) {
+                            <button *appHasPermission="'Projects'; action: 'Edit'"
+                                    class="btn btn-outline-success btn-sm wa-action-btn"
                                     (click)="restoreProject(prj)"
                                     title="Restore"
                                     [disabled]="restoringProjectId === prj.id">
@@ -438,7 +441,7 @@
                          [routerLink]="['/projects', prj.id]">
                         <i class="bi bi-eye me-1"></i>View
                       </a>
-                      @if (canManage && prj.status !== ProjectStatus.Completed && prj.status !== ProjectStatus.Cancelled) {
+                      @if (prj.canManage && prj.status !== ProjectStatus.Completed && prj.status !== ProjectStatus.Cancelled) {
                         <button *appHasPermission="'Projects'; action: 'Edit'"
                                 class="btn btn-outline-primary btn-sm"
                                 (click)="openEditProjectForm(prj)"
@@ -455,8 +458,9 @@
                           }
                         </button>
                       }
-                    } @else if (canManage) {
-                      <button class="btn btn-outline-success btn-sm" (click)="restoreProject(prj)"
+                    } @else if (prj.canManage) {
+                      <button *appHasPermission="'Projects'; action: 'Edit'"
+                              class="btn btn-outline-success btn-sm" (click)="restoreProject(prj)"
                               [disabled]="restoringProjectId === prj.id">
                         @if (restoringProjectId === prj.id) {
                           <span class="spinner-border spinner-border-sm"></span>
@@ -516,8 +520,9 @@
                 <label class="form-check-label small text-muted" for="showDeletedToggle">Show deleted</label>
               </div>
 
-              @if (canManage) {
-                <button class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
+              @if (canCreateActionItems) {
+                <button *appHasPermission="'ActionItems'; action: 'Create'"
+                        class="btn btn-primary btn-sm" (click)="openNewActionForm()" [disabled]="showActionForm">
                   <i class="bi bi-plus-circle me-1"></i>New Action
                 </button>
               }
@@ -628,7 +633,7 @@
                               [routerLink]="['/actions', item.id, 'view']"
                               title="View"
                             ><i class="bi bi-eye"></i></a>
-                            @if (item.statusCode !== ActionStatus.Done) {
+                            @if (item.statusCode !== ActionStatus.Done && item.canWork !== false) {
                               <button *appHasPermission="'ActionItems'; action: 'Edit'"
                                 class="btn btn-outline-primary btn-sm wa-action-btn"
                                 (click)="openEditActionForm(item)"
@@ -636,8 +641,8 @@
                                 [disabled]="showActionForm"
                               ><i class="bi bi-pencil"></i></button>
                             }
-                            @if (canManage) {
-                              <button
+                            @if (item.canDelete) {
+                              <button *appHasPermission="'ActionItems'; action: 'Delete'"
                                 class="btn btn-outline-danger btn-sm wa-action-btn"
                                 (click)="deleteAction(item)"
                                 title="Delete"
@@ -650,8 +655,8 @@
                                 }
                               </button>
                             }
-                          } @else if (canManage && !item.projectId) {
-                            <button
+                          } @else if (item.canDelete) {
+                            <button *appHasPermission="'ActionItems'; action: 'Edit'"
                               class="btn btn-outline-success btn-sm wa-action-btn"
                               (click)="restoreAction(item)"
                               title="Restore"
@@ -750,15 +755,15 @@
                         class="btn btn-outline-info btn-sm"
                         [routerLink]="['/actions', item.id, 'view']"
                       ><i class="bi bi-eye me-1"></i>View</a>
-                      @if (item.statusCode !== ActionStatus.Done) {
+                      @if (item.statusCode !== ActionStatus.Done && item.canWork !== false) {
                         <button *appHasPermission="'ActionItems'; action: 'Edit'"
                           class="btn btn-outline-primary btn-sm"
                           (click)="openEditActionForm(item)"
                           [disabled]="showActionForm"
                         ><i class="bi bi-pencil me-1"></i>Edit</button>
                       }
-                      @if (canManage) {
-                        <button
+                      @if (item.canDelete) {
+                        <button *appHasPermission="'ActionItems'; action: 'Delete'"
                           class="btn btn-outline-danger btn-sm"
                           (click)="deleteAction(item)"
                           [disabled]="deletingActionId === item.id"
@@ -770,8 +775,8 @@
                           }
                         </button>
                       }
-                    } @else if (canManage && !item.projectId) {
-                      <button
+                    } @else if (item.canDelete) {
+                      <button *appHasPermission="'ActionItems'; action: 'Edit'"
                         class="btn btn-outline-success btn-sm"
                         (click)="restoreAction(item)"
                         [disabled]="restoringActionId === item.id"
@@ -1176,12 +1181,16 @@
       @if (editingProjectId) {
         <div class="row mb-3">
           <div class="col-6">
-            <label class="form-label">Status</label>
-            <select class="form-select" [(ngModel)]="projectForm.status">
-              @for (opt of PROJECT_STATUS_OPTIONS; track opt.value) {
+            <label class="form-label" for="wdPrjStatus">Status</label>
+            <select id="wdPrjStatus" class="form-select" [(ngModel)]="projectForm.status"
+                    [attr.aria-describedby]="projectStatusHint ? 'wdPrjStatusHint' : null">
+              @for (opt of projectStatusOptions; track opt.value) {
                 <option [ngValue]="opt.value">{{ opt.label }}</option>
               }
             </select>
+            @if (projectStatusHint) {
+              <small id="wdPrjStatusHint" class="wd-field-hint">{{ projectStatusHint }}</small>
+            }
           </div>
           <div class="col-6">
             <label class="form-label">Actual Start</label>

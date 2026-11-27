@@ -76,6 +76,8 @@ public class ActionItemWritePermissionIntegrationTests
             Id = Guid.NewGuid(), Title = "A-1b workspace " + Guid.NewGuid().ToString("N")[..6],
             OrganizationUnit = "Integration", CreatedAt = DateTime.UtcNow,
         };
+        // WO-2026-11 P-2b (B2): a standalone item is added by a member of its workspace.
+        workspace.Members.Add(new WorkspaceMember { WorkspaceId = workspace.Id, UserId = userId, UserName = userId });
         db.Workspaces.Add(workspace);
 
         Guid? projectId = null;

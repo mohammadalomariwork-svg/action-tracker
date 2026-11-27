@@ -652,7 +652,12 @@ public class ActionItemWorkflowService : IActionItemWorkflowService
             .Include(a => a.Assignees)
             .FirstOrDefaultAsync(a => a.Id == dto.ActionItemId)
             ?? throw new KeyNotFoundException($"ActionItem {dto.ActionItemId} not found.");
-        await _access.EnsureCanWorkOnItemAsync(dto.ActionItemId);   // WO-2026-11 P-2
+        // WO-2026-11 P-2b (B4): the creator, a line manager of an assignee or whoever
+        // manages the item (standalone: the workspace's admins, an Admin), only while
+        // it is escalated. The P-2 ceiling still applies through a project role.
+        await _access.EnsureCanGiveDirectionAsync(dto.ActionItemId);
+        if (!actionItem.IsEscalated)
+            throw new ActionTracker.Application.Features.ActionItems.ActionItemNotEscalatedException();
 
         _logger.LogInformation(
             "Direction given for ActionItem {ActionItemId} by {UserId}: {Direction}",

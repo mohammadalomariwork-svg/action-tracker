@@ -2,12 +2,15 @@ import {
   Component, OnInit, ChangeDetectionStrategy,
   inject, signal, input,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 
 import { CommentService } from '../../../core/services/comment.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CommentInfo } from '../../../core/models/comment.model';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-comments-section',
@@ -26,9 +29,22 @@ export class CommentsSectionComponent implements OnInit {
    */
   readonly canPost = input(true);
   readonly readOnlyNote = input('You can read the comments here but not add any.');
+  /**
+   * WO-2026-11 P-2b (B6): authors may edit and delete their own comments. False for a
+   * caller who reaches the record only through a project role and does not manage it
+   * (the P-2 ceiling); Edit / Delete then show on no comment.
+   */
+  readonly canEditOwn = input(true);
 
   private readonly commentSvc = inject(CommentService);
   private readonly toastSvc = inject(ToastService);
+  private readonly currentUserId = toSignal(inject(AuthService).currentUser$.pipe(map(u => u?.userId ?? null)), { initialValue: null });
+
+  /** Edit / Delete show only where the server allows them: the caller's own comment. */
+  canChange(c: CommentInfo): boolean {
+    const me = this.currentUserId();
+    return this.canEditOwn() && !!me && c.authorUserId?.toLowerCase() === me.toLowerCase();
+  }
 
   readonly comments = signal<CommentInfo[]>([]);
   readonly loading = signal(false);

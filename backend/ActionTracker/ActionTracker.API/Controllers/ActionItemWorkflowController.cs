@@ -183,10 +183,15 @@ public class ActionItemWorkflowController : ControllerBase
     // POST api/action-items/workflow/give-direction
     // -------------------------------------------------------------------------
 
-    /// <summary>Gives direction on an escalated action item.</summary>
+    /// <summary>
+    /// Gives direction on an escalated action item. WO-2026-11 P-2b (B4): its creator, a
+    /// line manager of an assignee or whoever manages it (403 otherwise); 409 when the
+    /// item is not escalated.
+    /// </summary>
     [HttpPost("give-direction")]
     [Authorize(Policy = PermissionPolicies.ActionItemsEdit)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GiveDirection([FromBody] WorkflowDirectionDto dto)
     {
         var userId = GetUserId();
@@ -194,7 +199,14 @@ public class ActionItemWorkflowController : ControllerBase
             "POST /api/action-items/workflow/give-direction by {UserId} for ActionItem {ActionItemId}",
             userId, dto.ActionItemId);
 
-        await _workflowService.GiveDirectionAsync(dto, userId);
+        try
+        {
+            await _workflowService.GiveDirectionAsync(dto, userId);
+        }
+        catch (ActionTracker.Application.Features.ActionItems.ActionItemNotEscalatedException ex)
+        {
+            return Conflict(ApiResponse<object>.Fail(ex.Message));   // WO-2026-11 P-2b (B4)
+        }
         return Ok(ApiResponse<object>.Ok(null!, "Direction given successfully."));
     }
 

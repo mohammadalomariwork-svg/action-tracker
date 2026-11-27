@@ -1,6 +1,7 @@
 using ActionTracker.Application.Common.Interfaces;
 using ActionTracker.Application.Features.Comments.DTOs;
 using ActionTracker.Application.Features.Comments.Interfaces;
+using ActionTracker.Application.Features.ProjectPeople;
 using ActionTracker.Application.Features.ProjectPeople.Interfaces;
 using ActionTracker.Application.Features.ProjectPeople.Services;
 using ActionTracker.Domain.Entities;
@@ -115,7 +116,7 @@ public class CommentService : ICommentService
     {
         var comment = await LoadVisibleCommentAsync(commentId, ct);
         RefuseActionItemWrite(comment.RelatedEntityType);
-        await EnsureProjectRoleWriteAsync(RequireSupportedType(comment.RelatedEntityType), comment.RelatedEntityId, ct);   // WO-2026-11 P-2
+        await EnsureAuthorWriteAsync(RequireSupportedType(comment.RelatedEntityType), comment.RelatedEntityId, ct);   // WO-2026-11 P-2 / P-2b
 
         if (comment.AuthorUserId != userId)
             throw new UnauthorizedAccessException("You can only edit your own comments.");
@@ -137,7 +138,7 @@ public class CommentService : ICommentService
     {
         var comment = await LoadVisibleCommentAsync(commentId, ct);
         RefuseActionItemWrite(comment.RelatedEntityType);
-        await EnsureProjectRoleWriteAsync(RequireSupportedType(comment.RelatedEntityType), comment.RelatedEntityId, ct);   // WO-2026-11 P-2
+        await EnsureAuthorWriteAsync(RequireSupportedType(comment.RelatedEntityType), comment.RelatedEntityId, ct);   // WO-2026-11 P-2 / P-2b
 
         if (comment.AuthorUserId != userId)
             throw new UnauthorizedAccessException("You can only delete your own comments.");
@@ -180,22 +181,38 @@ public class CommentService : ICommentService
     }
 
     /// <summary>
-    /// WO-2026-11 P-2: through a project role, only the project's managers may write
-    /// comments on the project, its milestones and risks; viewers, sponsors and team
-    /// members read them. Workspace-level callers keep today's rights.
+    /// WO-2026-11 P-2 / P-2b (B6): posting a comment on a project, its milestones or
+    /// risks is a manage right (the project's PMs, the workspace's admins, an Admin
+    /// or the PMO Head); everyone else who sees it reads.
     /// </summary>
     private async Task EnsureProjectRoleWriteAsync(string type, Guid entityId, CancellationToken ct)
     {
-        Guid? projectId = type switch
-        {
-            ProjectType     => entityId,
-            MilestoneType   => await _dbContext.Milestones.Where(m => m.Id == entityId).Select(m => (Guid?)m.ProjectId).FirstOrDefaultAsync(ct),
-            ProjectRiskType => await _dbContext.ProjectRisks.Where(r => r.Id == entityId).Select(r => (Guid?)r.ProjectId).FirstOrDefaultAsync(ct),
-            _               => null,
-        };
-        if (projectId is { } pid)
+        if (await ProjectOfAsync(type, entityId, ct) is { } pid)
             await _access.EnsureCanManageAsync(pid);
     }
+
+    /// <summary>
+    /// WO-2026-11 P-2b (B6): authors edit and delete their own comments (checked by the
+    /// caller). Through a project role only, the P-2 ceiling stays: they must also be a
+    /// manager of the project.
+    /// </summary>
+    private async Task EnsureAuthorWriteAsync(string type, Guid entityId, CancellationToken ct)
+    {
+        if (await ProjectOfAsync(type, entityId, ct) is not { } pid) return;
+        var access = await _access.GetAsync(pid) ?? throw new KeyNotFoundException($"{type} {entityId} not found.");
+        if (!access.WorkspaceLevel && !access.CanManage)
+            throw new ProjectAccessDeniedException(access.IsTeamMember
+                ? ProjectAccessDeniedException.ManagersOnly
+                : ProjectAccessDeniedException.ReadOnly);
+    }
+
+    private async Task<Guid?> ProjectOfAsync(string type, Guid entityId, CancellationToken ct) => type switch
+    {
+        ProjectType     => entityId,
+        MilestoneType   => await _dbContext.Milestones.Where(m => m.Id == entityId).Select(m => (Guid?)m.ProjectId).FirstOrDefaultAsync(ct),
+        ProjectRiskType => await _dbContext.ProjectRisks.Where(r => r.Id == entityId).Select(r => (Guid?)r.ProjectId).FirstOrDefaultAsync(ct),
+        _               => null,
+    };
 
     private async Task EnsureParentVisibleAsync(string type, Guid entityId, CancellationToken ct)
     {

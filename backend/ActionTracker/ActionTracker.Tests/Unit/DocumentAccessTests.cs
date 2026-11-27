@@ -30,7 +30,7 @@ public class DocumentAccessTests : IDisposable
     private const string Creator  = "user-creator";   // workspace admin; creates the items
     private const string Assignee = "user-assignee";  // item assignee
     private const string SubOwner = "user-sub";       // sub-item assignee
-    private const string Editor   = "user-editor";    // another member with ActionItems.Edit
+    private const string Editor   = "user-editor";    // another workspace admin with ActionItems.Edit: works on the items (P-2b) but did not create them
     private const string AdminId  = "user-admin";     // Admin role
     private const string Outsider = "user-outsider";  // in no workspace list
 
@@ -54,11 +54,14 @@ public class DocumentAccessTests : IDisposable
 
         var ws = new Workspace { Id = _workspaceId, Title = "Public", OrganizationUnit = "O", CreatedAt = DateTime.UtcNow };
         ws.Admins.Add(new WorkspaceAdmin { WorkspaceId = _workspaceId, AdminUserId = Creator, AdminUserName = "c" });
-        foreach (var m in new[] { Assignee, SubOwner, Editor })
+        // WO-2026-11 P-2b: only linked people work on an item, so the "other editor" is a second admin.
+        ws.Admins.Add(new WorkspaceAdmin { WorkspaceId = _workspaceId, AdminUserId = Editor, AdminUserName = "e" });
+        foreach (var m in new[] { Assignee, SubOwner })
             ws.Members.Add(new WorkspaceMember { WorkspaceId = _workspaceId, UserId = m, UserName = m });
         var priv = new Workspace { Id = _privateWorkspaceId, Title = "Private", OrganizationUnit = "O", IsPrivate = true, CreatedAt = DateTime.UtcNow };
         priv.Admins.Add(new WorkspaceAdmin { WorkspaceId = _privateWorkspaceId, AdminUserId = Creator, AdminUserName = "c" });
         _db.Workspaces.AddRange(ws, priv);
+        TestRoles.Grant(_db, AdminId, AppRoles.Admin);   // P-2b reads roles from the database
         _db.SaveChanges();
 
         _scope.Setup(s => s.GetVisibleOrgUnitIdsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))

@@ -610,6 +610,7 @@
         entityType="Project"
         [entityId]="project.id"
         [canPost]="canManage"
+        [canEditOwn]="canEditOwnComments"
         readOnlyNote="Only the project's managers can comment on the project."
       />
     </div>
@@ -620,8 +621,7 @@
         entityType="Project"
         [entityId]="project.id"
         [canUpload]="canManage"
-        [canDelete]="canManage"
-        lockedNote="Only the project's managers can add or remove the project's files."
+        [lockedNote]="canManage ? null : filesLockedNote"
       />
     </div>
 
@@ -739,19 +739,21 @@
       <div class="mb-3">
         @if (canOpenWorkspace) {
           <label class="form-label" for="editPrjPm">Lead project manager <span class="text-danger">*</span></label>
-          <select id="editPrjPm" class="form-select" [(ngModel)]="editForm.projectManagerUserId">
+          <select id="editPrjPm" class="form-select" [(ngModel)]="editForm.projectManagerUserId"
+                  aria-describedby="editPrjPmHelp">
             <option value="">-- Select --</option>
-            @for (user of allUsers; track user.userId) {
-              <option [value]="user.userId">{{ user.userName }}</option>
+            @for (opt of leadPmChoices; track opt.userId) {
+              <option [value]="opt.userId">{{ opt.label }}</option>
             }
           </select>
+          <small id="editPrjPmHelp" class="pd-field-hint">From the workspace's Project Managers list.</small>
           @if (!editForm.projectManagerUserId) {
             <small class="text-danger">Project manager is required.</small>
           }
         } @else {
           <span class="form-label d-block">Lead project manager</span>
           <p class="mb-0">{{ project?.projectManagerName }}</p>
-          <small class="pd-locked-note"><i class="bi bi-lock" aria-hidden="true"></i> Only the workspace's admins and members can change the lead project manager.</small>
+          <small class="pd-locked-note"><i class="bi bi-lock" aria-hidden="true"></i> Through your project role you cannot change the lead project manager.</small>
         }
       </div>
 
@@ -802,12 +804,16 @@
       <!-- Status & Actual Start -->
       <div class="row mb-3">
         <div class="col-6">
-          <label class="form-label">Status</label>
-          <select class="form-select" [(ngModel)]="editForm.status" (ngModelChange)="saveEditError = null">
-            @for (opt of PROJECT_STATUS_OPTIONS; track opt.value) {
+          <label class="form-label" for="editPrjStatus">Status</label>
+          <select id="editPrjStatus" class="form-select" [(ngModel)]="editForm.status" (ngModelChange)="saveEditError = null"
+                  [attr.aria-describedby]="editStatusHint ? 'editPrjStatusHint' : null">
+            @for (opt of editStatusOptions; track opt.value) {
               <option [ngValue]="opt.value">{{ opt.label }}</option>
             }
           </select>
+          @if (editStatusHint) {
+            <small id="editPrjStatusHint" class="pd-field-hint">{{ editStatusHint }}</small>
+          }
         </div>
         <div class="col-6">
           <label class="form-label">Actual Start</label>

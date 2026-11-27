@@ -249,13 +249,15 @@
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="pfStatus" class="form-label">Project Status</label>
-                <select id="pfStatus" class="form-select" formControlName="status" (change)="errorMessage = null">
-                  <option [ngValue]="ProjectStatus.Draft">Draft</option>
-                  <option [ngValue]="ProjectStatus.Active">Active</option>
-                  <option [ngValue]="ProjectStatus.OnHold">On Hold</option>
-                  <option [ngValue]="ProjectStatus.Completed">Completed</option>
-                  <option [ngValue]="ProjectStatus.Cancelled">Cancelled</option>
+                <select id="pfStatus" class="form-select" formControlName="status" (change)="errorMessage = null"
+                        [attr.aria-describedby]="statusHint ? 'pfStatusHint' : null">
+                  @for (opt of statusOptions; track opt.value) {
+                    <option [ngValue]="opt.value">{{ opt.label }}</option>
+                  }
                 </select>
+                @if (statusHint) {
+                  <small id="pfStatusHint" class="pf-field-hint">{{ statusHint }}</small>
+                }
               </div>
               <div class="col-md-6 mb-3">
                 <label for="pfActualStart" class="form-label">Actual Start Date</label>
